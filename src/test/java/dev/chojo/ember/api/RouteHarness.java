@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.CsrfGuard;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.SessionGate;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -234,7 +235,7 @@ public final class RouteHarness {
      */
     public static Refusal refusalOf(Response response) {
         String code = json(response).path("code").asString(null);
-        Refusal refusal = Arrays.stream(Refusal.values())
+        Refusal refusal = Refusal.all().stream()
                 .filter(candidate -> candidate.code().equals(code))
                 .findFirst()
                 .orElseGet(() -> fail("No named refusal in %d: %s"

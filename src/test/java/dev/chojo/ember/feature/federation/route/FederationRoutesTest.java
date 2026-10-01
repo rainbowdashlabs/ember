@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -102,7 +102,7 @@ class FederationRoutesTest {
 
         when(federation.generateStationInvite(STATION)).thenReturn(Optional.empty());
         assertEquals(
-                Refusal.FEDERATION_STATION_NOT_HERE,
+                FederationRefusal.FEDERATION_STATION_NOT_HERE,
                 refusalOf(harness.request(client -> client.post(PREFIX + "/federation/invite", null, manager()))));
     }
 
@@ -142,10 +142,10 @@ class FederationRoutesTest {
 
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT,
+                    FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT,
                     refusalOf(client.post(PREFIX + "/federation/requests/8/accept", null, manager())));
             assertEquals(
-                    Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE,
+                    FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE,
                     refusalOf(client.post(PREFIX + "/federation/requests/8/decline", null, manager())));
         });
 

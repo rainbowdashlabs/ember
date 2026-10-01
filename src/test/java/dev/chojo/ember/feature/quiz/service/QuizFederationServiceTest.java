@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -182,7 +182,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.getFederatedQuizCatalog(station.id(), localPartner.uid(), catalog.id()));
-        assertEquals(Refusal.REMOTE_QUIZ_CATALOG_NOT_SHARED, refused.refusal());
+        assertEquals(QuizRefusal.REMOTE_QUIZ_CATALOG_NOT_SHARED, refused.refusal());
         federationRepo.deleteQuizShare(share.id(), station.id());
         quizCatalogRepo.delete(catalog.id());
     }
@@ -199,7 +199,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.getFederatedQuizCatalog(station.id(), localPartner.uid(), catalog.id()));
-        assertEquals(Refusal.REMOTE_QUIZ_CATALOG_NOT_SHARED, refused.refusal());
+        assertEquals(QuizRefusal.REMOTE_QUIZ_CATALOG_NOT_SHARED, refused.refusal());
         quizCatalogRepo.delete(catalog.id());
     }
 

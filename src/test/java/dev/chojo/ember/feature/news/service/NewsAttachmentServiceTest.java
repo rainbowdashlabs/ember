@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.media.MediaTestSupport;
@@ -105,8 +105,8 @@ class NewsAttachmentServiceTest extends RepositoryTestBase {
                     RefusalResponse.class, () -> service.attach(entry.id(), station.id(), foreign.id(), null));
             var missing =
                     assertThrows(RefusalResponse.class, () -> service.attach(entry.id(), station.id(), 99999, null));
-            assertEquals(Refusal.NEWS_ATTACHMENT_FILE_ELSEWHERE, elsewhere.refusal());
-            assertEquals(Refusal.NEWS_ATTACHMENT_FILE_NOT_HERE, missing.refusal());
+            assertEquals(NewsRefusal.NEWS_ATTACHMENT_FILE_ELSEWHERE, elsewhere.refusal());
+            assertEquals(NewsRefusal.NEWS_ATTACHMENT_FILE_NOT_HERE, missing.refusal());
         } finally {
             media.deleteFile(foreign.id());
         }

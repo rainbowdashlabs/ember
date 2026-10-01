@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationTransferService;
@@ -142,7 +142,7 @@ public class TransferRoutes implements Routes {
     private void tokenListTables(Context ctx) {
         String token = ctx.pathParam("token");
         int stationId =
-                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLES::raise);
+                exportService.validateToken(token).orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLES::raise);
         String importingFrom = ctx.header("X-Ember-Importing-From");
         log.info(
                 "tables manifest requested for station {} by destination {} - flipping read-only flag",
@@ -175,10 +175,11 @@ public class TransferRoutes implements Routes {
             })
     private void tokenExportTable(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLE::raise);
+        int stationId =
+                exportService.validateToken(token).orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLE::raise);
         String table = ctx.pathParam("table");
         if (!exportService.getTableOrder().contains(table)) {
-            throw Refusal.TRANSFER_PART_UNKNOWN.raise(table);
+            throw MemberRefusal.TRANSFER_PART_UNKNOWN.raise(table);
         }
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(500);
@@ -197,7 +198,8 @@ public class TransferRoutes implements Routes {
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})
     private void tokenAbortTransfer(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_ABORT::raise);
+        int stationId =
+                exportService.validateToken(token).orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_ABORT::raise);
         log.info("destination requested abort for station {}", stationId);
         exportService.abortTransfer(stationId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -214,8 +216,9 @@ public class TransferRoutes implements Routes {
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})
     private void tokenCompleteTransfer(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId =
-                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE::raise);
+        int stationId = exportService
+                .validateToken(token)
+                .orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE::raise);
         transferService.complete(stationId, ctx.header("X-Ember-Importing-From"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -235,12 +238,13 @@ public class TransferRoutes implements Routes {
     private void startImport(Context ctx) {
         var req = ctx.bodyAsClass(TransferImportRequest.class);
         if (req.token() == null || req.token().isBlank()) {
-            throw Refusal.TRANSFER_TOKEN_MISSING.raise();
+            throw MemberRefusal.TRANSFER_TOKEN_MISSING.raise();
         }
-        var parsed = StationExportService.parseToken(req.token()).orElseThrow(Refusal.TRANSFER_TOKEN_UNREADABLE::raise);
+        var parsed = StationExportService.parseToken(req.token())
+                .orElseThrow(MemberRefusal.TRANSFER_TOKEN_UNREADABLE::raise);
         String sourceUrl = (req.sourceUrl() != null && !req.sourceUrl().isBlank()) ? req.sourceUrl() : parsed.host();
         if (sourceUrl == null || sourceUrl.isBlank()) {
-            throw Refusal.TRANSFER_SOURCE_MISSING.raise();
+            throw MemberRefusal.TRANSFER_SOURCE_MISSING.raise();
         }
         sourceUrl = sourceUrl.replaceAll("/+$", "");
         var result = importService.startRemoteImport(sourceUrl, parsed.token());
@@ -261,7 +265,7 @@ public class TransferRoutes implements Routes {
         UUID stationUid = pathUuid(ctx, "stationUid");
         var progress = importService.getProgressByUid(stationUid);
         if (progress == null) {
-            throw Refusal.TRANSFER_IMPORT_NOT_RUNNING.raise();
+            throw MemberRefusal.TRANSFER_IMPORT_NOT_RUNNING.raise();
         }
         ctx.json(new ImportProgressResponse(
                 progress.stationId(),

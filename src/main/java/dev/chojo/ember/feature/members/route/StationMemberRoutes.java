@@ -7,12 +7,12 @@ package dev.chojo.ember.feature.members.route;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -342,7 +342,7 @@ public class StationMemberRoutes implements Routes {
                 .flatMap(memberService::findById)
                 .filter(found -> found.stationId() == session.stationId())
                 .filter(found -> !found.former())
-                .orElseThrow(Refusal.MEMBER_NOT_HERE_BY_UID::raise);
+                .orElseThrow(MemberRefusal.MEMBER_NOT_HERE_BY_UID::raise);
         ctx.json(memberViews.withCompleteness(member));
     }
 
@@ -360,7 +360,7 @@ public class StationMemberRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateMemberRequest.class);
         if (request.accountId() == null) {
-            throw Refusal.MEMBER_ACCOUNT_NOT_NAMED.raise();
+            throw MemberRefusal.MEMBER_ACCOUNT_NOT_NAMED.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(memberViews.withCompleteness(memberService.create(session.stationId(), request.accountId())));
@@ -547,7 +547,7 @@ public class StationMemberRoutes implements Routes {
         int memberId = pathInt(ctx, "id");
         requireOwnedMember(ctx, memberId);
         if (formerMemberService.canMarkFormer(memberId) != null) {
-            throw Refusal.MEMBER_NOT_MARKED_FORMER.raise();
+            throw MemberRefusal.MEMBER_NOT_MARKED_FORMER.raise();
         }
         formerMemberService.markFormer(memberId);
         ctx.json(new FormerCheckResponse(true, null));
@@ -602,7 +602,7 @@ public class StationMemberRoutes implements Routes {
         requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetUserTypeRequest.class);
         if (request.userType() == null) {
-            throw Refusal.MEMBER_USER_TYPE_NOT_NAMED.raise();
+            throw MemberRefusal.MEMBER_USER_TYPE_NOT_NAMED.raise();
         }
         ctx.json(new UserTypeChangeResponse(userTypeChanges.change(memberId, request.userType())));
     }
@@ -620,7 +620,7 @@ public class StationMemberRoutes implements Routes {
         requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetJoinDateRequest.class);
         if (request.joinDate() == null) {
-            throw Refusal.MEMBER_JOIN_DATE_NOT_NAMED.raise();
+            throw MemberRefusal.MEMBER_JOIN_DATE_NOT_NAMED.raise();
         }
         memberService.setJoinDate(memberId, request.joinDate());
         ctx.status(HttpStatus.NO_CONTENT);

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
@@ -85,7 +85,7 @@ class InventoryArtServiceTest extends RepositoryTestBase {
     void kindsExistOnlyInADrawerOfDifferentThings() {
         Inventory uniform = oneThing();
         var refused = assertThrows(RefusalResponse.class, () -> artService.create(uniform.id(), "blau", "", 0));
-        assertEquals(Refusal.ART_INVENTORY_UNIFORM, refused.refusal());
+        assertEquals(InventoryRefusal.ART_INVENTORY_UNIFORM, refused.refusal());
 
         Inventory drawer = drawer();
         InventoryArt art = artService.create(drawer.id(), "Funkgerät blau", "", 0);

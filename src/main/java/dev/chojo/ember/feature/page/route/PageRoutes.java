@@ -6,10 +6,11 @@
 package dev.chojo.ember.feature.page.route;
 
 import dev.chojo.ember.api.Failures;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
@@ -159,7 +160,7 @@ public class PageRoutes implements Routes {
     private Form resolvePagePublicForm(Context ctx, FormPurpose expected) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedOrNotFound(ctx, id, formService::findById, Form::stationId);
-        if (form.purpose() != expected) throw Refusal.PAGE_FORM_NOT_HERE.raise();
+        if (form.purpose() != expected) throw FormRefusal.PAGE_FORM_NOT_HERE.raise();
         return form;
     }
 
@@ -213,8 +214,8 @@ public class PageRoutes implements Routes {
         var session = StationSession.from(ctx);
         var form = resolvePagePublicForm(ctx, expected);
         int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();
-        var response = formService.findResponseById(responseId).orElseThrow(Refusal.FORM_ANSWER_NOT_HERE::raise);
-        if (response.formId() != form.id()) throw Refusal.FORM_ANSWER_NOT_HERE.raise();
+        var response = formService.findResponseById(responseId).orElseThrow(FormRefusal.FORM_ANSWER_NOT_HERE::raise);
+        if (response.formId() != form.id()) throw FormRefusal.FORM_ANSWER_NOT_HERE.raise();
         formService.acknowledgeResponse(responseId, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -237,7 +238,7 @@ public class PageRoutes implements Routes {
             body = CellConfig.MAPPER.readTree(ctx.body());
         } catch (Exception e) {
             log.warn("Could not read the member list a page editor asked to resolve", e);
-            throw Refusal.PAGE_MEMBER_LIST_NOT_READ.raise();
+            throw PageRefusal.PAGE_MEMBER_LIST_NOT_READ.raise();
         }
         ctx.json(pageService.resolveMemberList(session.stationId(), body));
     }
@@ -251,7 +252,7 @@ public class PageRoutes implements Routes {
         var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreatePageRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw Refusal.PAGE_NEEDS_A_TITLE.raise();
+            throw PageRefusal.PAGE_NEEDS_A_TITLE.raise();
         }
         try {
             var page = pageService.create(
@@ -262,7 +263,7 @@ public class PageRoutes implements Routes {
             ctx.status(HttpStatus.CREATED).json(page);
         } catch (IllegalArgumentException e) {
             log.warn("Could not create a page in station {}", session.stationId(), e);
-            throw Refusal.PAGE_NOT_CREATED.raise();
+            throw PageRefusal.PAGE_NOT_CREATED.raise();
         }
     }
 
@@ -285,10 +286,10 @@ public class PageRoutes implements Routes {
         requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(SavePageRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw Refusal.PAGE_TITLE_MISSING_ON_SAVE.raise();
+            throw PageRefusal.PAGE_TITLE_MISSING_ON_SAVE.raise();
         }
         if (request.slug() == null || request.slug().isBlank()) {
-            throw Refusal.PAGE_ADDRESS_MISSING_ON_SAVE.raise();
+            throw PageRefusal.PAGE_ADDRESS_MISSING_ON_SAVE.raise();
         }
 
         List<ContentBlockService.RowData> rows = BlockRowRequest.toRowData(request.rows());
@@ -302,13 +303,13 @@ public class PageRoutes implements Routes {
                     request.metaDescription(),
                     request.ogImageId(),
                     rows)) {
-                throw Refusal.PAGE_NOT_HERE_ON_SAVE.raise();
+                throw PageRefusal.PAGE_NOT_HERE_ON_SAVE.raise();
             }
-            ctx.json(pageService.getPage(pid).orElseThrow(Refusal.PAGE_NOT_HERE_AFTER_SAVE::raise));
+            ctx.json(pageService.getPage(pid).orElseThrow(PageRefusal.PAGE_NOT_HERE_AFTER_SAVE::raise));
         } catch (IllegalArgumentException e) {
             throw Failures.readable(e.getMessage())
-                    .map(Refusal.PAGE_NOT_SAVED::raise)
-                    .orElseGet(Refusal.PAGE_NOT_SAVED::raise);
+                    .map(PageRefusal.PAGE_NOT_SAVED::raise)
+                    .orElseGet(PageRefusal.PAGE_NOT_SAVED::raise);
         }
     }
 
@@ -332,7 +333,7 @@ public class PageRoutes implements Routes {
             var copy = pageService.duplicatePage(pid, session.member().id());
             ctx.status(HttpStatus.CREATED).json(copy);
         } catch (NoSuchElementException e) {
-            throw Refusal.PAGE_NOT_HERE_ON_COPY.raise();
+            throw PageRefusal.PAGE_NOT_HERE_ON_COPY.raise();
         }
     }
 
@@ -341,7 +342,7 @@ public class PageRoutes implements Routes {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         if (!pageService.deletePage(pid)) {
-            throw Refusal.PAGE_NOT_HERE_ON_DELETE.raise();
+            throw PageRefusal.PAGE_NOT_HERE_ON_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -356,12 +357,12 @@ public class PageRoutes implements Routes {
         requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(PageVisibilityRequest.class);
         if (request.visibility() == null) {
-            throw Refusal.PAGE_VISIBILITY_MISSING.raise();
+            throw PageRefusal.PAGE_VISIBILITY_MISSING.raise();
         }
         if (!pageService.setVisibility(pid, request.visibility())) {
-            throw Refusal.PAGE_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
+            throw PageRefusal.PAGE_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
-        ctx.json(pageService.getPage(pid).orElseThrow(Refusal.PAGE_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise));
+        ctx.json(pageService.getPage(pid).orElseThrow(PageRefusal.PAGE_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise));
     }
 
     /**
@@ -390,7 +391,7 @@ public class PageRoutes implements Routes {
         var request = ctx.bodyAsClass(ReplacePageShareLinkRequest.class);
         var replaced = pageService.replaceShareToken(pid, request.currentToken());
         if (replaced.isEmpty()) {
-            throw Refusal.PAGE_LINK_ALREADY_REPLACED.raise();
+            throw PageRefusal.PAGE_LINK_ALREADY_REPLACED.raise();
         }
         ctx.json(new PageShareLinkResponse(replaced.get(), pageService.linksOpen(page.stationId())));
     }
@@ -408,7 +409,7 @@ public class PageRoutes implements Routes {
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("Could not set the landing page of station {}", session.stationId(), e);
-            throw Refusal.LANDING_PAGE_NOT_SET.raise();
+            throw PageRefusal.LANDING_PAGE_NOT_SET.raise();
         }
     }
 
@@ -425,8 +426,8 @@ public class PageRoutes implements Routes {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         var file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.PAGE_UPLOAD_MISSING_FILE.raise();
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.PAGE_UPLOAD_TOO_LARGE.raise();
+        if (file == null) throw PageRefusal.PAGE_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw PageRefusal.PAGE_UPLOAD_TOO_LARGE.raise();
 
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -435,10 +436,10 @@ public class PageRoutes implements Routes {
             ctx.status(HttpStatus.CREATED).json(stored);
         } catch (StorageQuotaService.StorageQuotaExceededException | IllegalArgumentException e) {
             log.warn("Could not keep a file uploaded from the page editor", e);
-            throw Refusal.PAGE_UPLOAD_NOT_SAVED.raise();
+            throw PageRefusal.PAGE_UPLOAD_NOT_SAVED.raise();
         } catch (Exception e) {
             log.warn("Failed to upload page file", e);
-            throw Refusal.PAGE_UPLOAD_NOT_PROCESSED.raise();
+            throw PageRefusal.PAGE_UPLOAD_NOT_PROCESSED.raise();
         }
     }
 

@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -87,11 +87,11 @@ public class EventEmbedRoutes implements Routes {
     private void reference(Context ctx) {
         var session = StationSession.from(ctx);
         var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
-        if (event.restricted()) throw Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
+        if (event.restricted()) throw EventRefusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
         var uid = crudService
                 .findPublicUidsByIds(event.stationId(), List.of(event.id()))
                 .get(event.id());
-        if (uid == null) throw Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
+        if (uid == null) throw EventRefusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
         ctx.json(new EmbedReference(uid));
     }
 
@@ -110,7 +110,7 @@ public class EventEmbedRoutes implements Routes {
         var uid = pathUuid(ctx, "uid");
         var event = crudService
                 .findOpenByUid(session.stationId(), BlockAudience.MEMBERS, uid)
-                .orElseThrow(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE::raise);
         ctx.json(EmbeddedEvent.of(event, categoryName(event)));
     }
 

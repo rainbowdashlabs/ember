@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterFieldValueChanged;
 import dev.chojo.ember.feature.cluster.entity.AssignedClusterProfileField;
@@ -256,7 +256,7 @@ public class ClusterProfileFieldService {
         for (var entry : values.entrySet()) {
             ClusterProfileField field = requireField(clusterId, entry.getKey());
             if (!reachingHere.contains(field.id())) {
-                throw Refusal.CLUSTER_PROFILE_FIELD_NOT_ASKED_AT_STATION.raise();
+                throw ClusterRefusal.CLUSTER_PROFILE_FIELD_NOT_ASKED_AT_STATION.raise();
             }
             String oldValue = before.getOrDefault(field.id(), "null");
             String said = ProfileAnswers.said(entry.getValue());
@@ -306,7 +306,7 @@ public class ClusterProfileFieldService {
                 .findById(stationGroupId)
                 .filter(group -> group.clusterId() == clusterId)
                 .isPresent();
-        if (!own) throw Refusal.CLUSTER_PROFILE_FIELD_GROUP_NOT_OWN.raise();
+        if (!own) throw ClusterRefusal.CLUSTER_PROFILE_FIELD_GROUP_NOT_OWN.raise();
     }
 
     /**
@@ -335,7 +335,7 @@ public class ClusterProfileFieldService {
 
             for (int stationId : stationGroupRepository.findStationIdsReachedBy(clusterId, other.stationGroupId())) {
                 if (reached.contains(stationId)) {
-                    throw Refusal.CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE.raise(name);
+                    throw ClusterRefusal.CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE.raise(name);
                 }
             }
         }
@@ -362,30 +362,32 @@ public class ClusterProfileFieldService {
      * and an association does not is the date of birth, which is why the refusal names it.
      */
     private static void requireUsable(String name, FieldType fieldType, ProfileFieldConfig config) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_PROFILE_FIELD_NEEDS_A_NAME.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_PROFILE_FIELD_NEEDS_A_NAME.raise();
         if (!FieldTypes.ASSOCIATION.contains(fieldType)) {
-            throw Refusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED.raise();
+            throw ClusterRefusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED.raise();
         }
         if (config != null && ExpirySettings.outOfRange(config)) {
-            throw Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
+            throw ClusterRefusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
         }
         ProfileFieldConfig settings = config == null ? ProfileFieldConfig.empty() : config;
         settings.settings(false)
                 .asQuestion(name, fieldType)
                 .flatMap(QuestionCheck::defaultValue)
                 .ifPresent(problem -> {
-                    throw Refusal.CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+                    throw ClusterRefusal.CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());
                 });
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_CLUSTER_GONE::raise);
+        return clusterRepository
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_PROFILE_FIELD_CLUSTER_GONE::raise);
     }
 
     private ClusterProfileField requireField(int clusterId, int fieldId) {
         ClusterProfileField field =
-                fieldRepository.findById(fieldId).orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_NOT_HERE::raise);
-        if (field.clusterId() != clusterId) throw Refusal.CLUSTER_PROFILE_FIELD_NOT_HERE.raise();
+                fieldRepository.findById(fieldId).orElseThrow(ClusterRefusal.CLUSTER_PROFILE_FIELD_NOT_HERE::raise);
+        if (field.clusterId() != clusterId) throw ClusterRefusal.CLUSTER_PROFILE_FIELD_NOT_HERE.raise();
         return field;
     }
 
@@ -396,16 +398,16 @@ public class ClusterProfileFieldService {
     private void requireMemberOfCluster(int clusterId, int memberId) {
         Station station = stationRepository
                 .findById(stationOf(memberId))
-                .orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER::raise);
         if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw Refusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER.raise();
+            throw ClusterRefusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER.raise();
         }
     }
 
     private int stationOf(int memberId) {
         return memberRepository
                 .findById(memberId)
-                .orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_MEMBER_GONE::raise)
+                .orElseThrow(ClusterRefusal.CLUSTER_PROFILE_FIELD_MEMBER_GONE::raise)
                 .stationId();
     }
 }

@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -117,7 +117,7 @@ public class EventSharingRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var event = requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         if (event.restricted()) {
-            throw Refusal.RESTRICTED_EVENT_NOT_SHARED.raise();
+            throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
         }
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
         eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
@@ -180,16 +180,16 @@ public class EventSharingRoutes implements Routes {
         var req = ctx.bodyAsClass(EventRegistrationRoutes.StatusUpdateRequest.class);
         var reg = eventFederationService
                 .findRegistrationById(id)
-                .orElseThrow(Refusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
+                .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
         requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
 
         var places = eventFederationService.partnerPlaces(reg.eventId(), reg.partnerId());
         if (places.partnerConfirms()) {
-            throw Refusal.PARTNER_DECIDES_ITS_OWN.raise();
+            throw EventRefusal.PARTNER_DECIDES_ITS_OWN.raise();
         }
         if (req.status() == RegistrationStatus.ACCEPTED) {
             if (!eventFederationService.acceptWithinBudget(id, reg.eventId(), reg.partnerId(), reg.eventDate())) {
-                throw Refusal.NO_PLACES_LEFT_FOR_THIS_PARTNER.raise();
+                throw EventRefusal.NO_PLACES_LEFT_FOR_THIS_PARTNER.raise();
             }
         } else {
             eventFederationService.updateRegistrationStatus(id, req.status());
@@ -265,7 +265,7 @@ public class EventSharingRoutes implements Routes {
         var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
         Integer slotBudget = req.slotBudget();
         if (slotBudget != null && slotBudget < 0) {
-            throw Refusal.PLACES_CANNOT_BE_NEGATIVE.raise();
+            throw EventRefusal.PLACES_CANNOT_BE_NEGATIVE.raise();
         }
         boolean decides = req.partnerConfirms() || slotBudget != null;
         eventFederationService.setPartnerPlaces(eventId, partnerId, decides ? slotBudget : null, decides);

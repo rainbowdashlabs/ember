@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
@@ -204,14 +205,14 @@ public class FederatedEventRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var content = eventFederationService.getFederatedAttachment(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), pathInt(ctx, "attachmentId"));
-        if (content == null || content.base64() == null) throw Refusal.FEDERATED_FILE_NOT_HERE.raise();
+        if (content == null || content.base64() == null) throw EventRefusal.FEDERATED_FILE_NOT_HERE.raise();
 
         byte[] data;
         try {
             data = Base64.getDecoder().decode(content.base64());
         } catch (IllegalArgumentException e) {
             log.warn("Partner station answered with a file this instance cannot read", e);
-            throw Refusal.FEDERATED_FILE_UNREADABLE.raise();
+            throw EventRefusal.FEDERATED_FILE_UNREADABLE.raise();
         }
         ctx.contentType(SafeInlineMime.safeContentType(content.mimeType()));
         ctx.header(
@@ -325,7 +326,7 @@ public class FederatedEventRoutes implements Routes {
         try {
             return LocalDate.parse(value);
         } catch (DateTimeParseException | NullPointerException e) {
-            throw Refusal.FEDERATED_REGISTRATION_DAY_NOT_A_DAY.raise();
+            throw FederationRefusal.FEDERATED_REGISTRATION_DAY_NOT_A_DAY.raise();
         }
     }
 
@@ -333,7 +334,7 @@ public class FederatedEventRoutes implements Routes {
         var partnerUid = pathUuid(ctx, "stationuid");
         return federationService
                 .findPartnerByRemoteUid(stationId, partnerUid)
-                .orElseThrow(Refusal.PARTNER_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.PARTNER_NOT_HERE::raise);
     }
 
     @OpenApi(
@@ -384,7 +385,7 @@ public class FederatedEventRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(EventCommentRoutes.CreateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw Refusal.FEDERATED_COMMENT_NEEDS_TEXT.raise();
+            throw EventRefusal.FEDERATED_COMMENT_NEEDS_TEXT.raise();
         }
         var created = eventFederationService.createFederatedComment(
                 session.stationId(),
@@ -413,7 +414,7 @@ public class FederatedEventRoutes implements Routes {
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(EventCommentRoutes.UpdateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw Refusal.FEDERATED_COMMENT_CHANGE_NEEDS_TEXT.raise();
+            throw EventRefusal.FEDERATED_COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
         ctx.json(eventFederationService.updateFederatedComment(
                 session.stationId(), partnerUid, commentId, session.member().uid(), req.content()));

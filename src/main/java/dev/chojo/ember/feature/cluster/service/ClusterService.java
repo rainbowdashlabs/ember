@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterStationReleased;
@@ -98,7 +98,7 @@ public class ClusterService {
      * @return the cluster
      */
     public Cluster create(String name, @Nullable String description) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_NEEDS_A_NAME_ON_CREATE.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_NEEDS_A_NAME_ON_CREATE.raise();
 
         Station home = stationRepository.create(name.trim());
         stationRepository.markAsClusterHome(home.id());
@@ -114,8 +114,9 @@ public class ClusterService {
      * local station row, so the two drifting apart would show member stations the old name on shared content.
      */
     public boolean rename(int clusterId, String name, @Nullable String description) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_NEEDS_A_NAME_ON_RENAME.raise();
-        Cluster cluster = clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_GONE_BEFORE_RENAME::raise);
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_NEEDS_A_NAME_ON_RENAME.raise();
+        Cluster cluster =
+                clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_GONE_BEFORE_RENAME::raise);
         stationRepository.update(cluster.homeStationId(), name.trim());
         boolean renamed = clusterRepository.rename(clusterId, name.trim(), description);
         if (renamed) log.info("Cluster {} is now called '{}'", clusterId, name.trim());
@@ -134,10 +135,11 @@ public class ClusterService {
      * @throws RefusalResponse when stations still belong to it
      */
     public boolean delete(int clusterId) {
-        Cluster cluster = clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_GONE_BEFORE_DELETE::raise);
+        Cluster cluster =
+                clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_GONE_BEFORE_DELETE::raise);
         List<Integer> stations = clusterRepository.findStationIds(clusterId);
         if (!stations.isEmpty()) {
-            throw Refusal.CLUSTER_STILL_HAS_STATIONS.raise();
+            throw ClusterRefusal.CLUSTER_STILL_HAS_STATIONS.raise();
         }
         boolean deleted = clusterRepository.delete(clusterId);
         if (deleted) {
@@ -158,7 +160,7 @@ public class ClusterService {
      * @return the station
      */
     public Station createStation(int clusterId, String name) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_NEW_STATION_NEEDS_A_NAME.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_NEW_STATION_NEEDS_A_NAME.raise();
         requireCluster(clusterId);
 
         Station station = stationRepository.create(name.trim(), DiscoveryVisibility.NEW_STATION_DEFAULT);
@@ -184,10 +186,10 @@ public class ClusterService {
         Cluster cluster = requireCluster(clusterId);
         Station station = requireStation(stationId);
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            throw Refusal.CLUSTER_HOME_STATION_CANNOT_JOIN.raise();
+            throw ClusterRefusal.CLUSTER_HOME_STATION_CANNOT_JOIN.raise();
         }
         if (station.clusterId() != null && station.clusterId() != clusterId) {
-            throw Refusal.CLUSTER_STATION_ALREADY_IN_ANOTHER.raise();
+            throw ClusterRefusal.CLUSTER_STATION_ALREADY_IN_ANOTHER.raise();
         }
 
         storageBackendService.takeOverOnJoin(clusterId, stationId);
@@ -223,7 +225,7 @@ public class ClusterService {
         Cluster cluster = requireCluster(clusterId);
         Station station = requireStation(stationId);
         if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw Refusal.CLUSTER_RELEASE_STATION_NOT_IN_IT.raise();
+            throw ClusterRefusal.CLUSTER_RELEASE_STATION_NOT_IN_IT.raise();
         }
 
         storageBackendService.handBackOnRelease(clusterId, stationId);
@@ -310,7 +312,7 @@ public class ClusterService {
      */
     public ClusterMember addMember(int clusterId, int accountId, ClusterUserType userType) {
         if (clusterRepository.findMember(clusterId, accountId).isPresent()) {
-            throw Refusal.CLUSTER_ACCOUNT_ALREADY_A_MEMBER.raise();
+            throw ClusterRefusal.CLUSTER_ACCOUNT_ALREADY_A_MEMBER.raise();
         }
         ClusterMember member = clusterRepository.addMember(
                 clusterId, accountId, userType != null ? userType : ClusterUserType.CLUSTER_USER);
@@ -366,7 +368,7 @@ public class ClusterService {
     public void grant(int memberId, ClusterPermission permission) {
         int permissionId = clusterRepository
                 .findPermissionId(permission)
-                .orElseThrow(() -> Refusal.CLUSTER_PERMISSION_NOT_KNOWN_ON_GRANT.raise(permission.name()));
+                .orElseThrow(() -> ClusterRefusal.CLUSTER_PERMISSION_NOT_KNOWN_ON_GRANT.raise(permission.name()));
         clusterRepository.grantPermission(memberId, permissionId);
         log.info("Cluster member {} was granted {}", memberId, permission);
     }
@@ -382,11 +384,11 @@ public class ClusterService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_GONE_FOR_STATION_CHANGE::raise);
+        return clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_GONE_FOR_STATION_CHANGE::raise);
     }
 
     private Station requireStation(int stationId) {
-        return stationRepository.findById(stationId).orElseThrow(Refusal.CLUSTER_STATION_GONE_FOR_CHANGE::raise);
+        return stationRepository.findById(stationId).orElseThrow(ClusterRefusal.CLUSTER_STATION_GONE_FOR_CHANGE::raise);
     }
 
     private Set<StationModule> modulesToDisable() {

@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.BatchResult;
@@ -64,7 +64,7 @@ public class StationMemberInviteRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateInvitesRequest.class);
         if (request.invites() == null || request.invites().isEmpty()) {
-            throw Refusal.INVITES_MISSING.raise();
+            throw MemberRefusal.INVITES_MISSING.raise();
         }
         var serviceRequests = request.invites().stream()
                 .map(StationMemberInviteRoutes::toServiceRequest)
@@ -86,17 +86,17 @@ public class StationMemberInviteRoutes implements Routes {
         try {
             type = entry.userType() != null ? StationUserType.valueOf(entry.userType()) : StationUserType.MEMBER;
         } catch (IllegalArgumentException ignored) {
-            throw Refusal.INVITE_USER_TYPE_UNKNOWN.raise(entry.userType());
+            throw MemberRefusal.INVITE_USER_TYPE_UNKNOWN.raise(entry.userType());
         }
         if (entry.email() == null || entry.firstName() == null || entry.lastName() == null) {
-            throw Refusal.INVITE_ENTRY_DETAILS_MISSING.raise();
+            throw MemberRefusal.INVITE_ENTRY_DETAILS_MISSING.raise();
         }
         List<GuardianRequest> guardians = entry.guardians() == null
                 ? List.of()
                 : entry.guardians().stream()
                         .map(g -> {
                             if (g.email() == null || g.firstName() == null || g.lastName() == null) {
-                                throw Refusal.INVITE_GUARDIAN_DETAILS_MISSING.raise();
+                                throw MemberRefusal.INVITE_GUARDIAN_DETAILS_MISSING.raise();
                             }
                             return new GuardianRequest(g.email(), g.firstName(), g.lastName());
                         })

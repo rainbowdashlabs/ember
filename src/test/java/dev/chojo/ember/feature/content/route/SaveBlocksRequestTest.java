@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.content.route;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.BodyRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import org.junit.jupiter.api.Test;
@@ -62,7 +62,7 @@ class SaveBlocksRequestTest {
 
         var refused = assertThrows(RefusalResponse.class, request::toRowData);
 
-        assertEquals(Refusal.BLOCK_SETTINGS_REJECTED, refused.refusal());
+        assertEquals(BodyRefusal.BLOCK_SETTINGS_REJECTED, refused.refusal());
         assertTrue(refused.getMessage().contains("SPACER"), refused.getMessage());
     }
 

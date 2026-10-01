@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -57,10 +57,10 @@ public enum QuizCatalogTemplate {
     /** Reads the shipped example. A missing one is a broken build, not a bad request. */
     public String read() {
         try (var stream = QuizCatalogTemplate.class.getClassLoader().getResourceAsStream(resourcePath)) {
-            if (stream == null) throw Refusal.QUIZ_CATALOG_EXAMPLE_MISSING.raise();
+            if (stream == null) throw QuizRefusal.QUIZ_CATALOG_EXAMPLE_MISSING.raise();
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw Refusal.QUIZ_CATALOG_EXAMPLE_NOT_READ.raise();
+            throw QuizRefusal.QUIZ_CATALOG_EXAMPLE_NOT_READ.raise();
         }
     }
 }

@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -205,7 +207,8 @@ public class EventFederationService implements FederationServer {
      */
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        var event = crudService.findById(eventId).orElseThrow(Refusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
+        var event =
+                crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
         requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
@@ -241,11 +244,11 @@ public class EventFederationService implements FederationServer {
      */
     private void requireOpenForRegistration(StationEvent event, LocalDate eventDate) {
         if (!event.requiresRegistration()) {
-            throw Refusal.EVENT_TAKES_NO_PARTNER_REGISTRATIONS.raise();
+            throw EventRefusal.EVENT_TAKES_NO_PARTNER_REGISTRATIONS.raise();
         }
         occurrenceCalendar.dateToAnswerFor(event, eventDate);
         if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
-            throw Refusal.REGISTRATION_CLOSED_TO_PARTNER.raise();
+            throw EventRefusal.REGISTRATION_CLOSED_TO_PARTNER.raise();
         }
     }
 
@@ -559,7 +562,7 @@ public class EventFederationService implements FederationServer {
      */
     public RemoteEventRoutes.RemoteEventDetail serveEvent(ServingPartner partner, int eventId) {
         requireShared(partner, eventId);
-        var event = crudService.findById(eventId).orElseThrow(Refusal.SHARED_EVENT_NOT_HERE::raise);
+        var event = crudService.findById(eventId).orElseThrow(EventRefusal.SHARED_EVENT_NOT_HERE::raise);
         var fields = fieldService
                 .findByEvent(eventId, occurrenceCalendar.dateInView(event).orElse(null))
                 .stream()
@@ -606,11 +609,11 @@ public class EventFederationService implements FederationServer {
                 .find(attachmentId)
                 .filter(found -> found.eventId() == eventId)
                 .filter(found -> !found.internal())
-                .orElseThrow(Refusal.SHARED_EVENT_FILE_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.SHARED_EVENT_FILE_NOT_HERE::raise);
         EventAttachmentService.requireSizeToTravel(attachment.fileSize(), apiConfig.maxUploadSizeBytes());
-        var event = crudService.findById(eventId).orElseThrow(Refusal.EVENT_NOT_HERE_BEHIND_SHARED_FILE::raise);
+        var event = crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE_BEHIND_SHARED_FILE::raise);
         var file = media.read(event.stationId(), attachment.contentHash())
-                .orElseThrow(Refusal.SHARED_EVENT_FILE_CONTENT_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.SHARED_EVENT_FILE_CONTENT_NOT_HERE::raise);
         return new RemoteEventRoutes.RemoteAttachmentContent(
                 attachment.id(),
                 attachment.displayName(),
@@ -646,7 +649,7 @@ public class EventFederationService implements FederationServer {
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
         if (!undoWithdrawal(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())) {
-            throw Refusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE.raise();
+            throw EventRefusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
     }
 
@@ -661,12 +664,12 @@ public class EventFederationService implements FederationServer {
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
         if (!partnerPlaces(eventId, partner.partnerId()).partnerConfirms()) {
-            throw Refusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
+            throw EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
         }
         var registration = findRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())
-                .orElseThrow(Refusal.PARTNER_REGISTRATION_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE::raise);
         if (!acceptWithinBudget(registration.id(), eventId, partner.partnerId(), request.eventDate())) {
-            throw Refusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
+            throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
         }
     }
 
@@ -710,7 +713,7 @@ public class EventFederationService implements FederationServer {
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteCommentRequest request) {
         requireShared(partner, eventId);
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.PARTNER_COMMENT_NEEDS_TEXT.raise();
+            throw EventRefusal.PARTNER_COMMENT_NEEDS_TEXT.raise();
         }
         return createRemoteComment(
                 partner.row(),
@@ -731,14 +734,14 @@ public class EventFederationService implements FederationServer {
         try {
             return LocalDate.parse(eventDate);
         } catch (DateTimeParseException e) {
-            throw Refusal.PARTNER_COMMENT_DAY_NOT_A_DATE.raise();
+            throw EventRefusal.PARTNER_COMMENT_DAY_NOT_A_DATE.raise();
         }
     }
 
     private CommentResponse serveCommentEdit(
             ServingPartner partner, int commentId, RemoteEventRoutes.RemoteCommentUpdateRequest request) {
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT.raise();
+            throw EventRefusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
         return updateRemoteComment(partner.row(), commentId, request.remoteMemberUid(), request.content());
     }
@@ -746,7 +749,7 @@ public class EventFederationService implements FederationServer {
     private void serveCommentDeletion(
             ServingPartner partner, int commentId, RemoteEventRoutes.RemoteCommentDeleteRequest request) {
         if (!deleteRemoteComment(partner.row(), commentId, request.remoteMemberUid())) {
-            throw Refusal.PARTNER_COMMENT_NOT_DELETED.raise();
+            throw EventRefusal.PARTNER_COMMENT_NOT_DELETED.raise();
         }
     }
 
@@ -757,7 +760,7 @@ public class EventFederationService implements FederationServer {
      */
     private void requireShared(ServingPartner partner, int eventId) {
         if (!sharedWith(partner).contains(eventId)) {
-            throw Refusal.EVENT_NOT_SHARED_WITH_PARTNER.raise();
+            throw EventRefusal.EVENT_NOT_SHARED_WITH_PARTNER.raise();
         }
     }
 
@@ -854,7 +857,7 @@ public class EventFederationService implements FederationServer {
             @Nullable LocalDate eventDate) {
         var target = commentService
                 .target(CommentEntityType.EVENT, eventId)
-                .orElseThrow(Refusal.EVENT_NOT_SHARED_WITH_PARTNER::raise);
+                .orElseThrow(EventRefusal.EVENT_NOT_SHARED_WITH_PARTNER::raise);
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
         var comment = commentService.createOn(
                 target, CommentWriter.partner(author, displayName), new NewComment(parentId, eventDate, content));
@@ -872,12 +875,12 @@ public class EventFederationService implements FederationServer {
                 commentId,
                 partner,
                 remoteMemberUid,
-                Refusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_UPDATE,
-                Refusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_EDIT);
+                EventRefusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_UPDATE,
+                EventRefusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_EDIT);
         var author = Objects.requireNonNull(comment.author(), "a comment without an author is refused as not theirs");
         var updated = commentService
                 .update(comment, CommentWriter.partner(author, ""), content)
-                .orElseThrow(Refusal.REMOTE_EVENT_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
+                .orElseThrow(EventRefusal.REMOTE_EVENT_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
         log.info("Comment {} on an event edited (partner {})", commentId, partner.id());
         return toCommentResponse(updated);
     }
@@ -890,8 +893,8 @@ public class EventFederationService implements FederationServer {
                 commentId,
                 partner,
                 remoteMemberUid,
-                Refusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_DELETE,
-                Refusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_DELETE);
+                EventRefusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_DELETE,
+                EventRefusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_DELETE);
         boolean deleted = commentService.delete(comment);
         if (deleted) log.info("Comment {} on an event deleted (partner {})", commentId, partner.id());
         return deleted;
@@ -990,7 +993,7 @@ public class EventFederationService implements FederationServer {
                         RemoteEventRoutes.REGISTER.at(eventId),
                         new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate),
                         EventFederationRegistration.class),
-                Refusal.FEDERATED_REGISTRATION_NOT_TAKEN);
+                EventRefusal.FEDERATED_REGISTRATION_NOT_TAKEN);
         log.info(
                 "Station {} registered a member for event {} at partner {} as {}",
                 stationId,
@@ -1014,7 +1017,7 @@ public class EventFederationService implements FederationServer {
                     new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate));
             log.info("Station {} withdrew a registration for event {} at partner {}", stationId, eventId, partner.id());
         } catch (RefusalResponse e) {
-            if (e.refusal() != Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw e;
+            if (e.refusal() != FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw e;
             log.warn("Withdrawal for event {} at partner {} did not arrive", eventId, partner.id());
         }
     }
@@ -1034,7 +1037,7 @@ public class EventFederationService implements FederationServer {
                         partner,
                         RemoteEventRoutes.CONFIRM_OWN.at(eventId),
                         new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
-                Refusal.NO_PLACES_LEFT_AT_HOLDER);
+                EventRefusal.NO_PLACES_LEFT_AT_HOLDER);
         log.info("Station {} confirmed one of its own for event {} at partner {}", stationId, eventId, partner.id());
     }
 
@@ -1052,7 +1055,7 @@ public class EventFederationService implements FederationServer {
                         partner,
                         RemoteEventRoutes.UNDO_WITHDRAWAL.at(eventId),
                         new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
-                Refusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE);
+                EventRefusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE);
         log.info("Station {} took a withdrawal back for event {} at partner {}", stationId, eventId, partner.id());
     }
 
@@ -1065,7 +1068,7 @@ public class EventFederationService implements FederationServer {
         try {
             return call.get();
         } catch (RefusalResponse e) {
-            if (e.refusal() == Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw unanswered.raise();
+            if (e.refusal() == FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw unanswered.raise();
             throw e;
         }
     }

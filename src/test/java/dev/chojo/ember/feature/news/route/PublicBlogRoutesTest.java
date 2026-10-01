@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.news.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -48,8 +48,8 @@ class PublicBlogRoutesTest {
         when(station.uid()).thenReturn(UUID.randomUUID());
         when(station.name()).thenReturn("Wache");
         when(blogs.openBlog(eq("wache"), any(), any())).thenReturn(station);
-        when(blogs.openBlog(eq("closed"), any(), eq(Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY)))
-                .thenThrow(Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY.raise());
+        when(blogs.openBlog(eq("closed"), any(), eq(NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY)))
+                .thenThrow(NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY.raise());
         when(news.findPublicBlogEntries(3, 0, 20)).thenReturn(List.of());
         when(news.findPublicBlogEntries(3, 0, 50)).thenReturn(List.of());
         when(attachments.listFor(any())).thenReturn(Map.of());
@@ -70,10 +70,11 @@ class PublicBlogRoutesTest {
             assertTrue(feed.body().string().contains("Wache"));
             assertTrue(header(feed, "Content-Type").contains("xml"));
             assertEquals(
-                    Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY,
+                    NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY,
                     refusalOf(client.get(PREFIX + "/public/station/closed/blog/4")));
             assertEquals(
-                    Refusal.PUBLIC_BLOG_ENTRY_NOT_HERE, refusalOf(client.get(PREFIX + "/public/station/wache/blog/4")));
+                    NewsRefusal.PUBLIC_BLOG_ENTRY_NOT_HERE,
+                    refusalOf(client.get(PREFIX + "/public/station/wache/blog/4")));
         });
     }
 }

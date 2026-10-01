@@ -7,10 +7,10 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
@@ -144,7 +144,7 @@ public class EventStructureRoutes implements Routes {
     private void createCategory(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_CATEGORY_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw EventRefusal.EVENT_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(categoryService.create(
                         session.stationId(),
@@ -177,7 +177,7 @@ public class EventStructureRoutes implements Routes {
                 req.maxShownEvents(),
                 Boolean.TRUE.equals(req.isPublic()),
                 req.color())) {
-            throw Refusal.EVENT_CATEGORY_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_CATEGORY_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
     }
@@ -215,7 +215,7 @@ public class EventStructureRoutes implements Routes {
         if (categoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_CATEGORY_NOT_DELETED.raise();
+            throw EventRefusal.EVENT_CATEGORY_NOT_DELETED.raise();
         }
     }
 
@@ -243,7 +243,7 @@ public class EventStructureRoutes implements Routes {
     private void createBreak(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BreakRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_BREAK_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw EventRefusal.EVENT_BREAK_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(breakService.create(session.stationId(), req.name(), req.startDate(), req.endDate()));
     }
@@ -264,7 +264,7 @@ public class EventStructureRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, breakService::findById, EventBreak::stationId);
         var req = ctx.bodyAsClass(BreakRequest.class);
         breakService.update(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.EVENT_BREAK_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_BREAK_NOT_CHANGED.raise();
         });
     }
 
@@ -284,7 +284,7 @@ public class EventStructureRoutes implements Routes {
         if (breakService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_BREAK_NOT_DELETED.raise();
+            throw EventRefusal.EVENT_BREAK_NOT_DELETED.raise();
         }
     }
 
@@ -351,7 +351,7 @@ public class EventStructureRoutes implements Routes {
         try {
             return LocalDate.parse(date);
         } catch (DateTimeParseException e) {
-            throw Refusal.EVENT_DAY_NOT_A_DATE.raise();
+            throw EventRefusal.EVENT_DAY_NOT_A_DATE.raise();
         }
     }
 
@@ -396,7 +396,7 @@ public class EventStructureRoutes implements Routes {
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedEvent(crudService, eventId, session);
         var req = ctx.bodyAsClass(FieldDateValueRequest.class);
-        if (req.date() == null) throw Refusal.EVENT_FIELD_VALUE_NEEDS_A_DAY.raise();
+        if (req.date() == null) throw EventRefusal.EVENT_FIELD_VALUE_NEEDS_A_DAY.raise();
         ctx.json(eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value()));
     }
 

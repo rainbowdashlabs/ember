@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
@@ -117,7 +117,7 @@ public class DataTrackingAdminService {
     public TableEntry updateTable(String tableName, TableUpdate update) throws IOException {
         var tracking = load();
         var existing = tracking.tables().get(tableName);
-        if (existing == null) throw Refusal.TRACKED_TABLE_NOT_HERE_TO_UPDATE.raise(tableName);
+        if (existing == null) throw SystemRefusal.TRACKED_TABLE_NOT_HERE_TO_UPDATE.raise(tableName);
 
         List<ColumnEntry> newColumns = new ArrayList<>();
         Map<String, Boolean> verifiedOverrides = update.columnVerified();
@@ -180,7 +180,7 @@ public class DataTrackingAdminService {
     public TableEntry verifyAllColumns(String tableName) throws IOException {
         var tracking = load();
         var existing = tracking.tables().get(tableName);
-        if (existing == null) throw Refusal.TRACKED_TABLE_NOT_HERE_TO_VERIFY.raise(tableName);
+        if (existing == null) throw SystemRefusal.TRACKED_TABLE_NOT_HERE_TO_VERIFY.raise(tableName);
 
         Map<String, Boolean> overrides = new LinkedHashMap<>();
         for (var c : existing.columns()) overrides.put(c.name(), true);

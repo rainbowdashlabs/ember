@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
@@ -42,7 +42,7 @@ public final class ProfileAnswers {
      * @throws RefusalResponse where it is not a JSON document
      */
     public static String said(@Nullable String sent) {
-        return QuestionValues.read(Json.document(sent, Refusal.PROFILE_ANSWER_NOT_READABLE));
+        return QuestionValues.read(Json.document(sent, MemberRefusal.PROFILE_ANSWER_NOT_READABLE));
     }
 
     /**
@@ -65,14 +65,14 @@ public final class ProfileAnswers {
      * @param question the question, or nothing for a type that holds no value
      * @param said     the answer as plain text
      * @return the document to keep, or null where nothing is kept
-     * @throws RefusalResponse {@link Refusal#PROFILE_ANSWER_NOT_ACCEPTED} naming what is wrong with the answer
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_ANSWER_NOT_ACCEPTED} naming what is wrong with the answer
      */
     public static @Nullable JsonNode kept(FieldType type, Optional<Question> question, String said) {
         if (type.isCalculated() && !said.isEmpty()) {
-            throw Refusal.PROFILE_AGE_TAKES_NO_ANSWER.raise();
+            throw MemberRefusal.PROFILE_AGE_TAKES_NO_ANSWER.raise();
         }
         question.flatMap(asked -> QuestionCheck.answerIfGiven(asked, said)).ifPresent(problem -> {
-            throw Refusal.PROFILE_ANSWER_NOT_ACCEPTED.raise(problem.message());
+            throw MemberRefusal.PROFILE_ANSWER_NOT_ACCEPTED.raise(problem.message());
         });
         return QuestionValues.write(type, said);
     }

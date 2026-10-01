@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
@@ -76,7 +76,7 @@ public class StorageAuditLogService {
         try {
             return Optional.of(Instant.parse(raw));
         } catch (DateTimeParseException e) {
-            throw Refusal.STORAGE_AUDIT_BEFORE_NOT_A_TIME.raise();
+            throw StorageRefusal.STORAGE_AUDIT_BEFORE_NOT_A_TIME.raise();
         }
     }
 

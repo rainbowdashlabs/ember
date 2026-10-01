@@ -6,7 +6,8 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.AccessManager;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
@@ -92,7 +93,7 @@ public class ManagedMemberService {
     private StationMember requireManaged(int guardianId, int memberId, Refusal missing) {
         boolean manages = memberService.findManaged(guardianId).stream().anyMatch(m -> m.id() == memberId);
         if (!manages) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER.raise();
+            throw MemberRefusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER.raise();
         }
         return memberRepository.findById(memberId).orElseThrow(missing::raise);
     }
@@ -113,7 +114,7 @@ public class ManagedMemberService {
      * @return the questions and the answers
      */
     public MemberProfile profile(int guardianId, int memberId) {
-        var member = requireManaged(guardianId, memberId, Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE);
+        var member = requireManaged(guardianId, memberId, MemberRefusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE);
         var fields = applicableFields(member.stationId(), memberId);
         Set<Integer> fieldIds = fields.stream().map(ProfileField::id).collect(Collectors.toSet());
         var values = profileFieldService.findValues(memberId).stream()
@@ -137,7 +138,7 @@ public class ManagedMemberService {
      * @return the answers as they stand now
      */
     public List<ProfileFieldService.MergedValue> setProfile(int guardianId, int memberId, List<ValueEntry> values) {
-        var member = requireManaged(guardianId, memberId, Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE_CHANGE);
+        var member = requireManaged(guardianId, memberId, MemberRefusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE_CHANGE);
         Set<Integer> allowed = applicableFields(member.stationId(), memberId).stream()
                 .map(ProfileField::id)
                 .collect(Collectors.toSet());
@@ -157,7 +158,7 @@ public class ManagedMemberService {
      * @return the pieces
      */
     public List<MyInventoryItem> inventory(int guardianId, int memberId) {
-        requireManaged(guardianId, memberId, Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER);
+        requireManaged(guardianId, memberId, MemberRefusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER);
         return memberGear.heldBy(memberId);
     }
 
@@ -169,7 +170,7 @@ public class ManagedMemberService {
      * @return what is required, per inventory
      */
     public List<MemberRequirement> requirements(int guardianId, int memberId) {
-        var member = requireManaged(guardianId, memberId, Refusal.MEMBER_NOT_HERE_ON_MANAGED_EQUIPMENT);
+        var member = requireManaged(guardianId, memberId, MemberRefusal.MEMBER_NOT_HERE_ON_MANAGED_EQUIPMENT);
         return checkService.getRequiredItems(member.stationId(), memberId).stream()
                 .map(r -> new MemberRequirement(r.inventoryId(), r.inventoryName(), r.requiredQuantity()))
                 .toList();
@@ -183,7 +184,7 @@ public class ManagedMemberService {
      * @return the data and the name to file it under
      */
     public DataExport export(int guardianId, int memberId) {
-        requireManaged(guardianId, memberId, Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER);
+        requireManaged(guardianId, memberId, MemberRefusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER);
         var data = gdprExportService.exportMemberData(memberId);
         String name = memberRepository
                 .findById(memberId)

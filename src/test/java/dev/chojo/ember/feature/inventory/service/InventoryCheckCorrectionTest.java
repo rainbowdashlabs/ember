@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -177,7 +177,7 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.correct(member.id(), makesANewPiece(inventoryId, old.id(), null)));
-        assertEquals(Refusal.INVENTORY_CHECK_CORRECTION_OWNER_MISSING, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_CHECK_CORRECTION_OWNER_MISSING, refused.refusal());
 
         var corrected = service.correct(member.id(), makesANewPiece(inventoryId, old.id(), ItemOwner.STATION));
         assertEquals(ItemOwner.STATION, corrected.ownerKind(), "and takes the owner it was told");
@@ -206,7 +206,7 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.correct(
                         member.id(), new ItemCorrection(inventoryId, old.id(), theirs.id(), null, null, null, null)));
-        assertEquals(Refusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN, refused.refusal());
     }
 
     /**
@@ -282,6 +282,6 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.correct(member.id(), makesANewPiece(inventoryId, loose.id(), null)));
-        assertEquals(Refusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS, refused.refusal());
     }
 }

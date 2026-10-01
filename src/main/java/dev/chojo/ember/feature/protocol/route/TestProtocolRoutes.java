@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.protocol.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
@@ -153,7 +153,7 @@ public class TestProtocolRoutes implements Routes {
     private void createProtocol(Context ctx) {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProtocolRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.PROTOCOL_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw TestProtocolRefusal.PROTOCOL_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(service.createProtocol(
                         session.stationId(),
@@ -186,9 +186,9 @@ public class TestProtocolRoutes implements Routes {
         var req = ctx.bodyAsClass(ProtocolRequest.class);
         if (!service.updateProtocol(
                 id, req.name(), Objects.requireNonNullElse(req.description(), ""), req.passThreshold())) {
-            throw Refusal.PROTOCOL_NOT_CHANGED.raise();
+            throw TestProtocolRefusal.PROTOCOL_NOT_CHANGED.raise();
         }
-        ctx.json(service.findProtocol(id).orElseThrow(Refusal.PROTOCOL_NOT_HERE_AFTER_CHANGE::raise));
+        ctx.json(service.findProtocol(id).orElseThrow(TestProtocolRefusal.PROTOCOL_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     @OpenApi(path = "/api/v1/protocols/{id}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
@@ -347,7 +347,7 @@ public class TestProtocolRoutes implements Routes {
         guards.requireRun(ctx, id);
         var req = ctx.bodyAsClass(ProtocolRunRequest.class);
         service.updateRun(id, req.name(), Objects.requireNonNullElseGet(req.testDate(), LocalDate::now));
-        ctx.json(service.findRun(id).orElseThrow(Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CHANGE::raise));
+        ctx.json(service.findRun(id).orElseThrow(TestProtocolRefusal.PROTOCOL_RUN_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     @OpenApi(
@@ -358,7 +358,7 @@ public class TestProtocolRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
         service.closeRun(id);
-        ctx.json(service.findRun(id).orElseThrow(Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CLOSING::raise));
+        ctx.json(service.findRun(id).orElseThrow(TestProtocolRefusal.PROTOCOL_RUN_NOT_HERE_AFTER_CLOSING::raise));
     }
 
     @OpenApi(
@@ -382,10 +382,10 @@ public class TestProtocolRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         guards.requireRun(ctx, runId);
         if (!service.lockMember(runId, memberId, session.member().id())) {
-            throw Refusal.PROTOCOL_MEMBER_HELD_BY_ANOTHER_TESTER.raise();
+            throw TestProtocolRefusal.PROTOCOL_MEMBER_HELD_BY_ANOTHER_TESTER.raise();
         }
         ctx.json(service.findRunMember(runId, memberId)
-                .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_LOCKING::raise));
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_LOCKING::raise));
     }
 
     @OpenApi(
@@ -398,7 +398,7 @@ public class TestProtocolRoutes implements Routes {
         guards.requireRun(ctx, runId);
         service.unlockMember(runId, memberId);
         ctx.json(service.findRunMember(runId, memberId)
-                .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING::raise));
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING::raise));
     }
 
     @OpenApi(
@@ -439,7 +439,7 @@ public class TestProtocolRoutes implements Routes {
         var run = guards.requireRun(ctx, runId);
         service.completeMember(runId, memberId, run.protocolId());
         ctx.json(service.findRunMember(runId, memberId)
-                .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION::raise));
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION::raise));
     }
 
     @OpenApi(
@@ -485,7 +485,7 @@ public class TestProtocolRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
         var proto = service.findProtocol(run.protocolId())
-                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EXPORT::raise);
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EXPORT::raise);
         byte[] archive = runs.archive(run, proto.name());
         ctx.contentType("application/zip");
         ctx.header("Content-Disposition", protocolName(proto.name(), "zip", null));
@@ -500,7 +500,7 @@ public class TestProtocolRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
         var proto = service.findProtocol(run.protocolId())
-                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_FOR_TABLE::raise);
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_NOT_HERE_BEHIND_RUN_FOR_TABLE::raise);
         byte[] pdf = pdfService.exportEvaluationTable(id, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", DocumentWord.EVALUATION.in("de")));
@@ -516,7 +516,7 @@ public class TestProtocolRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var run = guards.requireRun(ctx, runId);
         var proto = service.findProtocol(run.protocolId())
-                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_FOR_MEMBER_SHEET::raise);
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_NOT_HERE_BEHIND_RUN_FOR_MEMBER_SHEET::raise);
         byte[] pdf = pdfService.exportRunMember(runId, memberId, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", runs.memberFileName(memberId)));

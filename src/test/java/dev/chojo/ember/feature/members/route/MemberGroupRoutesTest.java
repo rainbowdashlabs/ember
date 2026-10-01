@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.StepUpRequiredException;
 import dev.chojo.ember.api.UserSession;
@@ -13,6 +12,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -131,7 +132,7 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
                     "/api/v1/station-members/" + stranger.id() + "/groups",
                     body("{\"groupIds\":[" + crew.id() + "]}"),
                     harness.as(managerHolding(StationPermission.MEMBER_EDIT)));
-            assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(response));
+            assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(response));
         });
         assertEquals(List.of(), groupIdsOf(stranger));
     }
@@ -145,7 +146,7 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
                     "/api/v1/groups/" + crew.id() + "/members",
                     body("{\"memberIds\":[" + stranger.id() + "]}"),
                     harness.as(managerHolding(StationPermission.MEMBER_MANAGE_GROUP)));
-            assertEquals(Refusal.GROUP_MEMBER_NOT_HERE, refusalOf(response));
+            assertEquals(MemberRefusal.GROUP_MEMBER_NOT_HERE, refusalOf(response));
         });
         assertTrue(memberGroupRepo.findMembers(crew.id()).isEmpty());
     }
@@ -165,13 +166,13 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
                     "/api/v1/groups/" + admins.id() + "/members",
                     body("{\"memberIds\":[" + manager.id() + "]}"),
                     harness.as(managerHolding(StationPermission.MEMBER_MANAGE_GROUP)));
-            assertEquals(Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD, refusalOf(own));
+            assertEquals(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD, refusalOf(own));
 
             var viaPage = client.put(
                     "/api/v1/station-members/" + manager.id() + "/groups",
                     body("{\"groupIds\":[" + admins.id() + "]}"),
                     harness.as(managerHolding(StationPermission.MEMBER_MANAGE_GROUP)));
-            assertEquals(Refusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER, refusalOf(viaPage));
+            assertEquals(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER, refusalOf(viaPage));
         });
         assertEquals(List.of(), groupIdsOf(manager));
     }
@@ -214,7 +215,7 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
                     "/api/v1/groups/" + advanced.id() + "/members",
                     body("{\"memberIds\":[" + child.id() + "]}"),
                     harness.as(managerHolding(StationPermission.MEMBER_MANAGE_GROUP)));
-            assertEquals(Refusal.GROUP_SET_ALREADY_IN, refusalOf(refused));
+            assertEquals(MemberRefusal.GROUP_SET_ALREADY_IN, refusalOf(refused));
             var conflict = json(refused).path("conflicts").get(0);
             assertEquals(child.id(), conflict.path("memberId").asInt());
             assertEquals("Anfänger", conflict.path("groups").get(0).asString());
@@ -241,7 +242,7 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
             String bound = "{\"name\":\"Crew\",\"position\":0,\"rules\":{\"groupSetId\":" + levels
                     + ",\"userTypes\":[\"MEMBER\"]}";
             var refused = client.put("/api/v1/groups/" + crew.id(), body(bound + "}"), session);
-            assertEquals(Refusal.GROUP_BINDING_EXCLUDES_MEMBERS, refusalOf(refused));
+            assertEquals(MemberRefusal.GROUP_BINDING_EXCLUDES_MEMBERS, refusalOf(refused));
             assertEquals(
                     parent.id(),
                     json(refused).path("conflicts").get(0).path("memberId").asInt());
@@ -279,7 +280,7 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
             assertEquals("Kinder", json(asked).get(0).path("name").asString());
 
             var unknown = client.get("/api/v1/station-members/" + child.id() + "/user-type/KING/consequences", session);
-            assertEquals(Refusal.USER_TYPE_UNKNOWN_FOR_CONSEQUENCES, refusalOf(unknown));
+            assertEquals(MemberRefusal.USER_TYPE_UNKNOWN_FOR_CONSEQUENCES, refusalOf(unknown));
         });
     }
 

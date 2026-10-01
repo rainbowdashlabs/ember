@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -93,6 +93,6 @@ public final class KbGuards {
             @Nullable Integer fileId,
             KbAccessLevel required) {
         var level = accessService.effectiveLevel(accessOf(ctx, accessService), folderId, fileId);
-        if (!level.covers(required)) throw Refusal.KB_ENTRY_NOT_YOURS_TO_OPEN.raise();
+        if (!level.covers(required)) throw KnowledgeBaseRefusal.KB_ENTRY_NOT_YOURS_TO_OPEN.raise();
     }
 }

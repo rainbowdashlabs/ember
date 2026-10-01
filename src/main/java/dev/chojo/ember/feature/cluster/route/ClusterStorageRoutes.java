@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
@@ -299,7 +299,7 @@ public class ClusterStorageRoutes implements Routes {
     private void setPool(Context ctx) {
         Cluster cluster = clusterService
                 .findByUid(parseUid(ctx.pathParam("clusterUid")))
-                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_POOL::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_ON_POOL::raise);
         var request = ctx.bodyAsClass(PoolRequest.class);
         quotaService.setStoragePool(cluster.id(), request.quotaBytes());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -308,15 +308,15 @@ public class ClusterStorageRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_STORAGE.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_STORAGE::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_STORAGE.raise();
+        return clusterService.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_STORAGE::raise);
     }
 
     private static UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.NOT_AN_IDENTITY_IN_CLUSTER_STORAGE.raise(raw);
+            throw ClusterRefusal.NOT_AN_IDENTITY_IN_CLUSTER_STORAGE.raise(raw);
         }
     }
 

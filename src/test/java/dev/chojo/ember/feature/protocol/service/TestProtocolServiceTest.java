@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
@@ -425,7 +425,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         var unshared = testProtocolRepo.createProtocol(stationB.id(), "Unshared", "never shared", 60);
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.getFederatedProtocol(station.id(), stationB.uid(), unshared.id()));
-        assertEquals(Refusal.REMOTE_PROTOCOL_NOT_SHARED, refused.refusal());
+        assertEquals(TestProtocolRefusal.REMOTE_PROTOCOL_NOT_SHARED, refused.refusal());
         testProtocolRepo.deleteProtocol(unshared.id(), stationB.id());
     }
 

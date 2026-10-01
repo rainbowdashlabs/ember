@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
 import dev.chojo.ember.feature.form.service.FormResultGrouping.Bucket;
 import dev.chojo.ember.feature.form.service.FormResultQuery.Dimension;
@@ -185,15 +185,15 @@ class FormResultGroupingTest {
     @Test
     void aFieldThatCannotBeGroupedIsRefused() {
         assertEquals(
-                Refusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE,
+                FormRefusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> split(new ResultGrouping(Dimension.FIELD, 40, null, null)))
                         .refusal());
         assertEquals(
-                Refusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE,
+                FormRefusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> split(new ResultGrouping(Dimension.FIELD, 999, null, null)))
                         .refusal());
         assertEquals(
-                Refusal.FORM_RESULTS_GROUPING_MISSING,
+                FormRefusal.FORM_RESULTS_GROUPING_MISSING,
                 assertThrows(RefusalResponse.class, () -> split(new ResultGrouping(null, null, null, null)))
                         .refusal());
     }

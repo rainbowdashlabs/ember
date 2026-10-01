@@ -7,11 +7,11 @@ package dev.chojo.ember.feature.account.route;
 
 import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.service.AvatarAccessService;
 import dev.chojo.ember.feature.account.service.AvatarService;
@@ -121,7 +121,7 @@ public class AvatarRoutes implements Routes {
      */
     private void serveAvatar(Context ctx, Optional<UUID> accountUid) {
         if (accountUid.isEmpty()) {
-            throw Refusal.AVATAR_NOT_HERE.raise();
+            throw MemberRefusal.AVATAR_NOT_HERE.raise();
         }
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         avatarService
@@ -143,11 +143,11 @@ public class AvatarRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var file = ctx.uploadedFile("avatar");
         if (file == null) {
-            throw Refusal.AVATAR_UPLOAD_MISSING_FILE.raise();
+            throw MemberRefusal.AVATAR_UPLOAD_MISSING_FILE.raise();
         }
         String contentType = file.contentType();
         if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType)) {
-            throw Refusal.AVATAR_NOT_A_PICTURE.raise("PNG, JPEG and WebP are accepted");
+            throw MemberRefusal.AVATAR_NOT_A_PICTURE.raise("PNG, JPEG and WebP are accepted");
         }
         UUID accountUid = requireOwnAvatarUid(session);
         try (var content = file.content()) {
@@ -156,11 +156,11 @@ public class AvatarRoutes implements Routes {
             ctx.json(new MessageResponse("Avatar updated"));
         } catch (IllegalArgumentException e) {
             throw Failures.readable(e.getMessage())
-                    .map(Refusal.AVATAR_NOT_SAVED::raise)
-                    .orElseGet(Refusal.AVATAR_NOT_SAVED::raise);
+                    .map(MemberRefusal.AVATAR_NOT_SAVED::raise)
+                    .orElseGet(MemberRefusal.AVATAR_NOT_SAVED::raise);
         } catch (IOException e) {
             log.error("Failed to process image", e);
-            throw Refusal.AVATAR_NOT_PROCESSED.raise();
+            throw MemberRefusal.AVATAR_NOT_PROCESSED.raise();
         }
     }
 
@@ -176,8 +176,8 @@ public class AvatarRoutes implements Routes {
      */
     private UUID requireOwnAvatarUid(UserSession session) {
         if (session.account() == null) {
-            throw Refusal.SESSION_HAS_NO_ACCOUNT.raise();
+            throw MemberRefusal.SESSION_HAS_NO_ACCOUNT.raise();
         }
-        return avatarAccessService.ownAvatarUid(session).orElseThrow(Refusal.SESSION_ACCOUNT_NOT_RESOLVED::raise);
+        return avatarAccessService.ownAvatarUid(session).orElseThrow(MemberRefusal.SESSION_ACCOUNT_NOT_RESOLVED::raise);
     }
 }

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.account.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -98,7 +98,7 @@ public class AccountEmailService {
      */
     public boolean setEmailFor(int callerAccountId, int accountId, String email) {
         if (callerAccountId == accountId) {
-            throw Refusal.OWN_ADDRESS_NOT_WRITTEN_UNCONFIRMED.raise();
+            throw MemberRefusal.OWN_ADDRESS_NOT_WRITTEN_UNCONFIRMED.raise();
         }
         return setEmail(accountId, email);
     }
@@ -113,12 +113,13 @@ public class AccountEmailService {
      *     belongs to another account
      */
     public boolean setEmail(int accountId, String email) {
-        Account account =
-                accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_ADDRESS_WRITE::raise);
+        Account account = accountRepository
+                .findById(accountId)
+                .orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_ADDRESS_WRITE::raise);
         String normalised = normalise(email);
         switch (problemWith(accountId, email)) {
-            case MALFORMED, UNREACHABLE -> throw Refusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE.raise();
-            case TAKEN -> throw Refusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE.raise();
+            case MALFORMED, UNREACHABLE -> throw MemberRefusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE.raise();
+            case TAKEN -> throw MemberRefusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE.raise();
             case NONE -> {}
         }
         if (normalised.equalsIgnoreCase(account.email())) return false;

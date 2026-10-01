@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.board.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
@@ -157,7 +157,8 @@ class BoardFieldValueRouteTest extends RepositoryTestBase {
     }
 
     private static void refused(String field, String value) {
-        assertEquals(Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED, refusalOf(fill(field, value)), value + " in " + field);
+        assertEquals(
+                BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED, refusalOf(fill(field, value)), value + " in " + field);
     }
 
     @Test
@@ -200,7 +201,7 @@ class BoardFieldValueRouteTest extends RepositoryTestBase {
         var ticket = ticket();
         assertEquals(200, fill(ticket, "Pflicht", "{\"value\":\"da\"}").code());
 
-        assertEquals(Refusal.TICKET_FIELD_VALUE_REQUIRED, refusalOf(clear(ticket, "Pflicht")));
+        assertEquals(BoardRefusal.TICKET_FIELD_VALUE_REQUIRED, refusalOf(clear(ticket, "Pflicht")));
         assertTrue(holds(ticket, "Pflicht"), "the value stays");
     }
 

@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.EnrichedCheckDetail;
@@ -79,7 +79,8 @@ public class InventoryCheckRoutes implements Routes {
      * Asserts the given container belongs to the caller's station.
      */
     private void verifyContainerInStation(int containerId, StationSession session) {
-        var container = containerService.findById(containerId).orElseThrow(Refusal.CONTAINER_NOT_HERE_ON_CHECK::raise);
+        var container =
+                containerService.findById(containerId).orElseThrow(InventoryRefusal.CONTAINER_NOT_HERE_ON_CHECK::raise);
         RouteSupport.requireSameStation(session.user(), container.stationId());
     }
 
@@ -87,10 +88,10 @@ public class InventoryCheckRoutes implements Routes {
      * Asserts the given item's inventory belongs to the caller's station.
      */
     private void verifyItemInStation(int itemId, StationSession session) {
-        var item = inventoryService.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE_ON_CHECK::raise);
+        var item = inventoryService.findItemById(itemId).orElseThrow(InventoryRefusal.ITEM_NOT_HERE_ON_CHECK::raise);
         var inventory = inventoryService
                 .findById(item.inventoryId())
-                .orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_CHECKED_ITEM::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_BEHIND_CHECKED_ITEM::raise);
         RouteSupport.requireSameStation(session.user(), inventory.stationId());
     }
 
@@ -98,7 +99,8 @@ public class InventoryCheckRoutes implements Routes {
      * Asserts the given inventory belongs to the caller's station.
      */
     private void verifyInventoryInStation(int inventoryId, StationSession session) {
-        var inventory = inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_CHECK::raise);
+        var inventory =
+                inventoryService.findById(inventoryId).orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_ON_CHECK::raise);
         RouteSupport.requireSameStation(session.user(), inventory.stationId());
     }
 
@@ -106,7 +108,7 @@ public class InventoryCheckRoutes implements Routes {
      * Asserts the given member belongs to the caller's station.
      */
     private void verifyMemberInStation(int memberId, StationSession session) {
-        var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_ON_CHECK::raise);
+        var member = memberService.findById(memberId).orElseThrow(InventoryRefusal.MEMBER_NOT_HERE_ON_CHECK::raise);
         RouteSupport.requireSameStation(session.user(), member.stationId());
     }
 
@@ -211,7 +213,7 @@ public class InventoryCheckRoutes implements Routes {
         int containerId = pathInt(ctx, "containerId");
         var request = ctx.bodyAsClass(CompleteContainerCheckRequest.class);
         if (request.items() == null) {
-            throw Refusal.CONTAINER_CHECK_WITHOUT_ITEMS.raise();
+            throw InventoryRefusal.CONTAINER_CHECK_WITHOUT_ITEMS.raise();
         }
         List<CheckItemRequest> items = request.items().stream()
                 .map(i -> new CheckItemRequest(
@@ -267,7 +269,7 @@ public class InventoryCheckRoutes implements Routes {
         var request = ctx.bodyAsClass(CompleteCheckRequest.class);
 
         if (request.items() == null || request.items().isEmpty()) {
-            throw Refusal.MEMBER_CHECK_WITHOUT_ITEMS.raise();
+            throw InventoryRefusal.MEMBER_CHECK_WITHOUT_ITEMS.raise();
         }
 
         List<CheckItemRequest> items = request.items().stream()
@@ -310,7 +312,7 @@ public class InventoryCheckRoutes implements Routes {
         int memberId = pathInt(ctx, "memberId");
         verifyMemberInStation(memberId, session);
         var detail = checkService.lastCheckDetail(memberId);
-        if (detail.isEmpty()) throw Refusal.NO_CHECK_YET_FOR_MEMBER.raise();
+        if (detail.isEmpty()) throw InventoryRefusal.NO_CHECK_YET_FOR_MEMBER.raise();
         ctx.json(detail.get());
     }
 

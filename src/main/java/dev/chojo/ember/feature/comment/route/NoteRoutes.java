@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
@@ -55,7 +55,7 @@ public class NoteRoutes implements Routes {
     private static void requireNoteAccess(StationSession session, NoteEntityType entityType) {
         StationPermission required = requiredPermission(entityType);
         if (!session.hasPermission(required)) {
-            throw Refusal.NOTES_NOT_YOURS.raise();
+            throw CommentRefusal.NOTES_NOT_YOURS.raise();
         }
     }
 
@@ -127,7 +127,7 @@ public class NoteRoutes implements Routes {
         var access = resolveAccess(ctx);
         var request = ctx.bodyAsClass(UpdateNoteRequest.class);
         if (request.content() == null) {
-            throw Refusal.NOTE_NEEDS_TEXT.raise();
+            throw CommentRefusal.NOTE_NEEDS_TEXT.raise();
         }
         var note = noteService.updateNote(
                 access.entityType(),
@@ -156,7 +156,7 @@ public class NoteRoutes implements Routes {
         var note = noteService
                 .findNote(
                         access.entityType(), access.entityId(), access.session().stationId())
-                .orElseThrow(Refusal.NOTE_NOT_HERE::raise);
+                .orElseThrow(CommentRefusal.NOTE_NOT_HERE::raise);
         var versions = noteService.findVersions(note.id());
         ctx.json(versions.stream().map(this::toVersionResponse).toList());
     }

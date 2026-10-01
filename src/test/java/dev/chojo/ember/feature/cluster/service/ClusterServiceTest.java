@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -65,7 +65,7 @@ class ClusterServiceTest extends RepositoryTestBase {
     @Test
     void aClusterNeedsAName() {
         var refused = assertThrows(RefusalResponse.class, () -> clusterService.create("  ", null));
-        assertEquals(Refusal.CLUSTER_NEEDS_A_NAME_ON_CREATE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_NEEDS_A_NAME_ON_CREATE, refused.refusal());
     }
 
     @Test
@@ -135,7 +135,7 @@ class ClusterServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> clusterService.joinStation(otherClusterId, first.homeStationId()));
-        assertEquals(Refusal.CLUSTER_HOME_STATION_CANNOT_JOIN, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_HOME_STATION_CANNOT_JOIN, refused.refusal());
     }
 
     @Test
@@ -146,7 +146,7 @@ class ClusterServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> clusterService.joinStation(otherClusterId, station.id()));
-        assertEquals(Refusal.CLUSTER_STATION_ALREADY_IN_ANOTHER, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STATION_ALREADY_IN_ANOTHER, refused.refusal());
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
@@ -158,7 +158,7 @@ class ClusterServiceTest extends RepositoryTestBase {
         var station = stationRepo.create("Freie Wache");
 
         var refused = assertThrows(RefusalResponse.class, () -> clusterService.releaseStation(clusterId, station.id()));
-        assertEquals(Refusal.CLUSTER_RELEASE_STATION_NOT_IN_IT, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_RELEASE_STATION_NOT_IN_IT, refused.refusal());
         stationRepo.delete(station.id());
     }
 
@@ -288,7 +288,7 @@ class ClusterServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> clusterService.addMember(clusterId, accountId, ClusterUserType.CLUSTER_USER));
-        assertEquals(Refusal.CLUSTER_ACCOUNT_ALREADY_A_MEMBER, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_ACCOUNT_ALREADY_A_MEMBER, refused.refusal());
 
         clusterService.removeMember(member.id());
     }
@@ -322,7 +322,7 @@ class ClusterServiceTest extends RepositoryTestBase {
         stationRepo.setCluster(station.id(), cluster.id());
 
         var refused = assertThrows(RefusalResponse.class, () -> clusterService.delete(cluster.id()));
-        assertEquals(Refusal.CLUSTER_STILL_HAS_STATIONS, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STILL_HAS_STATIONS, refused.refusal());
         assertTrue(clusterService.findById(cluster.id()).isPresent());
 
         stationRepo.setCluster(station.id(), null);
@@ -333,11 +333,11 @@ class ClusterServiceTest extends RepositoryTestBase {
     @Test
     void aClusterThatIsNotThereCannotBeRenamedOrDeleted() {
         assertEquals(
-                Refusal.CLUSTER_GONE_BEFORE_RENAME,
+                ClusterRefusal.CLUSTER_GONE_BEFORE_RENAME,
                 assertThrows(RefusalResponse.class, () -> clusterService.rename(999_999, "Egal", null))
                         .refusal());
         assertEquals(
-                Refusal.CLUSTER_GONE_BEFORE_DELETE,
+                ClusterRefusal.CLUSTER_GONE_BEFORE_DELETE,
                 assertThrows(RefusalResponse.class, () -> clusterService.delete(999_999))
                         .refusal());
     }

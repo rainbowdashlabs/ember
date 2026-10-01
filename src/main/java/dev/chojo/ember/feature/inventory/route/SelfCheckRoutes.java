@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
@@ -129,7 +129,7 @@ public class SelfCheckRoutes implements Routes {
         var request = ctx.bodyAsClass(SelfCheckAnswerRequest.class);
         List<AnswerBody> answers = request.answers();
         if (answers == null) {
-            throw Refusal.SELF_CHECK_WITHOUT_ANSWERS.raise();
+            throw InventoryRefusal.SELF_CHECK_WITHOUT_ANSWERS.raise();
         }
         var rows = selfCheckService.answer(
                 pathInt(ctx, "id"),
@@ -168,7 +168,7 @@ public class SelfCheckRoutes implements Routes {
         SelfCheckRaisedKind kind = request.kind();
         Integer itemId = request.itemId();
         if (kind == null || itemId == null) {
-            throw Refusal.HELD_REPORT_INCOMPLETE.raise();
+            throw InventoryRefusal.HELD_REPORT_INCOMPLETE.raise();
         }
         var held = selfCheckService.holdBack(
                 pathInt(ctx, "id"),
@@ -191,7 +191,7 @@ public class SelfCheckRoutes implements Routes {
         try {
             return LocalDate.parse(raw.strip());
         } catch (DateTimeParseException ignored) {
-            throw Refusal.DUE_DAY_NOT_A_DATE.raise();
+            throw InventoryRefusal.DUE_DAY_NOT_A_DATE.raise();
         }
     }
 

@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -52,7 +53,7 @@ class TwoFactorSignInServiceTest {
     void aWaitingSignInNamesItsAccountAndStaysUnspent() {
         waiting(TokenType.TWO_FACTOR_PENDING, Duration.ofMinutes(5));
 
-        assertEquals(ACCOUNT, service.waitingAccount(TOKEN, Refusal.TWO_FACTOR_CODE_WRONG));
+        assertEquals(ACCOUNT, service.waitingAccount(TOKEN, TwoFactorRefusal.TWO_FACTOR_CODE_WRONG));
         verify(accounts, never()).deleteToken(TOKEN);
     }
 
@@ -60,13 +61,13 @@ class TwoFactorSignInServiceTest {
     void anExpiredOrForeignTokenIsRemovedAndRefused() {
         waiting(TokenType.TWO_FACTOR_PENDING, Duration.ofMinutes(-1));
         assertRefused(
-                Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY,
-                () -> service.waitingAccount(TOKEN, Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY));
+                TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY,
+                () -> service.waitingAccount(TOKEN, TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY));
 
         waiting(TokenType.RESET_PASSWORD, Duration.ofMinutes(5));
         assertRefused(
-                Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY,
-                () -> service.waitingAccount(TOKEN, Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY));
+                TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY,
+                () -> service.waitingAccount(TOKEN, TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY));
 
         verify(accounts, times(2)).deleteToken(TOKEN);
     }
@@ -76,8 +77,8 @@ class TwoFactorSignInServiceTest {
         when(accounts.findToken(TOKEN)).thenReturn(Optional.empty());
 
         assertRefused(
-                Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY,
-                () -> service.waitingAccount(TOKEN, Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY));
+                TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY,
+                () -> service.waitingAccount(TOKEN, TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY));
     }
 
     @Test
@@ -109,10 +110,10 @@ class TwoFactorSignInServiceTest {
         when(attempts.recordFailure(anyString())).thenReturn(1, TwoFactorAttemptTracker.MAX_ATTEMPTS);
         var attempt = new Attempt("TOTP", "000000", "203.0.113.1", "agent", null);
 
-        assertRefused(Refusal.TWO_FACTOR_CODE_WRONG, () -> service.verify(ACCOUNT, TOKEN, attempt));
+        assertRefused(TwoFactorRefusal.TWO_FACTOR_CODE_WRONG, () -> service.verify(ACCOUNT, TOKEN, attempt));
         verify(accounts, never()).deleteToken(TOKEN);
 
-        assertRefused(Refusal.TWO_FACTOR_CODE_WRONG, () -> service.verify(ACCOUNT, TOKEN, attempt));
+        assertRefused(TwoFactorRefusal.TWO_FACTOR_CODE_WRONG, () -> service.verify(ACCOUNT, TOKEN, attempt));
         verify(accounts).deleteToken(TOKEN);
         verify(audit, never()).record(anyInt(), any(), any(), any(), any(), any());
     }

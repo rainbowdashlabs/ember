@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
@@ -105,10 +105,10 @@ public class StationExportService {
     private void requireTransferable(int stationId) {
         stationRepository.findById(stationId).ifPresent(station -> {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
-                throw Refusal.STATION_TRANSFER_OF_CLUSTER_HOME.raise();
+                throw StationRefusal.STATION_TRANSFER_OF_CLUSTER_HOME.raise();
             }
             if (station.clusterId() != null) {
-                throw Refusal.STATION_TRANSFER_OF_CLUSTER_MEMBER.raise();
+                throw StationRefusal.STATION_TRANSFER_OF_CLUSTER_MEMBER.raise();
             }
         });
     }

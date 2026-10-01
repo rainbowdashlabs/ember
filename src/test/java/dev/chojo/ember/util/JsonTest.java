@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.util;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import org.junit.jupiter.api.Test;
 import tools.jackson.core.JacksonException;
 
@@ -38,9 +38,9 @@ class JsonTest {
 
     @Test
     void aTextThatIsNoDocumentIsABadRequest() {
-        var refused =
-                assertThrows(RefusalResponse.class, () -> Json.document("{", Refusal.PROFILE_ANSWER_NOT_READABLE));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> Json.document("{", MemberRefusal.PROFILE_ANSWER_NOT_READABLE));
 
-        assertEquals(Refusal.PROFILE_ANSWER_NOT_READABLE, refused.refusal());
+        assertEquals(MemberRefusal.PROFILE_ANSWER_NOT_READABLE, refused.refusal());
     }
 }

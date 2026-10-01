@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.repository.AccountRepository.PickerAccount;
@@ -87,9 +88,9 @@ class TwoFactorAdminServiceTest {
 
     @Test
     void somebodyNotAtTheStationOrGoneIsNotYoursToReset() {
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_RESET, resetRefusal());
+        assertEquals(TwoFactorRefusal.MEMBER_NOT_YOURS_TO_RESET, resetRefusal());
         targetIsAtTheStation();
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_RESET, resetRefusal());
+        assertEquals(TwoFactorRefusal.MEMBER_NOT_YOURS_TO_RESET, resetRefusal());
         verify(twoFactor, never()).resetAccount2FA(anyInt(), any(), any(), any());
     }
 
@@ -98,7 +99,7 @@ class TwoFactorAdminServiceTest {
         targetIsAtTheStation();
         when(accounts.findById(42)).thenReturn(Optional.of(account(InstanceUserType.ADMINISTRATOR)));
 
-        assertEquals(Refusal.ADMIN_ONLY_RESET_BY_ADMIN, resetRefusal());
+        assertEquals(TwoFactorRefusal.ADMIN_ONLY_RESET_BY_ADMIN, resetRefusal());
     }
 
     @Test
@@ -106,7 +107,7 @@ class TwoFactorAdminServiceTest {
         targetIsAtTheStation();
         when(accounts.findById(42)).thenReturn(Optional.of(account(InstanceUserType.USER)));
 
-        assertEquals(Refusal.SECOND_FACTOR_NOT_RESET_ON_STATION, resetRefusal());
+        assertEquals(TwoFactorRefusal.SECOND_FACTOR_NOT_RESET_ON_STATION, resetRefusal());
     }
 
     @Test

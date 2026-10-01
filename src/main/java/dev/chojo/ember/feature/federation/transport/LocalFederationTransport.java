@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.federation.transport;
 
 import dev.chojo.ember.api.PublicIdModule;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
@@ -109,7 +109,7 @@ public class LocalFederationTransport implements FederationTransport {
                 .flatMap(serving -> federationRepository.findPartnerByStationAndRemoteUid(serving, askingUid))
                 .filter(row -> row.status() == FederationStatus.ACTIVE)
                 .map(row -> new ServingPartner(row, askingUid))
-                .orElseThrow(Refusal.FEDERATION_PARTNERSHIP_NOT_ACTIVE_THERE::raise);
+                .orElseThrow(FederationRefusal.FEDERATION_PARTNERSHIP_NOT_ACTIVE_THERE::raise);
     }
 
     private @Nullable Object call(FederationPartner partner, FederationRequest request, @Nullable Object body) {
@@ -132,7 +132,7 @@ public class LocalFederationTransport implements FederationTransport {
     }
 
     private static <T> T answered(@Nullable T answer) {
-        if (answer == null) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
+        if (answer == null) throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
         return answer;
     }
 }

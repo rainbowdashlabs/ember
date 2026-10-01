@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.station.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -178,15 +178,16 @@ class StationManageRoutesTest {
 
     @Test
     void aTestMailNeedsAProviderAndOnlyAMovedStationIsDeletedAtOnce() {
-        doThrow(Refusal.NO_MAIL_PROVIDER_SET.raise()).when(mail).requireProvider(STATION_ID);
-        doThrow(Refusal.STATION_NOT_MOVED.raise()).when(stations).deleteMoved(STATION_ID);
+        doThrow(StationRefusal.NO_MAIL_PROVIDER_SET.raise()).when(mail).requireProvider(STATION_ID);
+        doThrow(StationRefusal.STATION_NOT_MOVED.raise()).when(stations).deleteMoved(STATION_ID);
 
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.NO_MAIL_PROVIDER_SET,
+                    StationRefusal.NO_MAIL_PROVIDER_SET,
                     refusalOf(as(client, "POST", "/station/manage/mail/test-mail", null)));
             assertEquals(
-                    Refusal.STATION_NOT_MOVED, refusalOf(as(client, "POST", "/station/manage/delete-moved", null)));
+                    StationRefusal.STATION_NOT_MOVED,
+                    refusalOf(as(client, "POST", "/station/manage/delete-moved", null)));
         });
     }
 

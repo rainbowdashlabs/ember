@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
@@ -62,10 +63,10 @@ class InventoryCheckRoutesTest {
                     client.post(PREFIX + "/inventory-checks/" + MEMBER_ID + "/cancel", null, checker)
                             .code());
             assertEquals(
-                    Refusal.NOT_YOURS_TO_OPEN,
+                    GeneralRefusal.NOT_YOURS_TO_OPEN,
                     refusalOf(client.post(PREFIX + "/inventory-checks/14/cancel", null, checker)));
             assertEquals(
-                    Refusal.MEMBER_NOT_HERE_ON_CHECK,
+                    InventoryRefusal.MEMBER_NOT_HERE_ON_CHECK,
                     refusalOf(client.post(PREFIX + "/inventory-checks/15/cancel", null, checker)));
         });
 

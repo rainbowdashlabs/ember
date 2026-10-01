@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.AccessManager;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
@@ -112,7 +112,7 @@ class ManagedMemberServiceTest {
                 () -> service.requirements(GUARDIAN, 99),
                 () -> service.export(GUARDIAN, 99))) {
             var refused = assertThrows(RefusalResponse.class, call::run);
-            assertEquals(Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER, refused.refusal());
+            assertEquals(MemberRefusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER, refused.refusal());
         }
     }
 
@@ -121,15 +121,15 @@ class ManagedMemberServiceTest {
         when(members.findById(CHILD)).thenReturn(Optional.empty());
 
         assertEquals(
-                Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE,
+                MemberRefusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE,
                 assertThrows(RefusalResponse.class, () -> service.profile(GUARDIAN, CHILD))
                         .refusal());
         assertEquals(
-                Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE_CHANGE,
+                MemberRefusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE_CHANGE,
                 assertThrows(RefusalResponse.class, () -> service.setProfile(GUARDIAN, CHILD, List.of()))
                         .refusal());
         assertEquals(
-                Refusal.MEMBER_NOT_HERE_ON_MANAGED_EQUIPMENT,
+                MemberRefusal.MEMBER_NOT_HERE_ON_MANAGED_EQUIPMENT,
                 assertThrows(RefusalResponse.class, () -> service.requirements(GUARDIAN, CHILD))
                         .refusal());
     }

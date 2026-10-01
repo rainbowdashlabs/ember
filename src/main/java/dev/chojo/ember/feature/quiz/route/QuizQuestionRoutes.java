@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -133,9 +133,9 @@ public class QuizQuestionRoutes implements Routes {
     private void acknowledgeReport(Context ctx) {
         int reportId = pathInt(ctx, "id");
         int catalogId =
-                reportService.findCatalogOfReport(reportId).orElseThrow(Refusal.QUIZ_QUESTION_NOTE_NOT_HERE::raise);
+                reportService.findCatalogOfReport(reportId).orElseThrow(QuizRefusal.QUIZ_QUESTION_NOTE_NOT_HERE::raise);
         guards.requireOwnedCatalog(ctx, catalogId);
-        if (!reportService.acknowledge(reportId)) throw Refusal.QUIZ_QUESTION_NOTE_NOT_CLEARED.raise();
+        if (!reportService.acknowledge(reportId)) throw QuizRefusal.QUIZ_QUESTION_NOTE_NOT_CLEARED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -173,8 +173,8 @@ public class QuizQuestionRoutes implements Routes {
         int catalogId = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, catalogId);
         var req = ctx.bodyAsClass(QuizQuestionRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw Refusal.QUIZ_QUESTION_NEEDS_A_TITLE.raise();
-        if (req.quizQuestionType() == null) throw Refusal.QUIZ_QUESTION_NEEDS_A_KIND.raise();
+        if (req.title() == null || req.title().isBlank()) throw QuizRefusal.QUIZ_QUESTION_NEEDS_A_TITLE.raise();
+        if (req.quizQuestionType() == null) throw QuizRefusal.QUIZ_QUESTION_NEEDS_A_KIND.raise();
         var question = questionService.createQuestion(
                 CreateQuestionCommand.builder(catalogId, req.quizQuestionType(), req.title())
                         .category(req.categoryId())
@@ -207,10 +207,10 @@ public class QuizQuestionRoutes implements Routes {
                 !Boolean.FALSE.equals(req.autoPoints()),
                 req.configString(),
                 Objects.requireNonNullElse(req.position(), 0))) {
-            throw Refusal.QUIZ_QUESTION_NOT_CHANGED.raise();
+            throw QuizRefusal.QUIZ_QUESTION_NOT_CHANGED.raise();
         }
         questionService.findQuestion(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_QUESTION_NOT_HERE_AFTER_CHANGE.raise();
+            throw QuizRefusal.QUIZ_QUESTION_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -224,7 +224,7 @@ public class QuizQuestionRoutes implements Routes {
         if (questionService.deleteQuestion(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.QUIZ_QUESTION_NOT_DELETED.raise();
+            throw QuizRefusal.QUIZ_QUESTION_NOT_DELETED.raise();
         }
     }
 
@@ -245,7 +245,7 @@ public class QuizQuestionRoutes implements Routes {
                             ctx.result(img.data());
                         },
                         () -> {
-                            throw Refusal.QUIZ_QUESTION_PICTURE_NOT_HERE.raise();
+                            throw QuizRefusal.QUIZ_QUESTION_PICTURE_NOT_HERE.raise();
                         });
     }
 
@@ -259,11 +259,11 @@ public class QuizQuestionRoutes implements Routes {
         guards.requireOwnedQuestion(ctx, id);
         var file = ctx.uploadedFile("image");
         if (file == null) {
-            throw Refusal.QUIZ_PICTURE_UPLOAD_WITHOUT_FILE.raise();
+            throw QuizRefusal.QUIZ_PICTURE_UPLOAD_WITHOUT_FILE.raise();
         }
         String contentType = file.contentType();
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-            throw Refusal.QUIZ_PICTURE_KIND_NOT_TAKEN.raise();
+            throw QuizRefusal.QUIZ_PICTURE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -271,10 +271,10 @@ public class QuizQuestionRoutes implements Routes {
             ctx.json(new QuizSuccessResponse(true));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing question image for question {}", id, e);
-            throw Refusal.QUIZ_PICTURE_NOT_SAVED.raise();
+            throw QuizRefusal.QUIZ_PICTURE_NOT_SAVED.raise();
         } catch (IOException e) {
             log.error("Failed to process question image for question {}", id, e);
-            throw Refusal.QUIZ_PICTURE_NOT_PROCESSED.raise();
+            throw QuizRefusal.QUIZ_PICTURE_NOT_PROCESSED.raise();
         }
     }
 

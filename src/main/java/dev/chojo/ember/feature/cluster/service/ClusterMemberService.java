@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -82,9 +82,10 @@ public class ClusterMemberService {
      */
     public ClusterMember addByEmail(
             int clusterId, String email, ClusterUserType userType, String firstName, String lastName) {
-        Cluster cluster =
-                clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_MEMBER_ADDED_TO_NO_CLUSTER::raise);
-        if (email == null || email.isBlank()) throw Refusal.CLUSTER_MEMBER_ADDRESS_MISSING.raise();
+        Cluster cluster = clusterRepository
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_MEMBER_ADDED_TO_NO_CLUSTER::raise);
+        if (email == null || email.isBlank()) throw ClusterRefusal.CLUSTER_MEMBER_ADDRESS_MISSING.raise();
         String address = email.trim();
 
         var existing = accountRepository.findByEmail(address);
@@ -183,7 +184,7 @@ public class ClusterMemberService {
 
     public ClusterMemberGroup createGroup(int clusterId, String name) {
         requireCluster(clusterId);
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE.raise();
         ClusterMemberGroup group = clusterRepository.createGroup(clusterId, name.trim());
         log.info("Cluster {} opened the group '{}' ({})", clusterId, group.name(), group.id());
         return group;
@@ -191,7 +192,7 @@ public class ClusterMemberService {
 
     public void renameGroup(int clusterId, int groupId, String name) {
         requireGroup(clusterId, groupId);
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE.raise();
         clusterRepository.renameGroup(groupId, name.trim());
         log.info("Cluster {} renamed group {} to '{}'", clusterId, groupId, name.trim());
     }
@@ -287,7 +288,7 @@ public class ClusterMemberService {
             if (before.contains(permission)) continue;
             int id = clusterRepository
                     .findPermissionId(permission)
-                    .orElseThrow(() -> Refusal.CLUSTER_MEMBER_GROUP_PERMISSION_UNKNOWN.raise(permission.name()));
+                    .orElseThrow(() -> ClusterRefusal.CLUSTER_MEMBER_GROUP_PERMISSION_UNKNOWN.raise(permission.name()));
             clusterRepository.grantToGroup(groupId, id);
         }
         for (int memberId : clusterRepository.findGroupMemberIds(groupId)) {
@@ -297,7 +298,7 @@ public class ClusterMemberService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_MEMBER_CLUSTER_NOT_HERE::raise);
+        return clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_MEMBER_CLUSTER_NOT_HERE::raise);
     }
 
     /**
@@ -305,15 +306,16 @@ public class ClusterMemberService {
      */
     private ClusterMember requireMember(int clusterId, int memberId) {
         ClusterMember member =
-                clusterRepository.findMemberById(memberId).orElseThrow(Refusal.CLUSTER_MEMBER_NOT_HERE::raise);
-        if (member.clusterId() != clusterId) throw Refusal.CLUSTER_MEMBER_NOT_HERE.raise();
+                clusterRepository.findMemberById(memberId).orElseThrow(ClusterRefusal.CLUSTER_MEMBER_NOT_HERE::raise);
+        if (member.clusterId() != clusterId) throw ClusterRefusal.CLUSTER_MEMBER_NOT_HERE.raise();
         return member;
     }
 
     private ClusterMemberGroup requireGroup(int clusterId, int groupId) {
-        ClusterMemberGroup group =
-                clusterRepository.findGroupById(groupId).orElseThrow(Refusal.CLUSTER_MEMBER_GROUP_NOT_HERE::raise);
-        if (group.clusterId() != clusterId) throw Refusal.CLUSTER_MEMBER_GROUP_NOT_HERE.raise();
+        ClusterMemberGroup group = clusterRepository
+                .findGroupById(groupId)
+                .orElseThrow(ClusterRefusal.CLUSTER_MEMBER_GROUP_NOT_HERE::raise);
+        if (group.clusterId() != clusterId) throw ClusterRefusal.CLUSTER_MEMBER_GROUP_NOT_HERE.raise();
         return group;
     }
 

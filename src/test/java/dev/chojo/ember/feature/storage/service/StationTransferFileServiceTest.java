@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -68,7 +68,7 @@ class StationTransferFileServiceTest {
     void aStationThatIsGoneHasNoFilesToHandOver() {
         var refused = assertThrows(RefusalResponse.class, () -> service.page(5, StorageCategory.KB_FILES, null, 10));
 
-        assertEquals(Refusal.STATION_NOT_HERE_FOR_TRANSFER, refused.refusal());
+        assertEquals(StorageRefusal.STATION_NOT_HERE_FOR_TRANSFER, refused.refusal());
     }
 
     @Test
@@ -77,6 +77,6 @@ class StationTransferFileServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.open(4, StorageCategory.KB_FILES, "gone.pdf"));
 
-        assertEquals(Refusal.TRANSFER_FILE_NOT_HERE, refused.refusal());
+        assertEquals(StorageRefusal.TRANSFER_FILE_NOT_HERE, refused.refusal());
     }
 }

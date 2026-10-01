@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberManagementService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService;
@@ -160,8 +160,8 @@ public class ClusterMemberManagementRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         UserSession session = UserSession.from(ctx);
         var file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.CLUSTER_MEMBER_DOCUMENT_MISSING_FILE.raise();
-        if (file.size() > MAX_UPLOAD_SIZE) throw Refusal.CLUSTER_MEMBER_DOCUMENT_TOO_LARGE.raise();
+        if (file == null) throw ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_MISSING_FILE.raise();
+        if (file.size() > MAX_UPLOAD_SIZE) throw ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_TOO_LARGE.raise();
 
         String title = ctx.formParam("title");
         if (title == null || title.isBlank()) title = file.filename();
@@ -170,7 +170,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         try (var in = file.content()) {
             data = in.readAllBytes();
         } catch (IOException e) {
-            throw Refusal.CLUSTER_MEMBER_DOCUMENT_UNREADABLE.raise();
+            throw ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_UNREADABLE.raise();
         }
         var filed = managementService.fileDocument(
                 cluster.id(),
@@ -280,7 +280,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         try {
             return FieldOrigin.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_FIELD_ORIGIN_UNKNOWN.raise(raw);
+            throw ClusterRefusal.CLUSTER_FIELD_ORIGIN_UNKNOWN.raise(raw);
         }
     }
 
@@ -334,7 +334,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(NewMemberRequest.class);
         if (isBlank(request.firstName()) || isBlank(request.lastName())) {
-            throw Refusal.CLUSTER_NEW_MEMBER_NEEDS_A_NAME.raise();
+            throw ClusterRefusal.CLUSTER_NEW_MEMBER_NEEDS_A_NAME.raise();
         }
         UUID stationUid = parseUid(ctx.pathParam("stationUid"));
         StationUserType userType = request.userType() != null ? request.userType() : StationUserType.MEMBER;
@@ -345,7 +345,7 @@ public class ClusterMemberManagementRoutes implements Routes {
             ctx.status(HttpStatus.CREATED).json(new NewMemberResponse(made.memberId(), made.accountId(), made.email()));
         } catch (StationMemberInviteService.ProvisionException e) {
             log.warn("A member could not be taken on at a station of a cluster", e);
-            throw Refusal.CLUSTER_MEMBER_ALREADY_TAKEN_ON.raise();
+            throw ClusterRefusal.CLUSTER_MEMBER_ALREADY_TAKEN_ON.raise();
         }
     }
 
@@ -357,7 +357,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_NEW_MEMBER_STATION_NOT_AN_IDENTITY.raise();
+            throw ClusterRefusal.CLUSTER_NEW_MEMBER_STATION_NOT_AN_IDENTITY.raise();
         }
     }
 
@@ -377,7 +377,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(StationUserTypeRequest.class);
         StationUserType userType = parseUserType(request.userType());
-        if (userType == null) throw Refusal.STATION_USER_TYPE_UNKNOWN_FROM_CLUSTER.raise(request.userType());
+        if (userType == null) throw ClusterRefusal.STATION_USER_TYPE_UNKNOWN_FROM_CLUSTER.raise(request.userType());
 
         managementService.setUserType(cluster.id(), pathInt(ctx, "memberId"), userType, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -404,7 +404,7 @@ public class ClusterMemberManagementRoutes implements Routes {
             try {
                 permissions.add(StationPermission.valueOf(name));
             } catch (IllegalArgumentException e) {
-                throw Refusal.STATION_PERMISSION_UNKNOWN_FROM_CLUSTER.raise(name);
+                throw ClusterRefusal.STATION_PERMISSION_UNKNOWN_FROM_CLUSTER.raise(name);
             }
         }
         managementService.setPermissions(cluster.id(), pathInt(ctx, "memberId"), permissions, session.accountId());
@@ -431,8 +431,10 @@ public class ClusterMemberManagementRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_MEMBER_MANAGEMENT.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_MEMBER_MANAGEMENT::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_MEMBER_MANAGEMENT.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_MEMBER_MANAGEMENT::raise);
     }
 
     /**
@@ -445,13 +447,13 @@ public class ClusterMemberManagementRoutes implements Routes {
         try {
             uid = UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_MEMBER_FILTER_STATION_NOT_AN_IDENTITY.raise(raw);
+            throw ClusterRefusal.CLUSTER_MEMBER_FILTER_STATION_NOT_AN_IDENTITY.raise(raw);
         }
         return managementService.reachableStations(cluster.id()).stream()
                 .filter(station -> station.uid().equals(uid))
                 .map(Station::id)
                 .findFirst()
-                .orElseThrow(Refusal.STATION_NOT_IN_THIS_CLUSTER::raise);
+                .orElseThrow(ClusterRefusal.STATION_NOT_IN_THIS_CLUSTER::raise);
     }
 
     private static int intParam(@Nullable String raw, int fallback) {

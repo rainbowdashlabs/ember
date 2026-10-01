@@ -6,13 +6,13 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormDraft;
@@ -114,7 +114,7 @@ public class FormRoutes implements Routes {
      * one station cannot be read, answered, or have its analytics and responses exposed to another.
      */
     private Form requireOwnedForm(int formId, StationSession session) {
-        var form = formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE::raise);
+        var form = formService.findById(formId).orElseThrow(FormRefusal.FORM_NOT_HERE::raise);
         RouteSupport.requireSameStation(session.user(), form.stationId());
         return form;
     }
@@ -123,7 +123,7 @@ public class FormRoutes implements Routes {
      * Answers with the form as it now stands, which is what every act on one ends with.
      */
     private void respondWithForm(Context ctx, int formId) {
-        ctx.json(formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE_ON_REREAD::raise));
+        ctx.json(formService.findById(formId).orElseThrow(FormRefusal.FORM_NOT_HERE_ON_REREAD::raise));
     }
 
     /**
@@ -198,7 +198,7 @@ public class FormRoutes implements Routes {
         try {
             purpose = FormPurpose.valueOf(purposeParam);
         } catch (IllegalArgumentException _) {
-            throw Refusal.FORM_KIND_UNKNOWN.raise(purposeParam);
+            throw FormRefusal.FORM_KIND_UNKNOWN.raise(purposeParam);
         }
         ctx.json(formService.findByStationAndPurpose(session.stationId(), purpose));
     }
@@ -224,13 +224,13 @@ public class FormRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         String purposeParam = ctx.queryParam("purpose");
         if (purposeParam == null || purposeParam.isBlank()) {
-            throw Refusal.FORM_KIND_NOT_NAMED.raise();
+            throw FormRefusal.FORM_KIND_NOT_NAMED.raise();
         }
         FormPurpose purpose;
         try {
             purpose = FormPurpose.valueOf(purposeParam);
         } catch (IllegalArgumentException _) {
-            throw Refusal.FORM_KIND_UNKNOWN_ON_SEARCH.raise(purposeParam);
+            throw FormRefusal.FORM_KIND_UNKNOWN_ON_SEARCH.raise(purposeParam);
         }
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         ctx.json(directory.pickable(session.stationId(), purpose, ctx.queryParam("uid"), ctx.queryParam("q"), limit));
@@ -269,7 +269,7 @@ public class FormRoutes implements Routes {
     private void create(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(FormRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw Refusal.FORM_NEEDS_A_TITLE.raise();
+        if (req.title() == null || req.title().isBlank()) throw FormRefusal.FORM_NEEDS_A_TITLE.raise();
         FormService.requireOfferableCompletionLink(req.completionLink());
         var form = formService.create(
                 session.stationId(),
@@ -327,7 +327,7 @@ public class FormRoutes implements Routes {
                 Boolean.TRUE.equals(req.forced()),
                 req.startAt(),
                 req.endAt())) {
-            throw Refusal.FORM_NOT_HERE_ON_CHANGE.raise();
+            throw FormRefusal.FORM_NOT_HERE_ON_CHANGE.raise();
         }
         formService.setCompletion(id, req.completionMessage(), req.completionLink(), req.completionLinkLabel());
         respondWithForm(ctx, id);
@@ -349,7 +349,7 @@ public class FormRoutes implements Routes {
         if (formService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.FORM_NOT_HERE_ON_DELETE.raise();
+            throw FormRefusal.FORM_NOT_HERE_ON_DELETE.raise();
         }
     }
 
@@ -366,7 +366,7 @@ public class FormRoutes implements Routes {
     private void publish(Context ctx) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, StationSession.from(ctx));
-        if (form.status() != Form.FormStatus.DRAFT) throw Refusal.FORM_NOT_A_DRAFT.raise();
+        if (form.status() != Form.FormStatus.DRAFT) throw FormRefusal.FORM_NOT_A_DRAFT.raise();
         formService.publish(id);
 
         respondWithForm(ctx, id);
@@ -390,10 +390,10 @@ public class FormRoutes implements Routes {
         var session = StationSession.from(ctx);
         requireOwnedForm(id, session);
         var request = ctx.bodyAsClass(FormDuplicateRequest.class);
-        if (request.title() == null || request.title().isBlank()) throw Refusal.FORM_COPY_NEEDS_A_TITLE.raise();
+        if (request.title() == null || request.title().isBlank()) throw FormRefusal.FORM_COPY_NEEDS_A_TITLE.raise();
         var copy = formService
                 .duplicate(id, request.title().trim(), session.member().id())
-                .orElseThrow(Refusal.FORM_NOT_HERE_ON_COPY::raise);
+                .orElseThrow(FormRefusal.FORM_NOT_HERE_ON_COPY::raise);
         ctx.status(HttpStatus.CREATED).json(copy);
     }
 
@@ -420,13 +420,13 @@ public class FormRoutes implements Routes {
         var form = requireOwnedForm(id, StationSession.from(ctx));
         var request = ctx.bodyAsClass(FormVisibilityRequest.class);
         if (request.visibility() == null) {
-            throw Refusal.FORM_REACH_NOT_SAID.raise();
+            throw FormRefusal.FORM_REACH_NOT_SAID.raise();
         }
         if (!formService.setVisibility(id, request.visibility())) {
-            throw Refusal.FORM_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
+            throw FormRefusal.FORM_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
         ctx.json(new FormVisibilityResponse(
-                formService.findById(id).orElseThrow(Refusal.FORM_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise),
+                formService.findById(id).orElseThrow(FormRefusal.FORM_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise),
                 pageService.pagesStrandedBy(form, request.visibility())));
     }
 
@@ -472,7 +472,7 @@ public class FormRoutes implements Routes {
      */
     private static void requireSendableByLink(Form form) {
         if (form.purpose() == FormPurpose.INTERNAL) {
-            throw Refusal.INTERNAL_FORM_HAS_NO_LINK.raise();
+            throw FormRefusal.INTERNAL_FORM_HAS_NO_LINK.raise();
         }
     }
 
@@ -493,7 +493,7 @@ public class FormRoutes implements Routes {
         var request = ctx.bodyAsClass(ReplaceFormShareLinkRequest.class);
         var replaced = formService
                 .replaceShareLink(id, request.currentToken())
-                .orElseThrow(Refusal.FORM_LINK_ALREADY_REPLACED::raise);
+                .orElseThrow(FormRefusal.FORM_LINK_ALREADY_REPLACED::raise);
         ctx.json(new FormShareLinkResponse(replaced));
     }
 
@@ -510,7 +510,7 @@ public class FormRoutes implements Routes {
     private void close(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, StationSession.from(ctx));
-        if (!formService.close(id)) throw Refusal.FORM_NOT_HERE_ON_CLOSE.raise();
+        if (!formService.close(id)) throw FormRefusal.FORM_NOT_HERE_ON_CLOSE.raise();
         respondWithForm(ctx, id);
     }
 
@@ -593,7 +593,7 @@ public class FormRoutes implements Routes {
         var questions = layout.questions() == null ? List.<FormQuestionRequest>of() : layout.questions();
         var pages = layout.pages() == null ? List.<FormPageRequest>of() : layout.pages();
         if (questions.stream().map(FormQuestionRequest::questionType).anyMatch(t -> !t.allowedFor(form.purpose()))) {
-            throw Refusal.QUESTIONS_NOT_FOR_THIS_KIND_OF_FORM.raise();
+            throw FormRefusal.QUESTIONS_NOT_FOR_THIS_KIND_OF_FORM.raise();
         }
         formService.saveLayout(
                 id,
@@ -742,12 +742,12 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         StationSession session = StationSession.from(ctx);
         var form = requireOwnedForm(id, session);
-        if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_ANSWERS.raise();
+        if (!formService.isAcceptingResponses(form)) throw FormRefusal.FORM_TAKES_NO_ANSWERS.raise();
         if (!formService.canMemberAccess(id, session.member().id())) {
-            throw Refusal.FORM_NOT_YOURS_TO_ANSWER.raise();
+            throw FormRefusal.FORM_NOT_YOURS_TO_ANSWER.raise();
         }
         if (formService.hasResponded(id, session.member().id())) {
-            throw Refusal.FORM_ANSWER_ALREADY_ON_FILE.raise();
+            throw FormRefusal.FORM_ANSWER_ALREADY_ON_FILE.raise();
         }
         var req = ctx.bodyAsClass(FormSubmitRequest.class);
         try {
@@ -755,7 +755,7 @@ public class FormRoutes implements Routes {
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.status(HttpStatus.CREATED).json(response);
         } catch (FormAnswersRefused refused) {
-            throw refused.as(Refusal.FORM_ANSWERS_NOT_SAVED);
+            throw refused.as(FormRefusal.FORM_ANSWERS_NOT_SAVED);
         }
     }
 
@@ -774,9 +774,9 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         StationSession session = StationSession.from(ctx);
         var form = requireOwnedForm(id, session);
-        if (!form.allowEdit()) throw Refusal.FORM_ANSWER_NOT_CHANGEABLE.raise();
+        if (!form.allowEdit()) throw FormRefusal.FORM_ANSWER_NOT_CHANGEABLE.raise();
         if (!formService.canMemberAccess(id, session.member().id())) {
-            throw Refusal.FORM_NOT_YOURS_TO_CHANGE_ANSWER.raise();
+            throw FormRefusal.FORM_NOT_YOURS_TO_CHANGE_ANSWER.raise();
         }
         var req = ctx.bodyAsClass(FormSubmitRequest.class);
         try {
@@ -784,7 +784,7 @@ public class FormRoutes implements Routes {
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.json(response);
         } catch (FormAnswersRefused refused) {
-            throw refused.as(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED);
+            throw refused.as(FormRefusal.FORM_ANSWER_CHANGE_NOT_SAVED);
         }
     }
 
@@ -846,13 +846,13 @@ public class FormRoutes implements Routes {
         var form = requireFormForManagedMember(session, id, memberId);
         if (creating) {
             if (!formService.isAcceptingResponses(form)) {
-                throw Refusal.FORM_TAKES_NO_ANSWERS_FOR_MEMBER.raise();
+                throw FormRefusal.FORM_TAKES_NO_ANSWERS_FOR_MEMBER.raise();
             }
             if (formService.hasResponded(id, memberId)) {
-                throw Refusal.FORM_ANSWER_ALREADY_ON_FILE.raise();
+                throw FormRefusal.FORM_ANSWER_ALREADY_ON_FILE.raise();
             }
         } else if (!form.allowEdit()) {
-            throw Refusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER.raise();
+            throw FormRefusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER.raise();
         }
         var req = ctx.bodyAsClass(FormSubmitRequest.class);
         try {
@@ -864,7 +864,7 @@ public class FormRoutes implements Routes {
                 ctx.json(response);
             }
         } catch (FormAnswersRefused refused) {
-            throw refused.as(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED);
+            throw refused.as(FormRefusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED);
         }
     }
 
@@ -881,7 +881,7 @@ public class FormRoutes implements Routes {
         verifyManages(session, memberId);
         var form = requireOwnedForm(formId, session);
         if (!formService.canMemberAccess(formId, memberId)) {
-            throw Refusal.FORM_NOT_FOR_THIS_MEMBER.raise();
+            throw FormRefusal.FORM_NOT_FOR_THIS_MEMBER.raise();
         }
         return form;
     }
@@ -897,7 +897,7 @@ public class FormRoutes implements Routes {
      */
     private void verifyManages(StationSession session, int memberId) {
         if (!guardianPolicy.mayActFor(session.user(), memberId)) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
+            throw FormRefusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
     }
 
@@ -997,7 +997,7 @@ public class FormRoutes implements Routes {
         var session = StationSession.from(ctx);
         requireOwnedForm(formId, session);
         if (!formService.canMemberAccess(formId, session.member().id())) {
-            throw Refusal.FORM_NOT_YOURS_TO_DRAFT.raise();
+            throw FormRefusal.FORM_NOT_YOURS_TO_DRAFT.raise();
         }
         return session.member().id();
     }
@@ -1012,7 +1012,7 @@ public class FormRoutes implements Routes {
     private int managedDraftMember(Context ctx, int formId) {
         var session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
-        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw Refusal.FORM_DRAFT_NOT_YOURS.raise();
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw FormRefusal.FORM_DRAFT_NOT_YOURS.raise();
         requireFormForManagedMember(session, formId, memberId);
         return memberId;
     }
@@ -1020,7 +1020,7 @@ public class FormRoutes implements Routes {
     /** Keeps a draft while the form takes answers; a closed form keeps none. */
     private void keepDraft(Context ctx, int formId, int memberId, int savedBy) {
         var form = requireOwnedForm(formId, StationSession.from(ctx));
-        if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_DRAFTS.raise();
+        if (!formService.isAcceptingResponses(form)) throw FormRefusal.FORM_TAKES_NO_DRAFTS.raise();
         var request = ctx.bodyAsClass(FormDraftRequest.class);
         formService.saveDraft(formId, memberId, savedBy, request.answers(), request.path());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -1075,7 +1075,7 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, session);
         if (form.purpose() != FormPurpose.INTERNAL) {
-            throw Refusal.ONLY_INTERNAL_FORM_GROUPED_BY_WHO_ANSWERED.raise();
+            throw FormRefusal.ONLY_INTERNAL_FORM_GROUPED_BY_WHO_ANSWERED.raise();
         }
         ctx.json(analyticsAssembler.buildAnalytics(id, ctx.bodyAsClass(FormResultQuery.class)));
     }
@@ -1091,7 +1091,7 @@ public class FormRoutes implements Routes {
         var form = requireOwnedForm(id, session);
         var station = stationService
                 .findById(session.stationId())
-                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_FORM_EXPORT::raise);
+                .orElseThrow(FormRefusal.STATION_NOT_HERE_FOR_FORM_EXPORT::raise);
         boolean asSpreadsheet = !"pdf".equalsIgnoreCase(ctx.queryParam("format"));
         try {
             var document = exportService.export(
@@ -1105,7 +1105,7 @@ public class FormRoutes implements Routes {
             ctx.result(document.bytes());
         } catch (Exception e) {
             log.warn("Answers of form {} could not be exported", id, e);
-            throw Refusal.FORM_ANSWERS_NOT_EXPORTED.raise();
+            throw FormRefusal.FORM_ANSWERS_NOT_EXPORTED.raise();
         }
     }
 

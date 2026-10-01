@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.passkey.route;
 
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
@@ -15,6 +14,7 @@ import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.PasskeyRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
@@ -193,7 +193,7 @@ public class PasskeyRoutes implements Routes {
         requirePasskeysOn();
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
         RateLimits.enforce(
-                Refusal.PASSKEY_DEVICE_REQUEST_TOO_OFTEN,
+                PasskeyRefusal.PASSKEY_DEVICE_REQUEST_TOO_OFTEN,
                 rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
         var request = deviceService.createRequest(
                 DeviceRequestPurpose.ENROL_PASSKEY,
@@ -230,7 +230,7 @@ public class PasskeyRoutes implements Routes {
     private void createSignInRequest(Context ctx) {
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
         RateLimits.enforce(
-                Refusal.PASSKEY_SIGN_IN_REQUEST_TOO_OFTEN,
+                PasskeyRefusal.PASSKEY_SIGN_IN_REQUEST_TOO_OFTEN,
                 rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
         var request = deviceService.createRequest(
                 DeviceRequestPurpose.SIGN_IN, identifier.identifier(), ctx.userAgent(), ctx.header("CF-IPCountry"));
@@ -248,16 +248,16 @@ public class PasskeyRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SignInClaimRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResponse.class)))
     private void claimSignIn(Context ctx) {
-        RateLimits.enforce(Refusal.PASSKEY_SIGN_IN_CLAIM_TOO_OFTEN, rateLimiter.tryDeviceClaim(ctx.ip()));
+        RateLimits.enforce(PasskeyRefusal.PASSKEY_SIGN_IN_CLAIM_TOO_OFTEN, rateLimiter.tryDeviceClaim(ctx.ip()));
         var request = ctx.bodyAsClass(SignInClaimRequest.class);
         if (isBlank(request.claimToken())) {
-            throw Refusal.DEVICE_SIGN_IN_CLAIM_MISSING.raise();
+            throw PasskeyRefusal.DEVICE_SIGN_IN_CLAIM_MISSING.raise();
         }
         var result = deviceService
                 .claimSignIn(request.claimToken(), ctx.userAgent(), ctx.header("CF-IPCountry"))
-                .orElseThrow(Refusal.DEVICE_SIGN_IN_NOT_GRANTED::raise);
+                .orElseThrow(PasskeyRefusal.DEVICE_SIGN_IN_NOT_GRANTED::raise);
         if (!result.success()) {
-            throw Refusal.DEVICE_SIGN_IN_NOT_GRANTED.raise();
+            throw PasskeyRefusal.DEVICE_SIGN_IN_NOT_GRANTED.raise();
         }
         sessionCookies.issue(ctx, result);
         ctx.json(LoginResponse.of(result));
@@ -271,10 +271,11 @@ public class PasskeyRoutes implements Routes {
     private void pollDeviceRequest(Context ctx) {
         var request = ctx.bodyAsClass(DevicePollRequest.class);
         if (isBlank(request.pollSecret())) {
-            throw Refusal.DEVICE_POLL_SECRET_MISSING.raise();
+            throw PasskeyRefusal.DEVICE_POLL_SECRET_MISSING.raise();
         }
         RateLimits.enforce(
-                Refusal.PASSKEY_DEVICE_POLL_TOO_OFTEN, rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
+                PasskeyRefusal.PASSKEY_DEVICE_POLL_TOO_OFTEN,
+                rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceService.poll(
                 request.pollSecret(), Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN));
         ctx.json(new DevicePollResponse(result.status(), result.claimToken(), result.purpose()));
@@ -287,14 +288,14 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)))
     private void beginDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(Refusal.PASSKEY_DEVICE_ENROLL_BEGIN_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(PasskeyRefusal.PASSKEY_DEVICE_ENROLL_BEGIN_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(DeviceEnrollBeginRequest.class);
         if (isBlank(request.enrollToken())) {
-            throw Refusal.DEVICE_ENROLMENT_TOKEN_MISSING.raise();
+            throw PasskeyRefusal.DEVICE_ENROLMENT_TOKEN_MISSING.raise();
         }
         var start = deviceService
                 .beginEnrollment(request.enrollToken())
-                .orElseThrow(Refusal.DEVICE_ENROLMENT_NOT_BEGUN::raise);
+                .orElseThrow(PasskeyRefusal.DEVICE_ENROLMENT_NOT_BEGUN::raise);
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
@@ -305,15 +306,16 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void finishDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(Refusal.PASSKEY_DEVICE_ENROLL_FINISH_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(
+                PasskeyRefusal.PASSKEY_DEVICE_ENROLL_FINISH_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(DeviceEnrollFinishRequest.class);
         if (isBlank(request.enrollToken()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw Refusal.DEVICE_ENROLMENT_DETAILS_MISSING.raise();
+            throw PasskeyRefusal.DEVICE_ENROLMENT_DETAILS_MISSING.raise();
         }
         boolean created = deviceService.finishEnrollment(
                 request.enrollToken(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"));
         if (!created) {
-            throw Refusal.DEVICE_ENROLMENT_NOT_FINISHED.raise();
+            throw PasskeyRefusal.DEVICE_ENROLMENT_NOT_FINISHED.raise();
         }
         ctx.json(new MessageResponse("Passkey created"));
     }
@@ -326,12 +328,13 @@ public class PasskeyRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenEnrollLookupResponse.class)))
     private void lookupTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(Refusal.PASSKEY_TOKEN_LOOKUP_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(PasskeyRefusal.PASSKEY_TOKEN_LOOKUP_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
-            throw Refusal.ENROLMENT_LINK_TOKEN_MISSING.raise();
+            throw PasskeyRefusal.ENROLMENT_LINK_TOKEN_MISSING.raise();
         }
-        var account = enrollmentService.lookup(request.token()).orElseThrow(Refusal.ENROLMENT_LINK_UNKNOWN::raise);
+        var account =
+                enrollmentService.lookup(request.token()).orElseThrow(PasskeyRefusal.ENROLMENT_LINK_UNKNOWN::raise);
         ctx.json(new TokenEnrollLookupResponse(account.firstName(), account.lastName()));
     }
 
@@ -342,12 +345,13 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)))
     private void beginTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(Refusal.PASSKEY_TOKEN_ENROLL_BEGIN_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(PasskeyRefusal.PASSKEY_TOKEN_ENROLL_BEGIN_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
-            throw Refusal.ENROLMENT_LINK_TOKEN_MISSING_ON_BEGIN.raise();
+            throw PasskeyRefusal.ENROLMENT_LINK_TOKEN_MISSING_ON_BEGIN.raise();
         }
-        var start = enrollmentService.begin(request.token()).orElseThrow(Refusal.ENROLMENT_LINK_NOT_BEGUN::raise);
+        var start =
+                enrollmentService.begin(request.token()).orElseThrow(PasskeyRefusal.ENROLMENT_LINK_NOT_BEGUN::raise);
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
@@ -358,14 +362,14 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void finishTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(Refusal.PASSKEY_TOKEN_ENROLL_FINISH_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(PasskeyRefusal.PASSKEY_TOKEN_ENROLL_FINISH_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollFinishRequest.class);
         if (isBlank(request.token()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw Refusal.ENROLMENT_LINK_DETAILS_MISSING.raise();
+            throw PasskeyRefusal.ENROLMENT_LINK_DETAILS_MISSING.raise();
         }
         if (!enrollmentService.finish(
                 request.token(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"))) {
-            throw Refusal.ENROLMENT_LINK_NOT_FINISHED.raise();
+            throw PasskeyRefusal.ENROLMENT_LINK_NOT_FINISHED.raise();
         }
         ctx.json(new MessageResponse("Passkey created"));
     }
@@ -378,15 +382,16 @@ public class PasskeyRoutes implements Routes {
     private void lookupDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(
-                Refusal.PASSKEY_DEVICE_CODE_LOOKUP_TOO_OFTEN,
+                PasskeyRefusal.PASSKEY_DEVICE_CODE_LOOKUP_TOO_OFTEN,
                 rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
-            throw Refusal.DEVICE_CODE_MISSING_ON_LOOKUP.raise();
+            throw PasskeyRefusal.DEVICE_CODE_MISSING_ON_LOOKUP.raise();
         }
-        var open = deviceService.lookup(request.code()).orElseThrow(Refusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP::raise);
+        var open =
+                deviceService.lookup(request.code()).orElseThrow(PasskeyRefusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP::raise);
         if (!approvalGuards.mayConfirm(session.accountId(), open)) {
-            throw Refusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP.raise();
+            throw PasskeyRefusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP.raise();
         }
         ctx.json(new DeviceLookupResponse(
                 open.requestedUserAgent(),
@@ -422,10 +427,10 @@ public class PasskeyRoutes implements Routes {
         if (open.is(DeviceRequestPurpose.STEP_UP)) return open.requestingAccountId();
         if (requested == null || requested == session.accountId()) return session.accountId();
         if (!open.is(DeviceRequestPurpose.SIGN_IN)) {
-            throw Refusal.APPROVAL_ONLY_FOR_SIGN_IN.raise();
+            throw PasskeyRefusal.APPROVAL_ONLY_FOR_SIGN_IN.raise();
         }
         if (!manages(session, requested)) {
-            throw Refusal.APPROVAL_MEMBER_NOT_YOURS.raise();
+            throw PasskeyRefusal.APPROVAL_MEMBER_NOT_YOURS.raise();
         }
         return requested;
     }
@@ -464,34 +469,36 @@ public class PasskeyRoutes implements Routes {
     private void approveDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(
-                Refusal.PASSKEY_DEVICE_APPROVAL_TOO_OFTEN,
+                PasskeyRefusal.PASSKEY_DEVICE_APPROVAL_TOO_OFTEN,
                 rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
-            throw Refusal.DEVICE_CODE_MISSING_ON_APPROVAL.raise();
+            throw PasskeyRefusal.DEVICE_CODE_MISSING_ON_APPROVAL.raise();
         }
-        var open = deviceService.lookup(request.code()).orElseThrow(Refusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL::raise);
+        var open = deviceService
+                .lookup(request.code())
+                .orElseThrow(PasskeyRefusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL::raise);
         if (!approvalGuards.mayConfirm(session.accountId(), open)) {
-            throw Refusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL.raise();
+            throw PasskeyRefusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL.raise();
         }
         if (request.pickedNumber() == null) {
-            throw Refusal.DEVICE_MATCH_NUMBER_MISSING.raise();
+            throw PasskeyRefusal.DEVICE_MATCH_NUMBER_MISSING.raise();
         }
         int subject = subjectFor(session, open, request.forAccountId());
         stepUpGuard.spendLocalProof(session, StepUpCategory.ACCOUNT_SECURITY);
         var result = deviceService.approve(session.accountId(), subject, request.code(), request.pickedNumber());
         if (result == DeviceRequestService.ApprovalResult.WRONG_NUMBER) {
-            throw Refusal.DEVICE_MATCH_NUMBER_WRONG.raise();
+            throw PasskeyRefusal.DEVICE_MATCH_NUMBER_WRONG.raise();
         }
         if (result != DeviceRequestService.ApprovalResult.APPROVED) {
-            throw Refusal.DEVICE_APPROVAL_NOT_TAKEN.raise();
+            throw PasskeyRefusal.DEVICE_APPROVAL_NOT_TAKEN.raise();
         }
         ctx.json(new MessageResponse("Device approved"));
     }
 
     private void requirePasskeysOn() {
         if (modeService.effectiveMode() == PasskeySettings.Mode.OFF) {
-            throw Refusal.PASSKEYS_SWITCHED_OFF.raise();
+            throw PasskeyRefusal.PASSKEYS_SWITCHED_OFF.raise();
         }
     }
 
@@ -517,7 +524,7 @@ public class PasskeyRoutes implements Routes {
             })
     private void beginSignIn(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(Refusal.PASSKEY_SIGN_IN_BEGIN_TOO_OFTEN, rateLimiter.tryPasskeySignIn(ctx.ip()));
+        RateLimits.enforce(PasskeyRefusal.PASSKEY_SIGN_IN_BEGIN_TOO_OFTEN, rateLimiter.tryPasskeySignIn(ctx.ip()));
         var start = passkeyService.startSignIn();
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
@@ -538,22 +545,22 @@ public class PasskeyRoutes implements Routes {
             })
     private void finishSignIn(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(Refusal.PASSKEY_SIGN_IN_FINISH_TOO_OFTEN, rateLimiter.tryPasskeySignIn(ctx.ip()));
+        RateLimits.enforce(PasskeyRefusal.PASSKEY_SIGN_IN_FINISH_TOO_OFTEN, rateLimiter.tryPasskeySignIn(ctx.ip()));
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw Refusal.PASSKEY_SIGN_IN_DETAILS_MISSING.raise();
+            throw PasskeyRefusal.PASSKEY_SIGN_IN_DETAILS_MISSING.raise();
         }
 
         Optional<Integer> accountId = passkeyService.finishSignIn(
                 request.challengeToken(), request.credentialJson(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (accountId.isEmpty()) {
-            throw Refusal.PASSKEY_SIGN_IN_REFUSED.raise();
+            throw PasskeyRefusal.PASSKEY_SIGN_IN_REFUSED.raise();
         }
 
         var result = authService.admitPasskeyAccount(
                 accountId.get(), ctx.userAgent(), ctx.header("CF-IPCountry"), request.trustedDevice());
         if (!result.success()) {
-            throw Refusal.PASSKEY_SIGN_IN_REFUSED.raise();
+            throw PasskeyRefusal.PASSKEY_SIGN_IN_REFUSED.raise();
         }
         sessionCookies.issue(ctx, result);
         ctx.json(LoginResponse.of(result));
@@ -619,7 +626,7 @@ public class PasskeyRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreationFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw Refusal.PASSKEY_CREATION_DETAILS_MISSING.raise();
+            throw PasskeyRefusal.PASSKEY_CREATION_DETAILS_MISSING.raise();
         }
         var factor = passkeyService.finishCreation(
                 session.accountId(),
@@ -629,7 +636,7 @@ public class PasskeyRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (factor.isEmpty()) {
-            throw Refusal.PASSKEY_NOT_CREATED.raise();
+            throw PasskeyRefusal.PASSKEY_NOT_CREATED.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(new PasskeyEntryResponse(
@@ -648,7 +655,7 @@ public class PasskeyRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(RenameRequest.class);
         if (!accountService.rename(session.accountId(), pathInt(ctx, "id"), request.label())) {
-            throw Refusal.PASSKEY_NOT_HERE_ON_RENAME.raise();
+            throw PasskeyRefusal.PASSKEY_NOT_HERE_ON_RENAME.raise();
         }
         ctx.json(new MessageResponse("Passkey renamed"));
     }
@@ -665,8 +672,8 @@ public class PasskeyRoutes implements Routes {
         var outcome = accountService.remove(
                 session.accountId(), pathInt(ctx, "id"), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
-            case NOT_FOUND -> throw Refusal.PASSKEY_NOT_HERE_ON_REMOVAL.raise();
-            case REFUSED_NO_PASSWORD -> throw Refusal.LAST_WAY_INTO_ACCOUNT.raise();
+            case NOT_FOUND -> throw PasskeyRefusal.PASSKEY_NOT_HERE_ON_REMOVAL.raise();
+            case REFUSED_NO_PASSWORD -> throw PasskeyRefusal.LAST_WAY_INTO_ACCOUNT.raise();
             case REMOVED -> ctx.json(new RemovalResponse(false));
             case REMOVED_PASSWORD_REENABLED -> ctx.json(new RemovalResponse(true));
         }
@@ -687,10 +694,10 @@ public class PasskeyRoutes implements Routes {
                 session.accountId(), request.enabled(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
             case OK -> ctx.json(new MessageResponse("Password sign-in updated"));
-            case MODE_FORBIDS -> throw Refusal.PASSWORD_SIGN_IN_LOCKED_BY_INSTANCE.raise();
-            case NO_REACHABLE_ADDRESS -> throw Refusal.PASSWORD_SIGN_IN_NEEDS_REACHABLE_ADDRESS.raise();
-            case NO_TRIED_PASSKEY -> throw Refusal.PASSWORD_SIGN_IN_NEEDS_TRIED_PASSKEY.raise();
-            case NO_PASSWORD -> throw Refusal.ACCOUNT_HOLDS_NO_PASSWORD_ON_SWITCH.raise();
+            case MODE_FORBIDS -> throw PasskeyRefusal.PASSWORD_SIGN_IN_LOCKED_BY_INSTANCE.raise();
+            case NO_REACHABLE_ADDRESS -> throw PasskeyRefusal.PASSWORD_SIGN_IN_NEEDS_REACHABLE_ADDRESS.raise();
+            case NO_TRIED_PASSKEY -> throw PasskeyRefusal.PASSWORD_SIGN_IN_NEEDS_TRIED_PASSKEY.raise();
+            case NO_PASSWORD -> throw PasskeyRefusal.ACCOUNT_HOLDS_NO_PASSWORD_ON_SWITCH.raise();
         }
     }
 
@@ -726,7 +733,7 @@ public class PasskeyRoutes implements Routes {
     private void answerOffer(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(OfferAnswerRequest.class);
-        if (request.answer() == null) throw Refusal.PASSKEY_OFFER_ANSWER_UNKNOWN.raise();
+        if (request.answer() == null) throw PasskeyRefusal.PASSKEY_OFFER_ANSWER_UNKNOWN.raise();
         accountService.answerOffer(session.accountId(), request.answer() == OfferAnswer.DECLINED);
         ctx.json(new MessageResponse("Answer recorded"));
     }
@@ -751,7 +758,7 @@ public class PasskeyRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw Refusal.PASSKEY_TRIAL_DETAILS_MISSING.raise();
+            throw PasskeyRefusal.PASSKEY_TRIAL_DETAILS_MISSING.raise();
         }
         var outcome =
                 passkeyService.finishTrial(session.accountId(), request.challengeToken(), request.credentialJson());

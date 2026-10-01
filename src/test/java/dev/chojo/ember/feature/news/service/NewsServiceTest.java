@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.news.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -246,11 +246,11 @@ class NewsServiceTest extends RepositoryTestBase {
         try {
             assertEquals(open.id(), service.requireReadable(reader, open.id()).id());
             assertEquals(
-                    Refusal.NEWS_NOT_HERE_OR_NOT_YOURS,
+                    NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS,
                     assertThrows(RefusalResponse.class, () -> service.requireReadable(reader, kept.id()))
                             .refusal());
             assertEquals(
-                    Refusal.NEWS_NOT_HERE_OR_NOT_YOURS,
+                    NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS,
                     assertThrows(RefusalResponse.class, () -> service.requireReadable(reader, -1))
                             .refusal());
         } finally {

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.PublicQuizService;
@@ -43,10 +43,11 @@ class PublicQuizRoutesTest {
                     json(client.get(BASE + "/catalogs")).get(0).path("name").asString());
             var picked = client.get(BASE + "/random?catalogs=1,%202,");
             assertEquals(9, json(picked).path("id").asInt());
-            assertEquals(Refusal.PUBLIC_QUIZ_CATALOGS_NOT_NAMED, refusalOf(client.get(BASE + "/random")));
-            assertEquals(Refusal.PUBLIC_QUIZ_CATALOG_NOT_A_NUMBER, refusalOf(client.get(BASE + "/random?catalogs=x")));
+            assertEquals(QuizRefusal.PUBLIC_QUIZ_CATALOGS_NOT_NAMED, refusalOf(client.get(BASE + "/random")));
             assertEquals(
-                    Refusal.PUBLIC_QUIZ_STATION_LINK_NOT_GOOD,
+                    QuizRefusal.PUBLIC_QUIZ_CATALOG_NOT_A_NUMBER, refusalOf(client.get(BASE + "/random?catalogs=x")));
+            assertEquals(
+                    QuizRefusal.PUBLIC_QUIZ_STATION_LINK_NOT_GOOD,
                     refusalOf(client.get(PREFIX + "/public/quiz/nord/catalogs")));
         });
     }

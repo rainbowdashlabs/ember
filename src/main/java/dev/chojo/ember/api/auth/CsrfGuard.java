@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.api.auth;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -88,7 +88,7 @@ public class CsrfGuard {
      */
     public void require(Context ctx, String sessionToken) {
         if (!permits(ctx, sessionToken)) {
-            throw Refusal.REQUEST_NOT_FROM_THIS_PAGE.raise();
+            throw MemberRefusal.REQUEST_NOT_FROM_THIS_PAGE.raise();
         }
     }
 
@@ -101,7 +101,7 @@ public class CsrfGuard {
         String origin = ctx.header("Origin");
         if (origin == null || demo.dev()) return;
         if (!allowedOrigins().contains(normalise(origin).orElse(""))) {
-            throw Refusal.SIGN_IN_FROM_ANOTHER_SITE.raise();
+            throw MemberRefusal.SIGN_IN_FROM_ANOTHER_SITE.raise();
         }
     }
 

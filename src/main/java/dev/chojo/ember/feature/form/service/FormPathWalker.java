@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
@@ -64,8 +64,8 @@ public final class FormPathWalker {
         var known = questions.stream().map(FormQuestion::id).collect(Collectors.toSet());
         for (var questionId : given.keySet()) {
             if (!known.contains(questionId)) {
-                problems.add(
-                        FormAnswersRefused.AnswerProblem.of(questionId, null, Refusal.ANSWER_TO_QUESTION_NOT_ON_FORM));
+                problems.add(FormAnswersRefused.AnswerProblem.of(
+                        questionId, null, FormRefusal.ANSWER_TO_QUESTION_NOT_ON_FORM));
             }
         }
         var path = path(pages, questions, given);
@@ -77,13 +77,13 @@ public final class FormPathWalker {
             if (value == null) {
                 if (question.required()) {
                     problems.add(FormAnswersRefused.AnswerProblem.of(
-                            question.id(), question.pageKey(), Refusal.QUESTION_NEEDS_AN_ANSWER));
+                            question.id(), question.pageKey(), FormRefusal.QUESTION_NEEDS_AN_ANSWER));
                 }
                 continue;
             }
             if (!question.config().validate(value).isEmpty()) {
                 problems.add(FormAnswersRefused.AnswerProblem.of(
-                        question.id(), question.pageKey(), Refusal.ANSWER_DOES_NOT_FIT_QUESTION));
+                        question.id(), question.pageKey(), FormRefusal.ANSWER_DOES_NOT_FIT_QUESTION));
                 continue;
             }
             kept.put(question.id(), value);

@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.news.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -168,10 +169,10 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
     void anotherStationNeitherReadsNorWrites() {
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.NEWS_NOT_HERE_OR_NOT_YOURS,
+                    NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS,
                     refusalOf(client.get(PREFIX + "/news/%d/comments".formatted(entryId), harness.as(as(stranger)))));
             assertEquals(
-                    Refusal.NEWS_NOT_HERE_OR_NOT_YOURS,
+                    NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS,
                     refusalOf(client.post(
                             PREFIX + "/news/%d/comments".formatted(entryId),
                             body("{\"content\": \"x\"}"),
@@ -188,7 +189,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
                 kept,
                 new RestrictionSelection(List.of(), List.of(), List.of(), List.of(other.id()), null));
 
-        assertEquals(Refusal.NEWS_NOT_HERE_OR_NOT_YOURS, refusalOf(post(author, kept, "{\"content\": \"x\"}")));
+        assertEquals(NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS, refusalOf(post(author, kept, "{\"content\": \"x\"}")));
         assertEquals(201, post(other, kept, "{\"content\": \"drin\"}").code());
     }
 
@@ -197,7 +198,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
         int id = write(author, entryId, "alt");
 
         assertEquals(
-                Refusal.NEWS_COMMENT_NOT_YOURS_TO_EDIT,
+                NewsRefusal.NEWS_COMMENT_NOT_YOURS_TO_EDIT,
                 refusalOf(change(as(other, StationPermission.NEWS_MANAGER), id, "fremd")));
         var changed = json(change(as(author), id, "neu"));
 
@@ -209,7 +210,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
     void anEmptyChangeIsRefused() {
         int id = write(author, entryId, "alt");
 
-        assertEquals(Refusal.NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE, refusalOf(change(as(author), id, " ")));
+        assertEquals(NewsRefusal.NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE, refusalOf(change(as(author), id, " ")));
     }
 
     @Test
@@ -218,7 +219,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
         int foreign = write(author, entryId, "fremd");
         int managed = write(author, entryId, "verwaltet");
 
-        assertEquals(Refusal.NEWS_COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), foreign)));
+        assertEquals(NewsRefusal.NEWS_COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), foreign)));
         assertEquals(204, remove(as(author), own).code());
         assertEquals(
                 204, remove(as(other, StationPermission.NEWS_MANAGER), managed).code());
@@ -234,7 +235,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
 
         var answer = remove(as(stranger, StationPermission.NEWS_MANAGER), id);
 
-        assertEquals(Refusal.NOT_YOURS_TO_OPEN, refusalOf(answer));
+        assertEquals(GeneralRefusal.NOT_YOURS_TO_OPEN, refusalOf(answer));
         assertFalse(comments.findById(CommentEntityType.NEWS, id).orElseThrow().deleted());
     }
 
@@ -284,7 +285,8 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
                     created.getFirst().alsoTold());
 
             assertEquals(
-                    Refusal.NOT_YOURS_TO_OPEN, refusalOf(remove(as(stranger, StationPermission.NEWS_MANAGER), id)));
+                    GeneralRefusal.NOT_YOURS_TO_OPEN,
+                    refusalOf(remove(as(stranger, StationPermission.NEWS_MANAGER), id)));
             assertEquals(
                     204, remove(as(other, StationPermission.NEWS_MANAGER), id).code());
             assertTrue(published().stream()

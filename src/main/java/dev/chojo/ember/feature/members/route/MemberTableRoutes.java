@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTable.MemberTableHeader;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
@@ -181,7 +181,7 @@ public class MemberTableRoutes implements Routes {
             ctx.header("Content-Disposition", memberListName(station, "pdf"));
             ctx.result(pdf);
         } catch (Exception ignored) {
-            throw Refusal.MEMBER_TABLE_NOT_A_SHEET.raise();
+            throw MemberRefusal.MEMBER_TABLE_NOT_A_SHEET.raise();
         }
     }
 
@@ -210,7 +210,7 @@ public class MemberTableRoutes implements Routes {
     private Station stationOf(Context ctx) {
         return stationService
                 .findById(StationSession.from(ctx).stationId())
-                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_MEMBER_TABLE::raise);
+                .orElseThrow(MemberRefusal.STATION_NOT_HERE_FOR_MEMBER_TABLE::raise);
     }
 
     private String generatedBy(Context ctx) {

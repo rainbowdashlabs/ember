@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
@@ -125,18 +125,20 @@ public class StorageQuotaAdminService {
     }
 
     private int stationIdOf(UUID stationUid) {
-        return stationRepository.resolveId(stationUid).orElseThrow(Refusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN::raise);
+        return stationRepository
+                .resolveId(stationUid)
+                .orElseThrow(StorageRefusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN::raise);
     }
 
     /**
      * The station identity an administrator named, refused when it does not read as one.
      */
     static UUID parseUid(String raw) {
-        if (raw == null) throw Refusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN.raise();
+        if (raw == null) throw StorageRefusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN.raise();
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN.raise();
+            throw StorageRefusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN.raise();
         }
     }
 

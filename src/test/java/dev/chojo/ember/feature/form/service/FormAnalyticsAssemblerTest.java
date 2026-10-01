@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -216,7 +216,7 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
     @Test
     void getResponseDetailThrowsForUnknownResponse() {
         var refused = assertThrows(RefusalResponse.class, () -> assembler.getResponseDetail(formId, 99999));
-        assertEquals(Refusal.FORM_RESPONSE_NOT_HERE, refused.refusal());
+        assertEquals(FormRefusal.FORM_RESPONSE_NOT_HERE, refused.refusal());
     }
 
     @Test

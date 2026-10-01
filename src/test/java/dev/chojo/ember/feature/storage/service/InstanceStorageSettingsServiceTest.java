@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.UnwritableConf;
@@ -131,7 +132,7 @@ class InstanceStorageSettingsServiceTest {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.apply(ACTOR, new InstanceMigrateRequest(null, false)));
 
-        assertEquals(Refusal.INSTANCE_STORAGE_TARGET_MISSING, refused.refusal());
+        assertEquals(StorageRefusal.INSTANCE_STORAGE_TARGET_MISSING, refused.refusal());
         verifyNoInteractions(migration, audit);
     }
 
@@ -143,7 +144,7 @@ class InstanceStorageSettingsServiceTest {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false)));
 
-        assertEquals(Refusal.INSTANCE_STORAGE_MOVE_NOT_DONE, refused.refusal());
+        assertEquals(StorageRefusal.INSTANCE_STORAGE_MOVE_NOT_DONE, refused.refusal());
         assertEquals(
                 StorageBackendType.LOCAL,
                 new Conf(directory).main().storage().backend().type());
@@ -171,7 +172,7 @@ class InstanceStorageSettingsServiceTest {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false)));
 
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refused.refusal());
+        assertEquals(SystemRefusal.SETTINGS_NOT_SAVED, refused.refusal());
         assertEquals(StorageBackendType.LOCAL, live.type());
         assertEquals("kept", live.local().root());
         assertEquals("", live.s3().bucket());
@@ -189,7 +190,7 @@ class InstanceStorageSettingsServiceTest {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false)));
 
-        assertEquals(Refusal.INSTANCE_STORAGE_MOVE_TAKEN_BACK, refused.refusal());
+        assertEquals(StorageRefusal.INSTANCE_STORAGE_MOVE_TAKEN_BACK, refused.refusal());
         verify(migration).abort(PREPARED);
     }
 

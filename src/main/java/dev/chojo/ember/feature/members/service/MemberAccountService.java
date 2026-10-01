@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
@@ -13,6 +12,8 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
@@ -69,7 +70,7 @@ public class MemberAccountService {
                 || memberRepository
                         .findByStationAndAccount(stationId, accountId)
                         .isEmpty()) {
-            throw Refusal.MEMBER_NOT_HERE.raise();
+            throw MemberRefusal.MEMBER_NOT_HERE.raise();
         }
     }
 
@@ -98,9 +99,9 @@ public class MemberAccountService {
      * @return the account
      */
     public Account addresslessAccount(int accountId, StationSession session) {
-        Account target = actionableAccount(accountId, session, Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE);
+        Account target = actionableAccount(accountId, session, MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE);
         if (target.hasRealEmail()) {
-            throw Refusal.MEMBER_HAS_OWN_ADDRESS.raise();
+            throw MemberRefusal.MEMBER_HAS_OWN_ADDRESS.raise();
         }
         return target;
     }
@@ -114,7 +115,7 @@ public class MemberAccountService {
     private static void requireNotAboveActor(Account target, UserSession actor) {
         if (target.instanceUserType() == InstanceUserType.ADMINISTRATOR
                 && actor.instanceUserType() != InstanceUserType.ADMINISTRATOR) {
-            throw Refusal.ACCOUNT_ABOVE_YOU.raise();
+            throw MemberRefusal.ACCOUNT_ABOVE_YOU.raise();
         }
     }
 
@@ -143,13 +144,14 @@ public class MemberAccountService {
         boolean actsForSomebodyElse = session.accountId() != accountId;
         if (actsForSomebodyElse && !session.hasInstancePermission(InstancePermission.ADMINISTRATOR)) {
             if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
-                throw Refusal.ACCOUNT_NOT_YOURS_TO_CHANGE.raise();
+                throw MemberRefusal.ACCOUNT_NOT_YOURS_TO_CHANGE.raise();
             }
             requireStationAccount(accountId, stationId);
         }
-        var existing = accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);
+        var existing =
+                accountRepository.findById(accountId).orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);
         if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
-            throw Refusal.MEMBER_NOT_HERE_ON_CHANGE.raise();
+            throw MemberRefusal.MEMBER_NOT_HERE_ON_CHANGE.raise();
         }
         nameResolver.forgetAccount(accountId);
         if (request.username() != null) {
@@ -166,7 +168,7 @@ public class MemberAccountService {
         }
         var outcome = authService.requestEmailChange(accountId, request.email());
         if (outcome == AuthService.EmailChangeResult.DUPLICATE) {
-            throw Refusal.ACCOUNT_ADDRESS_TAKEN.raise();
+            throw MemberRefusal.ACCOUNT_ADDRESS_TAKEN.raise();
         }
         return new UpdateAccountResponse("Account updated", outcome);
     }

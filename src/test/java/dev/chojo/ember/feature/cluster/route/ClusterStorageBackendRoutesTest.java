@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -79,7 +79,8 @@ class ClusterStorageBackendRoutesTest {
                     json(client.post(BASE + "/probe", null, storage))
                             .path("error")
                             .asString());
-            assertEquals(Refusal.CLUSTER_KEEPS_NO_STORAGE, refusalOf(client.post(BASE + "/probe", null, storage)));
+            assertEquals(
+                    ClusterRefusal.CLUSTER_KEEPS_NO_STORAGE, refusalOf(client.post(BASE + "/probe", null, storage)));
         });
     }
 
@@ -102,14 +103,14 @@ class ClusterStorageBackendRoutesTest {
         when(moves.move(Actor.human(TestSessions.ACCOUNT_ID, null), CLUSTER_ID, station.toString()))
                 .thenReturn(new MigrationResponse(3, 2, 1, 0, 64));
         when(moves.move(Actor.human(TestSessions.ACCOUNT_ID, null), CLUSTER_ID, "nord"))
-                .thenThrow(Refusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE.raise());
+                .thenThrow(ClusterRefusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE.raise());
 
         harness.run((server, client) -> {
             var storage = harness.as(TestSessions.clusterMember(CLUSTER_ID, ClusterPermission.CLUSTER_STORAGE));
             var moved = client.post(BASE + "/placements/" + station + "/move", null, storage);
             assertEquals(64, json(moved).path("copiedBytes").asInt());
             assertEquals(
-                    Refusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE,
+                    ClusterRefusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE,
                     refusalOf(client.post(BASE + "/placements/nord/move", null, storage)));
         });
     }

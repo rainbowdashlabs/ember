@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.MemberGroupSet;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -55,14 +56,17 @@ class MemberGroupSetServiceTest extends RepositoryTestBase {
         var set = service.create(station.id(), "Stufen");
         service.create(station.id(), "Andere");
 
-        assertEquals(Refusal.GROUP_SET_NAME_MISSING_ON_CREATE, refusalOf(() -> service.create(station.id(), " ")));
-        assertEquals(Refusal.GROUP_SET_NAME_MISSING_ON_CREATE, refusalOf(() -> service.create(station.id(), null)));
-        assertEquals(Refusal.GROUP_SET_NAME_TAKEN_ON_CREATE, refusalOf(() -> service.create(station.id(), "Stufen")));
         assertEquals(
-                Refusal.GROUP_SET_NAME_MISSING_ON_CHANGE,
+                MemberRefusal.GROUP_SET_NAME_MISSING_ON_CREATE, refusalOf(() -> service.create(station.id(), " ")));
+        assertEquals(
+                MemberRefusal.GROUP_SET_NAME_MISSING_ON_CREATE, refusalOf(() -> service.create(station.id(), null)));
+        assertEquals(
+                MemberRefusal.GROUP_SET_NAME_TAKEN_ON_CREATE, refusalOf(() -> service.create(station.id(), "Stufen")));
+        assertEquals(
+                MemberRefusal.GROUP_SET_NAME_MISSING_ON_CHANGE,
                 refusalOf(() -> service.rename(station.id(), set.id(), null)));
         assertEquals(
-                Refusal.GROUP_SET_NAME_TAKEN_ON_CHANGE,
+                MemberRefusal.GROUP_SET_NAME_TAKEN_ON_CHANGE,
                 refusalOf(() -> service.rename(station.id(), set.id(), "Andere")));
     }
 
@@ -72,9 +76,11 @@ class MemberGroupSetServiceTest extends RepositoryTestBase {
         var foreign = service.create(elsewhere.id(), "Fremd");
 
         assertEquals(
-                Refusal.GROUP_SET_NOT_HERE_ON_CHANGE,
+                MemberRefusal.GROUP_SET_NOT_HERE_ON_CHANGE,
                 refusalOf(() -> service.rename(station.id(), foreign.id(), "Meins")));
-        assertEquals(Refusal.GROUP_SET_NOT_HERE_ON_DELETE, refusalOf(() -> service.delete(station.id(), foreign.id())));
+        assertEquals(
+                MemberRefusal.GROUP_SET_NOT_HERE_ON_DELETE,
+                refusalOf(() -> service.delete(station.id(), foreign.id())));
         stationRepo.delete(elsewhere.id());
     }
 }

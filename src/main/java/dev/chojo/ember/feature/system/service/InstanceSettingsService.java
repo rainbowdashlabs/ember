@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.elements.Theming;
@@ -90,7 +90,7 @@ public class InstanceSettingsService {
         String mailLocale = request.defaultMailLocale();
         boolean changesMailLocale = mailLocale != null && !mailLocale.isBlank();
         if (changesMailLocale && !availableMailLocales().contains(mailLocale)) {
-            throw Refusal.NO_MAIL_WRITTEN_IN_THAT_LANGUAGE.raise(mailLocale);
+            throw SystemRefusal.NO_MAIL_WRITTEN_IN_THAT_LANGUAGE.raise(mailLocale);
         }
         ThemeFeel feel = request.instanceDefaultFeel() == null ? null : feelOf(request.instanceDefaultFeel());
         var theming = conf.main().theming();
@@ -112,7 +112,7 @@ public class InstanceSettingsService {
         try {
             return ThemeFeel.valueOf(name);
         } catch (IllegalArgumentException e) {
-            throw Refusal.THEME_FEEL_UNKNOWN.raise(name);
+            throw SystemRefusal.THEME_FEEL_UNKNOWN.raise(name);
         }
     }
 

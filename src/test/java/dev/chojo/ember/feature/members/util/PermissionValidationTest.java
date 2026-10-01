@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.util;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.Permission;
 import org.junit.jupiter.api.Test;
 
@@ -51,7 +51,7 @@ class PermissionValidationTest {
                 RefusalResponse.class,
                 () -> PermissionValidation.validatePermissionChanges(
                         current, desired, ALL_PERMISSIONS, callerPermissions));
-        assertEquals(Refusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT, refused.refusal());
+        assertEquals(MemberRefusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT, refused.refusal());
     }
 
     @Test
@@ -74,7 +74,7 @@ class PermissionValidationTest {
                 RefusalResponse.class,
                 () -> PermissionValidation.validatePermissionChanges(
                         current, desired, ALL_PERMISSIONS, callerPermissions));
-        assertEquals(Refusal.MEMBER_PERMISSION_UNKNOWN, refused.refusal());
+        assertEquals(MemberRefusal.MEMBER_PERMISSION_UNKNOWN, refused.refusal());
     }
 
     @Test

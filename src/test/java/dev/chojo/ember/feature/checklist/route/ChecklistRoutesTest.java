@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.checklist.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BodyRefusal;
+import dev.chojo.ember.api.refusal.ChecklistRefusal;
 import dev.chojo.ember.feature.checklist.entity.Checklist;
 import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
 import dev.chojo.ember.feature.checklist.service.ChecklistExportService;
@@ -69,7 +70,7 @@ class ChecklistRoutesTest {
                             .path("added")
                             .asInt());
             assertEquals(
-                    Refusal.CHECKLIST_NAMES_NO_MEMBERS,
+                    ChecklistRefusal.CHECKLIST_NAMES_NO_MEMBERS,
                     refusalOf(client.post(PREFIX + "/checklist/5/entry", body("{\"memberIds\": []}"), manager)));
             assertEquals(
                     1,
@@ -112,7 +113,7 @@ class ChecklistRoutesTest {
             assertEquals(
                     "TEAM", detail.path("restriction").path("userTypes").get(0).asString());
             assertEquals(
-                    Refusal.BODY_DOES_NOT_MATCH,
+                    BodyRefusal.BODY_DOES_NOT_MATCH,
                     refusalOf(client.patch(
                             PREFIX + "/checklist/5", body("{\"restriction\": {\"mode\": \"XOR\"}}"), manager)));
         });

@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.news.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.Test;
@@ -27,8 +28,8 @@ class PublicBlogServiceTest {
                         RefusalResponse.class,
                         () -> blogs.openBlog(
                                 address,
-                                Refusal.STATION_NOT_HERE_BEHIND_BLOG_LIST,
-                                Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST))
+                                NewsRefusal.STATION_NOT_HERE_BEHIND_BLOG_LIST,
+                                NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST))
                 .refusal();
     }
 
@@ -46,9 +47,11 @@ class PublicBlogServiceTest {
         assertEquals(
                 open,
                 blogs.openBlog(
-                        "open", Refusal.STATION_NOT_HERE_BEHIND_BLOG_LIST, Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST));
-        assertEquals(Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST, refusalOf("closed"));
-        assertEquals(Refusal.STATION_NOT_HERE_BEHIND_BLOG_LIST, refusalOf("vanished"));
-        assertEquals(Refusal.STATION_NOT_HERE_BEHIND_BLOG, refusalOf("unknown"));
+                        "open",
+                        NewsRefusal.STATION_NOT_HERE_BEHIND_BLOG_LIST,
+                        NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST));
+        assertEquals(NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST, refusalOf("closed"));
+        assertEquals(NewsRefusal.STATION_NOT_HERE_BEHIND_BLOG_LIST, refusalOf("vanished"));
+        assertEquals(NewsRefusal.STATION_NOT_HERE_BEHIND_BLOG, refusalOf("unknown"));
     }
 }

@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.feed.service;
 
 import com.rometools.rome.feed.synd.SyndEntryImpl;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FeedRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -145,7 +145,7 @@ class PersonalFeedServiceTest {
 
         assertSame(OWNER, service.member("t"));
         assertEquals(
-                Refusal.FEED_LINK_NOT_GOOD,
+                FeedRefusal.FEED_LINK_NOT_GOOD,
                 assertThrows(RefusalResponse.class, () -> service.member("other"))
                         .refusal());
     }
@@ -226,15 +226,15 @@ class PersonalFeedServiceTest {
 
         assertSame(picture, service.lostAndFoundImage(STATION, 1, 0));
         assertEquals(
-                Refusal.FEED_ITEM_NOT_HERE,
+                FeedRefusal.FEED_ITEM_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.lostAndFoundImage(STATION, 2, 0))
                         .refusal());
         assertEquals(
-                Refusal.FEED_ITEM_NOT_HERE,
+                FeedRefusal.FEED_ITEM_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.lostAndFoundImage(STATION, 3, 0))
                         .refusal());
         assertEquals(
-                Refusal.FEED_ITEM_PICTURE_NOT_HERE,
+                FeedRefusal.FEED_ITEM_PICTURE_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.lostAndFoundImage(STATION, 4, 0))
                         .refusal());
     }

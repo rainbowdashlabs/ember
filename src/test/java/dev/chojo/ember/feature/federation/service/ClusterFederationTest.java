@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -128,9 +128,9 @@ class ClusterFederationTest extends RepositoryTestBase {
         var endingMesh = assertThrows(RefusalResponse.class, () -> service.endFederation(meshPairId));
         var pausingHome = assertThrows(
                 RefusalResponse.class, () -> service.suspendPartner(homePairId), "content must keep arriving");
-        assertEquals(Refusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE, endingHome.refusal());
-        assertEquals(Refusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE, endingMesh.refusal());
-        assertEquals(Refusal.FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE, pausingHome.refusal());
+        assertEquals(FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE, endingHome.refusal());
+        assertEquals(FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE, endingMesh.refusal());
+        assertEquals(FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE, pausingHome.refusal());
 
         assertTrue(service.suspendPartner(meshPairId), "a mesh pair is the two stations' own to pause");
     }

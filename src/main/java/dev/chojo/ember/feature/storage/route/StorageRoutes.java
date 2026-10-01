@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.storage.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService;
@@ -347,7 +347,7 @@ public class StorageRoutes implements Routes {
     private StorageBackendAuditService.Actor actor(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session == null || session.account() == null) {
-            throw Refusal.NO_ACCOUNT_BEHIND_INSTANCE_STORAGE_CHANGE.raise();
+            throw StorageRefusal.NO_ACCOUNT_BEHIND_INSTANCE_STORAGE_CHANGE.raise();
         }
         Integer memberId = session.memberOpt().map(StationMember::id).orElse(null);
         return StorageBackendAuditService.Actor.human(session.account().id(), memberId);

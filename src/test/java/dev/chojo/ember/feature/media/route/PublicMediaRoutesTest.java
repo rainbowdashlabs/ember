@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.media.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.MediaLibraryRefusal;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.PublicMediaService;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,9 +65,10 @@ class PublicMediaRoutesTest {
 
     @Test
     void aStationThatIsNotHereIsRefused() {
-        when(media.resolveStation("gone")).thenThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE.raise());
+        when(media.resolveStation("gone")).thenThrow(MediaLibraryRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE.raise());
 
         harness.run((server, client) -> assertEquals(
-                Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE, refusalOf(client.get(PREFIX + "/public/media/gone/abc"))));
+                MediaLibraryRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE,
+                refusalOf(client.get(PREFIX + "/public/media/gone/abc"))));
     }
 }

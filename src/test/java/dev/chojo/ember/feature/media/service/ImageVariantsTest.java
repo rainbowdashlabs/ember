@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.media.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.media.MediaLayoutFixtures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
@@ -187,10 +188,11 @@ class ImageVariantsTest {
         void anUploadThatIsNoTakenPictureIsRefusedBeforeAnythingIsWritten() throws IOException {
             storeAvatar(png(40, 40));
 
-            assertRefused(Refusal.PICTURE_KIND_NOT_TAKEN, "<svg/>".getBytes(StandardCharsets.UTF_8), 0);
-            assertRefused(Refusal.PICTURE_KIND_NOT_TAKEN, new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0}, 0);
-            assertRefused(Refusal.PICTURE_TOO_LARGE, png(40, 40), 10);
-            assertRefused(Refusal.PICTURE_TOO_MANY_PIXELS, OversizedPictures.pngClaiming(30_000, 30_000), 0);
+            assertRefused(GeneralRefusal.PICTURE_KIND_NOT_TAKEN, "<svg/>".getBytes(StandardCharsets.UTF_8), 0);
+            assertRefused(
+                    GeneralRefusal.PICTURE_KIND_NOT_TAKEN, new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0}, 0);
+            assertRefused(GeneralRefusal.PICTURE_TOO_LARGE, png(40, 40), 10);
+            assertRefused(GeneralRefusal.PICTURE_TOO_MANY_PIXELS, OversizedPictures.pngClaiming(30_000, 30_000), 0);
             assertThrows(
                     RefusalResponse.class,
                     () -> images.store(

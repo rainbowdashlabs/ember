@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -117,21 +117,23 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             uid = UUID.fromString(uidParam);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid station UUID for public KB: {}", uidParam, e);
-            throw Refusal.PUBLIC_KB_ADDRESS_NOT_A_STATION.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_ADDRESS_NOT_A_STATION.raise();
         }
-        var station = stationService.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_KB::raise);
+        var station = stationService
+                .findByUid(uid)
+                .orElseThrow(KnowledgeBaseRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_KB::raise);
         if (station.publicKbMode() == PublicKbMode.OFF) {
-            throw Refusal.PUBLIC_KB_SWITCHED_OFF.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_SWITCHED_OFF.raise();
         }
         if (stationService.findDisabledModules(station.id()).contains(StationModule.KNOWLEDGE_BASE)) {
-            throw Refusal.PUBLIC_KB_SWITCHED_OFF.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_SWITCHED_OFF.raise();
         }
         return station;
     }
 
     private void requirePubliclyVisible(Station station, @Nullable Integer folderId, @Nullable Integer fileId) {
         if (!accessService.isPubliclyVisible(station.publicKbMode(), folderId, fileId)) {
-            throw Refusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -153,8 +155,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private PublicFile resolvePublicFile(Context ctx) {
         var station = resolveStation(ctx);
         int id = pathInt(ctx, "id");
-        var file = kbService.findFile(id).orElseThrow(Refusal.PUBLIC_KB_ENTRY_NOT_HERE::raise);
-        if (file.stationId() != station.id()) throw Refusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
+        var file = kbService.findFile(id).orElseThrow(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE::raise);
+        if (file.stationId() != station.id()) throw KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
         requirePubliclyVisible(station, null, id);
         return new PublicFile(station, file);
     }
@@ -256,7 +258,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                     ctx.header("Cache-Control", "public, max-age=300");
                     ctx.result(content.get());
                 } else {
-                    throw Refusal.PUBLIC_KB_FILE_CONTENT_NOT_HERE.raise();
+                    throw KnowledgeBaseRefusal.PUBLIC_KB_FILE_CONTENT_NOT_HERE.raise();
                 }
             }
         }
@@ -289,7 +291,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
         var picture = pictureService
                 .read(file.stationId(), file.id(), file.mimeType(), size)
-                .orElseThrow(Refusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE::raise);
         ctx.contentType(picture.contentType());
         ctx.header("Cache-Control", "public, max-age=300");
         ctx.result(picture.data());
@@ -310,7 +312,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             })
     private void getMarkdownHtml(Context ctx) {
         var file = resolvePublicFile(ctx).file();
-        if (file.fileType() != KbFileType.MARKDOWN) throw Refusal.PUBLIC_KB_NOT_A_WRITTEN_ARTICLE.raise();
+        if (file.fileType() != KbFileType.MARKDOWN) throw KnowledgeBaseRefusal.PUBLIC_KB_NOT_A_WRITTEN_ARTICLE.raise();
 
         var markdown = contentService.getMarkdownContent(file.id()).orElse("");
         var html = contentService.renderMarkdown(markdown);
@@ -325,7 +327,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         var published = resolvePublicFile(ctx);
         var file = published.file();
         if (!KbPdfExportService.isExportable(file.fileType())) {
-            throw Refusal.PUBLIC_KB_NOT_A_PDF_TO_MAKE.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_NOT_A_PDF_TO_MAKE.raise();
         }
         try {
             byte[] pdf = pdfExportService.renderPublic(file, published.station());
@@ -336,10 +338,10 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             ctx.result(pdf);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw Refusal.PUBLIC_KB_PDF_STOPPED.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_PDF_STOPPED.raise();
         } catch (IOException e) {
             log.warn("Failed to render public file {} as PDF", file.id(), e);
-            throw Refusal.PUBLIC_KB_PDF_NOT_MADE.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_PDF_NOT_MADE.raise();
         }
     }
 

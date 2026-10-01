@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.page.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -76,7 +76,7 @@ public class SharedPageRoutes implements Routes {
     @StationFree("the link is the authorisation, and which station the page belongs to is the answer rather than"
             + " part of the question: the reader holds a token and nothing else")
     private void getSharedPage(Context ctx) {
-        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
+        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(PageRefusal.PAGE_LINK_UNKNOWN::raise);
         var station = site.sharedPageStation(page);
 
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
@@ -103,7 +103,7 @@ public class SharedPageRoutes implements Routes {
             })
     @StationFree("the same link, answering only the name and colours of the station it leads to")
     private void getBrand(Context ctx) {
-        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
+        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(PageRefusal.PAGE_LINK_UNKNOWN::raise);
         ctx.json(brandOf(site.sharedPageStation(page)));
     }
 

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -135,7 +135,7 @@ class EventTemplateQuestionsRouteTest {
 
         var answer = create();
 
-        assertEquals(Refusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE, refusalOf(answer));
+        assertEquals(EventRefusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE, refusalOf(answer));
         verify(templateRepository, never()).copyRegistrationFields(anyInt(), anyInt());
         verify(crudService, never())
                 .createWithoutEvent(
@@ -161,6 +161,6 @@ class EventTemplateQuestionsRouteTest {
     void aTemplateThatIsGoneReadsTheSameAsAnotherStations() {
         when(templateRepository.findById(APPOINTMENT_TEMPLATE_ID)).thenReturn(Optional.empty());
 
-        assertEquals(Refusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE, refusalOf(create()));
+        assertEquals(EventRefusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE, refusalOf(create()));
     }
 }

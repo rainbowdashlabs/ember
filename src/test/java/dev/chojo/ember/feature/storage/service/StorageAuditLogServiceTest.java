@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
@@ -84,7 +84,7 @@ class StorageAuditLogServiceTest {
     void aPointInTimeThatIsNoneIsRefused() {
         var refused = assertThrows(RefusalResponse.class, () -> service.listForStation(4, "yesterday", 50));
 
-        assertEquals(Refusal.STORAGE_AUDIT_BEFORE_NOT_A_TIME, refused.refusal());
+        assertEquals(StorageRefusal.STORAGE_AUDIT_BEFORE_NOT_A_TIME, refused.refusal());
         verify(repository, never()).findByStation(anyInt(), any(), anyInt());
     }
 
@@ -92,6 +92,6 @@ class StorageAuditLogServiceTest {
     void somethingNamedAsAStationThatIsNoneIsRefused() {
         var refused = assertThrows(RefusalResponse.class, () -> service.list(null, "station-4", 50));
 
-        assertEquals(Refusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN, refused.refusal());
+        assertEquals(StorageRefusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN, refused.refusal());
     }
 }

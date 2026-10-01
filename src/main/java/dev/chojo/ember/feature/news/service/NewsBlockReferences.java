@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.news.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.service.BlockReferences;
@@ -41,8 +41,8 @@ public class NewsBlockReferences implements BlockReferences {
                         .isPresent();
         if (reachable) return;
         throw (audience == BlockAudience.PUBLIC
-                        ? Refusal.NEWS_BLOCK_ENTRY_NOT_PUBLIC
-                        : Refusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER)
+                        ? NewsRefusal.NEWS_BLOCK_ENTRY_NOT_PUBLIC
+                        : NewsRefusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER)
                 .raise();
     }
 }

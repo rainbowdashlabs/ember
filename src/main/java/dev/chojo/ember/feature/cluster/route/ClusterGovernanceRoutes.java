@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -153,7 +153,7 @@ public class ClusterGovernanceRoutes implements Routes {
         try {
             return PublicKbMode.valueOf(raw);
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw Refusal.CLUSTER_PUBLIC_WIKI_MODE_UNKNOWN.raise();
+            throw ClusterRefusal.CLUSTER_PUBLIC_WIKI_MODE_UNKNOWN.raise();
         }
     }
 
@@ -167,7 +167,7 @@ public class ClusterGovernanceRoutes implements Routes {
         try {
             return Integer.valueOf(raw.trim());
         } catch (NumberFormatException e) {
-            throw Refusal.CLUSTER_STATION_GROUP_NOT_A_NUMBER.raise();
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_NOT_A_NUMBER.raise();
         }
     }
 
@@ -186,7 +186,7 @@ public class ClusterGovernanceRoutes implements Routes {
             try {
                 modules.add(StationModule.valueOf(name));
             } catch (IllegalArgumentException e) {
-                throw Refusal.CLUSTER_MODULE_UNKNOWN.raise(name);
+                throw ClusterRefusal.CLUSTER_MODULE_UNKNOWN.raise(name);
             }
         }
         governanceService.setDeniedModules(cluster.id(), stationGroup(ctx), modules);
@@ -236,8 +236,8 @@ public class ClusterGovernanceRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_GOVERNANCE.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_GOVERNANCE::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_GOVERNANCE.raise();
+        return clusterService.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_GOVERNANCE::raise);
     }
 
     private static @Nullable ThemeFeel parseFeel(@Nullable String raw) {
@@ -245,7 +245,7 @@ public class ClusterGovernanceRoutes implements Routes {
         try {
             return ThemeFeel.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_THEME_FEEL_UNKNOWN.raise(raw);
+            throw ClusterRefusal.CLUSTER_THEME_FEEL_UNKNOWN.raise(raw);
         }
     }
 

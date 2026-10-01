@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -160,13 +161,13 @@ class FormBranchingTest extends RepositoryTestBase {
                         member.id(),
                         Map.of(form.coming().id(), choice("o0"))));
 
-        assertEquals(Refusal.FORM_ANSWER_REFUSED, refused.refusal());
+        assertEquals(FormRefusal.FORM_ANSWER_REFUSED, refused.refusal());
         assertEquals(
                 List.of(FormAnswersRefused.AnswerProblem.of(
-                        form.bringing().id(), "yes", Refusal.QUESTION_NEEDS_AN_ANSWER)),
+                        form.bringing().id(), "yes", FormRefusal.QUESTION_NEEDS_AN_ANSWER)),
                 refused.problems());
-        var renamed = refused.as(Refusal.FORM_ANSWERS_NOT_SAVED);
-        assertEquals(Refusal.FORM_ANSWERS_NOT_SAVED, renamed.refusal());
+        var renamed = refused.as(FormRefusal.FORM_ANSWERS_NOT_SAVED);
+        assertEquals(FormRefusal.FORM_ANSWERS_NOT_SAVED, renamed.refusal());
         var body = assertInstanceOf(FormAnswersRefused.AnswersRefusedBody.class, renamed.body());
         assertEquals("F-035", body.code());
         assertEquals(refused.problems(), body.problems());
@@ -194,17 +195,17 @@ class FormBranchingTest extends RepositoryTestBase {
 
         var multi = new FormQuestionConfig.Choice(COMING, true, false, false, null, null);
         assertRefused(
-                Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
+                FormRefusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
                 form,
                 pages,
                 List.of(question(null, "p0", multi, branch("o0", PageTarget.SUBMIT))));
         assertRefused(
-                Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
+                FormRefusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
                 form,
                 pages,
                 List.of(question(null, "p0", new FormQuestionConfig.Text(false), branch("o0", PageTarget.SUBMIT))));
         assertRefused(
-                Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
+                FormRefusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
                 form,
                 pages,
                 List.of(question(null, "p0", single(), branch("elsewhere", PageTarget.SUBMIT))));
@@ -216,14 +217,14 @@ class FormBranchingTest extends RepositoryTestBase {
         var pages = List.of(page("p0"), page("p1"));
 
         assertRefused(
-                Refusal.PAGE_BRANCHES_ON_TWO_QUESTIONS,
+                FormRefusal.PAGE_BRANCHES_ON_TWO_QUESTIONS,
                 form,
                 pages,
                 List.of(
                         question(null, "p0", single(), branch("o0", PageTarget.SUBMIT)),
                         question(null, "p0", single(), branch("o1", PageTarget.SUBMIT))));
         assertRefused(
-                Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN,
+                FormRefusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN,
                 form,
                 pages,
                 List.of(question(null, "p1", single(), branch("o0", PageTarget.page("p0")))));

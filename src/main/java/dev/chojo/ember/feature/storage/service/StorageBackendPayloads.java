@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.storage.service;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
@@ -116,20 +116,20 @@ public class StorageBackendPayloads {
 
     private void requireAllowedHost(@Nullable String host) {
         if (host == null || !urlValidator.isHostAllowed(host)) {
-            throw Refusal.STORAGE_ADDRESS_NOT_ALLOWED.raise();
+            throw StorageRefusal.STORAGE_ADDRESS_NOT_ALLOWED.raise();
         }
     }
 
     private EncryptedBlob encryptS3(S3Request r) {
         if (r.accessKey() == null || r.secretKey() == null) {
-            throw Refusal.STORAGE_KEYS_MISSING.raise();
+            throw StorageRefusal.STORAGE_KEYS_MISSING.raise();
         }
         return credentialCipher.encrypt(new StoredCredentials.S3(r.accessKey(), r.secretKey()).toJson());
     }
 
     private EncryptedBlob encryptSmb(SmbRequest r) {
         if (r.username() == null || r.password() == null) {
-            throw Refusal.STORAGE_SIGN_IN_MISSING.raise();
+            throw StorageRefusal.STORAGE_SIGN_IN_MISSING.raise();
         }
         return credentialCipher.encrypt(new StoredCredentials.Smb(r.username(), r.password()).toJson());
     }
@@ -138,7 +138,7 @@ public class StorageBackendPayloads {
         boolean hasPassword = r.password() != null && !r.password().isBlank();
         boolean hasKey = r.privateKey() != null && !r.privateKey().isBlank();
         if (hasPassword == hasKey) {
-            throw Refusal.STORAGE_SIGN_IN_AMBIGUOUS.raise();
+            throw StorageRefusal.STORAGE_SIGN_IN_AMBIGUOUS.raise();
         }
         return credentialCipher.encrypt(new StoredCredentials.Sftp(
                         r.username(),

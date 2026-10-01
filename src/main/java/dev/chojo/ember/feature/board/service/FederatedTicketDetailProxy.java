@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.CommentRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
@@ -115,7 +117,8 @@ public class FederatedTicketDetailProxy implements FederationServer {
         endpoints.<RemoteDeleteCommentRequest, Void>serve(
                 RemoteBoardTicketDetailRoutes.DELETE_COMMENT, (partner, params, body) -> {
                     UUID member = body != null ? body.remoteMemberId() : null;
-                    commentService.delete(ownComment(partner, params, member, Refusal.COMMENT_NOT_YOURS_TO_DELETE));
+                    commentService.delete(
+                            ownComment(partner, params, member, CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE));
                     return null;
                 });
     }
@@ -129,13 +132,13 @@ public class FederatedTicketDetailProxy implements FederationServer {
      * @param request the new text and who asks
      */
     public void serveCommentEdit(ServingPartner partner, PathParams params, RemoteEditCommentRequest request) {
-        var comment = ownComment(partner, params, request.remoteMemberId(), Refusal.COMMENT_NOT_YOURS_TO_CHANGE);
+        var comment = ownComment(partner, params, request.remoteMemberId(), CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE);
         String content = request.content();
-        if (content == null || content.isBlank()) throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
+        if (content == null || content.isBlank()) throw CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
         var writer = CommentWriter.partner(
                 new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()),
                 Objects.requireNonNullElse(request.displayName(), ""));
-        commentService.update(comment, writer, content).orElseThrow(Refusal.REMOTE_TICKET_COMMENT_NOT_HERE::raise);
+        commentService.update(comment, writer, content).orElseThrow(BoardRefusal.REMOTE_TICKET_COMMENT_NOT_HERE::raise);
         guards.cacheName(partner, request.remoteMemberId(), request.displayName());
     }
 
@@ -164,7 +167,7 @@ public class FederatedTicketDetailProxy implements FederationServer {
         return commentService
                 .findById(CommentEntityType.BOARD_TICKET, commentId)
                 .filter(comment -> comment.targetId() == ticketId)
-                .orElseThrow(Refusal.REMOTE_TICKET_COMMENT_NOT_HERE::raise);
+                .orElseThrow(BoardRefusal.REMOTE_TICKET_COMMENT_NOT_HERE::raise);
     }
 
     private void serveChecklist(FederationEndpoints endpoints) {
@@ -272,7 +275,7 @@ public class FederatedTicketDetailProxy implements FederationServer {
         if (parentId != null) commentOnTicket(ticketId, parentId);
         var target = commentService
                 .target(CommentEntityType.BOARD_TICKET, ticketId)
-                .orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_READ::raise);
+                .orElseThrow(BoardRefusal.REMOTE_TICKET_NOT_HERE_ON_READ::raise);
         var writer = CommentWriter.partner(
                 new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()),
                 Objects.requireNonNullElse(request.displayName(), ""));

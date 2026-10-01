@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+
 import java.util.Optional;
 
 /**

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -102,16 +102,16 @@ public class SelfCheckService {
     public List<SelfCheck> handOut(
             int stationId, @Nullable List<Integer> memberIds, @Nullable LocalDate dueOn, int handedOutBy) {
         if (memberIds == null || memberIds.isEmpty()) {
-            throw Refusal.SELF_CHECK_NO_MEMBER_NAMED.raise();
+            throw InventoryRefusal.SELF_CHECK_NO_MEMBER_NAMED.raise();
         }
         List<SelfCheck> handed = new ArrayList<>();
         for (int memberId : new LinkedHashSet<>(memberIds)) {
             var member = stationMemberRepository
                     .findById(memberId)
                     .filter(m -> m.stationId() == stationId)
-                    .orElseThrow(Refusal.SELF_CHECK_MEMBER_NOT_OF_STATION::raise);
+                    .orElseThrow(InventoryRefusal.SELF_CHECK_MEMBER_NOT_OF_STATION::raise);
             if (member.former()) {
-                throw Refusal.SELF_CHECK_FOR_FORMER_MEMBER.raise();
+                throw InventoryRefusal.SELF_CHECK_FOR_FORMER_MEMBER.raise();
             }
             if (repository.countUnfinishedForMembers(List.of(memberId)) > 0) continue;
             SelfCheck task = repository.create(stationId, memberId, handedOutBy, dueOn);
@@ -223,7 +223,7 @@ public class SelfCheckService {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
         if (answers == null || answers.isEmpty()) {
-            throw Refusal.SELF_CHECK_NOTHING_SAID.raise();
+            throw InventoryRefusal.SELF_CHECK_NOTHING_SAID.raise();
         }
         var required = checkService.getRequiredItems(stationId, task.memberId());
         for (SelfCheckAnswerInput input : answers) {
@@ -242,7 +242,7 @@ public class SelfCheckService {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
         if (!repository.submit(taskId, memberId)) {
-            throw Refusal.SELF_CHECK_ALREADY_HANDED_IN.raise();
+            throw InventoryRefusal.SELF_CHECK_ALREADY_HANDED_IN.raise();
         }
         log.info("Self-check {} submitted by member {}", taskId, memberId);
         announceSubmission(task, memberId);
@@ -306,13 +306,14 @@ public class SelfCheckService {
             @Nullable String words) {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
-        InventoryItem item =
-                inventoryRepository.findItemById(itemId).orElseThrow(Refusal.SELF_CHECK_HELD_BACK_ITEM_NOT_HERE::raise);
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(InventoryRefusal.SELF_CHECK_HELD_BACK_ITEM_NOT_HERE::raise);
         if (!Objects.equals(item.assignedTo(), task.memberId())) {
-            throw Refusal.SELF_CHECK_HELD_BACK_ITEM_NOT_THE_MEMBERS.raise();
+            throw InventoryRefusal.SELF_CHECK_HELD_BACK_ITEM_NOT_THE_MEMBERS.raise();
         }
         if (kind == SelfCheckRaisedKind.LOSS && item.borrowed()) {
-            throw Refusal.SELF_CHECK_HELD_BACK_LOSS_OF_BORROWED_GEAR.raise();
+            throw InventoryRefusal.SELF_CHECK_HELD_BACK_LOSS_OF_BORROWED_GEAR.raise();
         }
         SelfCheckRow row = correctedSizeRow(taskId, itemId);
         requireNothingLikeItYet(taskId, kind, itemId);
@@ -340,7 +341,7 @@ public class SelfCheckService {
                 .filter(row -> Integer.valueOf(itemId).equals(row.itemId()))
                 .filter(row -> row.answer() == SelfCheckAnswer.WRONG_RECORD && row.sizeId() != null)
                 .findFirst()
-                .orElseThrow(Refusal.SELF_CHECK_HELD_BACK_WITHOUT_SAVED_SIZE::raise);
+                .orElseThrow(InventoryRefusal.SELF_CHECK_HELD_BACK_WITHOUT_SAVED_SIZE::raise);
     }
 
     /**
@@ -354,7 +355,7 @@ public class SelfCheckService {
                 .anyMatch(raised ->
                         raised.kind() == kind && Integer.valueOf(itemId).equals(raised.itemId()));
         if (already) {
-            throw Refusal.SELF_CHECK_HELD_BACK_ALREADY_REPORTED.raise();
+            throw InventoryRefusal.SELF_CHECK_HELD_BACK_ALREADY_REPORTED.raise();
         }
     }
 
@@ -365,13 +366,13 @@ public class SelfCheckService {
     private @Nullable Integer wantedSize(InventoryItem item, @Nullable Integer newSizeId) {
         if (!inventoryRepository
                 .findById(item.inventoryId())
-                .orElseThrow(Refusal.SELF_CHECK_HELD_BACK_INVENTORY_NOT_HERE::raise)
+                .orElseThrow(InventoryRefusal.SELF_CHECK_HELD_BACK_INVENTORY_NOT_HERE::raise)
                 .homogeneous()) {
-            throw Refusal.SELF_CHECK_HELD_BACK_SWAP_WITHOUT_SIZES.raise();
+            throw InventoryRefusal.SELF_CHECK_HELD_BACK_SWAP_WITHOUT_SIZES.raise();
         }
         if (newSizeId == null) return null;
         if (inventoryRepository.findSizes(item.inventoryId()).stream().noneMatch(size -> size.id() == newSizeId)) {
-            throw Refusal.SELF_CHECK_HELD_BACK_SIZE_NOT_OFFERED.raise();
+            throw InventoryRefusal.SELF_CHECK_HELD_BACK_SIZE_NOT_OFFERED.raise();
         }
         return newSizeId;
     }
@@ -399,16 +400,16 @@ public class SelfCheckService {
         SelfCheck task = repository
                 .findById(taskId)
                 .filter(t -> t.stationId() == stationId)
-                .orElseThrow(Refusal.SELF_CHECK_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.SELF_CHECK_NOT_HERE::raise);
         if (!reach(memberId, guardian).contains(task.memberId())) {
-            throw Refusal.SELF_CHECK_NOT_YOURS_TO_ANSWER.raise();
+            throw InventoryRefusal.SELF_CHECK_NOT_YOURS_TO_ANSWER.raise();
         }
         return task;
     }
 
     private static void requireOpen(SelfCheck task) {
         if (!task.open()) {
-            throw Refusal.SELF_CHECK_CLOSED.raise();
+            throw InventoryRefusal.SELF_CHECK_CLOSED.raise();
         }
     }
 
@@ -430,7 +431,7 @@ public class SelfCheckService {
     private void write(
             SelfCheck task, SelfCheckAnswerInput input, List<RequiredInventoryItem> required, int enteredBy) {
         if (input == null || input.answer() == null) {
-            throw Refusal.SELF_CHECK_ANSWER_EMPTY.raise();
+            throw InventoryRefusal.SELF_CHECK_ANSWER_EMPTY.raise();
         }
         String note = input.note() == null ? "" : input.note().strip();
         if (input.itemId() != null) {
@@ -442,19 +443,19 @@ public class SelfCheckService {
 
     private void writeAboutPiece(SelfCheck task, SelfCheckAnswerInput input, String note, int enteredBy) {
         if (!input.answer().aboutAPiece()) {
-            throw Refusal.SELF_CHECK_PLACE_ANSWER_ON_A_PIECE.raise();
+            throw InventoryRefusal.SELF_CHECK_PLACE_ANSWER_ON_A_PIECE.raise();
         }
         InventoryItem item = inventoryRepository
                 .findItemById(input.itemId())
-                .orElseThrow(Refusal.SELF_CHECK_ANSWERED_ITEM_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.SELF_CHECK_ANSWERED_ITEM_NOT_HERE::raise);
         if (!Objects.equals(item.assignedTo(), task.memberId())) {
-            throw Refusal.SELF_CHECK_ANSWERED_ITEM_NOT_THE_MEMBERS.raise();
+            throw InventoryRefusal.SELF_CHECK_ANSWERED_ITEM_NOT_THE_MEMBERS.raise();
         }
         if (input.answer() == SelfCheckAnswer.DO_NOT_HAVE_IT && !item.borrowed()) {
-            throw Refusal.SELF_CHECK_OWN_GEAR_MISSING_NOT_REPORTED_HERE.raise();
+            throw InventoryRefusal.SELF_CHECK_OWN_GEAR_MISSING_NOT_REPORTED_HERE.raise();
         }
         if (input.answer() == SelfCheckAnswer.TURNED_UP && item.custody() != ItemCustody.LOST) {
-            throw Refusal.SELF_CHECK_TURNED_UP_BUT_NOT_MISSING.raise();
+            throw InventoryRefusal.SELF_CHECK_TURNED_UP_BUT_NOT_MISSING.raise();
         }
         Integer sizeId =
                 statedSize(input, inventoryRepository.findSizes(item.inventoryId()), SelfCheckAnswer.WRONG_RECORD);
@@ -486,17 +487,17 @@ public class SelfCheckService {
             String note,
             int enteredBy) {
         if (input.answer().aboutAPiece()) {
-            throw Refusal.SELF_CHECK_PIECE_ANSWER_WITHOUT_PIECE.raise();
+            throw InventoryRefusal.SELF_CHECK_PIECE_ANSWER_WITHOUT_PIECE.raise();
         }
         if (input.inventoryId() == null || input.slot() == null || input.slot() < 0) {
-            throw Refusal.SELF_CHECK_PLACE_NOT_NAMED.raise();
+            throw InventoryRefusal.SELF_CHECK_PLACE_NOT_NAMED.raise();
         }
         RequiredInventoryItem gap = required.stream()
                 .filter(r -> r.inventoryId() == input.inventoryId())
                 .findFirst()
-                .orElseThrow(Refusal.SELF_CHECK_KIND_NOT_ASKED_OF_MEMBER::raise);
+                .orElseThrow(InventoryRefusal.SELF_CHECK_KIND_NOT_ASKED_OF_MEMBER::raise);
         if (input.slot() >= gap.requiredQuantity() - gap.assignedQuantity()) {
-            throw Refusal.SELF_CHECK_PLACE_NOT_THERE.raise();
+            throw InventoryRefusal.SELF_CHECK_PLACE_NOT_THERE.raise();
         }
         String typed = typedIdentifier(input);
         Integer sizeId = statedSize(input, gap.sizes(), SelfCheckAnswer.HAVE_ONE);
@@ -514,7 +515,7 @@ public class SelfCheckService {
         String typed = Objects.requireNonNullElse(input.typedInternalId(), "").strip();
         if (typed.isEmpty()) return null;
         if (input.answer() != SelfCheckAnswer.HAVE_ONE) {
-            throw Refusal.SELF_CHECK_NUMBER_ON_WRONG_ANSWER.raise();
+            throw InventoryRefusal.SELF_CHECK_NUMBER_ON_WRONG_ANSWER.raise();
         }
         return typed;
     }
@@ -541,10 +542,10 @@ public class SelfCheckService {
         Integer sizeId = input.sizeId();
         if (sizeId == null) return null;
         if (input.answer() != takesASize) {
-            throw Refusal.SELF_CHECK_SIZE_ON_WRONG_ANSWER.raise();
+            throw InventoryRefusal.SELF_CHECK_SIZE_ON_WRONG_ANSWER.raise();
         }
         if (sizes.stream().noneMatch(size -> size.id() == sizeId)) {
-            throw Refusal.SELF_CHECK_ANSWERED_SIZE_NOT_OFFERED.raise();
+            throw InventoryRefusal.SELF_CHECK_ANSWERED_SIZE_NOT_OFFERED.raise();
         }
         return sizeId;
     }

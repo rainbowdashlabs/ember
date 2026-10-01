@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentDeleted;
@@ -442,11 +444,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
             var cancelled = assertThrows(
                     RefusalResponse.class, () -> service.registerFederated(weekly.id(), partnerId, visitor, next));
-            assertEquals(Refusal.REGISTRATION_DAY_CANCELLED, cancelled.refusal());
+            assertEquals(EventRefusal.REGISTRATION_DAY_CANCELLED, cancelled.refusal());
             var notADate = assertThrows(
                     RefusalResponse.class,
                     () -> service.registerFederated(weekly.id(), partnerId, visitor, next.plusDays(1)));
-            assertEquals(Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE, notADate.refusal());
+            assertEquals(EventRefusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE, notADate.refusal());
             assertEquals(
                     next.plusWeeks(1),
                     service.registerFederated(weekly.id(), partnerId, visitor, next.plusWeeks(1))
@@ -814,7 +816,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.getFederatedEvent(stationA.id(), stationC.uid(), eventId));
-        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     /** Station B has no remote partner, so it browses only station A's locally shared events. */
@@ -1115,7 +1117,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.createFederatedComment(
                         stationB.id(), stationA.uid(), unshared.id(), REMOTE_MEMBER_1, "Alice", null, "No", null));
-        assertEquals(Refusal.EVENT_NOT_SHARED_WITH_PARTNER, refused.refusal());
+        assertEquals(EventRefusal.EVENT_NOT_SHARED_WITH_PARTNER, refused.refusal());
         assertThrows(
                 RefusalResponse.class,
                 () -> service.listFederatedComments(stationB.id(), stationA.uid(), unshared.id()));
@@ -1366,7 +1368,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.registerForFederatedEvent(
                         stationA.id(), stationC.uid(), 2, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
-        assertEquals(Refusal.FEDERATED_REGISTRATION_NOT_TAKEN, refused.refusal());
+        assertEquals(EventRefusal.FEDERATED_REGISTRATION_NOT_TAKEN, refused.refusal());
     }
 
     @Test
@@ -1394,12 +1396,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.confirmOwnFederatedMember(
                         stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
-        assertEquals(Refusal.NO_PLACES_LEFT_AT_HOLDER, confirm.refusal());
+        assertEquals(EventRefusal.NO_PLACES_LEFT_AT_HOLDER, confirm.refusal());
         var undo = assertThrows(
                 RefusalResponse.class,
                 () -> service.undoFederatedWithdrawal(
                         stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
-        assertEquals(Refusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE, undo.refusal());
+        assertEquals(EventRefusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE, undo.refusal());
     }
 
     @Test
@@ -1531,7 +1533,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .isStanding());
 
         assertRefused(
-                Refusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN,
+                EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN,
                 () -> service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, member, day));
         service.setPartnerPlaces(eventId, serving, 1, true);
         var second = UUID.randomUUID();
@@ -1539,7 +1541,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 RegistrationStatus.PENDING,
                 service.registerForFederatedEvent(stationB.id(), stationA.uid(), eventId, second, day));
         assertRefused(
-                Refusal.NO_PLACES_LEFT_FOR_PARTNER,
+                EventRefusal.NO_PLACES_LEFT_FOR_PARTNER,
                 () -> service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, second, day));
         service.setPartnerPlaces(eventId, serving, 2, true);
         assertDoesNotThrow(
@@ -1549,7 +1551,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var stranger = UUID.randomUUID();
         service.withdrawFederatedRegistration(stationB.id(), stationA.uid(), eventId, stranger, day);
         assertRefused(
-                Refusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE,
+                EventRefusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE,
                 () -> service.undoFederatedWithdrawal(stationB.id(), stationA.uid(), eventId, stranger, day));
     }
 
@@ -1562,10 +1564,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var member = UUID.randomUUID();
 
         assertRefused(
-                Refusal.PARTNER_COMMENT_NEEDS_TEXT,
+                EventRefusal.PARTNER_COMMENT_NEEDS_TEXT,
                 () -> service.createFederatedComment(
                         stationB.id(), stationA.uid(), eventId, member, "Visitor", null, " ", null));
-        assertRefused(Refusal.PARTNER_COMMENT_DAY_NOT_A_DATE, () -> transport
+        assertRefused(EventRefusal.PARTNER_COMMENT_DAY_NOT_A_DATE, () -> transport
                 .transport()
                 .send(
                         asking,
@@ -1575,7 +1577,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var comment = service.createFederatedComment(
                 stationB.id(), stationA.uid(), eventId, member, "Visitor", null, "Hi", null);
         assertRefused(
-                Refusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT,
+                EventRefusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT,
                 () -> service.updateFederatedComment(stationB.id(), stationA.uid(), comment.id(), member, " "));
         assertEquals(
                 "ok",

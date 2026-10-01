@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.passkey.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.PasskeyRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
@@ -237,6 +237,6 @@ class PasskeyAccountServiceTest extends RepositoryTestBase {
         assertEquals(accountId, service.account(accountId).id());
 
         var refused = assertThrows(RefusalResponse.class, () -> service.account(Integer.MAX_VALUE));
-        assertEquals(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION, refused.refusal());
+        assertEquals(PasskeyRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION, refused.refusal());
     }
 }

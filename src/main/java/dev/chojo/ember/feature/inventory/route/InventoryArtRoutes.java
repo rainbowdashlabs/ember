@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -77,15 +77,16 @@ public class InventoryArtRoutes implements Routes {
     }
 
     private Inventory ownedInventory(int inventoryId, StationSession session) {
-        Inventory inventory =
-                inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_KIND::raise);
+        Inventory inventory = inventoryService
+                .findById(inventoryId)
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_BEHIND_KIND::raise);
         RouteSupport.requireSameStation(session.user(), inventory.stationId());
         return inventory;
     }
 
     private void verifyArtInInventory(int inventoryId, int artId) {
         if (artService.findByInventory(inventoryId).stream().noneMatch(art -> art.id() == artId)) {
-            throw Refusal.ITEM_KIND_NOT_IN_INVENTORY.raise();
+            throw InventoryRefusal.ITEM_KIND_NOT_IN_INVENTORY.raise();
         }
     }
 
@@ -146,7 +147,7 @@ public class InventoryArtRoutes implements Routes {
         artService
                 .update(artId, body.name(), body.note(), body.position(), Glyph.of(body.icon(), body.color()))
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw Refusal.ITEM_KIND_NOT_CHANGED.raise();
+                    throw InventoryRefusal.ITEM_KIND_NOT_CHANGED.raise();
                 });
     }
 
@@ -171,7 +172,7 @@ public class InventoryArtRoutes implements Routes {
         if (artService.delete(artId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.ITEM_KIND_NOT_DELETED.raise();
+            throw InventoryRefusal.ITEM_KIND_NOT_DELETED.raise();
         }
     }
 

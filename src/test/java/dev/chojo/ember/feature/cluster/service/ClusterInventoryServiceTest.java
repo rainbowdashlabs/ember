@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -182,7 +183,7 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         var described = assertThrows(
                 RefusalResponse.class,
                 () -> inventoryService.updateItem(itemId, "HK-neu", "Anderer Helm", null, null, null));
-        assertEquals(Refusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE, described.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE, described.refusal());
         assertThrows(RefusalResponse.class, () -> inventoryService.deleteItem(itemId, null));
 
         var own = inventoryRepo.create(station.id(), "Eigenes", InventoryType.INTERNAL, false);
@@ -231,7 +232,7 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> clusterInventoryService.createFlow(cluster.id(), "Ausgabe neu", MovementPurpose.ISSUE));
-        assertEquals(Refusal.CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN, refused.refusal());
         assertTrue(refused.getMessage().contains("Ausgabe"), "and it says which one is in the way");
 
         var step = clusterInventoryService.addStep(
@@ -279,7 +280,7 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
 
         var renamed = assertThrows(
                 RefusalResponse.class, () -> clusterInventoryService.renameFlow(other.id(), flow.id(), "Fremd"));
-        assertEquals(Refusal.CLUSTER_INVENTORY_FLOW_NOT_HERE, renamed.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_INVENTORY_FLOW_NOT_HERE, renamed.refusal());
         assertThrows(RefusalResponse.class, () -> clusterInventoryService.archiveFlow(other.id(), flow.id()));
         assertThrows(
                 RefusalResponse.class,
@@ -444,7 +445,7 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
                 () -> inventoryService.createItem(
                         inventory.id(), "STRANGE-" + n, "Helm", null, null, ItemOwner.CLUSTER, stranger.id()),
                 "A station answers to one body, so naming another one is a mistake rather than a choice");
-        assertEquals(Refusal.INVENTORY_GEAR_OF_ANOTHER_ASSOCIATION, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_GEAR_OF_ANOTHER_ASSOCIATION, refused.refusal());
 
         assertNotNull(
                 inventoryService.createItem(

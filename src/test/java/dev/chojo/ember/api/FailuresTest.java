@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
 import io.javalin.http.HttpStatus;
@@ -22,7 +24,7 @@ class FailuresTest {
     void anythingNobodyNamedIsAFaultAndSaysSo() {
         var refusal = Failures.describe(new IllegalStateException("the widget fell over"));
 
-        assertEquals(Refusal.UNEXPECTED_FAULT, refusal);
+        assertEquals(GeneralRefusal.UNEXPECTED_FAULT, refusal);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, refusal.status());
         assertFalse(refusal.message().isBlank());
     }
@@ -33,7 +35,7 @@ class FailuresTest {
 
         var refusal = Failures.describe(new StorageException("reading failed", lost));
 
-        assertEquals(Refusal.STORAGE_UNREACHABLE, refusal);
+        assertEquals(StorageRefusal.STORAGE_UNREACHABLE, refusal);
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, refusal.status());
     }
 
@@ -41,37 +43,37 @@ class FailuresTest {
     void aSecondRowWithTheSameDetailsIsTheSendersProblemAndAConflict() {
         var refusal = Failures.describe(wrapped("23505"));
 
-        assertEquals(Refusal.ALREADY_EXISTS, refusal);
+        assertEquals(GeneralRefusal.ALREADY_EXISTS, refusal);
         assertEquals(HttpStatus.CONFLICT, refusal.status());
     }
 
     @Test
     void aRowNamingSomethingGoneIsAConflictRatherThanAFault() {
-        assertEquals(Refusal.STILL_LINKED, Failures.describe(wrapped("23503")));
+        assertEquals(GeneralRefusal.STILL_LINKED, Failures.describe(wrapped("23503")));
     }
 
     @Test
     void aValueTooBigForItsColumnIsTheSendersProblem() {
-        assertEquals(Refusal.DOES_NOT_FIT, Failures.describe(wrapped("22001")));
-        assertEquals(HttpStatus.BAD_REQUEST, Refusal.DOES_NOT_FIT.status());
+        assertEquals(GeneralRefusal.DOES_NOT_FIT, Failures.describe(wrapped("22001")));
+        assertEquals(HttpStatus.BAD_REQUEST, GeneralRefusal.DOES_NOT_FIT.status());
     }
 
     @Test
     void twoChangesAtOnceAskTheSenderToTryAgain() {
-        assertEquals(Refusal.CHANGE_COLLIDED, Failures.describe(wrapped("40001")));
-        assertEquals(Refusal.CHANGE_COLLIDED, Failures.describe(wrapped("40P01")));
+        assertEquals(GeneralRefusal.CHANGE_COLLIDED, Failures.describe(wrapped("40001")));
+        assertEquals(GeneralRefusal.CHANGE_COLLIDED, Failures.describe(wrapped("40P01")));
     }
 
     @Test
     void aDatabaseOutOfReachIsNotAFaultButAWait() {
-        assertEquals(Refusal.STORE_UNREACHABLE, Failures.describe(wrapped("08006")));
-        assertEquals(Refusal.STORE_UNREACHABLE, Failures.describe(wrapped("53300")));
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, Refusal.STORE_UNREACHABLE.status());
+        assertEquals(GeneralRefusal.STORE_UNREACHABLE, Failures.describe(wrapped("08006")));
+        assertEquals(GeneralRefusal.STORE_UNREACHABLE, Failures.describe(wrapped("53300")));
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, GeneralRefusal.STORE_UNREACHABLE.status());
     }
 
     @Test
     void aDatabaseStateNobodyMappedIsStillAFault() {
-        assertEquals(Refusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE, Failures.describe(wrapped("XX000")));
+        assertEquals(GeneralRefusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE, Failures.describe(wrapped("XX000")));
     }
 
     @Test
@@ -80,7 +82,7 @@ class FailuresTest {
         var second = new IllegalStateException("second", first);
         first.initCause(second);
 
-        assertEquals(Refusal.UNEXPECTED_FAULT, Failures.describe(second));
+        assertEquals(GeneralRefusal.UNEXPECTED_FAULT, Failures.describe(second));
     }
 
     @Test

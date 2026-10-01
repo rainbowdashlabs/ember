@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationTransferService;
@@ -59,7 +59,7 @@ class TransferRoutesTest {
                     request -> request.header("X-Ember-Importing-From", "https://there.test"));
             assertEquals(204, done.code());
             assertEquals(
-                    Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE,
+                    MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE,
                     refusalOf(client.post(PREFIX + "/public/transfer/bad/complete")));
         });
 

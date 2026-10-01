@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.media.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MediaLibraryRefusal;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -39,7 +39,7 @@ public class PublicMediaService {
     public int resolveStation(String address) {
         return stationRepository
                 .resolveAddressedId(address)
-                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE::raise);
+                .orElseThrow(MediaLibraryRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE::raise);
     }
 
     /**
@@ -70,7 +70,7 @@ public class PublicMediaService {
     private MediaContent readFrom(
             @Nullable Integer stationId, String hash, @Nullable String width, @Nullable String accept) {
         return media.readVariant(stationId, hash, parseWidth(width), accept)
-                .orElseThrow(Refusal.PUBLIC_FILE_NOT_HERE::raise);
+                .orElseThrow(MediaLibraryRefusal.PUBLIC_FILE_NOT_HERE::raise);
     }
 
     private static @Nullable Integer parseWidth(@Nullable String raw) {

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
@@ -43,14 +43,15 @@ public class MemberSetupMailService {
     public void resend(StationMember member) {
         Integer accountId = member.accountId();
         if (accountId == null) {
-            throw Refusal.MEMBER_HAS_NO_ACCOUNT.raise();
+            throw MemberRefusal.MEMBER_HAS_NO_ACCOUNT.raise();
         }
-        var account = accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL::raise);
+        var account =
+                accountRepository.findById(accountId).orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL::raise);
         if (account.setupCompletedAt() != null || accountRepository.hasChosenPassword(account.id())) {
-            throw Refusal.ACCOUNT_ALREADY_SET_UP.raise();
+            throw MemberRefusal.ACCOUNT_ALREADY_SET_UP.raise();
         }
         if (!mailRecipientService.isReachable(account.id())) {
-            throw Refusal.ACCOUNT_NOBODY_TO_WRITE_TO.raise();
+            throw MemberRefusal.ACCOUNT_NOBODY_TO_WRITE_TO.raise();
         }
         authService.sendPasswordSetup(account.id());
     }

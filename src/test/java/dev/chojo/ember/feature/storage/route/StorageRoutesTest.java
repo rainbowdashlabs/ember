@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.storage.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService;
@@ -115,14 +116,16 @@ class StorageRoutesTest {
 
     @Test
     void usageIsCountedAgainForAllOrForOneStation() {
-        doThrow(Refusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN.raise()).when(quotas).recalculateStation(STATION);
+        doThrow(StorageRefusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN.raise())
+                .when(quotas)
+                .recalculateStation(STATION);
 
         harness.run((server, client) -> {
             assertEquals(202, post(client, "/recalculate", null).code());
             assertEquals(
-                    Refusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN,
+                    StorageRefusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN,
                     refusalOf(post(client, "/recalculate/" + STATION, null)));
-            assertEquals(Refusal.ADDRESS_NOT_AN_IDENTIFIER, refusalOf(post(client, "/recalculate/nord", null)));
+            assertEquals(GeneralRefusal.ADDRESS_NOT_AN_IDENTIFIER, refusalOf(post(client, "/recalculate/nord", null)));
         });
 
         verify(quotas).recalculateAll();

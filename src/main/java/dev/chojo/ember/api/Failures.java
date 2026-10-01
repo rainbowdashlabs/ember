@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
 import dev.chojo.ember.util.RandomTokens;
 import org.jspecify.annotations.Nullable;
@@ -75,16 +78,16 @@ public final class Failures {
      * @return the refusal to answer with
      */
     public static Refusal describe(Throwable err) {
-        if (storageUnreachable(err)) return Refusal.STORAGE_UNREACHABLE;
+        if (storageUnreachable(err)) return StorageRefusal.STORAGE_UNREACHABLE;
         String state = sqlStateOf(err);
-        if (state == null) return Refusal.UNEXPECTED_FAULT;
-        if (DUPLICATE_STATES.contains(state)) return Refusal.ALREADY_EXISTS;
-        if (REFERENCE_STATES.contains(state)) return Refusal.STILL_LINKED;
-        if (VALUE_STATES.contains(state)) return Refusal.DOES_NOT_FIT;
-        if (COLLISION_STATES.contains(state)) return Refusal.CHANGE_COLLIDED;
-        if (TIMEOUT_STATES.contains(state)) return Refusal.TOOK_TOO_LONG;
-        if (state.startsWith("08") || state.startsWith("53")) return Refusal.STORE_UNREACHABLE;
-        return Refusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE;
+        if (state == null) return GeneralRefusal.UNEXPECTED_FAULT;
+        if (DUPLICATE_STATES.contains(state)) return GeneralRefusal.ALREADY_EXISTS;
+        if (REFERENCE_STATES.contains(state)) return GeneralRefusal.STILL_LINKED;
+        if (VALUE_STATES.contains(state)) return GeneralRefusal.DOES_NOT_FIT;
+        if (COLLISION_STATES.contains(state)) return GeneralRefusal.CHANGE_COLLIDED;
+        if (TIMEOUT_STATES.contains(state)) return GeneralRefusal.TOOK_TOO_LONG;
+        if (state.startsWith("08") || state.startsWith("53")) return GeneralRefusal.STORE_UNREACHABLE;
+        return GeneralRefusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE;
     }
 
     /**

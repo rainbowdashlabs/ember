@@ -8,10 +8,10 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
@@ -295,7 +295,7 @@ public class EventRegistrationRoutes implements Routes {
         int memberId = req.memberId();
         if (!guardianPolicy.mayActFor(session.user(), memberId)
                 && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
+            throw EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
         }
         return memberId;
     }
@@ -486,7 +486,7 @@ public class EventRegistrationRoutes implements Routes {
         int registrationId = pathInt(ctx, "id");
         var registration = registrationService
                 .findById(registrationId)
-                .orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_FIELD_CHANGE::raise);
+                .orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_FIELD_CHANGE::raise);
         requireOwnedEvent(crudService, registration.eventId(), session);
         requireAnswerAuthor(session, registration);
 
@@ -509,7 +509,7 @@ public class EventRegistrationRoutes implements Routes {
         if (session.hasPermission(StationPermission.EVENT_EDIT)) return;
         if (session.hasPermission(StationPermission.EVENT_REGISTRATION)) return;
         if (!guardianPolicy.mayActFor(session.user(), registration.memberId())) {
-            throw Refusal.REGISTRATION_ANSWERS_NOT_YOURS.raise();
+            throw EventRefusal.REGISTRATION_ANSWERS_NOT_YOURS.raise();
         }
     }
 
@@ -562,7 +562,7 @@ public class EventRegistrationRoutes implements Routes {
         var event = requireOwnedEvent(crudService, pathInt(ctx, "eventId"), session);
         var station = stationService
                 .findById(session.stationId())
-                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_CSV::raise);
+                .orElseThrow(EventRefusal.STATION_NOT_HERE_FOR_REGISTRATION_CSV::raise);
         ctx.contentType("text/csv");
         ctx.header("Content-Disposition", registrationsName(station, event.name(), ctx, "csv"));
         ctx.result(
@@ -593,7 +593,7 @@ public class EventRegistrationRoutes implements Routes {
         var event = requireOwnedEvent(crudService, eventId, session);
         var station = stationService
                 .findById(session.stationId())
-                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_SHEET::raise);
+                .orElseThrow(EventRefusal.STATION_NOT_HERE_FOR_REGISTRATION_SHEET::raise);
         var table = tableOf(ctx);
         try {
             var pdf = memberTableRenderer.toPdf(
@@ -607,7 +607,7 @@ public class EventRegistrationRoutes implements Routes {
             ctx.result(pdf);
         } catch (Exception e) {
             log.error("Failed to render the registration table of event {}", eventId, e);
-            throw Refusal.REGISTRATION_SHEET_NOT_DRAWN.raise();
+            throw EventRefusal.REGISTRATION_SHEET_NOT_DRAWN.raise();
         }
     }
 
@@ -617,7 +617,7 @@ public class EventRegistrationRoutes implements Routes {
         var event = visibility.requireVisibleEvent(session, eventId);
         var station = stationService
                 .findById(event.stationId())
-                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_TABLE::raise);
+                .orElseThrow(EventRefusal.STATION_NOT_HERE_FOR_REGISTRATION_TABLE::raise);
         var req = ctx.bodyAsClass(RegistrationTableRequest.class);
         var columns = req.columns() == null
                 ? List.<MemberTableColumn>of()
@@ -633,7 +633,7 @@ public class EventRegistrationRoutes implements Routes {
     private LocalDate tableDate(Context ctx) {
         var req = ctx.bodyAsClass(RegistrationTableRequest.class);
         if (req.date() == null || req.date().isBlank()) {
-            throw Refusal.REGISTRATION_TABLE_NEEDS_A_DAY.raise();
+            throw EventRefusal.REGISTRATION_TABLE_NEEDS_A_DAY.raise();
         }
         return LocalDate.parse(req.date());
     }
@@ -683,14 +683,14 @@ public class EventRegistrationRoutes implements Routes {
         var event = requireOwnedEvent(crudService, eventId, session);
         LocalDate date = resolveEventDate(req, event);
         if (!event.requiresRegistration()) {
-            throw Refusal.EVENT_TAKES_NO_REGISTRATIONS.raise();
+            throw EventRefusal.EVENT_TAKES_NO_REGISTRATIONS.raise();
         }
 
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER);
         if (!runsTheEvent
                 && event.registrationDeadline() != null
                 && Instant.now().isAfter(event.registrationDeadline())) {
-            throw Refusal.REGISTRATION_CLOSED.raise();
+            throw EventRefusal.REGISTRATION_CLOSED.raise();
         }
 
         int memberId = resolveTargetMemberId(session, req);
@@ -700,7 +700,7 @@ public class EventRegistrationRoutes implements Routes {
         if (!isManagerRegistration
                 && !restrictionService.canRegister(
                         eventId, memberId, session.user().permissions())) {
-            throw Refusal.MEMBER_NOT_INVITED_TO_EVENT.raise();
+            throw EventRefusal.MEMBER_NOT_INVITED_TO_EVENT.raise();
         }
 
         var answers = registrationFieldService.resolveAnswers(eventId, answersOf(req.fields()));
@@ -777,14 +777,14 @@ public class EventRegistrationRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
         if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
-            throw Refusal.REGISTRATION_DECISION_UNKNOWN.raise();
+            throw EventRefusal.REGISTRATION_DECISION_UNKNOWN.raise();
         }
         var registration = registrationService
                 .findById(id)
-                .orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_STATUS_CHANGE::raise);
+                .orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_STATUS_CHANGE::raise);
         requireOwnedOrNotFound(ctx, registration.eventId(), crudService::findById, StationEvent::stationId);
         if (!registrationService.updateStatus(id, req.status())) {
-            throw Refusal.EVENT_REGISTRATION_STATUS_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_REGISTRATION_STATUS_NOT_CHANGED.raise();
         }
         ctx.json(new MessageResponse("Status updated"));
     }
@@ -813,7 +813,7 @@ public class EventRegistrationRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(AnswerRequest.class);
         var registration =
-                registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_ANSWER::raise);
+                registrationService.findById(id).orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_ANSWER::raise);
         var event = requireOwnedEvent(crudService, registration.eventId(), session);
         occurrenceCalendar.dateToAnswerFor(event, registration.eventDate());
 
@@ -821,22 +821,22 @@ public class EventRegistrationRoutes implements Routes {
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER)
                 || session.hasPermission(StationPermission.EVENT_REGISTRATION);
         if (!manages && !runsTheEvent) {
-            throw Refusal.ANSWER_NOT_YOURS_TO_GIVE.raise();
+            throw EventRefusal.ANSWER_NOT_YOURS_TO_GIVE.raise();
         }
 
         boolean closed = event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline());
         if (closed && !runsTheEvent) {
-            throw Refusal.REGISTRATION_CLOSED_ON_ANSWER_CHANGE.raise();
+            throw EventRefusal.REGISTRATION_CLOSED_ON_ANSWER_CHANGE.raise();
         }
 
         if (!req.attending()) {
-            if (!registrationService.refuse(id)) throw Refusal.EVENT_REGISTRATION_NOT_REFUSED.raise();
+            if (!registrationService.refuse(id)) throw EventRefusal.EVENT_REGISTRATION_NOT_REFUSED.raise();
             ctx.status(HttpStatus.NO_CONTENT);
             return;
         }
         var status = event.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
         if (!registrationService.updateStatus(id, status)) {
-            throw Refusal.EVENT_REGISTRATION_NOT_CONFIRMED.raise();
+            throw EventRefusal.EVENT_REGISTRATION_NOT_CONFIRMED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -857,13 +857,14 @@ public class EventRegistrationRoutes implements Routes {
     private void withdrawRegistration(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var reg =
-                registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_WITHDRAWAL::raise);
+        var reg = registrationService
+                .findById(id)
+                .orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_WITHDRAWAL::raise);
         requireOwnedEvent(crudService, reg.eventId(), session);
         requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.withdraw(id)) {
-            throw Refusal.EVENT_REGISTRATION_NOT_WITHDRAWN.raise();
+            throw EventRefusal.EVENT_REGISTRATION_NOT_WITHDRAWN.raise();
         }
         ctx.json(new WithdrawalResponse(Instant.now().plus(EventRegistrationService.UNDO_WINDOW)));
     }
@@ -884,12 +885,12 @@ public class EventRegistrationRoutes implements Routes {
     private void undoWithdrawal(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var reg = registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_UNDO::raise);
+        var reg = registrationService.findById(id).orElseThrow(EventRefusal.EVENT_REGISTRATION_NOT_HERE_ON_UNDO::raise);
         requireOwnedEvent(crudService, reg.eventId(), session);
         requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.undoWithdrawal(id)) {
-            throw Refusal.WITHDRAWAL_NO_LONGER_UNDONE.raise();
+            throw EventRefusal.WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -902,7 +903,7 @@ public class EventRegistrationRoutes implements Routes {
         if (!guardianPolicy.mayActFor(session.user(), memberId)
                 && !session.hasPermission(StationPermission.EVENT_MANAGER)
                 && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
-            throw Refusal.WITHDRAWAL_NOT_YOURS_TO_ANSWER.raise();
+            throw EventRefusal.WITHDRAWAL_NOT_YOURS_TO_ANSWER.raise();
         }
     }
 

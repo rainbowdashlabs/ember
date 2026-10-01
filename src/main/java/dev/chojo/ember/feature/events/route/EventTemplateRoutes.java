@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
@@ -107,7 +107,7 @@ public class EventTemplateRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) {
-            throw Refusal.EVENT_TEMPLATE_NEEDS_A_NAME.raise();
+            throw EventRefusal.EVENT_TEMPLATE_NEEDS_A_NAME.raise();
         }
         ctx.status(HttpStatus.CREATED).json(eventTemplateService.create(session.stationId(), req.name()));
     }
@@ -190,9 +190,11 @@ public class EventTemplateRoutes implements Routes {
                 req.restrictionMode(),
                 req.attendanceTemplateId(),
                 req.registrationLimit())) {
-            throw Refusal.EVENT_TEMPLATE_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_TEMPLATE_NOT_CHANGED.raise();
         }
-        ctx.json(eventTemplateService.findById(id).orElseThrow(Refusal.EVENT_TEMPLATE_NOT_HERE_AFTER_CHANGE::raise));
+        ctx.json(eventTemplateService
+                .findById(id)
+                .orElseThrow(EventRefusal.EVENT_TEMPLATE_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     @OpenApi(
@@ -211,7 +213,7 @@ public class EventTemplateRoutes implements Routes {
         if (eventTemplateService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_TEMPLATE_NOT_DELETED.raise();
+            throw EventRefusal.EVENT_TEMPLATE_NOT_DELETED.raise();
         }
     }
 

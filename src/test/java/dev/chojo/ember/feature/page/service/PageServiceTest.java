@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.page.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.PageRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -216,14 +216,14 @@ class PageServiceTest extends RepositoryTestBase {
 
         service.setVisibility(pageId, PageVisibility.DRAFT);
         var draft = assertThrows(RefusalResponse.class, () -> service.setLandingPage(station.id(), pageId));
-        assertEquals(Refusal.LANDING_PAGE_NOT_PUBLIC, draft.refusal());
+        assertEquals(PageRefusal.LANDING_PAGE_NOT_PUBLIC, draft.refusal());
 
         service.setVisibility(pageId, PageVisibility.UNLISTED);
         var unlisted = assertThrows(
                 RefusalResponse.class,
                 () -> service.setLandingPage(station.id(), pageId),
                 "a page nobody can find is no landing page either");
-        assertEquals(Refusal.LANDING_PAGE_NOT_PUBLIC, unlisted.refusal());
+        assertEquals(PageRefusal.LANDING_PAGE_NOT_PUBLIC, unlisted.refusal());
         service.setVisibility(pageId, PageVisibility.PUBLIC);
     }
 
@@ -269,7 +269,7 @@ class PageServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.create(station.id(), "GreatGrandchild", grandchild.id(), member.id()));
-        assertEquals(Refusal.PAGE_TREE_TOO_DEEP, refused.refusal());
+        assertEquals(PageRefusal.PAGE_TREE_TOO_DEEP, refused.refusal());
 
         service.deletePage(grandchild.id());
     }
@@ -291,7 +291,7 @@ class PageServiceTest extends RepositoryTestBase {
     @Order(17)
     void aPageWithChildrenCannotBeReachedByALinkAlone() {
         var refused = assertThrows(RefusalResponse.class, () -> service.setVisibility(pageId, PageVisibility.UNLISTED));
-        assertEquals(Refusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY, refused.refusal());
+        assertEquals(PageRefusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY, refused.refusal());
     }
 
     @Test
@@ -304,7 +304,7 @@ class PageServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.create(station.id(), "Darunter", alone.id(), member.id()),
                 "nothing is filed under a page that is not in the tree");
-        assertEquals(Refusal.PAGE_UNDER_A_LINK_ONLY_PAGE, refused.refusal());
+        assertEquals(PageRefusal.PAGE_UNDER_A_LINK_ONLY_PAGE, refused.refusal());
         assertTrue(service.shareToken(alone.id()).isPresent());
         assertTrue(
                 service.listListedPages(station.id()).stream().noneMatch(p -> p.id() == alone.id()),
@@ -498,7 +498,7 @@ class PageServiceTest extends RepositoryTestBase {
         int id = service.create(station.id(), "No Link Yet", null, member.id()).id();
         assertTrue(service.shareToken(id).isEmpty());
         var refused = assertThrows(RefusalResponse.class, () -> service.replaceShareToken(id, null));
-        assertEquals(Refusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE, refused.refusal());
+        assertEquals(PageRefusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE, refused.refusal());
         service.deletePage(id);
     }
 

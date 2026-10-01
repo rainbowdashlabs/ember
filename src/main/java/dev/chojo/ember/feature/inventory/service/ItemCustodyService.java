@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -52,7 +52,7 @@ public class ItemCustodyService {
      */
     private void requireNobodyIsWaitingForIt(int itemId) {
         movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw Refusal.CUSTODY_PIECE_PROMISED.raise();
+            throw InventoryRefusal.CUSTODY_PIECE_PROMISED.raise();
         });
     }
 
@@ -73,7 +73,7 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (!item.custody().assignable()) {
-            throw Refusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE.raise();
+            throw InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE.raise();
         }
         requireNobodyIsWaitingForIt(itemId);
 
@@ -168,7 +168,7 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (item.borrowed()) {
-            throw Refusal.CUSTODY_BORROWED_NOT_MARKED_LOST.raise();
+            throw InventoryRefusal.CUSTODY_BORROWED_NOT_MARKED_LOST.raise();
         }
         Integer custodian = item.custodyStationId();
         Integer holder = custodian != null ? custodian : stationOf(item);
@@ -301,7 +301,7 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (custody == ItemCustody.WITH_MEMBER) {
-            if (memberId == null) throw Refusal.CUSTODY_STEP_NAMES_NO_MEMBER.raise();
+            if (memberId == null) throw InventoryRefusal.CUSTODY_STEP_NAMES_NO_MEMBER.raise();
             return writeAssignment(item, memberId, "");
         }
 

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.repository.RepositoryTestBase;

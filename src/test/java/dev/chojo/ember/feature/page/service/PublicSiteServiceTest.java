@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.page.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.PageRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
@@ -63,11 +63,11 @@ class PublicSiteServiceTest {
 
         assertEquals(3, site.openStation("open"));
         assertEquals(
-                Refusal.PUBLIC_PAGES_SWITCHED_OFF,
+                PageRefusal.PUBLIC_PAGES_SWITCHED_OFF,
                 assertThrows(RefusalResponse.class, () -> site.openStation("closed"))
                         .refusal());
         assertEquals(
-                Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_PAGE,
+                PageRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_PAGE,
                 assertThrows(RefusalResponse.class, () -> site.openStation("gone"))
                         .refusal());
     }
@@ -80,7 +80,7 @@ class PublicSiteServiceTest {
         when(stations.findById(4)).thenReturn(Optional.of(closed));
 
         assertEquals(
-                Refusal.PAGE_LINK_UNKNOWN,
+                PageRefusal.PAGE_LINK_UNKNOWN,
                 assertThrows(RefusalResponse.class, () -> site.sharedPageStation(page))
                         .refusal());
     }

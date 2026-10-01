@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.members.entity.AssignedProfileField;
@@ -327,10 +327,10 @@ public class ProfileFieldService {
     /**
      * Refuses a type the member profile does not offer, such as a place or a ticket's assignee.
      *
-     * @throws io.javalin.http.HttpResponseException {@link Refusal#PROFILE_FIELD_TYPE_NOT_OFFERED}
+     * @throws io.javalin.http.HttpResponseException {@link MemberRefusal#PROFILE_FIELD_TYPE_NOT_OFFERED}
      */
     private static void requireOffered(FieldType fieldType) {
-        if (!FieldTypes.PROFILE.contains(fieldType)) throw Refusal.PROFILE_FIELD_TYPE_NOT_OFFERED.raise();
+        if (!FieldTypes.PROFILE.contains(fieldType)) throw MemberRefusal.PROFILE_FIELD_TYPE_NOT_OFFERED.raise();
     }
 
     /**
@@ -372,7 +372,7 @@ public class ProfileFieldService {
         if (fieldType != FieldType.BIRTH_DATE) return;
         for (ProfileField other : profileFieldRepository.findAllByStationAndType(stationId, FieldType.BIRTH_DATE)) {
             if (other.id() == excludedId) continue;
-            throw Refusal.PROFILE_BIRTH_DATE_ALREADY_ASKED.raise(other.name());
+            throw MemberRefusal.PROFILE_BIRTH_DATE_ALREADY_ASKED.raise(other.name());
         }
     }
 
@@ -579,7 +579,7 @@ public class ProfileFieldService {
                 .question()
                 .flatMap(QuestionCheck::defaultValue)
                 .ifPresent(problem -> {
-                    throw Refusal.PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+                    throw MemberRefusal.PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());
                 });
     }
 
@@ -591,7 +591,7 @@ public class ProfileFieldService {
      */
     private static void requireUsableExpiry(ProfileFieldConfig config) {
         if (config != null && ExpirySettings.outOfRange(config)) {
-            throw Refusal.EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
+            throw MemberRefusal.EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
         }
     }
 

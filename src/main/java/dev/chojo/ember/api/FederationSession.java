@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import io.javalin.http.Context;
 
@@ -31,7 +33,7 @@ public record FederationSession(FederationPartner partner, UUID partnerStationUi
     public static FederationSession from(Context ctx) {
         FederationSession session = ctx.attribute(ATTR_FEDERATION_SESSION);
         if (session == null) {
-            throw Refusal.FEDERATION_REQUEST_NOT_SIGNED.raise();
+            throw FederationRefusal.FEDERATION_REQUEST_NOT_SIGNED.raise();
         }
         return session;
     }

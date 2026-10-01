@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.service.BlockReferences;
@@ -41,8 +41,8 @@ public class EventBlockReferences implements BlockReferences {
                         .isPresent();
         if (reachable) return;
         throw (audience == BlockAudience.PUBLIC
-                        ? Refusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC
-                        : Refusal.EVENT_BLOCK_APPOINTMENT_NOT_FOR_EVERY_MEMBER)
+                        ? EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC
+                        : EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_FOR_EVERY_MEMBER)
                 .raise();
     }
 }

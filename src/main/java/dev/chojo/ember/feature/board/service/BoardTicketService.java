@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
@@ -127,9 +127,9 @@ public class BoardTicketService {
         if (board == null) return;
         int memberId = stationMemberService
                 .resolveId(board.stationId(), assignee.memberUid())
-                .orElseThrow(Refusal.BOARD_TICKET_ASSIGNEE_NOT_A_MEMBER::raise);
+                .orElseThrow(BoardRefusal.BOARD_TICKET_ASSIGNEE_NOT_A_MEMBER::raise);
         if (!boardService.findMembersWhoMayEdit(boardId, board.stationId()).contains(memberId)) {
-            throw Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT.raise();
+            throw BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT.raise();
         }
     }
 

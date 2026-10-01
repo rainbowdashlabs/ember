@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -71,7 +71,7 @@ public class ProblemRoutes implements Routes {
         long id = ctx.pathParamAsClass("id", Long.class).get();
         var appender = ProblemLogAppender.instance();
         if (appender == null || !appender.acknowledge(id)) {
-            throw Refusal.PROBLEM_NOT_HERE.raise();
+            throw SystemRefusal.PROBLEM_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

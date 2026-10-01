@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MailRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.repository.MailWebhookReceiptRepository;
 import dev.chojo.ember.feature.mail.service.MailDeliveryService.DeliveryEvent;
@@ -130,7 +130,7 @@ class MailWebhookServiceTest {
     @Test
     void aKeyThatAuthorisesNothingIsRefusedForEveryProvider() {
         assertEquals(
-                Refusal.MAIL_REPORT_NOT_TAKEN,
+                MailRefusal.MAIL_REPORT_NOT_TAKEN,
                 assertThrows(RefusalResponse.class, () -> service.brevo("guess", json("{}")))
                         .refusal());
         assertThrows(RefusalResponse.class, () -> service.sendGrid("guess", json("[]")));
@@ -199,7 +199,7 @@ class MailWebhookServiceTest {
                 RefusalResponse.class,
                 () -> service.sweego("station", new SignedCall("id", TIMESTAMP, "v1,forged", body, json(body))));
 
-        assertEquals(Refusal.MAIL_REPORT_NOT_TAKEN, refused.refusal());
+        assertEquals(MailRefusal.MAIL_REPORT_NOT_TAKEN, refused.refusal());
         verify(deliveries).record(new DeliveryEvent(MailDeliveryStatus.HARD_BOUNCE, null, null, "e7", null, null), 3);
     }
 

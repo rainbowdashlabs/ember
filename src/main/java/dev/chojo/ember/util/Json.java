@@ -6,8 +6,8 @@
 package dev.chojo.ember.util;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;

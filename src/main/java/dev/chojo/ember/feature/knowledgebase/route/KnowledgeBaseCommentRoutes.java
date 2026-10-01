@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentFilter;
@@ -60,7 +60,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
     }
 
     private static String requireContent(String content) {
-        if (content == null || content.isBlank()) throw Refusal.KB_COMMENT_EMPTY.raise();
+        if (content == null || content.isBlank()) throw KnowledgeBaseRefusal.KB_COMMENT_EMPTY.raise();
         return content;
     }
 
@@ -112,12 +112,12 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         var session = StationSession.from(ctx);
         var comment = requireOwnedComment(session, commentId);
         if (!commentService.mayModify(session, actor(session), comment, Moderation.EDIT)) {
-            throw Refusal.KB_COMMENT_NOT_YOURS_TO_CHANGE.raise();
+            throw KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
         var updated = commentService
                 .update(comment, writer(session), requireContent(req.content()))
-                .orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(toResponse(updated));
     }
 
@@ -130,10 +130,10 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         var session = StationSession.from(ctx);
         var comment = requireOwnedComment(session, commentId);
         if (!commentService.mayModify(session, actor(session), comment, Moderation.DELETE)) {
-            throw Refusal.KB_COMMENT_NOT_YOURS_TO_DELETE.raise();
+            throw KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
         if (!commentService.delete(comment)) {
-            throw Refusal.KB_COMMENT_NOT_DELETED.raise();
+            throw KnowledgeBaseRefusal.KB_COMMENT_NOT_DELETED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -145,7 +145,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
     private Comment requireOwnedComment(StationSession session, int commentId) {
         var comment = commentService
                 .findById(CommentEntityType.KB, commentId)
-                .orElseThrow(Refusal.KB_COMMENT_NOT_HERE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_COMMENT_NOT_HERE::raise);
         commentService.requireReadable(session, CommentEntityType.KB, comment.targetId());
         return comment;
     }

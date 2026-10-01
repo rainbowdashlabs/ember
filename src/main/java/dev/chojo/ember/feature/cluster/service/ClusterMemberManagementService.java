@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
@@ -107,7 +107,7 @@ public class ClusterMemberManagementService {
         Station station = stationRepository
                 .findByUid(stationUid)
                 .filter(candidate -> candidate.clusterId() != null && candidate.clusterId() == clusterId)
-                .orElseThrow(Refusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE::raise);
 
         String address = email != null && !email.isBlank() ? email.trim() : null;
 
@@ -142,7 +142,7 @@ public class ClusterMemberManagementService {
      */
     private void requireDocuments(int stationId) {
         if (stationRepository.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw Refusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS.raise();
+            throw ClusterRefusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS.raise();
         }
     }
 
@@ -192,11 +192,12 @@ public class ClusterMemberManagementService {
      * @return it, when the cluster has any business with it
      */
     public Document requireDocumentOfCluster(int clusterId, int documentId) {
-        Document document =
-                documentRepository.findById(documentId).orElseThrow(Refusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE::raise);
+        Document document = documentRepository
+                .findById(documentId)
+                .orElseThrow(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE::raise);
         boolean reachable = documentRepository.membersOf(documentId).stream()
                 .anyMatch(memberId -> memberOfCluster(clusterId, memberId).isPresent());
-        if (!reachable) throw Refusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE.raise();
+        if (!reachable) throw ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE.raise();
         return document;
     }
 
@@ -204,7 +205,7 @@ public class ClusterMemberManagementService {
      * The bytes of a document the cluster may read.
      */
     public byte[] readDocument(Document document) {
-        return documentService.read(document).orElseThrow(Refusal.CLUSTER_MANAGED_DOCUMENT_FILE_NOT_HERE::raise);
+        return documentService.read(document).orElseThrow(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_FILE_NOT_HERE::raise);
     }
 
     /**
@@ -357,7 +358,7 @@ public class ClusterMemberManagementService {
      * The member, checked to actually belong to a station of this cluster.
      */
     private StationMember requireMemberOfCluster(int clusterId, int memberId) {
-        return memberOfCluster(clusterId, memberId).orElseThrow(Refusal.CLUSTER_MANAGED_MEMBER_NOT_HERE::raise);
+        return memberOfCluster(clusterId, memberId).orElseThrow(ClusterRefusal.CLUSTER_MANAGED_MEMBER_NOT_HERE::raise);
     }
 
     /**
@@ -383,14 +384,14 @@ public class ClusterMemberManagementService {
     private static void requireNotSelf(StationMember member, int actorAccountId) {
         Integer accountId = member.accountId();
         if (accountId != null && accountId == actorAccountId) {
-            throw Refusal.CLUSTER_MANAGED_MEMBER_IS_YOURSELF.raise();
+            throw ClusterRefusal.CLUSTER_MANAGED_MEMBER_IS_YOURSELF.raise();
         }
     }
 
     private void requireNotStationOwner(StationMember member) {
         stationRepository.findById(member.stationId()).ifPresent(station -> {
             if (station.isOwnedBy(member.id())) {
-                throw Refusal.CLUSTER_MANAGED_MEMBER_OWNS_STATION.raise();
+                throw ClusterRefusal.CLUSTER_MANAGED_MEMBER_OWNS_STATION.raise();
             }
         });
     }

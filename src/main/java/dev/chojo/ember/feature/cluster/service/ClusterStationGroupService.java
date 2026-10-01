@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -98,19 +98,19 @@ public class ClusterStationGroupService {
         requireOwnGroup(clusterId, groupId);
         int questions = groupRepository.countFieldsUsing(groupId);
         if (questions > 0) {
-            throw Refusal.CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS.raise();
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS.raise();
         }
         int denials = clusterRepository.countDenialsUsingGroup(groupId);
         if (denials > 0) {
-            throw Refusal.CLUSTER_STATION_GROUP_STILL_HAS_MODULES_OFF.raise();
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_HAS_MODULES_OFF.raise();
         }
         int tags = groupRepository.countTagsUsing(groupId);
         if (tags > 0) {
-            throw Refusal.CLUSTER_STATION_GROUP_STILL_RECOMMENDED_TAGS.raise();
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_RECOMMENDED_TAGS.raise();
         }
         int requirements = groupRepository.countRequirementsUsing(groupId);
         if (requirements > 0) {
-            throw Refusal.CLUSTER_STATION_GROUP_STILL_COUNTS_REQUIREMENTS.raise();
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_COUNTS_REQUIREMENTS.raise();
         }
         groupRepository.delete(groupId);
         log.info("Cluster {} removed station group {}", clusterId, groupId);
@@ -149,13 +149,14 @@ public class ClusterStationGroupService {
 
         List<Integer> stationIds = new ArrayList<>();
         for (UUID uid : stationUids) {
-            Station station =
-                    stationRepository.findByUid(uid).orElseThrow(Refusal.CLUSTER_STATION_GROUP_STATION_GONE::raise);
+            Station station = stationRepository
+                    .findByUid(uid)
+                    .orElseThrow(ClusterRefusal.CLUSTER_STATION_GROUP_STATION_GONE::raise);
             if (station.id() == cluster.homeStationId()) {
-                throw Refusal.CLUSTER_STATION_GROUP_TAKES_NO_HOME_STATION.raise();
+                throw ClusterRefusal.CLUSTER_STATION_GROUP_TAKES_NO_HOME_STATION.raise();
             }
             if (station.clusterId() == null || station.clusterId() != clusterId) {
-                throw Refusal.CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER.raise();
+                throw ClusterRefusal.CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER.raise();
             }
             stationIds.add(station.id());
         }
@@ -174,7 +175,9 @@ public class ClusterStationGroupService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_STATION_GROUP_CLUSTER_GONE::raise);
+        return clusterRepository
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_STATION_GROUP_CLUSTER_GONE::raise);
     }
 
     private void requireOwnGroup(int clusterId, int groupId) {
@@ -182,11 +185,11 @@ public class ClusterStationGroupService {
                 .findById(groupId)
                 .filter(group -> group.clusterId() == clusterId)
                 .isPresent();
-        if (!own) throw Refusal.CLUSTER_STATION_GROUP_NOT_HERE.raise();
+        if (!own) throw ClusterRefusal.CLUSTER_STATION_GROUP_NOT_HERE.raise();
     }
 
     private static String requireName(String name) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_STATION_GROUP_NEEDS_A_NAME.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_STATION_GROUP_NEEDS_A_NAME.raise();
         return name.trim();
     }
 
@@ -194,6 +197,6 @@ public class ClusterStationGroupService {
         boolean taken = groupRepository.findByCluster(clusterId).stream()
                 .filter(group -> exceptGroupId == null || group.id() != exceptGroupId)
                 .anyMatch(group -> group.name().equalsIgnoreCase(name));
-        if (taken) throw Refusal.CLUSTER_STATION_GROUP_NAME_TAKEN.raise(name);
+        if (taken) throw ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN.raise(name);
     }
 }

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.insights.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.InsightsRefusal;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository.DimensionTotal;
@@ -48,9 +48,9 @@ public class PageInsightsService {
      * A page of another station is answered as not being here.
      */
     public PageDetailResponse pageDetail(int stationId, int pageId, Instant from, Instant to) {
-        var page = pages.findById(pageId).orElseThrow(Refusal.INSIGHTS_PAGE_NOT_HERE::raise);
+        var page = pages.findById(pageId).orElseThrow(InsightsRefusal.INSIGHTS_PAGE_NOT_HERE::raise);
         if (page.stationId() != stationId) {
-            throw Refusal.INSIGHTS_PAGE_NOT_HERE.raise();
+            throw InsightsRefusal.INSIGHTS_PAGE_NOT_HERE.raise();
         }
         var raw = pageHits.findForPage(pageId, from, to);
         return new PageDetailResponse(

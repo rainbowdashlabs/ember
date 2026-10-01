@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.station.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.FirstStationService;
@@ -90,12 +90,12 @@ class FirstStationRoutesTest {
 
     @Test
     void aSecondFirstStationIsRefusedByName() {
-        when(service.found(anyString(), anyInt())).thenThrow(Refusal.FIRST_STATION_ALREADY_FOUNDED.raise());
+        when(service.found(anyString(), anyInt())).thenThrow(StationRefusal.FIRST_STATION_ALREADY_FOUNDED.raise());
 
         var response = harness.request(
                 client -> client.post(PATH, body("{\"name\": \"Noch eine\"}"), harness.as(administrator())));
 
-        assertEquals(Refusal.FIRST_STATION_ALREADY_FOUNDED, refusalOf(response));
+        assertEquals(StationRefusal.FIRST_STATION_ALREADY_FOUNDED, refusalOf(response));
     }
 
     @Test

@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
@@ -85,7 +86,7 @@ public class EventRegistrationFieldService {
         for (var field : fields) {
             if (FieldTypes.REGISTRATION.contains(field.fieldType())) continue;
             if (alreadyAsked.contains(new Asked(field.name(), field.fieldType()))) continue;
-            throw Refusal.REGISTRATION_QUESTION_TYPE_NOT_OFFERED.raise();
+            throw EventRefusal.REGISTRATION_QUESTION_TYPE_NOT_OFFERED.raise();
         }
     }
 
@@ -112,7 +113,7 @@ public class EventRegistrationFieldService {
     }
 
     private void requireUsableDefaults(List<RegistrationFieldDraft> fields) {
-        requireUsableDefaults(fields, eligibility, Refusal.REGISTRATION_QUESTION_DEFAULT_NOT_ACCEPTED);
+        requireUsableDefaults(fields, eligibility, EventRefusal.REGISTRATION_QUESTION_DEFAULT_NOT_ACCEPTED);
     }
 
     /**
@@ -289,7 +290,7 @@ public class EventRegistrationFieldService {
         var known = fields.stream().map(EventRegistrationField::id).collect(Collectors.toSet());
         for (Integer fieldId : answers.keySet()) {
             if (!known.contains(fieldId)) {
-                throw Refusal.REGISTRATION_ANSWER_TO_UNKNOWN_QUESTION.raise(String.valueOf(fieldId));
+                throw EventRefusal.REGISTRATION_ANSWER_TO_UNKNOWN_QUESTION.raise(String.valueOf(fieldId));
             }
         }
 
@@ -298,7 +299,7 @@ public class EventRegistrationFieldService {
             String value = answers.get(field.id());
             if (isBlank(value)) value = field.config().defaultValue();
             QuestionCheck.answer(field.question(), value, eligibility).ifPresent(problem -> {
-                throw Refusal.REGISTRATION_ANSWER_NOT_ACCEPTED.raise(problem.message());
+                throw EventRefusal.REGISTRATION_ANSWER_NOT_ACCEPTED.raise(problem.message());
             });
             if (isBlank(value)) continue;
             resolved.put(field.id(), QuestionValues.writeText(field.fieldType(), value));

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
@@ -86,7 +86,7 @@ public class EventFieldDefaultService {
             var question = questions.get(chosen.fieldId());
             if (question == null) continue;
             QuestionCheck.answerIfGiven(question, chosen.value()).ifPresent(problem -> {
-                throw Refusal.EVENT_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+                throw EventRefusal.EVENT_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
             });
         }
     }

@@ -6,10 +6,11 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -114,10 +115,10 @@ class KnowledgeBaseCommentRoutesTest {
 
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.KB_COMMENT_NOT_YOURS_TO_CHANGE,
+                    KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_CHANGE,
                     refusalOf(client.put(PREFIX + "/kb/comments/6", body("{\"content\": \"x\"}"), member)));
             assertEquals(
-                    Refusal.KB_COMMENT_NOT_YOURS_TO_DELETE,
+                    KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_DELETE,
                     refusalOf(client.delete(PREFIX + "/kb/comments/6", null, member)));
         });
 
@@ -139,7 +140,7 @@ class KnowledgeBaseCommentRoutesTest {
         var answer = harness.request(
                 client -> client.delete(PREFIX + "/kb/comments/9", null, harness.as(TestSessions.member(STATION))));
 
-        assertEquals(Refusal.KB_COMMENT_NOT_HERE, refusalOf(answer));
+        assertEquals(KnowledgeBaseRefusal.KB_COMMENT_NOT_HERE, refusalOf(answer));
     }
 
     @Test
@@ -147,7 +148,7 @@ class KnowledgeBaseCommentRoutesTest {
         var answer = harness.request(
                 client -> client.delete(PREFIX + "/kb/comments/5", null, harness.as(TestSessions.member(STATION + 1))));
 
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(answer));
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(answer));
     }
 
     @Test
@@ -157,6 +158,6 @@ class KnowledgeBaseCommentRoutesTest {
         var answer = harness.request(
                 client -> client.put(PREFIX + "/kb/comments/5", body("{\"content\": \"neu\"}"), author));
 
-        assertEquals(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE, refusalOf(answer));
+        assertEquals(KnowledgeBaseRefusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE, refusalOf(answer));
     }
 }

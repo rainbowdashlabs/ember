@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.board.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
@@ -113,7 +113,7 @@ class TicketCommentTargetTest extends RepositoryTestBase {
         assertEquals(new BoardTicketAddress("TCT", ticketNumber), info.ticketAddress());
         assertFalse(info.systemEntry());
         assertTrue(target.find(Integer.MAX_VALUE).isEmpty());
-        assertEquals(Refusal.BOARD_TICKET_NOT_HERE, target.missing());
+        assertEquals(BoardRefusal.BOARD_TICKET_NOT_HERE, target.missing());
     }
 
     @Test
@@ -123,8 +123,8 @@ class TicketCommentTargetTest extends RepositoryTestBase {
         var read = assertThrows(RefusalResponse.class, () -> target.requireReadable(session, info()));
         var write = assertThrows(RefusalResponse.class, () -> target.requireWritable(session, info()));
 
-        assertEquals(Refusal.BOARD_NOT_HERE_OR_NOT_YOURS, read.refusal());
-        assertEquals(Refusal.BOARD_NOT_HERE_OR_NOT_YOURS, write.refusal());
+        assertEquals(BoardRefusal.BOARD_NOT_HERE_OR_NOT_YOURS, read.refusal());
+        assertEquals(BoardRefusal.BOARD_NOT_HERE_OR_NOT_YOURS, write.refusal());
     }
 
     @Test

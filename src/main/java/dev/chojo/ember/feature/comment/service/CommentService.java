@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
@@ -216,7 +216,7 @@ public class CommentService {
     private Optional<Comment> requireParentOn(TargetInfo target, @Nullable Integer parentId) {
         if (parentId == null) return Optional.empty();
         var parent = repository.findById(target.type(), parentId).filter(found -> found.targetId() == target.id());
-        if (parent.isEmpty()) throw Refusal.COMMENT_PARENT_ELSEWHERE.raise();
+        if (parent.isEmpty()) throw CommentRefusal.COMMENT_PARENT_ELSEWHERE.raise();
         return parent;
     }
 

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -100,7 +100,7 @@ public class AttendanceReportService {
      * <p>A missing list counts as an empty one, but a preset needs at least one user type or at
      * least one group: a filter that selects nobody is not worth saving.
      *
-     * @throws dev.chojo.ember.api.RefusalResponse when the preset selects neither, or a list carries
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the preset selects neither, or a list carries
      *                                             an empty entry
      */
     public AttendanceReportPreset createPreset(
@@ -113,7 +113,7 @@ public class AttendanceReportService {
         var types = presetSelection(userTypes);
         var groups = presetSelection(groupIds);
         if (types.isEmpty() && groups.isEmpty()) {
-            throw Refusal.ATTENDANCE_REPORT_PRESET_SELECTS_NOBODY.raise();
+            throw AttendanceRefusal.ATTENDANCE_REPORT_PRESET_SELECTS_NOBODY.raise();
         }
         var preset = attendanceRepository.createPreset(stationId, name, types, groups, period, rounding);
         log.info("Created attendance report preset {} for station {}", preset.id(), stationId);
@@ -135,7 +135,7 @@ public class AttendanceReportService {
     private static <T> List<T> presetSelection(List<T> selection) {
         if (selection == null) return List.of();
         if (selection.stream().anyMatch(Objects::isNull)) {
-            throw Refusal.ATTENDANCE_REPORT_PRESET_EMPTY_ENTRY.raise();
+            throw AttendanceRefusal.ATTENDANCE_REPORT_PRESET_EMPTY_ENTRY.raise();
         }
         return selection.stream().distinct().toList();
     }

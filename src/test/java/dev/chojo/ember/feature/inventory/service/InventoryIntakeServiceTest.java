@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -110,7 +110,7 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
         var wrongSize = assertThrows(
                 RefusalResponse.class,
                 () -> intake.takeStock(inventoryId, station.id(), "Jacke", List.of(row(member.id(), null, 999_999))));
-        assertEquals(Refusal.INTAKE_SIZE_NOT_IN_INVENTORY, wrongSize.refusal());
+        assertEquals(InventoryRefusal.INTAKE_SIZE_NOT_IN_INVENTORY, wrongSize.refusal());
         assertTrue(wrongSize.getMessage().contains("line 1"), wrongSize.getMessage());
 
         var stranger = assertThrows(
@@ -120,7 +120,7 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
                         station.id(),
                         "Jacke",
                         List.of(row(member.id(), "S-1", sizeId), row(999_999, "S-2", sizeId))));
-        assertEquals(Refusal.INTAKE_MEMBER_NOT_AT_STATION, stranger.refusal());
+        assertEquals(InventoryRefusal.INTAKE_MEMBER_NOT_AT_STATION, stranger.refusal());
         assertTrue(stranger.getMessage().contains("line 2"), stranger.getMessage());
     }
 
@@ -147,7 +147,7 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
         var again = assertThrows(
                 RefusalResponse.class,
                 () -> intake.takeStock(inventoryId, station.id(), "Stiefel", List.of(row(null, "ST-1", sizeId))));
-        assertEquals(Refusal.INTAKE_NUMBER_TAKEN, again.refusal());
+        assertEquals(InventoryRefusal.INTAKE_NUMBER_TAKEN, again.refusal());
 
         var twiceInOne = assertThrows(
                 RefusalResponse.class,
@@ -156,6 +156,6 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
                         station.id(),
                         "Stiefel",
                         List.of(row(null, "ST-2", sizeId), row(null, "ST-2", sizeId))));
-        assertEquals(Refusal.INTAKE_NUMBER_TWICE, twiceInOne.refusal());
+        assertEquals(InventoryRefusal.INTAKE_NUMBER_TWICE, twiceInOne.refusal());
     }
 }

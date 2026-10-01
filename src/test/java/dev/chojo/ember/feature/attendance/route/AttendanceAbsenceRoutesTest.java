@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.attendance.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
@@ -82,10 +82,10 @@ class AttendanceAbsenceRoutesTest {
                     200,
                     client.get(PREFIX + "/attendance/absences/member/5", editor).code());
             assertEquals(
-                    Refusal.ATTENDANCE_MEMBER_NOT_HERE,
+                    AttendanceRefusal.ATTENDANCE_MEMBER_NOT_HERE,
                     refusalOf(client.get(PREFIX + "/attendance/absences/member/6", editor)));
             assertEquals(
-                    Refusal.ATTENDANCE_MEMBER_NOT_HERE,
+                    AttendanceRefusal.ATTENDANCE_MEMBER_NOT_HERE,
                     refusalOf(client.get(PREFIX + "/attendance/absences/member/7", editor)));
         });
 
@@ -102,7 +102,7 @@ class AttendanceAbsenceRoutesTest {
                 null,
                 harness.as(TestSessions.member(STATION, StationPermission.ATTENDANCE_MANAGER))));
 
-        assertEquals(Refusal.ATTENDANCE_MEMBER_NOT_HERE, refusalOf(answer));
+        assertEquals(AttendanceRefusal.ATTENDANCE_MEMBER_NOT_HERE, refusalOf(answer));
         verify(attendance, never()).deleteAbsence(1);
     }
 

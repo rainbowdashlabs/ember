@@ -6,6 +6,8 @@
 package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.BodyRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -75,21 +77,21 @@ class ExceptionMappingTest {
     @Test
     void aNamedRefusalAnswersWithItsCodeAndStatus() {
         var response = answer(ctx -> {
-            throw Refusal.INPUT_NOT_USABLE.raise();
+            throw BodyRefusal.INPUT_NOT_USABLE.raise();
         });
 
-        assertEquals(Refusal.INPUT_NOT_USABLE, refusalOf(response));
+        assertEquals(BodyRefusal.INPUT_NOT_USABLE, refusalOf(response));
     }
 
     @Test
     void aRateLimitSaysWhenToTryAgain() {
-        var response = answer(ctx -> RateLimits.enforce(Refusal.REQUESTS_TOO_OFTEN, Optional.of(30L)));
+        var response = answer(ctx -> RateLimits.enforce(GeneralRefusal.REQUESTS_TOO_OFTEN, Optional.of(30L)));
 
         assertEquals(429, response.code());
         assertEquals("30", header(response, "Retry-After"));
         var body = json(response);
         assertEquals(30, body.path("retryAfterSeconds").asInt());
-        assertEquals(Refusal.REQUESTS_TOO_OFTEN.code(), body.path("code").asString());
+        assertEquals(GeneralRefusal.REQUESTS_TOO_OFTEN.code(), body.path("code").asString());
     }
 
     @Test
@@ -110,7 +112,7 @@ class ExceptionMappingTest {
 
         assertEquals(400, response.code());
         assertEquals(
-                Refusal.INPUT_NOT_USABLE.code(), json(response).path("code").asString());
+                BodyRefusal.INPUT_NOT_USABLE.code(), json(response).path("code").asString());
     }
 
     @Test
@@ -126,7 +128,7 @@ class ExceptionMappingTest {
 
     @Test
     void aBodyThatIsNotJsonIsNamedAsSuch() {
-        assertEquals(Refusal.BODY_NOT_JSON, refusalOf(reading("{not json")));
+        assertEquals(BodyRefusal.BODY_NOT_JSON, refusalOf(reading("{not json")));
     }
 
     @Test
@@ -134,7 +136,7 @@ class ExceptionMappingTest {
         var response = reading("{\"name\":\"a\",\"colour\":\"red\"}");
 
         var body = json(response);
-        assertEquals(Refusal.BODY_UNEXPECTED_FIELD.code(), body.path("code").asString());
+        assertEquals(BodyRefusal.BODY_UNEXPECTED_FIELD.code(), body.path("code").asString());
         assertTrue(body.path("message").asString().endsWith(": colour"), body.toString());
     }
 

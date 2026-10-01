@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -78,7 +78,7 @@ class InventoryTagServiceTest extends RepositoryTestBase {
         var taken = assertThrows(
                 RefusalResponse.class,
                 () -> inventoryTagService.update(station.id(), licht.id(), "renamefunk", null, 0));
-        assertEquals(Refusal.INVENTORY_TAG_NAME_TAKEN, taken.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_TAG_NAME_TAKEN, taken.refusal());
 
         var renamed = inventoryTagService.update(station.id(), licht.id(), " RenameLicht ", "#00C507", 3);
         assertEquals("RenameLicht", renamed.name());

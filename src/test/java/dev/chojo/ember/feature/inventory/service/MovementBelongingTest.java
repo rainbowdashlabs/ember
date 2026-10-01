@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -54,7 +54,7 @@ class MovementBelongingTest {
     @Test
     void anUnboundCombinationFallsBackToTheChainItWalks() {
         when(flows.resolveFlow(anyInt(), any(), any(), any(), any(), any()))
-                .thenThrow(Refusal.MOVEMENT_FLOW_NOT_BOUND.raise());
+                .thenThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND.raise());
 
         var target = targeting.belongsOn(MovementGuardsTest.movement(1, 3, null, null));
 

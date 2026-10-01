@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -66,7 +66,7 @@ public class ProblemReportScreenshotService {
             return Optional.of(stored.id());
         } catch (IOException e) {
             log.warn("The picture of a problem report could not be kept", e);
-            throw Refusal.PROBLEM_PICTURE_NOT_KEPT.raise();
+            throw SystemRefusal.PROBLEM_PICTURE_NOT_KEPT.raise();
         }
     }
 
@@ -99,10 +99,10 @@ public class ProblemReportScreenshotService {
         try {
             picture = Base64.getDecoder().decode(payload.strip());
         } catch (IllegalArgumentException e) {
-            throw Refusal.PROBLEM_PICTURE_NOT_READABLE.raise();
+            throw SystemRefusal.PROBLEM_PICTURE_NOT_READABLE.raise();
         }
-        if (picture.length == 0) throw Refusal.PROBLEM_PICTURE_EMPTY.raise();
-        if (picture.length > MAX_BYTES) throw Refusal.PROBLEM_PICTURE_TOO_LARGE.raise();
+        if (picture.length == 0) throw SystemRefusal.PROBLEM_PICTURE_EMPTY.raise();
+        if (picture.length > MAX_BYTES) throw SystemRefusal.PROBLEM_PICTURE_TOO_LARGE.raise();
         return picture;
     }
 
@@ -110,6 +110,6 @@ public class ProblemReportScreenshotService {
     private static ImageFormat formatOf(byte[] picture) {
         return ImageFormat.sniff(picture)
                 .filter(format -> format == ImageFormat.PNG || format == ImageFormat.WEBP)
-                .orElseThrow(Refusal.PROBLEM_PICTURE_KIND_NOT_TAKEN::raise);
+                .orElseThrow(SystemRefusal.PROBLEM_PICTURE_KIND_NOT_TAKEN::raise);
     }
 }

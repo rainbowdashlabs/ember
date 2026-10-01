@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -196,7 +196,7 @@ public class StationService {
             String customThemeColors,
             ThemeFeel defaultFeel,
             boolean allowUserFeel) {
-        Station current = stationRepository.findById(id).orElseThrow(Refusal.STATION_NOT_HERE_FOR_LOOK::raise);
+        Station current = stationRepository.findById(id).orElseThrow(StationRefusal.STATION_NOT_HERE_FOR_LOOK::raise);
         Locks locks = lookAndFeelLocks(id);
         stationRepository.updateThemeSettings(
                 id,
@@ -289,7 +289,7 @@ public class StationService {
      */
     public void deleteMoved(int id) {
         if (!stationRepository.isReadOnlyForTransfer(id)) {
-            throw Refusal.STATION_NOT_MOVED.raise();
+            throw StationRefusal.STATION_NOT_MOVED.raise();
         }
         delete(id);
     }
@@ -491,7 +491,7 @@ public class StationService {
         if (slug != null) {
             var existing = stationRepository.findBySlug(slug);
             if (existing.isPresent() && existing.get().id() != stationId) {
-                throw Refusal.STATION_SLUG_TAKEN.raise();
+                throw StationRefusal.STATION_SLUG_TAKEN.raise();
             }
         }
         stationRepository.updatePublicSlug(stationId, slug);

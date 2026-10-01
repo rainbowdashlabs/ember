@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.AiService.ModelInfo;
@@ -112,7 +112,7 @@ public class AiRoutes implements Routes {
         String provider = ctx.pathParam("provider");
         var req = ctx.bodyAsClass(AiProviderRequest.class);
         if (req.apiKey() == null || req.apiKey().isBlank()) {
-            throw Refusal.AI_PROVIDER_NEEDS_A_KEY.raise();
+            throw QuizRefusal.AI_PROVIDER_NEEDS_A_KEY.raise();
         }
         aiService.saveProvider(session.stationId(), provider, req.apiKey(), req.model());
         ctx.json(new AiSuccessResponse(true));
@@ -152,10 +152,10 @@ public class AiRoutes implements Routes {
             ctx.json(models);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument fetching AI models for provider {}", provider, e);
-            throw Refusal.AI_MODELS_NOT_LISTED_KEY_NOT_GOOD.raise();
+            throw QuizRefusal.AI_MODELS_NOT_LISTED_KEY_NOT_GOOD.raise();
         } catch (Exception e) {
             log.warn("Failed to fetch AI models for provider {}", provider, e);
-            throw Refusal.AI_MODELS_NOT_LISTED.raise();
+            throw QuizRefusal.AI_MODELS_NOT_LISTED.raise();
         }
     }
 
@@ -173,10 +173,10 @@ public class AiRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(AiGenerateRequest.class);
         if (req.question() == null || req.question().isBlank()) {
-            throw Refusal.AI_GENERATION_NEEDS_A_QUESTION.raise();
+            throw QuizRefusal.AI_GENERATION_NEEDS_A_QUESTION.raise();
         }
         if (req.correctAnswer() == null || req.correctAnswer().isBlank()) {
-            throw Refusal.AI_GENERATION_NEEDS_THE_RIGHT_ANSWER.raise();
+            throw QuizRefusal.AI_GENERATION_NEEDS_THE_RIGHT_ANSWER.raise();
         }
         try {
             var results = aiService.generate(
@@ -190,10 +190,10 @@ public class AiRoutes implements Routes {
             ctx.json(new AiGenerateResponse(results));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument during AI generation", e);
-            throw Refusal.AI_GENERATION_REFUSED.raise();
+            throw QuizRefusal.AI_GENERATION_REFUSED.raise();
         } catch (Exception e) {
             log.warn("AI generation failed", e);
-            throw Refusal.AI_GENERATION_FAILED.raise();
+            throw QuizRefusal.AI_GENERATION_FAILED.raise();
         }
     }
 

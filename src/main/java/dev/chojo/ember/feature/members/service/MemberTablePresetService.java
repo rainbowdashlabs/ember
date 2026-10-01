@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePreset;
 import dev.chojo.ember.feature.members.repository.MemberTablePresetRepository;
@@ -57,7 +57,7 @@ public class MemberTablePresetService {
      */
     public MemberTablePreset save(int stationId, String name, List<MemberTableColumn> columns) {
         if (name == null || name.isBlank()) {
-            throw Refusal.MEMBER_TABLE_PRESET_NAME_MISSING.raise();
+            throw MemberRefusal.MEMBER_TABLE_PRESET_NAME_MISSING.raise();
         }
         return repository.save(stationId, name.trim(), wellFormed(columns));
     }

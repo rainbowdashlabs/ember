@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -193,7 +193,7 @@ public class MovementTargeting {
         try {
             return of(movement);
         } catch (RefusalResponse unbound) {
-            if (unbound.refusal() != Refusal.MOVEMENT_FLOW_NOT_BOUND) throw unbound;
+            if (unbound.refusal() != InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND) throw unbound;
             return new Target(
                     ownerOf(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId()),
                     owningClusterOf(

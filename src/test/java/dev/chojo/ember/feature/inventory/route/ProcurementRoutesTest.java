@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -57,7 +57,7 @@ class ProcurementRoutesTest {
         when(procurements.findByStation(STATION)).thenReturn(List.of(forMara, forTheStore));
         when(procurements.create(anyInt(), anyInt(), any(), any(), any())).thenReturn(forMara);
         when(procurements.create(STATION, 99, null, null, null))
-                .thenThrow(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT.raise());
+                .thenThrow(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT.raise());
         when(members.findById(MEMBER_ID))
                 .thenReturn(Optional.of(new StationMember(
                         MEMBER_ID,
@@ -89,7 +89,7 @@ class ProcurementRoutesTest {
                     client.post(PREFIX + "/procurement", body("{\"inventoryId\": %d}".formatted(INVENTORY)), buyer)
                             .code());
             assertEquals(
-                    Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT,
+                    InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT,
                     refusalOf(client.post(PREFIX + "/procurement", body("{\"inventoryId\": 99}"), buyer)));
         });
     }

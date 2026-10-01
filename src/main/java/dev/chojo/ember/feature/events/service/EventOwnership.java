@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 
 /**
@@ -24,7 +24,7 @@ public final class EventOwnership {
      * station cannot be used to probe or act on another station's event.
      */
     public static StationEvent requireOwnedEvent(EventCrudService crudService, int eventId, StationSession session) {
-        var event = crudService.findById(eventId).orElseThrow(Refusal.EVENT_NOT_HERE::raise);
+        var event = crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE::raise);
         RouteSupport.requireSameStation(session.user(), event.stationId());
         return event;
     }

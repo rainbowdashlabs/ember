@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -118,7 +118,7 @@ class LendingRoutesTest {
                 body("{\"owningStationId\": \"%s\", \"dateFrom\": \"2026-05-01\"}".formatted(OWNER)),
                 asker));
 
-        assertEquals(Refusal.LENDING_FROM_OWN_STATION, refusalOf(answer));
+        assertEquals(FederationRefusal.LENDING_FROM_OWN_STATION, refusalOf(answer));
     }
 
     @Test
@@ -200,7 +200,7 @@ class LendingRoutesTest {
         var answer = harness.request(
                 client -> client.post(PREFIX + "/lending/requests/5/assign-items", body("{\"items\": []}"), manager()));
 
-        assertEquals(Refusal.LENDING_REQUEST_NOT_APPROVED, refusalOf(answer));
+        assertEquals(FederationRefusal.LENDING_REQUEST_NOT_APPROVED, refusalOf(answer));
         verify(lending, never()).assignItem(anyInt(), anyInt(), anyInt());
     }
 
@@ -239,11 +239,11 @@ class LendingRoutesTest {
 
     @Test
     void aStationThatIsNoPartyIsRefusedBeforeAnythingHappens() {
-        when(views.requireParty(6, STATION)).thenThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise());
+        when(views.requireParty(6, STATION)).thenThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise());
 
         var answer = harness.request(client -> client.post(PREFIX + "/lending/requests/6/close", null, manager()));
 
-        assertEquals(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refusalOf(answer));
+        assertEquals(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refusalOf(answer));
         verify(lending, never()).closeRequest(anyInt(), anyInt());
     }
 

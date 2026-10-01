@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -66,20 +67,20 @@ class MemberSetupMailServiceTest {
 
     @Test
     void nobodyToSendItToIsRefused() {
-        assertEquals(Refusal.MEMBER_HAS_NO_ACCOUNT, refusalOf(member(null)));
-        assertEquals(Refusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL, refusalOf(member(1)));
+        assertEquals(MemberRefusal.MEMBER_HAS_NO_ACCOUNT, refusalOf(member(null)));
+        assertEquals(MemberRefusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL, refusalOf(member(1)));
         when(accounts.findById(1)).thenReturn(Optional.of(account(null)));
-        assertEquals(Refusal.ACCOUNT_NOBODY_TO_WRITE_TO, refusalOf(member(1)));
+        assertEquals(MemberRefusal.ACCOUNT_NOBODY_TO_WRITE_TO, refusalOf(member(1)));
         verify(auth, never()).sendPasswordSetup(anyInt());
     }
 
     @Test
     void anAccountThatIsSetUpIsNotInvitedAgain() {
         when(accounts.findById(1)).thenReturn(Optional.of(account(Instant.EPOCH)));
-        assertEquals(Refusal.ACCOUNT_ALREADY_SET_UP, refusalOf(member(1)));
+        assertEquals(MemberRefusal.ACCOUNT_ALREADY_SET_UP, refusalOf(member(1)));
 
         when(accounts.findById(1)).thenReturn(Optional.of(account(null)));
         when(accounts.hasChosenPassword(1)).thenReturn(true);
-        assertEquals(Refusal.ACCOUNT_ALREADY_SET_UP, refusalOf(member(1)));
+        assertEquals(MemberRefusal.ACCOUNT_ALREADY_SET_UP, refusalOf(member(1)));
     }
 }

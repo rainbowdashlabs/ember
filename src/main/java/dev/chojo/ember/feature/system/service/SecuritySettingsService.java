@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.elements.Auth;
@@ -53,7 +53,7 @@ public class SecuritySettingsService {
      */
     static void requireRange(int value, int min, int max, String field) {
         if (value < min || value > max) {
-            throw Refusal.SETTING_OUT_OF_RANGE.raise(field);
+            throw SystemRefusal.SETTING_OUT_OF_RANGE.raise(field);
         }
     }
 
@@ -73,7 +73,7 @@ public class SecuritySettingsService {
         requireRange(request.sessionMinutes(), 5, 43200, "sessionMinutes");
         requireRange(request.untrustedSessionMinutes(), 5, 43200, "untrustedSessionMinutes");
         if (request.untrustedSessionMinutes() > request.sessionMinutes()) {
-            throw Refusal.UNTRUSTED_SESSION_OUTLASTS_TRUSTED.raise();
+            throw SystemRefusal.UNTRUSTED_SESSION_OUTLASTS_TRUSTED.raise();
         }
         var auth = auth();
         var before = TokensConfigRequest.of(auth);
@@ -88,7 +88,7 @@ public class SecuritySettingsService {
     public TokensConfigResponse generateTokenPepper() {
         var auth = auth();
         if (isSet(auth.tokenPepper())) {
-            throw Refusal.TOKEN_PEPPER_ALREADY_SET.raise();
+            throw SystemRefusal.TOKEN_PEPPER_ALREADY_SET.raise();
         }
         String previous = auth.tokenPepper();
         String pepper = RandomTokens.urlSafe(48);
@@ -104,7 +104,7 @@ public class SecuritySettingsService {
         requireRange(request.staleAfterDays(), 1, 365, "staleAfterDays");
         requireRange(request.timeoutSeconds(), 1, 30, "timeoutSeconds");
         if (request.endpoint() == null || request.endpoint().isBlank()) {
-            throw Refusal.PASSWORD_LEAK_CHECK_NEEDS_AN_ADDRESS.raise();
+            throw SystemRefusal.PASSWORD_LEAK_CHECK_NEEDS_AN_ADDRESS.raise();
         }
         var hibp = auth().hibp();
         var before = HibpConfigRequest.of(hibp);
@@ -133,7 +133,7 @@ public class SecuritySettingsService {
     public TwoFactorCoreConfigResponse generateTwoFactorSecretKey() {
         var twoFactor = auth().twoFactor();
         if (isSet(twoFactor.secretKey())) {
-            throw Refusal.TWO_FACTOR_SECRET_KEY_ALREADY_SET.raise();
+            throw SystemRefusal.TWO_FACTOR_SECRET_KEY_ALREADY_SET.raise();
         }
         String previous = twoFactor.secretKey();
         String key = RandomTokens.base64(32);
@@ -150,12 +150,12 @@ public class SecuritySettingsService {
         requireRange(request.periodSeconds(), 15, 60, "periodSeconds");
         requireRange(request.driftWindow(), 0, 3, "driftWindow");
         if (request.issuer() == null || request.issuer().isBlank()) {
-            throw Refusal.AUTHENTICATOR_NEEDS_AN_ISSUER.raise();
+            throw SystemRefusal.AUTHENTICATOR_NEEDS_AN_ISSUER.raise();
         }
         String algorithm =
                 request.algorithm() == null ? "" : request.algorithm().toUpperCase(Locale.ROOT);
         if (!TOTP_ALGORITHMS.contains(algorithm)) {
-            throw Refusal.AUTHENTICATOR_ALGORITHM_UNKNOWN.raise();
+            throw SystemRefusal.AUTHENTICATOR_ALGORITHM_UNKNOWN.raise();
         }
         var totp = auth().twoFactor().totp();
         var after = new TotpConfig(
@@ -190,7 +190,7 @@ public class SecuritySettingsService {
         String attestation =
                 request.attestation() == null ? "" : request.attestation().toLowerCase(Locale.ROOT);
         if (!WEBAUTHN_ATTESTATIONS.contains(attestation)) {
-            throw Refusal.SECURITY_KEY_ATTESTATION_UNKNOWN.raise();
+            throw SystemRefusal.SECURITY_KEY_ATTESTATION_UNKNOWN.raise();
         }
         var webauthn = WebAuthnSettings.resolvedFrom(auth());
         var after = new WebAuthnConfig(

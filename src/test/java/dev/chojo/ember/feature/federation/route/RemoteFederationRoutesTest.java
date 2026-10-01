@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -92,7 +92,7 @@ class RemoteFederationRoutesTest {
         var answer = harness.request(client -> client.post(
                 PREFIX + "/remote/webhook/register", body("{\"webhookUrl\": \"http://10.0.0.1/\"}"), partner));
 
-        assertEquals(Refusal.WEBHOOK_ADDRESS_NOT_ALLOWED, refusalOf(answer));
+        assertEquals(FederationRefusal.WEBHOOK_ADDRESS_NOT_ALLOWED, refusalOf(answer));
         verify(federation, never()).registerWebhook(any(Integer.class), any());
     }
 

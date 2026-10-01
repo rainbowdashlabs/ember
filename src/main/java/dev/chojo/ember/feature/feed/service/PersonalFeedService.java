@@ -9,7 +9,7 @@ import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FeedRefusal;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -139,8 +139,8 @@ public class PersonalFeedService {
      * The member a feed link belongs to.
      */
     public StationMember member(String token) {
-        var feedToken = tokenService.findByToken(token).orElseThrow(Refusal.FEED_LINK_NOT_GOOD::raise);
-        return memberRepository.findById(feedToken.memberId()).orElseThrow(Refusal.FEED_LINK_NOT_GOOD::raise);
+        var feedToken = tokenService.findByToken(token).orElseThrow(FeedRefusal.FEED_LINK_NOT_GOOD::raise);
+        return memberRepository.findById(feedToken.memberId()).orElseThrow(FeedRefusal.FEED_LINK_NOT_GOOD::raise);
     }
 
     /**
@@ -156,7 +156,8 @@ public class PersonalFeedService {
      */
     public Feed calendar(StationMember member, boolean verbose) {
         tokenService.recordIcalPoll(member.id());
-        var station = stationRepository.findById(member.stationId()).orElseThrow(Refusal.FEED_STATION_NOT_HERE::raise);
+        var station =
+                stationRepository.findById(member.stationId()).orElseThrow(FeedRefusal.FEED_STATION_NOT_HERE::raise);
         String locale = notificationText.resolveLocale(station.locale());
         var managed = memberRepository.findManaged(member.id());
         var memberIds = new ArrayList<Integer>(managed.size() + 1);
@@ -270,7 +271,7 @@ public class PersonalFeedService {
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository
                 .findById(member.stationId())
-                .orElseThrow(Refusal.FEED_STATION_NOT_HERE_FOR_NOTIFICATIONS::raise);
+                .orElseThrow(FeedRefusal.FEED_STATION_NOT_HERE_FOR_NOTIFICATIONS::raise);
         String locale = notificationText.resolveLocale(station.locale());
         var stamp = notificationInbox.latestStamp(member.id());
         var fingerprint = FeedFingerprint.compute(
@@ -305,7 +306,7 @@ public class PersonalFeedService {
             return new Rendered(new SyndFeedOutput().outputString(feed), entries.size());
         } catch (Exception e) {
             log.warn("Failed to write out the feed", e);
-            throw Refusal.FEED_NOT_BUILT.raise();
+            throw FeedRefusal.FEED_NOT_BUILT.raise();
         }
     }
 
@@ -331,11 +332,11 @@ public class PersonalFeedService {
      * @param stationId the station of the member the feed link belongs to
      */
     public MediaContent lostAndFoundImage(int stationId, int itemId, int size) {
-        var item = lostAndFoundService.findById(itemId).orElseThrow(Refusal.FEED_ITEM_NOT_HERE::raise);
+        var item = lostAndFoundService.findById(itemId).orElseThrow(FeedRefusal.FEED_ITEM_NOT_HERE::raise);
         if (item.stationId() != stationId) {
-            throw Refusal.FEED_ITEM_NOT_HERE.raise();
+            throw FeedRefusal.FEED_ITEM_NOT_HERE.raise();
         }
-        return imageService.read(stationId, itemId, size).orElseThrow(Refusal.FEED_ITEM_PICTURE_NOT_HERE::raise);
+        return imageService.read(stationId, itemId, size).orElseThrow(FeedRefusal.FEED_ITEM_PICTURE_NOT_HERE::raise);
     }
 
     /** The two syndication formats the notifications are offered in. */

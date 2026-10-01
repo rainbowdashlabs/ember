@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.cluster.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
@@ -121,7 +121,7 @@ class ClusterRouteLookupsTest {
                     client.delete(PREFIX + "/cluster/stations/" + STATION_UID, null, admin)
                             .code());
             assertEquals(
-                    Refusal.STATION_NOT_HERE_ON_CLUSTER_RELEASE,
+                    ClusterRefusal.STATION_NOT_HERE_ON_CLUSTER_RELEASE,
                     refusalOf(client.delete(PREFIX + "/cluster/stations/" + UUID.randomUUID(), null, admin)));
         });
 

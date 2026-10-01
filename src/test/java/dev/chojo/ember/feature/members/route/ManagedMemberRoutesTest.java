@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.members.service.ManagedMemberService;
 import dev.chojo.ember.feature.members.service.ManagedMemberService.DataExport;
@@ -105,11 +105,11 @@ class ManagedMemberRoutesTest {
 
     @Test
     void aMemberNotLookedAfterIsRefused() {
-        when(managed.profile(GUARDIAN, 99)).thenThrow(Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER.raise());
+        when(managed.profile(GUARDIAN, 99)).thenThrow(MemberRefusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER.raise());
 
         var refused =
                 harness.request(client -> client.get(PREFIX + "/managed-members/99/profile", harness.as(guardian)));
 
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER, refusalOf(refused));
+        assertEquals(MemberRefusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER, refusalOf(refused));
     }
 }

@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.mailimport.service;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;

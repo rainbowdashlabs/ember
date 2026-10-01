@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -164,8 +164,8 @@ class FormOptionKeysTest extends RepositoryTestBase {
         var missing =
                 assertThrows(RefusalResponse.class, () -> save(question, choice(YES, new Option(" ", "Nein"), false)));
 
-        assertEquals(Refusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, duplicate.refusal());
-        assertEquals(Refusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, missing.refusal());
+        assertEquals(FormRefusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, duplicate.refusal());
+        assertEquals(FormRefusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, missing.refusal());
         assertEquals(
                 choice(YES, NO, false),
                 service.findQuestions(question.formId()).getFirst().config());

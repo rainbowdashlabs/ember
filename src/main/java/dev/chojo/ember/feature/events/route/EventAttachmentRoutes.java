@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -113,10 +113,10 @@ public class EventAttachmentRoutes implements Routes {
         var attachment = attachmentService
                 .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
                 .filter(found -> found.eventId() == eventId)
-                .orElseThrow(Refusal.EVENT_FILE_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE::raise);
 
         var file = media.read(session.stationId(), attachment.contentHash())
-                .orElseThrow(Refusal.EVENT_FILE_CONTENT_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_CONTENT_NOT_HERE::raise);
         String stored = file.contentType();
         ctx.contentType(SafeInlineMime.safeContentType(stored));
         ctx.header(
@@ -169,14 +169,14 @@ public class EventAttachmentRoutes implements Routes {
         var attachment = attachmentService
                 .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
                 .filter(found -> found.eventId() == eventId)
-                .orElseThrow(Refusal.EVENT_FILE_NOT_HERE_FOR_PICTURE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE_FOR_PICTURE::raise);
 
         var picture = media.readPicture(
                         session.stationId(),
                         attachment.contentHash(),
                         attachment.mimeType(),
                         parseOptionalWidth(ctx.queryParam("w")))
-                .orElseThrow(Refusal.EVENT_FILE_PICTURE_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_PICTURE_NOT_HERE::raise);
         String stored = picture.contentType();
         ctx.contentType(SafeInlineMime.safeContentType(stored));
         ctx.header(
@@ -202,7 +202,7 @@ public class EventAttachmentRoutes implements Routes {
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
-        if (request.fileId() == null) throw Refusal.EVENT_FILE_NOT_CHOSEN.raise();
+        if (request.fileId() == null) throw EventRefusal.EVENT_FILE_NOT_CHOSEN.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(attachmentService.attach(
                         eventId,
@@ -228,7 +228,7 @@ public class EventAttachmentRoutes implements Routes {
         var request = ctx.bodyAsClass(AttachmentRequest.class);
         boolean internal = Objects.requireNonNullElse(request.internal(), attachment.internal());
         if (!attachmentService.update(attachment.id(), request.label(), internal)) {
-            throw Refusal.EVENT_FILE_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_FILE_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -262,7 +262,7 @@ public class EventAttachmentRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void detach(Context ctx) {
         var attachment = requireOwnedAttachment(ctx);
-        if (!attachmentService.detach(attachment.id())) throw Refusal.EVENT_FILE_NOT_REMOVED.raise();
+        if (!attachmentService.detach(attachment.id())) throw EventRefusal.EVENT_FILE_NOT_REMOVED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -277,7 +277,7 @@ public class EventAttachmentRoutes implements Routes {
         return attachmentService
                 .find(pathInt(ctx, "attachmentId"))
                 .filter(attachment -> attachment.eventId() == eventId)
-                .orElseThrow(Refusal.EVENT_FILE_NOT_HERE_ON_WRITE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE_ON_WRITE::raise);
     }
 
     /**

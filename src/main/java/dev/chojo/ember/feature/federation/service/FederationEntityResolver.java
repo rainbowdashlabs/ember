@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -42,7 +42,7 @@ public class FederationEntityResolver {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationStatus.ACTIVE) {
-            throw Refusal.FEDERATION_PARTNER_NOT_ACTIVE.raise();
+            throw FederationRefusal.FEDERATION_PARTNER_NOT_ACTIVE.raise();
         }
         return partner;
     }

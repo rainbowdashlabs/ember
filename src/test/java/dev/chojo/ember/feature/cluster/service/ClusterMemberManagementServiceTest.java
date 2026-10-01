@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -428,7 +428,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.requireDocumentOfCluster(clusterId, filed.id()),
                 "and neither is what is filed about them");
-        assertEquals(Refusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE, hidden.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE, hidden.refusal());
     }
 
     @Test
@@ -442,6 +442,6 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 () -> service.createMember(
                         clusterId, theirs.uid(), "Neu", "Fremd", "fremd@test.com", StationUserType.MEMBER),
                 "a station answering to somebody else is not one of this association's");
-        assertEquals(Refusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE, refused.refusal());
     }
 }

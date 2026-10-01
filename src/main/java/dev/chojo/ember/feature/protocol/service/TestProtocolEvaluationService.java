@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
@@ -42,7 +42,7 @@ public class TestProtocolEvaluationService {
     public EvaluationResponse evaluate(TestProtocolRun run) {
         var protocol = protocols
                 .findProtocol(run.protocolId())
-                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EVALUATE::raise);
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EVALUATE::raise);
         var sections = protocols.findSections(run.protocolId());
         Map<Integer, List<TestProtocolItem>> itemsBySection =
                 protocols.findAllItemsByProtocol(run.protocolId()).stream()

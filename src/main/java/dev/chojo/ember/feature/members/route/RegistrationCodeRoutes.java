@@ -6,10 +6,11 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.service.RegistrationCodeService;
 import io.javalin.http.Context;
@@ -81,7 +82,7 @@ public class RegistrationCodeRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateCodeRequest.class);
         if (isBlank(request.code())) {
-            throw Refusal.REGISTRATION_CODE_TEXT_MISSING.raise();
+            throw MemberRefusal.REGISTRATION_CODE_TEXT_MISSING.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(codeService.create(session.requireStationId(), request.code(), request.maxUses()));
@@ -99,8 +100,9 @@ public class RegistrationCodeRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
-        int stationId = stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_HERE);
-        var code = codeService.findInStation(stationId, id).orElseThrow(Refusal.REGISTRATION_CODE_NOT_HERE::raise);
+        int stationId = stationOf(ctx, MemberRefusal.REGISTRATION_CODE_NOT_HERE);
+        var code =
+                codeService.findInStation(stationId, id).orElseThrow(MemberRefusal.REGISTRATION_CODE_NOT_HERE::raise);
         ctx.json(new CodeDetail(
                 code.id(),
                 code.stationId(),
@@ -132,7 +134,7 @@ public class RegistrationCodeRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        codeService.delete(stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_DELETED), id);
+        codeService.delete(stationOf(ctx, MemberRefusal.REGISTRATION_CODE_NOT_DELETED), id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -145,7 +147,7 @@ public class RegistrationCodeRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getGroups(Context ctx) {
         int id = pathInt(ctx, "id");
-        ctx.json(codeService.findGroupIds(stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS), id));
+        ctx.json(codeService.findGroupIds(stationOf(ctx, MemberRefusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS), id));
     }
 
     @OpenApi(
@@ -163,7 +165,7 @@ public class RegistrationCodeRoutes implements Routes {
         var request = ctx.bodyAsClass(SetGroupsRequest.class);
         List<Integer> groupIds = request.groupIds() != null ? request.groupIds() : List.of();
         ctx.json(codeService.setGroups(
-                stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS), codeId, groupIds));
+                stationOf(ctx, MemberRefusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS), codeId, groupIds));
     }
 
     public record CreateCodeRequest(String code, int maxUses) {}

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.api.auth;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StepUpRequiredException;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
@@ -96,7 +96,7 @@ public class StepUpGuard {
      */
     public void spendLocalProof(UserSession session, StepUpCategory category) {
         if (session.vouchedFor()) {
-            throw Refusal.VOUCHED_SESSION_CANNOT_VOUCH.raise();
+            throw TwoFactorRefusal.VOUCHED_SESSION_CANNOT_VOUCH.raise();
         }
         if (demoConfig.enabled()) return;
         Instant verifiedAt = session.twoFactorVerifiedAt();

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -98,9 +98,9 @@ public class GroupRulesService {
         var updated = Transactions.call(() -> {
             if (rules != null) apply(group, rules, removeNonMatching, by);
             if (!groupRepository.update(group.id(), name, color, position)) {
-                throw Refusal.GROUP_NOT_HERE_ON_CHANGE.raise();
+                throw MemberRefusal.GROUP_NOT_HERE_ON_CHANGE.raise();
             }
-            return groupRepository.findById(group.id()).orElseThrow(Refusal.GROUP_NOT_HERE_ON_CHANGE::raise);
+            return groupRepository.findById(group.id()).orElseThrow(MemberRefusal.GROUP_NOT_HERE_ON_CHANGE::raise);
         });
         log.info("Group updated: id={}, name='{}'", group.id(), name);
         return updated;
@@ -112,7 +112,7 @@ public class GroupRulesService {
             setRepository
                     .findById(setId)
                     .filter(set -> set.stationId() == group.stationId())
-                    .orElseThrow(Refusal.GROUP_SET_NOT_HERE_FOR_GROUP::raise);
+                    .orElseThrow(MemberRefusal.GROUP_SET_NOT_HERE_FOR_GROUP::raise);
         }
         Set<StationUserType> userTypes = rules.userTypes();
         leaveMisfits(group, userTypes, removeNonMatching, by);
@@ -128,7 +128,7 @@ public class GroupRulesService {
         if (misfits.isEmpty()) return;
         if (!removeNonMatching) {
             throw GroupRuleRefused.naming(
-                    Refusal.GROUP_BINDING_EXCLUDES_MEMBERS,
+                    MemberRefusal.GROUP_BINDING_EXCLUDES_MEMBERS,
                     misfits.stream()
                             .map(member -> membershipService.conflict(member.id(), List.of(group.name())))
                             .toList());
@@ -154,7 +154,7 @@ public class GroupRulesService {
                         .sorted()
                         .toList())));
         conflicts.sort(Comparator.comparing(GroupRuleRefused.GroupConflict::memberName));
-        throw GroupRuleRefused.naming(Refusal.GROUP_SET_MEMBERS_OVERLAP, conflicts);
+        throw GroupRuleRefused.naming(MemberRefusal.GROUP_SET_MEMBERS_OVERLAP, conflicts);
     }
 
     /**

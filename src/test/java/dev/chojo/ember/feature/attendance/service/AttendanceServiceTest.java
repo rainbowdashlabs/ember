@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.AttendanceRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
@@ -186,7 +187,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 () -> service.createTemplateField(
                         templateId, "Treffpunkt", FieldType.LOCATION, AttendanceFieldConfig.parse("{}"), 1));
 
-        assertEquals(Refusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(AttendanceRefusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
         assertEquals(before, service.findTemplateFields(templateId).size());
     }
 
@@ -524,7 +525,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday));
-        assertEquals(Refusal.ATTENDANCE_DAY_CANCELLED, refused.refusal());
+        assertEquals(EventRefusal.ATTENDANCE_DAY_CANCELLED, refused.refusal());
         var next = service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday.plusWeeks(1));
 
         service.deleteSession(next.id());

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
@@ -226,7 +226,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.setValues(member, List.of(new FieldValueEntry(field.id(), "15")), member));
 
-        assertEquals(Refusal.PROFILE_AGE_TAKES_NO_ANSWER, refusal.refusal());
+        assertEquals(MemberRefusal.PROFILE_AGE_TAKES_NO_ANSWER, refusal.refusal());
         assertTrue(service.findValues(member).isEmpty());
         assertEquals(Optional.empty(), kept(field, "\"\""));
     }

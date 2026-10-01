@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.maps.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
@@ -41,18 +41,18 @@ public class MapsConfigService {
 
     private static void validate(MapsTilesConfig config) {
         if (config == null || config.provider() == null) {
-            throw Refusal.MAP_TILE_PROVIDER_MISSING.raise();
+            throw MapRefusal.MAP_TILE_PROVIDER_MISSING.raise();
         }
         if (config.minZoom() < 0 || config.maxZoom() > 22 || config.minZoom() > config.maxZoom()) {
-            throw Refusal.MAP_ZOOM_RANGE_NOT_GOOD.raise();
+            throw MapRefusal.MAP_ZOOM_RANGE_NOT_GOOD.raise();
         }
         if (config.provider().requiresApiKey()
                 && (config.apiKey() == null || config.apiKey().isBlank())) {
-            throw Refusal.MAP_TILE_PROVIDER_KEY_MISSING.raise();
+            throw MapRefusal.MAP_TILE_PROVIDER_KEY_MISSING.raise();
         }
         if (config.provider() == MapTileProvider.CUSTOM
                 && (config.urlTemplate() == null || config.urlTemplate().isBlank())) {
-            throw Refusal.MAP_TILE_ADDRESS_MISSING.raise();
+            throw MapRefusal.MAP_TILE_ADDRESS_MISSING.raise();
         }
     }
 
@@ -81,7 +81,7 @@ public class MapsConfigService {
 
     public void updateGeocodingConfig(MapsGeocodingConfig config) {
         if (config == null || config.provider() == null) {
-            throw Refusal.MAP_GEOCODING_PROVIDER_MISSING.raise();
+            throw MapRefusal.MAP_GEOCODING_PROVIDER_MISSING.raise();
         }
         settings.set(KEY_GEOCODING, config.toJson());
         log.info("Updated maps geocoding config: provider {}", config.provider());
@@ -89,7 +89,7 @@ public class MapsConfigService {
 
     public void updateTileCacheMaxMb(int maxMb) {
         if (maxMb < 0 || maxMb > MAX_TILE_CACHE_MB) {
-            throw Refusal.MAP_TILE_CACHE_SIZE_OUT_OF_RANGE.raise();
+            throw MapRefusal.MAP_TILE_CACHE_SIZE_OUT_OF_RANGE.raise();
         }
         settings.set(KEY_CACHE_MB, Integer.toString(maxMb));
         log.info("Updated maps tile cache size: {} MB", maxMb);

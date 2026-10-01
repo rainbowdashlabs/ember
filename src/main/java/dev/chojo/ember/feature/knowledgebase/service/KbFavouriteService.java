@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavourite;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.repository.KbFavouriteRepository;
@@ -75,13 +75,13 @@ public class KbFavouriteService {
      */
     public KbFavourite markLocal(int stationId, MemberAccess access, KbFavouriteTarget target, int entryId) {
         if (target.isPartner() || !isOwnReadable(stationId, access, target, entryId)) {
-            throw Refusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS.raise();
+            throw KnowledgeBaseRefusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS.raise();
         }
         repository.addLocal(access.memberId(), target, entryId);
         log.debug("Member {} marked KB {} {} as a favourite", access.memberId(), target, entryId);
         return repository
                 .findLocal(access.memberId(), target, entryId)
-                .orElseThrow(Refusal.KB_FAVOURITE_NOT_READ_BACK_AFTER_MARKING::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_FAVOURITE_NOT_READ_BACK_AFTER_MARKING::raise);
     }
 
     /**
@@ -97,7 +97,7 @@ public class KbFavouriteService {
             KbFavouriteTarget target,
             UUID partnerStationUid,
             int entryId) {
-        if (!target.isPartner()) throw Refusal.KB_FAVOURITE_TARGET_NOT_AT_A_PARTNER.raise();
+        if (!target.isPartner()) throw KnowledgeBaseRefusal.KB_FAVOURITE_TARGET_NOT_AT_A_PARTNER.raise();
         PartnerEntry entry = target == KbFavouriteTarget.PARTNER_FILE
                 ? federation.describePartnerFile(stationId, partnerStationUid, entryId)
                 : federation.describePartnerFolder(stationId, partnerStationUid, entryId, readerUserType);
@@ -106,7 +106,7 @@ public class KbFavouriteService {
         log.debug("Member {} marked partner {} {} of {} as a favourite", memberId, target, entryId, partnerStationUid);
         return repository
                 .findPartner(memberId, target, partnerStationUid, entryId)
-                .orElseThrow(Refusal.KB_PARTNER_FAVOURITE_NOT_READ_BACK_AFTER_MARKING::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_PARTNER_FAVOURITE_NOT_READ_BACK_AFTER_MARKING::raise);
     }
 
     /**

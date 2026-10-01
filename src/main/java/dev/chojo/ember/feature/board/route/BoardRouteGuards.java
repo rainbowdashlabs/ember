@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
@@ -44,7 +44,9 @@ public class BoardRouteGuards {
      */
     public Board resolveBoard(Context ctx, int stationId) {
         String boardKey = ctx.pathParam("boardKey");
-        return boardService.findByShortKey(stationId, boardKey).orElseThrow(Refusal.BOARD_NOT_HERE_OR_NOT_YOURS::raise);
+        return boardService
+                .findByShortKey(stationId, boardKey)
+                .orElseThrow(BoardRefusal.BOARD_NOT_HERE_OR_NOT_YOURS::raise);
     }
 
     /**
@@ -62,7 +64,7 @@ public class BoardRouteGuards {
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         return ticketService
                 .findByBoardAndNumber(boardId, ticketNumber)
-                .orElseThrow(Refusal.BOARD_TICKET_NOT_HERE::raise)
+                .orElseThrow(BoardRefusal.BOARD_TICKET_NOT_HERE::raise)
                 .id();
     }
 
@@ -95,7 +97,7 @@ public class BoardRouteGuards {
     public void requireEditAccess(int boardId, StationSession session) {
         boolean isManager = session.hasPermission(StationPermission.BOARD_MANAGER);
         if (!boardService.canEdit(boardId, session.member().id(), isManager))
-            throw Refusal.BOARD_NOT_YOURS_TO_EDIT.raise();
+            throw BoardRefusal.BOARD_NOT_YOURS_TO_EDIT.raise();
     }
 
     /**
@@ -107,7 +109,7 @@ public class BoardRouteGuards {
     public void requireViewAccess(int boardId, StationSession session) {
         boolean isManager = session.hasPermission(StationPermission.BOARD_MANAGER);
         if (!boardService.canView(boardId, session.member().id(), isManager))
-            throw Refusal.BOARD_NOT_HERE_OR_NOT_YOURS.raise();
+            throw BoardRefusal.BOARD_NOT_HERE_OR_NOT_YOURS.raise();
     }
 
     /**

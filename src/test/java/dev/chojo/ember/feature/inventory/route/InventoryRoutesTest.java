@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -147,7 +148,7 @@ class InventoryRoutesTest {
                         INVENTORY, 4, "Jacken", InventoryType.INTERNAL, false, false, false, null, null)));
 
         harness.run((server, client) -> assertEquals(
-                Refusal.NOT_YOURS_TO_OPEN,
+                GeneralRefusal.NOT_YOURS_TO_OPEN,
                 refusalOf(put(client, "/inventory-items/" + ITEM + "/lost", "{}", StationPermission.USER))));
     }
 
@@ -181,13 +182,13 @@ class InventoryRoutesTest {
                     harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_CREATE_INTERNAL)));
             assertEquals(201, handedOut.code());
             assertEquals(
-                    Refusal.NOT_YOURS_TO_OPEN,
+                    GeneralRefusal.NOT_YOURS_TO_OPEN,
                     refusalOf(client.post(
                             PREFIX + "/station-members/14/inventory-items",
                             body(request),
                             harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_CREATE_INTERNAL)))));
             assertEquals(
-                    Refusal.MEMBER_NOT_HERE_FOR_GEAR,
+                    InventoryRefusal.MEMBER_NOT_HERE_FOR_GEAR,
                     refusalOf(client.post(
                             PREFIX + "/station-members/15/inventory-items",
                             body(request),

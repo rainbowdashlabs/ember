@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
@@ -144,9 +145,11 @@ class EventRouteLookupsTest {
             assertEquals(
                     200,
                     client.put(PREFIX + "/events/9/fields", request, editor).code());
-            assertEquals(Refusal.EVENT_NOT_HERE, refusalOf(client.put(PREFIX + "/events/7/fields", request, editor)));
             assertEquals(
-                    Refusal.NOT_YOURS_TO_OPEN, refusalOf(client.put(PREFIX + "/events/8/fields", request, editor)));
+                    EventRefusal.EVENT_NOT_HERE, refusalOf(client.put(PREFIX + "/events/7/fields", request, editor)));
+            assertEquals(
+                    GeneralRefusal.NOT_YOURS_TO_OPEN,
+                    refusalOf(client.put(PREFIX + "/events/8/fields", request, editor)));
         });
 
         verify(fields)
@@ -199,7 +202,7 @@ class EventRouteLookupsTest {
                 body("{\"date\": \"2026-09-02\", \"columns\": []}"),
                 harness.as(TestSessions.member(STATION_ID, StationPermission.EVENT_REGISTRATION))));
 
-        assertEquals(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_CSV, refusalOf(answer));
+        assertEquals(EventRefusal.STATION_NOT_HERE_FOR_REGISTRATION_CSV, refusalOf(answer));
     }
 
     @Test
@@ -215,10 +218,10 @@ class EventRouteLookupsTest {
 
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.PUBLIC_CALENDAR_SWITCHED_OFF,
+                    EventRefusal.PUBLIC_CALENDAR_SWITCHED_OFF,
                     refusalOf(client.get(PREFIX + "/public/events/" + STATION_UID)));
             assertEquals(
-                    Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR,
+                    EventRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR,
                     refusalOf(client.get(PREFIX + "/public/events/" + UUID.randomUUID())));
         });
     }

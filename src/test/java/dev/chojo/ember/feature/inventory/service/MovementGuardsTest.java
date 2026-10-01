@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -157,7 +159,7 @@ class MovementGuardsTest {
         when(movements.findById(9)).thenReturn(Optional.empty());
 
         assertEquals(
-                Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS,
+                InventoryRefusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS,
                 refusalOf(() -> guards.requireVisible(TestSessions.member(STATION), 9)));
     }
 
@@ -166,7 +168,8 @@ class MovementGuardsTest {
         when(movements.findById(9)).thenReturn(Optional.of(movement(9, 4, MEMBER_ID, null)));
 
         assertEquals(
-                Refusal.NOT_YOURS_TO_OPEN, refusalOf(() -> guards.requireVisible(TestSessions.member(STATION), 9)));
+                GeneralRefusal.NOT_YOURS_TO_OPEN,
+                refusalOf(() -> guards.requireVisible(TestSessions.member(STATION), 9)));
     }
 
     @Test
@@ -184,8 +187,10 @@ class MovementGuardsTest {
                 queued, guards.requireVisible(TestSessions.member(STATION, StationPermission.INVENTORY_MOVEMENTS), 9));
         assertSame(mine, guards.requireVisible(member, 10));
         assertSame(wards, guards.requireVisible(member, 11));
-        assertEquals(Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireVisible(member, 9)));
-        assertEquals(Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireVisible(member, 12)));
+        assertEquals(
+                InventoryRefusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireVisible(member, 9)));
+        assertEquals(
+                InventoryRefusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireVisible(member, 12)));
     }
 
     @Test
@@ -195,9 +200,10 @@ class MovementGuardsTest {
         when(inventory.findItemById(40)).thenReturn(Optional.of(ownedBy(OWNING_CLUSTER)));
 
         assertSame(elsewhere, guards.requireVisible(clusterManager(OWNING_CLUSTER, true), 9));
-        assertEquals(Refusal.NOT_YOURS_TO_OPEN, refusalOf(() -> guards.requireVisible(clusterManager(8, true), 9)));
         assertEquals(
-                Refusal.NOT_YOURS_TO_OPEN,
+                GeneralRefusal.NOT_YOURS_TO_OPEN, refusalOf(() -> guards.requireVisible(clusterManager(8, true), 9)));
+        assertEquals(
+                GeneralRefusal.NOT_YOURS_TO_OPEN,
                 refusalOf(() -> guards.requireVisible(clusterManager(OWNING_CLUSTER, false), 9)));
     }
 
@@ -234,6 +240,8 @@ class MovementGuardsTest {
         assertDoesNotThrow(() -> guards.requireMayStartFor(member, WARD));
         assertDoesNotThrow(() -> guards.requireMayStartFor(
                 TestSessions.member(STATION, StationPermission.INVENTORY_MOVEMENTS), STRANGER));
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ACT_FOR, refusalOf(() -> guards.requireMayStartFor(member, STRANGER)));
+        assertEquals(
+                InventoryRefusal.MEMBER_NOT_YOURS_TO_ACT_FOR,
+                refusalOf(() -> guards.requireMayStartFor(member, STRANGER)));
     }
 }

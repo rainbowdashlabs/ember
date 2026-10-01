@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.news.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -140,7 +140,7 @@ public class AdminNewsRoutes implements Routes {
     private void create(Context ctx) {
         var request = ctx.bodyAsClass(SystemNewsRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw Refusal.SYSTEM_NEWS_NEEDS_A_TITLE.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NEEDS_A_TITLE.raise();
         }
         boolean rich = request.contentMode() == ContentMode.RICH;
         NewsRoutes.requireBody(rich, request.contentMarkdown());
@@ -168,7 +168,7 @@ public class AdminNewsRoutes implements Routes {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
         var request = ctx.bodyAsClass(SystemNewsRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw Refusal.SYSTEM_NEWS_NEEDS_A_TITLE_ON_UPDATE.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NEEDS_A_TITLE_ON_UPDATE.raise();
         }
         newsService
                 .update(
@@ -179,7 +179,7 @@ public class AdminNewsRoutes implements Routes {
                         List.of(),
                         List.of(),
                         List.of())
-                .orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE_ON_UPDATE::raise);
+                .orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE_ON_UPDATE::raise);
         ctx.json(toResponse(requireSystemEntry(id), true));
     }
 
@@ -193,7 +193,7 @@ public class AdminNewsRoutes implements Routes {
     private void retract(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
         if (!newsService.delete(id)) {
-            throw Refusal.SYSTEM_NEWS_NOT_DELETED.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NOT_DELETED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -211,7 +211,7 @@ public class AdminNewsRoutes implements Routes {
         var request = ctx.bodyAsClass(SaveBlocksRequest.class);
         var saved = newsService
                 .saveBlocks(id, request.toRowData())
-                .orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SAVE::raise);
+                .orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SAVE::raise);
         ctx.json(toResponse(saved, true));
     }
 
@@ -224,7 +224,8 @@ public class AdminNewsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SystemNewsResponse.class)))
     private void enableBlocks(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
-        var switched = newsService.switchToRich(id).orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SWITCH::raise);
+        var switched =
+                newsService.switchToRich(id).orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SWITCH::raise);
         ctx.json(toResponse(switched, true));
     }
 
@@ -265,18 +266,18 @@ public class AdminNewsRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFile.class)))
     private void uploadInstanceFile(Context ctx) {
         var file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.INSTANCE_UPLOAD_MISSING_FILE.raise();
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.INSTANCE_UPLOAD_TOO_LARGE.raise();
+        if (file == null) throw NewsRefusal.INSTANCE_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw NewsRefusal.INSTANCE_UPLOAD_TOO_LARGE.raise();
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             ctx.status(HttpStatus.CREATED)
                     .json(media.upload(null, null, null, file.filename(), file.contentType(), data));
         } catch (IllegalArgumentException e) {
             log.warn("Refused an instance media upload", e);
-            throw Refusal.INSTANCE_UPLOAD_NOT_TAKEN.raise();
+            throw NewsRefusal.INSTANCE_UPLOAD_NOT_TAKEN.raise();
         } catch (Exception e) {
             log.warn("Failed to upload an instance media file", e);
-            throw Refusal.INSTANCE_UPLOAD_NOT_SAVED.raise();
+            throw NewsRefusal.INSTANCE_UPLOAD_NOT_SAVED.raise();
         }
     }
 
@@ -289,13 +290,13 @@ public class AdminNewsRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void deleteInstanceFile(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
-        var file = media.findFile(fileId).orElseThrow(Refusal.INSTANCE_FILE_NOT_HERE::raise);
+        var file = media.findFile(fileId).orElseThrow(NewsRefusal.INSTANCE_FILE_NOT_HERE::raise);
         boolean belongsToStation = file.stationId() != null;
         if (belongsToStation) {
-            throw Refusal.INSTANCE_FILE_NOT_HERE.raise();
+            throw NewsRefusal.INSTANCE_FILE_NOT_HERE.raise();
         }
         if (!media.deleteFile(fileId)) {
-            throw Refusal.INSTANCE_FILE_NOT_DELETED.raise();
+            throw NewsRefusal.INSTANCE_FILE_NOT_DELETED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -308,9 +309,9 @@ public class AdminNewsRoutes implements Routes {
      * over what one station wrote to its members.
      */
     private News requireSystemEntry(int id) {
-        var news = newsService.findById(id).orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE::raise);
+        var news = newsService.findById(id).orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE::raise);
         if (!news.systemEntry()) {
-            throw Refusal.SYSTEM_NEWS_NOT_HERE.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NOT_HERE.raise();
         }
         return news;
     }

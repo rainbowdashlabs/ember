@@ -7,10 +7,10 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
@@ -136,7 +136,7 @@ public class ProcurementRoutes implements Routes {
         if (procurementService.fulfill(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.PROCUREMENT_NOT_FULFILLED.raise();
+            throw InventoryRefusal.PROCUREMENT_NOT_FULFILLED.raise();
         }
     }
 
@@ -156,7 +156,7 @@ public class ProcurementRoutes implements Routes {
         if (procurementService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.PROCUREMENT_NOT_DELETED.raise();
+            throw InventoryRefusal.PROCUREMENT_NOT_DELETED.raise();
         }
     }
 

@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
@@ -254,8 +255,8 @@ public class EventRegistrationService {
     public boolean updateStatus(int id, RegistrationStatus status) {
         registrationRepository
                 .findById(id)
-                .ifPresent(registration ->
-                        requireNotHeldByAField(registration, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE));
+                .ifPresent(registration -> requireNotHeldByAField(
+                        registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE));
         if (!registrationRepository.updateStatus(id, status)) {
             log.warn("Cannot update registration status: registration {} not found", id);
             return false;
@@ -323,7 +324,7 @@ public class EventRegistrationService {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
-        requireNotHeldByAField(registration, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_WITHDRAWAL);
+        requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_WITHDRAWAL);
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
@@ -370,7 +371,7 @@ public class EventRegistrationService {
             log.warn("Cannot refuse registration: registration {} not found", id);
             return false;
         }
-        requireNotHeldByAField(registration, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL);
+        requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL);
         var status = refusalFor(registration.status());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
@@ -439,7 +440,7 @@ public class EventRegistrationService {
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
-        if (existing != null) requireNotHeldByAField(existing, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE);
+        if (existing != null) requireNotHeldByAField(existing, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE);
         var heldBefore = existing == null ? null : existing.status();
         var status = refusalFor(heldBefore);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);

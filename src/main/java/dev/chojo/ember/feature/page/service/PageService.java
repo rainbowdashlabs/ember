@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.page.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.PageRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -103,7 +103,7 @@ public class PageService {
     private void refuseUnlistedParent(int parentId) {
         pageRepository.findById(parentId).ifPresent(parent -> {
             if (parent.visibility() == PageVisibility.UNLISTED) {
-                throw Refusal.PAGE_UNDER_A_LINK_ONLY_PAGE.raise();
+                throw PageRefusal.PAGE_UNDER_A_LINK_ONLY_PAGE.raise();
             }
         });
     }
@@ -254,7 +254,7 @@ public class PageService {
             refuseUnlistedParent(parentId);
         }
         if (parentId != null && page.visibility() == PageVisibility.UNLISTED) {
-            throw Refusal.PAGE_LINK_ONLY_UNDER_ANOTHER.raise();
+            throw PageRefusal.PAGE_LINK_ONLY_UNDER_ANOTHER.raise();
         }
 
         if (pageRepository.slugExists(page.stationId(), slug, pageId)) {
@@ -288,7 +288,7 @@ public class PageService {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
         if (visibility == PageVisibility.UNLISTED && pageRepository.hasChildren(pageId)) {
-            throw Refusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY.raise();
+            throw PageRefusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY.raise();
         }
 
         boolean minting = visibility == PageVisibility.UNLISTED;
@@ -342,7 +342,7 @@ public class PageService {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return Optional.empty();
         if (!page.visibility().reachable()) {
-            throw Refusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE.raise();
+            throw PageRefusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE.raise();
         }
         String replacement = RandomTokens.urlSafe(32);
         if (!pageRepository.replaceShareToken(pageId, expected, replacement)) return Optional.empty();
@@ -418,13 +418,13 @@ public class PageService {
             var page =
                     pageRepository.findById(pageId).orElseThrow(() -> new IllegalArgumentException("Page not found"));
             if (page.stationId() != stationId) {
-                throw Refusal.LANDING_PAGE_ELSEWHERE.raise();
+                throw PageRefusal.LANDING_PAGE_ELSEWHERE.raise();
             }
             if (!page.visibility().listed()) {
-                throw Refusal.LANDING_PAGE_NOT_PUBLIC.raise();
+                throw PageRefusal.LANDING_PAGE_NOT_PUBLIC.raise();
             }
             if (page.parentId() != null) {
-                throw Refusal.LANDING_PAGE_UNDER_ANOTHER.raise();
+                throw PageRefusal.LANDING_PAGE_UNDER_ANOTHER.raise();
             }
         }
         pageRepository.setLandingPage(stationId, pageId);
@@ -584,7 +584,7 @@ public class PageService {
     private void validateDepth(int parentId, int additionalLevels) {
         int depthBelowParent = pageRepository.depth(parentId) + 1;
         if (depthBelowParent + additionalLevels > MAX_DEPTH) {
-            throw Refusal.PAGE_TREE_TOO_DEEP.raise();
+            throw PageRefusal.PAGE_TREE_TOO_DEEP.raise();
         }
     }
 }

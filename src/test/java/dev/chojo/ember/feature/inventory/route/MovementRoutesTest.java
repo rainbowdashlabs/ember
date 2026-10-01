@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -148,7 +148,7 @@ class MovementRoutesTest {
     @Test
     void oneMovementIsOpenedThroughTheGuards() {
         when(guards.requireVisible(any(), eq(9))).thenReturn(MOVEMENT);
-        when(guards.requireVisible(any(), eq(10))).thenThrow(Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS.raise());
+        when(guards.requireVisible(any(), eq(10))).thenThrow(InventoryRefusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS.raise());
 
         harness.run((server, client) -> {
             assertEquals(
@@ -157,7 +157,7 @@ class MovementRoutesTest {
                             .path("movement")
                             .path("reason")
                             .asString());
-            assertEquals(Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS, refusalOf(get(client, "/movements/10")));
+            assertEquals(InventoryRefusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS, refusalOf(get(client, "/movements/10")));
         });
     }
 
@@ -165,7 +165,9 @@ class MovementRoutesTest {
     void aMovementIsStartedOnlyForSomebodyTheGuardsAllow() {
         when(movementService.create(anyInt(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(MOVEMENT);
-        doThrow(Refusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise()).when(guards).requireMayStartFor(any(), eq(13));
+        doThrow(InventoryRefusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise())
+                .when(guards)
+                .requireMayStartFor(any(), eq(13));
 
         harness.run((server, client) -> {
             assertEquals(
@@ -176,7 +178,7 @@ class MovementRoutesTest {
                                     harness.as(TestSessions.member(STATION, StationPermission.USER)))
                             .code());
             assertEquals(
-                    Refusal.MEMBER_NOT_YOURS_TO_ACT_FOR,
+                    InventoryRefusal.MEMBER_NOT_YOURS_TO_ACT_FOR,
                     refusalOf(client.post(
                             PREFIX + "/movements",
                             body("{\"purpose\": \"RETURN\", \"memberId\": 13}"),
@@ -213,10 +215,10 @@ class MovementRoutesTest {
             var started = post(client, "/movements/return-everything", "{\"memberId\": %d}".formatted(MEMBER_ID));
             assertEquals(1, json(started).size());
             assertEquals(
-                    Refusal.MEMBER_NOT_AT_THIS_STATION,
+                    InventoryRefusal.MEMBER_NOT_AT_THIS_STATION,
                     refusalOf(post(client, "/movements/return-everything", "{\"memberId\": 14}")));
             assertEquals(
-                    Refusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER,
+                    InventoryRefusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER,
                     refusalOf(post(client, "/movements/return-everything", "{}")));
         });
     }
@@ -239,6 +241,6 @@ class MovementRoutesTest {
         when(exportService.exportPdf(eq(STATION), any(), any(), eq("?"))).thenReturn(Optional.empty());
 
         harness.run((server, client) ->
-                assertEquals(Refusal.MOVEMENT_LIST_EMPTY, refusalOf(post(client, "/movements/export", "{}"))));
+                assertEquals(InventoryRefusal.MOVEMENT_LIST_EMPTY, refusalOf(post(client, "/movements/export", "{}"))));
     }
 }

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
@@ -234,7 +234,7 @@ public class KbContentService {
         if (file == null) return Optional.empty();
         if (file.contentMode() == ContentMode.RICH) return Optional.of(file);
         if (file.fileType() != KbFileType.MARKDOWN) {
-            throw Refusal.KB_ONLY_WRITTEN_ARTICLES_TAKE_BLOCKS.raise();
+            throw KnowledgeBaseRefusal.KB_ONLY_WRITTEN_ARTICLES_TAKE_BLOCKS.raise();
         }
 
         var container = blocks.create(file.stationId());
@@ -286,7 +286,7 @@ public class KbContentService {
         if (file == null) return Optional.empty();
         Integer containerId = file.containerId();
         if (file.contentMode() != ContentMode.RICH || containerId == null) {
-            throw Refusal.KB_ARTICLE_NOT_BUILT_FROM_BLOCKS.raise();
+            throw KnowledgeBaseRefusal.KB_ARTICLE_NOT_BUILT_FROM_BLOCKS.raise();
         }
 
         blocks.save(containerId, rows, ContentBlockService.Scope.ARTICLE);

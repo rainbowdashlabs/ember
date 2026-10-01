@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.maps.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MapRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService.CacheStatus;
@@ -71,9 +71,9 @@ class MapTileCacheServiceTest {
         var tooClose = assertThrows(RefusalResponse.class, () -> cache.fetch(1, 0, 0));
         var negative = assertThrows(RefusalResponse.class, () -> cache.fetch(-1, 0, 0));
 
-        assertEquals(Refusal.MAP_TILE_ZOOM_OUT_OF_RANGE, tooFar.refusal());
-        assertEquals(Refusal.MAP_TILE_ZOOM_OUT_OF_RANGE, tooClose.refusal());
-        assertEquals(Refusal.MAP_TILE_ZOOM_OUT_OF_RANGE, negative.refusal());
+        assertEquals(MapRefusal.MAP_TILE_ZOOM_OUT_OF_RANGE, tooFar.refusal());
+        assertEquals(MapRefusal.MAP_TILE_ZOOM_OUT_OF_RANGE, tooClose.refusal());
+        assertEquals(MapRefusal.MAP_TILE_ZOOM_OUT_OF_RANGE, negative.refusal());
         assertEquals(0, upstreamCalls.get());
     }
 
@@ -83,7 +83,7 @@ class MapTileCacheServiceTest {
 
         for (int[] xy : new int[][] {{4, 0}, {0, 4}, {-1, 0}, {0, -1}}) {
             var refusal = assertThrows(RefusalResponse.class, () -> cache.fetch(2, xy[0], xy[1]));
-            assertEquals(Refusal.MAP_TILE_OFF_THE_MAP, refusal.refusal());
+            assertEquals(MapRefusal.MAP_TILE_OFF_THE_MAP, refusal.refusal());
         }
         assertEquals(0, upstreamCalls.get());
         assertEquals(CacheStatus.MISS, cache.fetch(2, 3, 3).status());

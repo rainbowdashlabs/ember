@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.conf;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ocular.exceptions.ConfigurationException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -45,7 +45,7 @@ public class ConfigChanges {
         } catch (ConfigurationException e) {
             log.error("The configuration file could not be written, the change is taken back", e);
             restore.run();
-            throw Refusal.SETTINGS_NOT_SAVED.raise();
+            throw SystemRefusal.SETTINGS_NOT_SAVED.raise();
         }
     }
 }

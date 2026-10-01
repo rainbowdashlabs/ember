@@ -5,14 +5,16 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.StepUpRequiredException;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -122,7 +124,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         var advanced = group("Fortgeschritten", levels);
 
         assertEquals(
-                Refusal.GROUP_SET_TWO_CHOSEN,
+                MemberRefusal.GROUP_SET_TWO_CHOSEN,
                 refusalOf(() -> service.replaceGroupsOfMember(
                         child, List.of(beginners.id(), advanced.id()), managerHolding())));
         assertEquals(List.of(), groupIdsOf(child));
@@ -133,7 +135,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         var trainers = group("Ausbilder", null, StationUserType.TEAM, StationUserType.MANAGER);
 
         assertEquals(
-                Refusal.GROUP_WRONG_USER_TYPE_FOR_MEMBER,
+                MemberRefusal.GROUP_WRONG_USER_TYPE_FOR_MEMBER,
                 refusalOf(() -> service.replaceGroupsOfMember(child, List.of(trainers.id()), managerHolding())));
     }
 
@@ -143,7 +145,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         var foreign = memberGroupRepo.create(elsewhere.id(), "Fremd");
 
         assertEquals(
-                Refusal.GROUP_NOT_HERE_FOR_MEMBER,
+                MemberRefusal.GROUP_NOT_HERE_FOR_MEMBER,
                 refusalOf(() -> service.replaceGroupsOfMember(child, List.of(foreign.id()), managerHolding())));
         stationRepo.delete(elsewhere.id());
     }
@@ -154,7 +156,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         grants(admins, StationPermission.MEMBER_MANAGE_GROUP);
 
         assertEquals(
-                Refusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER,
+                MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER,
                 refusalOf(() -> service.replaceGroupsOfMember(
                         child, List.of(admins.id()), managerHolding(StationPermission.MEMBER_EDIT))));
 
@@ -188,7 +190,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         var stranger = stationMemberRepo.create(elsewhere.id(), account.id());
 
         assertEquals(
-                Refusal.GROUP_MEMBER_NOT_HERE,
+                MemberRefusal.GROUP_MEMBER_NOT_HERE,
                 refusalOf(() -> service.setMembers(crew, List.of(stranger.id()), false, managerHolding())));
         assertTrue(memberGroupRepo.findMembers(crew.id()).isEmpty());
         stationRepo.delete(elsewhere.id());
@@ -203,7 +205,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
                 GroupRuleRefused.class,
                 () -> service.setMembers(trainers, List.of(manager.id(), parent.id()), false, managerHolding()));
 
-        assertEquals(Refusal.GROUP_WRONG_USER_TYPE_ON_ADD, refused.refusal());
+        assertEquals(MemberRefusal.GROUP_WRONG_USER_TYPE_ON_ADD, refused.refusal());
         assertEquals(
                 List.of(new GroupRuleRefused.GroupConflict(parent.id(), "Paula Parent", List.of("Ausbilder"))),
                 refused.conflicts());
@@ -222,7 +224,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 GroupRuleRefused.class,
                 () -> service.setMembers(advanced, List.of(child.id()), false, managerHolding()));
-        assertEquals(Refusal.GROUP_SET_ALREADY_IN, refused.refusal());
+        assertEquals(MemberRefusal.GROUP_SET_ALREADY_IN, refused.refusal());
         assertEquals("#" + child.id(), refused.conflicts().getFirst().memberName());
         assertEquals(List.of("Anfänger"), refused.conflicts().getFirst().groups());
 
@@ -240,7 +242,7 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         memberGroupRepo.addMember(admins.id(), parent.id());
 
         assertEquals(
-                Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD,
+                MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD,
                 refusalOf(() -> service.setMembers(
                         admins,
                         List.of(parent.id(), child.id()),
@@ -286,10 +288,10 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         service.requireInvitableInto(
                 station.id(), admins.id(), signedIn(manager, StationPermission.MEMBER_MANAGE_GROUP));
         assertEquals(
-                Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE,
+                MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE,
                 refusalOf(() -> service.requireInvitableInto(station.id(), admins.id(), signedIn(manager))));
         assertEquals(
-                Refusal.INVITE_GROUP_NOT_HERE,
+                MemberRefusal.INVITE_GROUP_NOT_HERE,
                 refusalOf(() -> service.requireInvitableInto(station.id(), foreign.id(), signedIn(manager))));
         stationRepo.delete(elsewhere.id());
     }
@@ -303,30 +305,30 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
                 station.id(),
                 null,
                 StationUserType.MEMBER,
-                Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
-                Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
         service.requireAdmits(
                 station.id(),
                 anyone.id(),
                 StationUserType.MEMBER,
-                Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
-                Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
         assertEquals(
-                Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE,
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE,
                 refusalOf(() -> service.requireAdmits(
                         station.id(),
                         trainers.id(),
                         StationUserType.MEMBER,
-                        Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
-                        Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE)));
+                        WaitingListRefusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                        WaitingListRefusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE)));
         assertEquals(
-                Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
                 refusalOf(() -> service.requireAdmits(
                         station.id() + 100_000,
                         trainers.id(),
                         StationUserType.MEMBER,
-                        Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
-                        Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE)));
+                        WaitingListRefusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                        WaitingListRefusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE)));
     }
 
     @Test

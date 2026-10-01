@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.account.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import jakarta.inject.Inject;
@@ -52,13 +52,13 @@ public class LoginNameService {
         if (username == null || username.isBlank()) return null;
         String name = username.trim();
         if (name.length() < MIN_LENGTH || name.length() > MAX_LENGTH) {
-            throw Refusal.USERNAME_LENGTH_NOT_TAKEN.raise();
+            throw MemberRefusal.USERNAME_LENGTH_NOT_TAKEN.raise();
         }
         if (!ALLOWED.matcher(name).matches()) {
-            throw Refusal.USERNAME_CHARACTERS_NOT_TAKEN.raise();
+            throw MemberRefusal.USERNAME_CHARACTERS_NOT_TAKEN.raise();
         }
         if (accountRepository.usernameTaken(name, accountId)) {
-            throw Refusal.USERNAME_TAKEN.raise();
+            throw MemberRefusal.USERNAME_TAKEN.raise();
         }
         return name;
     }
@@ -74,7 +74,7 @@ public class LoginNameService {
     public @Nullable String validatedFor(Account account, @Nullable String username) {
         String name = validated(username, account.id());
         if (name == null && account.username() != null && !account.hasRealEmail()) {
-            throw Refusal.USERNAME_IS_THE_ONLY_WAY_IN.raise();
+            throw MemberRefusal.USERNAME_IS_THE_ONLY_WAY_IN.raise();
         }
         return name;
     }

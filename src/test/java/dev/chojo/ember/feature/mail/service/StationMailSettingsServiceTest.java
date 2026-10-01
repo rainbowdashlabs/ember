@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
@@ -104,7 +104,7 @@ class StationMailSettingsServiceTest {
         assertFalse(service.webhook(3).signingSecretSet());
         assertTrue(service.firstEntry(3).isEmpty());
         assertEquals(
-                Refusal.NO_MAIL_PROVIDER_SET,
+                StationRefusal.NO_MAIL_PROVIDER_SET,
                 assertThrows(RefusalResponse.class, () -> service.requireProvider(3))
                         .refusal());
     }
@@ -148,7 +148,7 @@ class StationMailSettingsServiceTest {
                 assertThrows(RefusalResponse.class, () -> service.updateProviders(3, List.of(incoming(null, "x"))));
         service.clear(3);
 
-        assertEquals(Refusal.MAIL_PROVIDER_LIST_EMPTY, refused.refusal());
+        assertEquals(StationRefusal.MAIL_PROVIDER_LIST_EMPTY, refused.refusal());
         verify(providers).replace(3, List.of());
     }
 }

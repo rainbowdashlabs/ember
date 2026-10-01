@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -88,7 +88,7 @@ class FormCompletionTest extends RepositoryTestBase {
         service.setCompletion(form, null, "http://example.org", null);
         for (var link : new String[] {"javascript:alert(1)", "//evil.example", "example.org"}) {
             var refused = assertThrows(RefusalResponse.class, () -> service.setCompletion(form, null, link, null));
-            assertEquals(Refusal.FORM_COMPLETION_LINK_NOT_A_LINK, refused.refusal());
+            assertEquals(FormRefusal.FORM_COMPLETION_LINK_NOT_A_LINK, refused.refusal());
         }
     }
 

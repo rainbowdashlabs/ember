@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -118,7 +118,7 @@ public class ClusterGovernanceService {
     private Station homeStation(int clusterId) {
         return stationRepository
                 .findById(requireCluster(clusterId).homeStationId())
-                .orElseThrow(Refusal.CLUSTER_GOVERNANCE_HOME_STATION_NOT_HERE::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_GOVERNANCE_HOME_STATION_NOT_HERE::raise);
     }
 
     /**
@@ -184,7 +184,7 @@ public class ClusterGovernanceService {
                 .findById(stationGroupId)
                 .filter(group -> group.clusterId() == clusterId)
                 .isPresent();
-        if (!own) throw Refusal.CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN.raise();
+        if (!own) throw ClusterRefusal.CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN.raise();
     }
 
     /**
@@ -249,6 +249,8 @@ public class ClusterGovernanceService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE::raise);
+        return clusterRepository
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE::raise);
     }
 }

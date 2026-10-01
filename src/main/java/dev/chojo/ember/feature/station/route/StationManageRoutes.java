@@ -7,10 +7,10 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -234,7 +234,7 @@ public class StationManageRoutes implements Routes {
         stationService
                 .findById(session.stationId())
                 .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
-                    throw Refusal.STATION_NOT_HERE_ON_MANAGE.raise();
+                    throw StationRefusal.STATION_NOT_HERE_ON_MANAGE.raise();
                 });
     }
 
@@ -302,18 +302,18 @@ public class StationManageRoutes implements Routes {
     private void uploadLogo(Context ctx) {
         StationSession session = StationSession.from(ctx);
         if (stationService.lookAndFeelLocks(session.stationId()).logo()) {
-            throw Refusal.LOGO_SET_BY_CLUSTER.raise();
+            throw StationRefusal.LOGO_SET_BY_CLUSTER.raise();
         }
         UploadedFile file = ctx.uploadedFile("logo");
         if (file == null) {
-            throw Refusal.LOGO_UPLOAD_MISSING_FILE.raise();
+            throw StationRefusal.LOGO_UPLOAD_MISSING_FILE.raise();
         }
         if (file.size() > MAX_LOGO_SIZE) {
-            throw Refusal.LOGO_TOO_LARGE.raise();
+            throw StationRefusal.LOGO_TOO_LARGE.raise();
         }
         String contentType = file.contentType();
         if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw Refusal.LOGO_KIND_NOT_TAKEN.raise();
+            throw StationRefusal.LOGO_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -321,7 +321,7 @@ public class StationManageRoutes implements Routes {
             ctx.json(new MessageResponse("Logo uploaded"));
         } catch (IOException e) {
             log.warn("Failed to read uploaded logo file", e);
-            throw Refusal.LOGO_NOT_READ.raise();
+            throw StationRefusal.LOGO_NOT_READ.raise();
         }
     }
 
@@ -380,7 +380,7 @@ public class StationManageRoutes implements Routes {
         String uidParam = ctx.pathParam("stationId");
         var station = stationService
                 .findByUid(UUID.fromString(uidParam))
-                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_LOGO::raise);
+                .orElseThrow(StationRefusal.STATION_NOT_HERE_FOR_LOGO::raise);
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         serveLogo(ctx, station.id(), size);
     }
@@ -508,7 +508,7 @@ public class StationManageRoutes implements Routes {
         try {
             position = Integer.parseInt(ctx.pathParam("position"));
         } catch (NumberFormatException e) {
-            throw Refusal.MAIL_PROVIDER_POSITION_NOT_A_NUMBER.raise();
+            throw StationRefusal.MAIL_PROVIDER_POSITION_NOT_A_NUMBER.raise();
         }
         var body = ctx.body().isBlank() ? null : ctx.bodyAsClass(ProviderTestRequest.class);
         String recipient = body == null ? null : body.recipient();
@@ -521,7 +521,7 @@ public class StationManageRoutes implements Routes {
         String error = emailService.sendTestMailThrough(
                 session.stationId(),
                 position,
-                MailAddress.require(recipient, Refusal.STATION_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS),
+                MailAddress.require(recipient, StationRefusal.STATION_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS),
                 account.firstName(),
                 mailLocaleService.forAccount(account.id()));
         ctx.json(new MailTestResponse(error == null, error));
@@ -655,12 +655,12 @@ public class StationManageRoutes implements Routes {
     private void transferOwnership(Context ctx) {
         StationSession session = StationSession.from(ctx);
         if (!stationService.isOwner(session.stationId(), session.member().id())) {
-            throw Refusal.ONLY_THE_OWNER_HANDS_OVER.raise();
+            throw StationRefusal.ONLY_THE_OWNER_HANDS_OVER.raise();
         }
         var req = ctx.bodyAsClass(TransferOwnershipRequest.class);
         if (!stationService.transferOwnership(
                 session.stationId(), session.member().id(), req.newOwnerMemberId())) {
-            throw Refusal.NEW_OWNER_NOT_A_MANAGER.raise();
+            throw StationRefusal.NEW_OWNER_NOT_A_MANAGER.raise();
         }
         ctx.json(new MessageResponse("Ownership transferred"));
     }
@@ -681,13 +681,13 @@ public class StationManageRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(StationImportRequest.class);
         if (req.token() == null || req.token().isBlank()) {
-            throw Refusal.IMPORT_NEEDS_A_TRANSFER_CODE.raise();
+            throw StationRefusal.IMPORT_NEEDS_A_TRANSFER_CODE.raise();
         }
         var parsed = StationExportService.parseToken(req.token())
-                .orElseThrow(Refusal.TRANSFER_CODE_NOT_GOOD_ON_IMPORT::raise);
+                .orElseThrow(StationRefusal.TRANSFER_CODE_NOT_GOOD_ON_IMPORT::raise);
         String sourceUrl = (req.sourceUrl() != null && !req.sourceUrl().isBlank()) ? req.sourceUrl() : parsed.host();
         if (sourceUrl == null || sourceUrl.isBlank()) {
-            throw Refusal.IMPORT_NEEDS_A_SOURCE.raise();
+            throw StationRefusal.IMPORT_NEEDS_A_SOURCE.raise();
         }
         importService.startRemoteImportInto(session.stationId(), sourceUrl.replaceAll("/+$", ""), parsed.token());
         ctx.status(HttpStatus.CREATED).json(new MessageResponse("Import started"));
@@ -706,7 +706,7 @@ public class StationManageRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var progress = importService.getProgress(session.stationId());
         if (progress == null) {
-            throw Refusal.NO_IMPORT_RUNNING.raise();
+            throw StationRefusal.NO_IMPORT_RUNNING.raise();
         }
         ctx.json(new StationImportProgress(
                 progress.stationId(),
@@ -733,11 +733,11 @@ public class StationManageRoutes implements Routes {
     private void confirmDelete(Context ctx) {
         String token = ctx.queryParam("token");
         if (token == null || token.isBlank()) {
-            throw Refusal.STATION_DELETE_LINK_CARRIES_NOTHING.raise();
+            throw StationRefusal.STATION_DELETE_LINK_CARRIES_NOTHING.raise();
         }
         var stationIdOpt = authService.confirmStationDeletion(token);
         if (stationIdOpt.isEmpty()) {
-            throw Refusal.STATION_DELETE_LINK_UNKNOWN.raise();
+            throw StationRefusal.STATION_DELETE_LINK_UNKNOWN.raise();
         }
         stationService.delete(stationIdOpt.get());
         ctx.json(new MessageResponse("Station deleted"));
@@ -841,7 +841,7 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
-                .orElseThrow(Refusal.MAIL_PROVIDER_NOT_KNOWN::raise);
+                .orElseThrow(StationRefusal.MAIL_PROVIDER_NOT_KNOWN::raise);
         dashboardService.liftBlock(StationSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
         throw new NoContentResponse();
     }

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.InventoryShare;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -205,8 +205,8 @@ public class InventoryShareRoutes implements Routes {
 
     private SetShareRequest readBody(Context ctx) {
         var body = ctx.bodyAsClass(SetShareRequest.class);
-        if (body.grant() == null) throw Refusal.SHARE_GRANT_MISSING.raise();
-        if (body.scope() == null) throw Refusal.SHARE_SCOPE_MISSING.raise();
+        if (body.grant() == null) throw FederationRefusal.SHARE_GRANT_MISSING.raise();
+        if (body.scope() == null) throw FederationRefusal.SHARE_SCOPE_MISSING.raise();
         return body;
     }
 

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.util;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 
 /**
  * The check an address gets before a relay is asked to carry a message to it.

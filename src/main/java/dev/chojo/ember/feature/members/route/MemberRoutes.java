@@ -7,13 +7,13 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.MemberAccountService;
@@ -107,9 +107,9 @@ public class MemberRoutes implements Routes {
         var request = ctx.bodyAsClass(AccountActionRequest.class);
         Integer accountId = request.accountId();
         if (accountId == null) {
-            throw Refusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN.raise();
+            throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN.raise();
         }
-        memberAccounts.actionableAccount(accountId, session, Refusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN);
+        memberAccounts.actionableAccount(accountId, session, MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN);
         boolean mailed = enrollmentService.onboardAgain(
                 accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new OnboardAgainResponse(mailed));
@@ -134,7 +134,7 @@ public class MemberRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
         if (request.accountId() == null) {
-            throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE.raise();
+            throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE.raise();
         }
         var target = memberAccounts.addresslessAccount(request.accountId(), session);
         var issued = enrollmentService.issueCodeWithQr(
@@ -206,7 +206,7 @@ public class MemberRoutes implements Routes {
     private void invite(Context ctx) {
         var request = ctx.bodyAsClass(InviteRequest.class);
         if (isBlank(request.firstName()) || isBlank(request.lastName())) {
-            throw Refusal.INVITE_NAME_MISSING.raise();
+            throw MemberRefusal.INVITE_NAME_MISSING.raise();
         }
 
         StationSession session = StationSession.from(ctx);
@@ -226,7 +226,7 @@ public class MemberRoutes implements Routes {
                             provisioned.firstName(),
                             provisioned.lastName()));
         } catch (ProvisionException ignored) {
-            throw Refusal.MEMBER_NOT_PROVISIONED.raise();
+            throw MemberRefusal.MEMBER_NOT_PROVISIONED.raise();
         }
     }
 
@@ -246,14 +246,15 @@ public class MemberRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ResetPasswordRequest.class);
         if (request.accountId() == null) {
-            throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET.raise();
+            throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET.raise();
         }
-        memberAccounts.actionableAccount(request.accountId(), session, Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET);
+        memberAccounts.actionableAccount(
+                request.accountId(), session, MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET);
         boolean forceChange = request.forceChange() != null && request.forceChange();
         if (authService.adminResetPassword(request.accountId(), forceChange)) {
             ctx.status(HttpStatus.OK).json(new MessageResponse("Password reset email sent"));
         } else {
-            throw Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL.raise();
+            throw MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL.raise();
         }
     }
 

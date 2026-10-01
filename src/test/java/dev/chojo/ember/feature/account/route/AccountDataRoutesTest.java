@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.account.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import org.junit.jupiter.api.Test;
@@ -46,14 +46,14 @@ class AccountDataRoutesTest {
 
     @Test
     void aStationAdministratorIsRefusedAndStaysSignedIn() {
-        doThrow(Refusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise())
+        doThrow(MemberRefusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise())
                 .when(deletion)
                 .deleteOwnAccount(TestSessions.ACCOUNT_ID);
         var reader = harness.as(TestSessions.member(3, StationPermission.LOGIN));
 
         var response = harness.request(client -> client.delete(PREFIX + "/session/account", null, reader));
 
-        assertEquals(Refusal.ACCOUNT_STILL_ADMINISTERS_STATION, refusalOf(response));
+        assertEquals(MemberRefusal.ACCOUNT_STILL_ADMINISTERS_STATION, refusalOf(response));
         verify(cookies, never()).clear(any());
     }
 }

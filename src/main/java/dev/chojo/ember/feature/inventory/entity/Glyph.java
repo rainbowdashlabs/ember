@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
@@ -64,7 +64,7 @@ public record Glyph(@Nullable String icon, @Nullable String color) {
      */
     public void requirePaintable() {
         if (!validColor()) {
-            throw Refusal.GLYPH_COLOUR_NOT_READABLE.raise(color);
+            throw InventoryRefusal.GLYPH_COLOUR_NOT_READABLE.raise(color);
         }
     }
 

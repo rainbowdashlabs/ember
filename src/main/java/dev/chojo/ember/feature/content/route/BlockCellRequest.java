@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.content.route;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
@@ -47,7 +47,7 @@ public record BlockCellRequest(
         try {
             return CellConfig.bind(type, config);
         } catch (IllegalArgumentException e) {
-            throw Refusal.BLOCK_SETTINGS_REJECTED.raise(type.name());
+            throw BodyRefusal.BLOCK_SETTINGS_REJECTED.raise(type.name());
         }
     }
 }

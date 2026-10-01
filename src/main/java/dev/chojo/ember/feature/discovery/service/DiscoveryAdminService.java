@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.AdminRefusal;
+import dev.chojo.ember.api.refusal.DiscoveryRefusal;
 import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.discovery.entity.PeerSource;
@@ -94,7 +95,7 @@ public class DiscoveryAdminService {
      */
     public DiscoveryInfoResponse probe(String baseUrl) {
         if (baseUrl == null || baseUrl.isBlank()) {
-            throw Refusal.PROBE_NEEDS_AN_ADDRESS.raise();
+            throw DiscoveryRefusal.PROBE_NEEDS_AN_ADDRESS.raise();
         }
         return reachPeer(baseUrl);
     }
@@ -107,20 +108,20 @@ public class DiscoveryAdminService {
      */
     public PeerResponse addPeer(AddPeerRequest request) {
         if (request.baseUrl() == null || request.baseUrl().isBlank()) {
-            throw Refusal.PEER_NEEDS_AN_ADDRESS.raise();
+            throw DiscoveryRefusal.PEER_NEEDS_AN_ADDRESS.raise();
         }
         var info = reachPeer(request.baseUrl());
         String publicKey = info.publicKey();
         if (publicKey == null) {
-            throw Refusal.PEER_NAMED_NO_KEY.raise(
+            throw AdminRefusal.PEER_NAMED_NO_KEY.raise(
                     "The address answered as a peer would, but named no key to recognise it by");
         }
         String expectedKey = request.expectedPublicKey();
         if (expectedKey != null && !expectedKey.isBlank() && !expectedKey.equals(publicKey)) {
-            throw Refusal.PEER_KEY_NOT_THE_EXPECTED_ONE.raise();
+            throw DiscoveryRefusal.PEER_KEY_NOT_THE_EXPECTED_ONE.raise();
         }
         if (!info.discoveryEnabled()) {
-            throw Refusal.PEER_DOES_NOT_WANT_DISCOVERY.raise();
+            throw DiscoveryRefusal.PEER_DOES_NOT_WANT_DISCOVERY.raise();
         }
         var peer = peers.upsert(publicKey, info.baseUrl(), info.instanceId(), PeerSource.MANUAL, null);
         try {
@@ -137,7 +138,7 @@ public class DiscoveryAdminService {
     private DiscoveryInfoResponse reachPeer(String baseUrl) {
         var probe = httpClient.probe(baseUrl, "/api/v1/public/discovery/info", DiscoveryInfoResponse.class);
         var answer = probe.value();
-        if (answer == null) throw Refusal.PEER_DID_NOT_ANSWER.raise(probe.problem());
+        if (answer == null) throw AdminRefusal.PEER_DID_NOT_ANSWER.raise(probe.problem());
         return answer;
     }
 
@@ -168,13 +169,14 @@ public class DiscoveryAdminService {
      * Changes a peer that has to exist before and after the change, and answers it as it now stands.
      */
     private PeerResponse changeExistingPeer(String publicKey, Consumer<String> change) {
-        peers.findByPublicKey(publicKey).orElseThrow(Refusal.PEER_NOT_HERE::raise);
+        peers.findByPublicKey(publicKey).orElseThrow(DiscoveryRefusal.PEER_NOT_HERE::raise);
         change.accept(publicKey);
-        return toResponse(peers.findByPublicKey(publicKey).orElseThrow(Refusal.PEER_NOT_HERE_AFTER_CHANGE::raise));
+        return toResponse(
+                peers.findByPublicKey(publicKey).orElseThrow(DiscoveryRefusal.PEER_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     public void pingNow(String publicKey) {
-        pings.sendPing(peers.findByPublicKey(publicKey).orElseThrow(Refusal.PEER_NOT_HERE_ON_PING::raise));
+        pings.sendPing(peers.findByPublicKey(publicKey).orElseThrow(DiscoveryRefusal.PEER_NOT_HERE_ON_PING::raise));
     }
 
     /**
@@ -204,7 +206,7 @@ public class DiscoveryAdminService {
 
     public void addToBlocklist(BlocklistRequest request) {
         if (request.value() == null || request.value().isBlank() || request.kind() == null) {
-            throw Refusal.BLOCKLIST_ENTRY_INCOMPLETE.raise();
+            throw DiscoveryRefusal.BLOCKLIST_ENTRY_INCOMPLETE.raise();
         }
         blocklist.add(request.kind(), request.value(), request.note());
     }

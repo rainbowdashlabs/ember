@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
@@ -173,7 +173,7 @@ public class StationMemberService {
         if (callerMemberId != null && callerMemberId == memberId) {
             for (Permission existing : currentPermissions) {
                 if (!desiredPermissionIds.contains(existing.id())) {
-                    throw Refusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE.raise();
+                    throw MemberRefusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE.raise();
                 }
             }
         }
@@ -188,7 +188,7 @@ public class StationMemberService {
                 if (adminPerm.isPresent()
                         && currentIds.contains(adminPerm.get().id())
                         && !desiredPermissionIds.contains(adminPerm.get().id())) {
-                    throw Refusal.MEMBER_OWNER_KEEPS_ADMINISTRATION.raise();
+                    throw MemberRefusal.MEMBER_OWNER_KEEPS_ADMINISTRATION.raise();
                 }
             }
         }
@@ -208,7 +208,7 @@ public class StationMemberService {
         if (addingLogin && accountId != null) {
             var account = accountRepository.findById(accountId).orElse(null);
             if (account == null || account.email() == null) {
-                throw Refusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS.raise();
+                throw MemberRefusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS.raise();
             }
         }
 
@@ -336,9 +336,10 @@ public class StationMemberService {
      * adults who manage themselves, so allowing a guardian relationship there is rejected.
      */
     private void requireManageableType(int memberId) {
-        var member = memberRepository.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_FOR_GUARDIANS::raise);
+        var member =
+                memberRepository.findById(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE_FOR_GUARDIANS::raise);
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
-            throw Refusal.MEMBER_TYPE_TAKES_NO_GUARDIANS.raise();
+            throw MemberRefusal.MEMBER_TYPE_TAKES_NO_GUARDIANS.raise();
         }
     }
 }

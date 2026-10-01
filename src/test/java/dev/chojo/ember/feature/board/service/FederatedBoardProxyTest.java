@@ -8,9 +8,12 @@ package dev.chojo.ember.feature.board.service;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.CommentRefusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -1800,7 +1803,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 .thenReturn(null);
 
         var refused = assertThrows(RefusalResponse.class, () -> discoveryService.proxyGetBoard(partnerId, BOARD_KEY));
-        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1837,7 +1840,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> ticketProxy.proxyCreateTicket(
                         partnerId, BOARD_KEY, 1, "Title", "Desc", TicketPriority.HIGH, null, REMOTE_MEMBER_1));
-        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1846,7 +1849,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(999)).thenReturn(Optional.empty());
 
         var refused = assertThrows(RefusalResponse.class, () -> discoveryService.proxyGetBoard(999, BOARD_KEY));
-        assertEquals(Refusal.BOARD_PARTNER_NOT_HERE, refused.refusal());
+        assertEquals(BoardRefusal.BOARD_PARTNER_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -1865,7 +1868,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> ticketProxy.proxyUpdateTicket(partnerId, BOARD_KEY, 1, "X", null, null, null, null, null, null));
-        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1900,7 +1903,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> ticketProxy.proxyReorderTickets(partnerId, BOARD_KEY, 1, List.of(2, 1)));
-        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1920,20 +1923,20 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         int number = ticket.ticketNumber();
 
         assertRefused(
-                Refusal.REMOTE_LANE_NOT_ON_BOARD,
+                FederationRefusal.REMOTE_LANE_NOT_ON_BOARD,
                 () -> ticketProxy.proxyReorderTickets(partnerId, BOARD_KEY, otherLane.id(), List.of()));
         assertRefused(
-                Refusal.REMOTE_LANE_NOT_ON_BOARD,
+                FederationRefusal.REMOTE_LANE_NOT_ON_BOARD,
                 () -> ticketProxy.proxyMoveTicket(partnerId, BOARD_KEY, number, otherLane.id(), 0, null, null));
         assertRefused(
-                Refusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET,
+                FederationRefusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET,
                 () -> ticketDetailProxy.proxyUpdateChecklistItem(
                         partnerId, BOARD_KEY, number, otherItem.id(), "Taken", true, null, null));
         assertRefused(
-                Refusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET,
+                FederationRefusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET,
                 () -> ticketDetailProxy.proxyDeleteChecklistItem(partnerId, BOARD_KEY, number, otherItem.id(), null));
         assertRefused(
-                Refusal.REMOTE_LABEL_NOT_ON_BOARD,
+                FederationRefusal.REMOTE_LABEL_NOT_ON_BOARD,
                 () -> ticketDetailProxy.proxyAddTicketLabel(
                         partnerId, BOARD_KEY, number, otherLabel.id(), REMOTE_MEMBER_1, null));
         assertEquals(
@@ -1951,7 +1954,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
         assertRefused(
-                Refusal.REMOTE_BOARD_NOT_WRITABLE,
+                BoardRefusal.REMOTE_BOARD_NOT_WRITABLE,
                 () -> structureProxy.proxyCreateLabel(partnerId, BOARD_KEY, "Nope", null));
 
         shareWithAskingStation(BoardShareMode.FULL);
@@ -2117,9 +2120,9 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 () -> ticketDetailProxy.proxyEditComment(
                         partnerId, BOARD_KEY, number, comment.id(), " ", REMOTE_MEMBER_1, "Partner Member"));
 
-        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_CHANGE, edit.refusal());
-        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_DELETE, delete.refusal());
-        assertEquals(Refusal.COMMENT_CHANGE_NEEDS_TEXT, empty.refusal());
+        assertEquals(CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE, edit.refusal());
+        assertEquals(CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE, delete.refusal());
+        assertEquals(CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT, empty.refusal());
         assertEquals(
                 "Mine",
                 ticketDetailProxy
@@ -2142,7 +2145,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 () -> ticketDetailProxy.proxyDeleteComment(
                         partnerId, BOARD_KEY, second.ticketNumber(), comment.id(), REMOTE_MEMBER_1));
 
-        assertEquals(Refusal.REMOTE_TICKET_COMMENT_NOT_HERE, refused.refusal());
+        assertEquals(BoardRefusal.REMOTE_TICKET_COMMENT_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -2405,7 +2408,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
 
         var refused = assertThrows(RefusalResponse.class, () -> ticketProxy.proxyListTickets(partnerId, BOARD_KEY));
-        assertEquals(Refusal.REMOTE_BOARD_NOT_SHARED, refused.refusal());
+        assertEquals(BoardRefusal.REMOTE_BOARD_NOT_SHARED, refused.refusal());
 
         shareWithAskingStation(BoardShareMode.FULL);
     }

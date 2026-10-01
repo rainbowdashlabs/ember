@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -267,7 +267,7 @@ public class ClusterInventoryService {
                 .filter(flow -> flow.purpose() == purpose)
                 .findFirst()
                 .ifPresent(flow -> {
-                    throw Refusal.CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN.raise(flow.name());
+                    throw ClusterRefusal.CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN.raise(flow.name());
                 });
         return flowService.createClusterFlow(clusterId, name, purpose);
     }
@@ -356,15 +356,16 @@ public class ClusterInventoryService {
 
     /** A chain of another association, or of a station, is not this one's to change. */
     private void requireOwnFlow(int clusterId, int flowId) {
-        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(Refusal.CLUSTER_INVENTORY_FLOW_NOT_HERE::raise);
+        MovementFlow flow =
+                flowService.findFlow(flowId).orElseThrow(ClusterRefusal.CLUSTER_INVENTORY_FLOW_NOT_HERE::raise);
         if (flow.clusterId() == null || flow.clusterId() != clusterId) {
-            throw Refusal.CLUSTER_INVENTORY_FLOW_NOT_HERE.raise();
+            throw ClusterRefusal.CLUSTER_INVENTORY_FLOW_NOT_HERE.raise();
         }
     }
 
     private void requireOwnStep(int clusterId, int stepId) {
         MovementFlowStep step =
-                flowService.findStep(stepId).orElseThrow(Refusal.CLUSTER_INVENTORY_FLOW_STEP_NOT_HERE::raise);
+                flowService.findStep(stepId).orElseThrow(ClusterRefusal.CLUSTER_INVENTORY_FLOW_STEP_NOT_HERE::raise);
         requireOwnFlow(clusterId, step.flowId());
     }
 
@@ -419,7 +420,8 @@ public class ClusterInventoryService {
     }
 
     private void requireCluster(int clusterId) {
-        if (clusterRepository.findById(clusterId).isEmpty()) throw Refusal.CLUSTER_INVENTORY_CLUSTER_NOT_HERE.raise();
+        if (clusterRepository.findById(clusterId).isEmpty())
+            throw ClusterRefusal.CLUSTER_INVENTORY_CLUSTER_NOT_HERE.raise();
     }
 
     /**

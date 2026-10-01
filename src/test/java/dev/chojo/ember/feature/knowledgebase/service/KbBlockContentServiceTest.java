@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -103,7 +103,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
         int id = createUpload();
         try {
             var refused = assertThrows(RefusalResponse.class, () -> service.switchToRich(id));
-            assertEquals(Refusal.KB_ONLY_WRITTEN_ARTICLES_TAKE_BLOCKS, refused.refusal());
+            assertEquals(KnowledgeBaseRefusal.KB_ONLY_WRITTEN_ARTICLES_TAKE_BLOCKS, refused.refusal());
             assertTrue(service.switchToRich(99999).isEmpty());
         } finally {
             knowledgeBaseRepo.purgeFile(id);
@@ -147,7 +147,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
         try {
             var rows = List.of(row(CellContentType.MARKDOWN, "x", CellConfig.EMPTY));
             var refused = assertThrows(RefusalResponse.class, () -> service.saveBlocks(id, rows, member.id()));
-            assertEquals(Refusal.KB_ARTICLE_NOT_BUILT_FROM_BLOCKS, refused.refusal());
+            assertEquals(KnowledgeBaseRefusal.KB_ARTICLE_NOT_BUILT_FROM_BLOCKS, refused.refusal());
             assertTrue(service.loadBlocks(knowledgeBaseRepo.findFileById(id).orElseThrow())
                     .isEmpty());
             assertTrue(service.saveBlocks(99999, rows, member.id()).isEmpty());

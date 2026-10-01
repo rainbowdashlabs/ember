@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.auth.signing.repository.SignedRequestNonceRepository;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
@@ -65,7 +66,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         byte[] key = key();
         var envelope = envelope(Instant.now(), OWN_URL);
         service.accept(key, envelope, OWN_URL);
-        assertRefused(Refusal.BEACON_DELIVERY_ALREADY_TAKEN, () -> service.accept(key, envelope, OWN_URL));
+        assertRefused(BeaconRefusal.BEACON_DELIVERY_ALREADY_TAKEN, () -> service.accept(key, envelope, OWN_URL));
     }
 
     private static void assertRefused(Refusal expected, Executable call) {
@@ -76,7 +77,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
     @Test
     void aReportFromTooFarAwayInTimeIsRefused() {
         var old = envelope(Instant.now().minus(BeaconIntakeService.DRIFT).minusSeconds(120), OWN_URL);
-        assertRefused(Refusal.BEACON_DELIVERY_OUT_OF_TIME, () -> service.accept(key(), old, OWN_URL));
+        assertRefused(BeaconRefusal.BEACON_DELIVERY_OUT_OF_TIME, () -> service.accept(key(), old, OWN_URL));
     }
 
     /**
@@ -101,22 +102,23 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.accept(key(), envelope(Instant.now(), ownAddress), theBeaconItReportsTo),
                 "and weighing it against the wrong address turns it away");
-        assertEquals(Refusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON, refused.refusal());
+        assertEquals(BeaconRefusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON, refused.refusal());
     }
 
     /** A report captured by one beacon cannot be handed to another. */
     @Test
     void aReportMeantForAnotherBeaconIsRefused() {
         var elsewhere = envelope(Instant.now(), "https://other.test");
-        assertRefused(Refusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON, () -> service.accept(key(), elsewhere, OWN_URL));
+        assertRefused(
+                BeaconRefusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON, () -> service.accept(key(), elsewhere, OWN_URL));
     }
 
     /** A delivery that says nothing about itself cannot be judged and is refused. */
     @Test
     void anEnvelopeWithoutItsFieldsIsRefused() {
-        assertRefused(Refusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE, () -> service.accept(key(), null, OWN_URL));
+        assertRefused(BeaconRefusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE, () -> service.accept(key(), null, OWN_URL));
         var noNonce = new BeaconPayloads.Envelope(1, Instant.now(), null, OWN_URL);
-        assertRefused(Refusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE, () -> service.accept(key(), noNonce, OWN_URL));
+        assertRefused(BeaconRefusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE, () -> service.accept(key(), noNonce, OWN_URL));
     }
 
     /** A beacon says so rather than guessing when a newer instance speaks a protocol it does not. */
@@ -127,7 +129,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 Instant.now(),
                 UUID.randomUUID().toString(),
                 OWN_URL);
-        assertRefused(Refusal.BEACON_DELIVERY_PROTOCOL_TOO_NEW, () -> service.accept(key(), ahead, OWN_URL));
+        assertRefused(BeaconRefusal.BEACON_DELIVERY_PROTOCOL_TOO_NEW, () -> service.accept(key(), ahead, OWN_URL));
     }
 
     /**
@@ -183,7 +185,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 1,
                 Instant.now(),
                 Instant.now());
-        assertRefused(Refusal.BEACON_FAULT_FINGERPRINT_MISSING, () -> service.storeProblem(id, "k", payload));
+        assertRefused(BeaconRefusal.BEACON_FAULT_FINGERPRINT_MISSING, () -> service.storeProblem(id, "k", payload));
     }
 
     /** A report with nothing written in it is refused. */
@@ -204,7 +206,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 null,
                 Instant.now(),
                 null);
-        assertRefused(Refusal.BEACON_REPORT_MESSAGE_MISSING, () -> service.storeReport(id, "k", payload));
+        assertRefused(BeaconRefusal.BEACON_REPORT_MESSAGE_MISSING, () -> service.storeReport(id, "k", payload));
     }
 
     /** A day of numbers is written for every subject the batch carries. */
@@ -227,7 +229,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
     @Test
     void anImpossibleBatchIsRefused() {
         assertRefused(
-                Refusal.BEACON_FIGURES_WITHOUT_SUBJECTS,
+                BeaconRefusal.BEACON_FIGURES_WITHOUT_SUBJECTS,
                 () -> service.storeMetrics(new BeaconPayloads.MetricsBatch(
                         1, "26.15.0", LocalDate.now().toString(), List.of())));
         var future = new BeaconPayloads.MetricsBatch(
@@ -236,14 +238,14 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 LocalDate.now().plusDays(5).toString(),
                 List.of(new BeaconPayloads.MetricsSubject(
                         UUID.randomUUID().toString(), "STATION", "<10", null, null, "0")));
-        assertRefused(Refusal.BEACON_FIGURES_DAY_IN_THE_FUTURE, () -> service.storeMetrics(future));
+        assertRefused(BeaconRefusal.BEACON_FIGURES_DAY_IN_THE_FUTURE, () -> service.storeMetrics(future));
         var noDay = new BeaconPayloads.MetricsBatch(
                 1,
                 "26.15.0",
                 "not-a-day",
                 List.of(new BeaconPayloads.MetricsSubject(
                         UUID.randomUUID().toString(), "STATION", "<10", null, null, "0")));
-        assertRefused(Refusal.BEACON_FIGURES_DAY_MISSING, () -> service.storeMetrics(noDay));
+        assertRefused(BeaconRefusal.BEACON_FIGURES_DAY_MISSING, () -> service.storeMetrics(noDay));
     }
 
     /** A report that says something is stored, with the contact of whoever sent it. */
@@ -284,7 +286,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
     void anAudienceThatIsNotAnAddressIsRefused() {
         var nonsense =
                 new BeaconPayloads.Envelope(1, Instant.now(), UUID.randomUUID().toString(), ":::not a url");
-        assertRefused(Refusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON, () -> service.accept(key(), nonsense, OWN_URL));
+        assertRefused(BeaconRefusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON, () -> service.accept(key(), nonsense, OWN_URL));
     }
 
     /** A subject with no name at all is skipped rather than taking the whole batch down. */
@@ -311,7 +313,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         }
         var batch =
                 new BeaconPayloads.MetricsBatch(1, "26.15.0", LocalDate.now().toString(), List.copyOf(many));
-        assertRefused(Refusal.BEACON_FIGURES_TOO_MANY_SUBJECTS, () -> service.storeMetrics(batch));
+        assertRefused(BeaconRefusal.BEACON_FIGURES_TOO_MANY_SUBJECTS, () -> service.storeMetrics(batch));
     }
 
     /** The longest message a report may carry is bounded, so prose cannot fill a disk. */

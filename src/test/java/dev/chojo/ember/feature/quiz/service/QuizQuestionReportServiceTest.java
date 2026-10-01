@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionReport;
 import dev.chojo.ember.feature.quiz.repository.QuizQuestionReportRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +63,7 @@ class QuizQuestionReportServiceTest {
     @Test
     void refusesANoteThatSaysNothing() {
         assertEquals(
-                Refusal.QUIZ_QUESTION_NOTE_EMPTY,
+                QuizRefusal.QUIZ_QUESTION_NOTE_EMPTY,
                 assertThrows(RefusalResponse.class, () -> service.report(42, 7, "   "))
                         .refusal());
         assertThrows(RefusalResponse.class, () -> service.report(42, 7, null));

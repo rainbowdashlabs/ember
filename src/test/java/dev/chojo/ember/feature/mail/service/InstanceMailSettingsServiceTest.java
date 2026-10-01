@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.UnwritableConf;
@@ -113,7 +113,7 @@ class InstanceMailSettingsServiceTest {
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.updateProviders(new MailFallbackChain(2, null)));
 
-        assertEquals(Refusal.INSTANCE_MAIL_PROVIDER_LIST_EMPTY, refused.refusal());
+        assertEquals(SystemRefusal.INSTANCE_MAIL_PROVIDER_LIST_EMPTY, refused.refusal());
         assertEquals(1, reread().main().mailing().providers().size());
     }
 
@@ -159,16 +159,16 @@ class InstanceMailSettingsServiceTest {
         var before = mailing.senders();
 
         assertEquals(
-                Refusal.SETTINGS_NOT_SAVED,
+                SystemRefusal.SETTINGS_NOT_SAVED,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> failing.updateProviders(new MailFallbackChain(2, List.of(smtp("x.test", "s")))))
                         .refusal());
         assertEquals(
-                Refusal.SETTINGS_NOT_SAVED,
+                SystemRefusal.SETTINGS_NOT_SAVED,
                 assertThrows(RefusalResponse.class, failing::clear).refusal());
         assertEquals(
-                Refusal.SETTINGS_NOT_SAVED,
+                SystemRefusal.SETTINGS_NOT_SAVED,
                 assertThrows(RefusalResponse.class, () -> failing.updateMailing(new MailingConfigRequest(15)))
                         .refusal());
 

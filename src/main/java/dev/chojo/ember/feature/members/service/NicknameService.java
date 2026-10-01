@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -63,7 +63,7 @@ public class NicknameService {
      *     {@link #MAX_LENGTH} or carries a line break
      */
     public void set(int memberId, @Nullable String nickname, int actorId, Set<StationPermission> permissions) {
-        var member = memberRepository.findById(memberId).orElseThrow(Refusal.NICKNAME_MEMBER_NOT_HERE::raise);
+        var member = memberRepository.findById(memberId).orElseThrow(MemberRefusal.NICKNAME_MEMBER_NOT_HERE::raise);
         requireMayWrite(memberId, actorId, permissions);
 
         String cleaned = clean(nickname);
@@ -96,7 +96,7 @@ public class NicknameService {
 
     private void requireMayWrite(int memberId, int actorId, Set<StationPermission> permissions) {
         if (!mayWrite(memberId, actorId, permissions)) {
-            throw Refusal.NICKNAME_NOT_YOURS_TO_SET.raise();
+            throw MemberRefusal.NICKNAME_NOT_YOURS_TO_SET.raise();
         }
     }
 
@@ -105,10 +105,10 @@ public class NicknameService {
         String trimmed = nickname.trim();
         if (trimmed.isEmpty()) return null;
         if (trimmed.length() > MAX_LENGTH) {
-            throw Refusal.NICKNAME_TOO_LONG.raise();
+            throw MemberRefusal.NICKNAME_TOO_LONG.raise();
         }
         if (trimmed.chars().anyMatch(c -> c == '\n' || c == '\r')) {
-            throw Refusal.NICKNAME_NOT_ONE_LINE.raise();
+            throw MemberRefusal.NICKNAME_NOT_ONE_LINE.raise();
         }
         return trimmed;
     }

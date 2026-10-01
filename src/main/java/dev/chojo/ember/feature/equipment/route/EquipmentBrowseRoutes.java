@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.equipment.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EquipmentRefusal;
 import dev.chojo.ember.feature.equipment.entity.Recommendation;
 import dev.chojo.ember.feature.equipment.service.EquipmentBrowseService;
 import io.javalin.http.Context;
@@ -63,12 +63,12 @@ public class EquipmentBrowseRoutes implements Routes {
     private void recommendations(Context ctx) {
         StationSession session = StationSession.from(ctx);
         String raw = ctx.queryParam("itemId");
-        if (raw == null || raw.isBlank()) throw Refusal.RECOMMENDATION_PIECE_MISSING.raise();
+        if (raw == null || raw.isBlank()) throw EquipmentRefusal.RECOMMENDATION_PIECE_MISSING.raise();
         int itemId;
         try {
             itemId = Integer.parseInt(raw);
         } catch (NumberFormatException e) {
-            throw Refusal.RECOMMENDATION_PIECE_NOT_A_NUMBER.raise(raw);
+            throw EquipmentRefusal.RECOMMENDATION_PIECE_NOT_A_NUMBER.raise(raw);
         }
         ctx.json(browseService.recommendationsFor(session.stationId(), itemId));
     }
@@ -85,7 +85,7 @@ public class EquipmentBrowseRoutes implements Routes {
     private void recheck(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(RecheckRequest.class);
-        if (body.from() == null) throw Refusal.COLLECTED_LIST_WINDOW_MISSING.raise();
+        if (body.from() == null) throw EquipmentRefusal.COLLECTED_LIST_WINDOW_MISSING.raise();
         List<EquipmentBrowseService.CollectedLine> lines = body.lines() == null ? List.of() : body.lines();
         LocalDate to = body.to() == null ? body.from() : body.to();
         ctx.json(new RecheckResponse(

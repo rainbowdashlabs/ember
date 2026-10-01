@@ -107,12 +107,13 @@ function checkSection(context, section, defined, nodeFor, fallback, reach) {
     const read = READERS[section.reader ?? 'constants']
     const constants = new Set()
     for (const file of section.enumFiles) {
-        const text = javaSource(resolve(context.cwd, file))
+        const path = resolve(context.cwd, file)
+        const text = javaSource(path)
         if (text === null) {
             if (reach.reportsMissing) context.report({node: fallback, messageId: 'missingSource', data: {file}})
             continue
         }
-        for (const constant of read(text)) constants.add(constant)
+        for (const constant of read(text, path)) constants.add(constant)
     }
 
     for (const constant of reach.reportsMissing ? constants : []) {

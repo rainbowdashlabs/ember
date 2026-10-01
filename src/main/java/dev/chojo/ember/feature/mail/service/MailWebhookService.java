@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MailRefusal;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.repository.MailWebhookReceiptRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -89,7 +89,7 @@ public class MailWebhookService implements TaskSource {
     private WebhookKeyService.WebhookScope authorise(String key) {
         return keyService.resolve(key).orElseThrow(() -> {
             log.warn("Delivery event refused: the key presented authorises nothing");
-            return Refusal.MAIL_REPORT_NOT_TAKEN.raise();
+            return MailRefusal.MAIL_REPORT_NOT_TAKEN.raise();
         });
     }
 
@@ -116,7 +116,7 @@ public class MailWebhookService implements TaskSource {
                     call.id(), call.timestamp(), call.signature(), call.rawBody(), secret, clock.instant());
             if (verdict != SweegoSignature.Verdict.VALID) {
                 log.warn("Sweego report refused: {}", verdict);
-                throw Refusal.MAIL_REPORT_NOT_TAKEN.raise();
+                throw MailRefusal.MAIL_REPORT_NOT_TAKEN.raise();
             }
         }
         String webhookId = call.id();

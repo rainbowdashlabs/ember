@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -130,7 +130,7 @@ public class ProfileFieldRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (request.fieldType() == null || isUnnamedNonSpacer(request)) {
-            throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
+            throw MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(profileFieldService.create(
@@ -174,7 +174,7 @@ public class ProfileFieldRoutes implements Routes {
         var role = request.role();
         var groupId = request.groupId();
         if ((role == null) == (groupId == null)) {
-            throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_ASSIGN.raise();
+            throw MemberRefusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_ASSIGN.raise();
         }
         if (role != null) {
             profileFieldService.assignToRole(
@@ -215,7 +215,7 @@ public class ProfileFieldRoutes implements Routes {
         var role = request.role();
         var groupId = request.groupId();
         if ((role == null) == (groupId == null)) {
-            throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_UNASSIGN.raise();
+            throw MemberRefusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_UNASSIGN.raise();
         }
         if (role != null) {
             profileFieldService.unassignRole(id, role);
@@ -255,7 +255,7 @@ public class ProfileFieldRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
-            throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CHANGE.raise();
+            throw MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CHANGE.raise();
         }
         requireOwnedField(ctx, id);
         profileFieldService
@@ -269,7 +269,7 @@ public class ProfileFieldRoutes implements Routes {
                         request.width(),
                         request.keepOnArchive() != null && request.keepOnArchive())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw Refusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
+                    throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
                 });
     }
 
@@ -291,7 +291,7 @@ public class ProfileFieldRoutes implements Routes {
     private void reorder(Context ctx) {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(FieldOrderRequest.class);
-        if (req.role() == null) throw Refusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
+        if (req.role() == null) throw MemberRefusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
         profileFieldService.reorder(
                 session.stationId(), req.role(), req.fieldIds() != null ? req.fieldIds() : List.of());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -313,7 +313,7 @@ public class ProfileFieldRoutes implements Routes {
         if (profileFieldService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
+            throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
         }
     }
 

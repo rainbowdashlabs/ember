@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.FormPublished;
@@ -578,7 +578,7 @@ class FormServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.setVisibility(internal.id(), FormVisibility.UNLISTED),
                 "a form for the station's own members is not reached from outside at all");
-        assertEquals(Refusal.FORM_INTERNAL_HAS_NO_REACH, refused.refusal());
+        assertEquals(FormRefusal.FORM_INTERNAL_HAS_NO_REACH, refused.refusal());
 
         service.delete(poll.id());
         service.delete(internal.id());
@@ -715,11 +715,11 @@ class FormServiceTest extends RepositoryTestBase {
 
         assertTrue(service.shareLink(form.id()).isEmpty());
         assertEquals(
-                Refusal.FORM_INTERNAL_HAS_NO_LINK,
+                FormRefusal.FORM_INTERNAL_HAS_NO_LINK,
                 assertThrows(RefusalResponse.class, () -> service.replaceShareLink(form.id(), null))
                         .refusal());
         assertEquals(
-                Refusal.FORM_INTERNAL_HAS_NO_REACH,
+                FormRefusal.FORM_INTERNAL_HAS_NO_REACH,
                 assertThrows(RefusalResponse.class, () -> service.setVisibility(form.id(), FormVisibility.UNLISTED))
                         .refusal());
 
@@ -742,7 +742,7 @@ class FormServiceTest extends RepositoryTestBase {
                         form.id(),
                         new RestrictionSelection(
                                 List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null)));
-        assertEquals(Refusal.FORM_FROM_OUTSIDE_HAS_NO_RESTRICTIONS, refused.refusal());
+        assertEquals(FormRefusal.FORM_FROM_OUTSIDE_HAS_NO_RESTRICTIONS, refused.refusal());
         assertFalse(service.findRestrictions(form.id()).hasRestrictions());
 
         service.delete(form.id());

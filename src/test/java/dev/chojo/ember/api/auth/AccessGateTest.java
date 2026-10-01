@@ -8,10 +8,10 @@ package dev.chojo.ember.api.auth;
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -115,7 +115,7 @@ class AccessGateTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals(Refusal.ROUTE_NEEDS_SIGN_IN, refused.refusal());
+        assertEquals(GeneralRefusal.ROUTE_NEEDS_SIGN_IN, refused.refusal());
     }
 
     @Test
@@ -126,7 +126,7 @@ class AccessGateTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals(Refusal.SIGN_IN_SESSION_NOT_VALID, refused.refusal());
+        assertEquals(GeneralRefusal.SIGN_IN_SESSION_NOT_VALID, refused.refusal());
     }
 
     @Test
@@ -138,7 +138,7 @@ class AccessGateTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals(Refusal.REQUESTED_STATION_NOT_HERE, refused.refusal());
+        assertEquals(GeneralRefusal.REQUESTED_STATION_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -149,7 +149,7 @@ class AccessGateTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals(Refusal.REQUESTED_STATION_NOT_AN_IDENTITY, refused.refusal());
+        assertEquals(GeneralRefusal.REQUESTED_STATION_NOT_AN_IDENTITY, refused.refusal());
     }
 
     @Test
@@ -161,7 +161,7 @@ class AccessGateTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals(Refusal.REQUESTED_CLUSTER_NOT_HERE, refused.refusal());
+        assertEquals(GeneralRefusal.REQUESTED_CLUSTER_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -172,7 +172,7 @@ class AccessGateTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals(Refusal.REQUESTED_CLUSTER_NOT_AN_IDENTITY, refused.refusal());
+        assertEquals(GeneralRefusal.REQUESTED_CLUSTER_NOT_AN_IDENTITY, refused.refusal());
     }
 
     @Test
@@ -232,7 +232,7 @@ class AccessGateTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals(Refusal.ROUTE_PERMISSION_MISSING, refused.refusal());
+        assertEquals(GeneralRefusal.ROUTE_PERMISSION_MISSING, refused.refusal());
         verify(ctx).header("X-User-Permissions", session.permissions().toString());
     }
 

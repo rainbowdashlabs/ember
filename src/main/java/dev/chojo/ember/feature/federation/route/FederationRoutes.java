@@ -7,13 +7,13 @@ package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -181,7 +181,7 @@ public class FederationRoutes implements Routes {
     private void createInvite(Context ctx) {
         var session = StationSession.from(ctx);
         var code = service.generateStationInvite(session.stationId())
-                .orElseThrow(Refusal.FEDERATION_STATION_NOT_HERE::raise);
+                .orElseThrow(FederationRefusal.FEDERATION_STATION_NOT_HERE::raise);
         ctx.json(new InviteCodeResponse(code));
     }
 
@@ -203,7 +203,7 @@ public class FederationRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(AcceptRequest.class);
         if (req.inviteCode() == null || req.inviteCode().isBlank()) {
-            throw Refusal.INVITE_CODE_MISSING.raise();
+            throw FederationRefusal.INVITE_CODE_MISSING.raise();
         }
 
         switch (enrollmentService.enterCode(
@@ -264,7 +264,7 @@ public class FederationRoutes implements Routes {
         var session = StationSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
         service.findRequestTo(requestId, session.stationId())
-                .orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT::raise);
+                .orElseThrow(FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT::raise);
         ctx.json(service.acceptPairRequest(requestId));
     }
 
@@ -279,7 +279,7 @@ public class FederationRoutes implements Routes {
         var session = StationSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
         service.findRequestTo(requestId, session.stationId())
-                .orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE::raise);
+                .orElseThrow(FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE::raise);
         service.declinePairRequest(requestId);
         ctx.json(new MessageResponse("Request declined"));
     }
@@ -292,7 +292,7 @@ public class FederationRoutes implements Routes {
     private FederationPartner requireOwnedPartner(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var partner = service.findPartner(id).orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE::raise);
+        var partner = service.findPartner(id).orElseThrow(FederationRefusal.FEDERATION_PARTNER_NOT_HERE::raise);
         RouteSupport.requireSameStation(session, partner.stationId());
         return partner;
     }
@@ -320,7 +320,7 @@ public class FederationRoutes implements Routes {
         var partner = requireOwnedPartner(ctx);
         service.suspendPartner(partner.id());
         ctx.json(service.findPartner(partner.id())
-                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_SUSPENDING::raise));
+                .orElseThrow(FederationRefusal.FEDERATION_PARTNER_NOT_HERE_AFTER_SUSPENDING::raise));
     }
 
     @OpenApi(
@@ -334,7 +334,7 @@ public class FederationRoutes implements Routes {
         var partner = requireOwnedPartner(ctx);
         service.resumePartner(partner.id());
         ctx.json(service.findPartner(partner.id())
-                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_RESUMING::raise));
+                .orElseThrow(FederationRefusal.FEDERATION_PARTNER_NOT_HERE_AFTER_RESUMING::raise));
     }
 
     @OpenApi(
@@ -429,7 +429,7 @@ public class FederationRoutes implements Routes {
         var session = StationSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteKbShare(id, session.stationId())) {
-            throw Refusal.KB_SHARE_NOT_HERE_TO_DELETE.raise();
+            throw FederationRefusal.KB_SHARE_NOT_HERE_TO_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -473,7 +473,7 @@ public class FederationRoutes implements Routes {
         var session = StationSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteQuizShare(id, session.stationId())) {
-            throw Refusal.QUIZ_SHARE_NOT_HERE_TO_DELETE.raise();
+            throw FederationRefusal.QUIZ_SHARE_NOT_HERE_TO_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -517,7 +517,7 @@ public class FederationRoutes implements Routes {
         var session = StationSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteProtocolShare(id, session.stationId())) {
-            throw Refusal.PROTOCOL_SHARE_NOT_HERE_TO_DELETE.raise();
+            throw FederationRefusal.PROTOCOL_SHARE_NOT_HERE_TO_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

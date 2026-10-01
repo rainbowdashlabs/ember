@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -121,7 +121,7 @@ public class InventoryArtService {
      * @return every kind sharing its key, this one among them
      */
     public List<InventoryArt> sameAcrossStations(int artId) {
-        InventoryArt art = artRepository.findById(artId).orElseThrow(Refusal.ART_NOT_HERE_TO_MATCH::raise);
+        InventoryArt art = artRepository.findById(artId).orElseThrow(InventoryRefusal.ART_NOT_HERE_TO_MATCH::raise);
         return artRepository.findByMergeKey(art.mergeKey());
     }
 
@@ -155,7 +155,7 @@ public class InventoryArtService {
         Inventory inventory = requireHeterogeneous(inventoryId);
         String trimmed = requireName(name);
         artRepository.findByName(inventoryId, trimmed).ifPresent(existing -> {
-            throw Refusal.ART_NAME_TAKEN_ON_CREATE.raise(existing.name());
+            throw InventoryRefusal.ART_NAME_TAKEN_ON_CREATE.raise(existing.name());
         });
         InventoryArt art = artRepository.create(inventoryId, trimmed, note, position, painted);
         log.info("Created kind {} (name='{}') in inventory {}", art.id(), trimmed, inventory.id());
@@ -197,11 +197,11 @@ public class InventoryArtService {
      */
     public Optional<InventoryArt> update(int id, String name, @Nullable String note, int position, Glyph glyph) {
         Glyph painted = glyph.paintable();
-        InventoryArt before = artRepository.findById(id).orElseThrow(Refusal.ART_NOT_HERE_TO_CHANGE::raise);
+        InventoryArt before = artRepository.findById(id).orElseThrow(InventoryRefusal.ART_NOT_HERE_TO_CHANGE::raise);
         String trimmed = requireName(name);
         artRepository.findByName(before.inventoryId(), trimmed).ifPresent(existing -> {
             if (existing.id() != id) {
-                throw Refusal.ART_NAME_TAKEN_ON_CHANGE.raise(existing.name());
+                throw InventoryRefusal.ART_NAME_TAKEN_ON_CHANGE.raise(existing.name());
             }
         });
         if (!artRepository.update(id, trimmed, note, position, painted)) {
@@ -281,23 +281,23 @@ public class InventoryArtService {
      */
     private Inventory requireHeterogeneous(int inventoryId) {
         Inventory inventory =
-                inventoryRepository.findById(inventoryId).orElseThrow(Refusal.ART_INVENTORY_NOT_HERE::raise);
+                inventoryRepository.findById(inventoryId).orElseThrow(InventoryRefusal.ART_INVENTORY_NOT_HERE::raise);
         if (inventory.homogeneous()) {
-            throw Refusal.ART_INVENTORY_UNIFORM.raise();
+            throw InventoryRefusal.ART_INVENTORY_UNIFORM.raise();
         }
         return inventory;
     }
 
     private static String requireName(String name) {
         String trimmed = name == null ? "" : name.trim();
-        if (trimmed.isEmpty()) throw Refusal.ART_NEEDS_A_NAME.raise();
+        if (trimmed.isEmpty()) throw InventoryRefusal.ART_NEEDS_A_NAME.raise();
         return trimmed;
     }
 
     private InventoryArt requireArtOfInventory(int inventoryId, int artId) {
-        InventoryArt art = artRepository.findById(artId).orElseThrow(Refusal.ART_NOT_HERE::raise);
+        InventoryArt art = artRepository.findById(artId).orElseThrow(InventoryRefusal.ART_NOT_HERE::raise);
         if (art.inventoryId() != inventoryId) {
-            throw Refusal.ART_IN_ANOTHER_INVENTORY.raise();
+            throw InventoryRefusal.ART_IN_ANOTHER_INVENTORY.raise();
         }
         return art;
     }
@@ -307,9 +307,9 @@ public class InventoryArtService {
         List<Integer> distinct = itemIds.stream().distinct().toList();
         for (Integer itemId : distinct) {
             InventoryItem item =
-                    inventoryRepository.findItemById(itemId).orElseThrow(Refusal.ART_PIECE_NOT_HERE::raise);
+                    inventoryRepository.findItemById(itemId).orElseThrow(InventoryRefusal.ART_PIECE_NOT_HERE::raise);
             if (item.inventoryId() != inventoryId) {
-                throw Refusal.ART_PIECE_IN_ANOTHER_INVENTORY.raise();
+                throw InventoryRefusal.ART_PIECE_IN_ANOTHER_INVENTORY.raise();
             }
         }
         return distinct;

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.service.PublicQuizService;
 import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicQuizCatalog;
 import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicQuizQuestion;
@@ -46,7 +46,7 @@ public class PublicQuizRoutes implements Routes {
             try {
                 out.add(Integer.parseInt(trimmed));
             } catch (NumberFormatException ignored) {
-                throw Refusal.PUBLIC_QUIZ_CATALOG_NOT_A_NUMBER.raise();
+                throw QuizRefusal.PUBLIC_QUIZ_CATALOG_NOT_A_NUMBER.raise();
             }
         }
         return out;
@@ -63,7 +63,7 @@ public class PublicQuizRoutes implements Routes {
         try {
             return UUID.fromString(uidParam);
         } catch (IllegalArgumentException e) {
-            throw Refusal.PUBLIC_QUIZ_STATION_LINK_NOT_GOOD.raise();
+            throw QuizRefusal.PUBLIC_QUIZ_STATION_LINK_NOT_GOOD.raise();
         }
     }
 
@@ -83,7 +83,7 @@ public class PublicQuizRoutes implements Routes {
         var station = stationUid(ctx);
         String catalogsParam = ctx.queryParam("catalogs");
         if (catalogsParam == null || catalogsParam.isBlank()) {
-            throw Refusal.PUBLIC_QUIZ_CATALOGS_NOT_NAMED.raise();
+            throw QuizRefusal.PUBLIC_QUIZ_CATALOGS_NOT_NAMED.raise();
         }
         var question = quiz.randomQuestion(station, parseCatalogIds(catalogsParam));
         ctx.header("Cache-Control", "no-store, no-cache, must-revalidate");

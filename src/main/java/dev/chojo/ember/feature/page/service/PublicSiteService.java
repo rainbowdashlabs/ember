@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.page.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
 import dev.chojo.ember.feature.federation.entity.PublicPartnerSummary;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -52,11 +52,11 @@ public class PublicSiteService {
      * @return the station's id
      */
     public int openStation(String address) {
-        int stationId =
-                stations.resolveAddressedId(address).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_PAGE::raise);
+        int stationId = stations.resolveAddressedId(address)
+                .orElseThrow(PageRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_PAGE::raise);
         boolean open =
                 stations.findById(stationId).map(Station::publicPagesEnabled).orElse(false);
-        if (!open) throw Refusal.PUBLIC_PAGES_SWITCHED_OFF.raise();
+        if (!open) throw PageRefusal.PUBLIC_PAGES_SWITCHED_OFF.raise();
         return stationId;
     }
 
@@ -69,7 +69,7 @@ public class PublicSiteService {
     public Station sharedPageStation(StationPage page) {
         return stations.findById(page.stationId())
                 .filter(Station::publicPagesEnabled)
-                .orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
+                .orElseThrow(PageRefusal.PAGE_LINK_UNKNOWN::raise);
     }
 
     /**

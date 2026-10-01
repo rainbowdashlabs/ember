@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
@@ -169,15 +169,15 @@ public class ManagedAccessService {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
         if (account.hasRealEmail()) {
-            throw Refusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD.raise();
+            throw MemberRefusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD.raise();
         }
         if (password == null || password.isBlank()) {
-            throw Refusal.MANAGED_PASSWORD_TOO_SHORT.raise();
+            throw MemberRefusal.MANAGED_PASSWORD_TOO_SHORT.raise();
         }
         switch (authService.setPasswordFor(account, password)) {
-            case PASSWORD_TOO_SHORT -> throw Refusal.MANAGED_PASSWORD_TOO_SHORT.raise();
-            case PASSWORD_BREACHED -> throw Refusal.MANAGED_PASSWORD_BREACHED.raise();
-            case PASSWORDLESS_MODE -> throw Refusal.MANAGED_PASSWORD_NOT_TAKEN.raise();
+            case PASSWORD_TOO_SHORT -> throw MemberRefusal.MANAGED_PASSWORD_TOO_SHORT.raise();
+            case PASSWORD_BREACHED -> throw MemberRefusal.MANAGED_PASSWORD_BREACHED.raise();
+            case PASSWORDLESS_MODE -> throw MemberRefusal.MANAGED_PASSWORD_NOT_TAKEN.raise();
             default ->
                 log.info(
                         "Guardian {} set the password of managed member {} (account {})",
@@ -202,7 +202,7 @@ public class ManagedAccessService {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
         if (account.hasRealEmail()) {
-            throw Refusal.MANAGED_MEMBER_HAS_OWN_ADDRESS.raise();
+            throw MemberRefusal.MANAGED_MEMBER_HAS_OWN_ADDRESS.raise();
         }
         return enrollmentService.issueCodeWithQr(
                 account.id(), actorAccountId, PasskeyEnrollmentService.QR_TTL, userAgent, country);
@@ -238,11 +238,11 @@ public class ManagedAccessService {
         var account = account(member);
         var permission = memberRepository
                 .findPermissionByName(StationPermission.LOGIN)
-                .orElseThrow(Refusal.MANAGED_SIGN_IN_PERMISSION_MISSING::raise);
+                .orElseThrow(MemberRefusal.MANAGED_SIGN_IN_PERMISSION_MISSING::raise);
 
         if (enabled) {
             if (!canSignIn(account)) {
-                throw Refusal.MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS.raise();
+                throw MemberRefusal.MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS.raise();
             }
             if (!hasLogin(memberId)) {
                 memberRepository.grantPermission(memberId, permission.id());
@@ -269,9 +269,9 @@ public class ManagedAccessService {
     private Account account(StationMember member) {
         Integer accountId = member.accountId();
         if (accountId == null) {
-            throw Refusal.MANAGED_MEMBER_HAS_NO_ACCOUNT.raise();
+            throw MemberRefusal.MANAGED_MEMBER_HAS_NO_ACCOUNT.raise();
         }
-        return accountRepository.findById(accountId).orElseThrow(Refusal.MANAGED_ACCOUNT_NOT_HERE::raise);
+        return accountRepository.findById(accountId).orElseThrow(MemberRefusal.MANAGED_ACCOUNT_NOT_HERE::raise);
     }
 
     /**
@@ -319,11 +319,12 @@ public class ManagedAccessService {
         boolean manages =
                 memberService.findManaged(guardianMemberId).stream().anyMatch(managed -> managed.id() == memberId);
         if (!manages) {
-            throw Refusal.MANAGED_MEMBER_NOT_YOURS.raise();
+            throw MemberRefusal.MANAGED_MEMBER_NOT_YOURS.raise();
         }
-        StationMember member = memberRepository.findById(memberId).orElseThrow(Refusal.MANAGED_MEMBER_NOT_HERE::raise);
+        StationMember member =
+                memberRepository.findById(memberId).orElseThrow(MemberRefusal.MANAGED_MEMBER_NOT_HERE::raise);
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
-            throw Refusal.MANAGED_MEMBER_TYPE_NOT_MANAGED.raise();
+            throw MemberRefusal.MANAGED_MEMBER_TYPE_NOT_MANAGED.raise();
         }
         return member;
     }

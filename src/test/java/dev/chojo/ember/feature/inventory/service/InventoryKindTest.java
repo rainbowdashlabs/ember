@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -108,7 +108,7 @@ class InventoryKindTest extends RepositoryTestBase {
         int id = drawer("Sonstiges");
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.createRequirement(id, StationUserType.MEMBER, 0, null, 1));
-        assertEquals(Refusal.INVENTORY_REQUIREMENT_ON_A_COLLECTION, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_REQUIREMENT_ON_A_COLLECTION, refused.refusal());
         assertTrue(service.findAllRequirementsByStation(station.id()).stream()
                 .noneMatch(requirement -> requirement.inventoryId() == id));
         service.delete(id);
@@ -120,7 +120,7 @@ class InventoryKindTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> procurementService.create(station.id(), id, member.id(), null, "Drei mehr wovon?"));
-        assertEquals(Refusal.INVENTORY_ORDER_ON_A_COLLECTION, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_ORDER_ON_A_COLLECTION, refused.refusal());
         service.delete(id);
     }
 
@@ -137,7 +137,7 @@ class InventoryKindTest extends RepositoryTestBase {
     void aSizeListIsRefusedOnADrawerOfDifferentThings() {
         int id = drawer("Pager");
         var refused = assertThrows(RefusalResponse.class, () -> service.createSize(id, "M", 0, null));
-        assertEquals(Refusal.INVENTORY_SIZE_ON_A_COLLECTION, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_SIZE_ON_A_COLLECTION, refused.refusal());
         assertTrue(service.findSizes(id).isEmpty());
         service.delete(id);
     }
@@ -341,7 +341,7 @@ class InventoryKindTest extends RepositoryTestBase {
         var item = inventoryRepo.createItem(from, "ST-" + NAMES.incrementAndGet(), "Sporttasche", null, null);
 
         var refused = assertThrows(RefusalResponse.class, () -> service.moveItem(item.id(), elsewhere, null));
-        assertEquals(Refusal.INVENTORY_MOVE_TO_ANOTHER_STATION, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_MOVE_TO_ANOTHER_STATION, refused.refusal());
         assertEquals(from, inventoryRepo.findItemById(item.id()).orElseThrow().inventoryId());
 
         service.delete(from);

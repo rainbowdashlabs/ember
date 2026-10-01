@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.onboarding.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -186,9 +186,9 @@ public class OnboardingService {
     public void mark(OnboardingLevel level, String taskId, OnboardingTaskState state, int memberId, int accountId) {
         OnboardingTask task = OnboardingTask.byKey(keyOf(taskId))
                 .filter(candidate -> candidate.level() == level)
-                .orElseThrow(Refusal.ONBOARDING_TASK_UNKNOWN::raise);
+                .orElseThrow(StationRefusal.ONBOARDING_TASK_UNKNOWN::raise);
         if (state == OnboardingTaskState.DONE && task.derived()) {
-            throw Refusal.ONBOARDING_TASK_FINISHES_ITSELF.raise();
+            throw StationRefusal.ONBOARDING_TASK_FINISHES_ITSELF.raise();
         }
         String stored =
                 switch (state) {
@@ -204,7 +204,7 @@ public class OnboardingService {
             case STATION -> {
                 int stationId = memberRepository
                         .findById(memberId)
-                        .orElseThrow(Refusal.ONBOARDING_MEMBER_NOT_HERE::raise)
+                        .orElseThrow(StationRefusal.ONBOARDING_MEMBER_NOT_HERE::raise)
                         .stationId();
                 if (state == OnboardingTaskState.OPEN) markRepository.clearForStation(stationId, taskId);
                 else markRepository.markForStation(stationId, taskId, stored, memberId);

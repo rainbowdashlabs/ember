@@ -19,7 +19,11 @@ const OPTIONS = {
     german: GERMAN,
     sections: [
         {enumFiles: [fixture('java/Kinds.java')], prefix: 'kinds'},
-        {enumFiles: [fixture('java/Refusal.java')], prefix: 'refusal', reader: 'refusal-codes'},
+        {
+            enumFiles: [fixture('java/refusal/FormRefusal.java'), fixture('java/refusal/GeneralRefusal.java')],
+            prefix: 'refusal',
+            reader: 'refusal-codes',
+        },
     ],
     keyFiles: [fixture('java/Sender.java')],
 }

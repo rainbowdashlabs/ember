@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.FlowProblem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -148,11 +148,11 @@ public class MovementFlowRoutes implements Routes {
         try {
             target = targeting.resolve(session.stationId(), purpose, memberId, outgoing, incoming, inventoryId);
         } catch (RefusalResponse refused) {
-            if (refused.refusal() != Refusal.MOVEMENT_FLOW_NOT_BOUND) throw refused;
-            throw Refusal.NO_FLOW_FOR_THIS_MOVEMENT.raise();
+            if (refused.refusal() != InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND) throw refused;
+            throw InventoryRefusal.NO_FLOW_FOR_THIS_MOVEMENT.raise();
         }
         MovementFlow flow =
-                flowService.findFlow(target.flowId()).orElseThrow(Refusal.FLOW_NOT_HERE_BEHIND_BINDING::raise);
+                flowService.findFlow(target.flowId()).orElseThrow(InventoryRefusal.FLOW_NOT_HERE_BEHIND_BINDING::raise);
         ctx.json(new FlowPreview(toResponse(flow), target.ownerKind(), target.party()));
     }
 
@@ -161,11 +161,11 @@ public class MovementFlowRoutes implements Routes {
      * of its own and asking for one answers a wrong spelling with a fault rather than with a refusal.
      */
     private MovementPurpose purposeOf(@Nullable String written) {
-        if (written == null || written.isBlank()) throw Refusal.MOVEMENT_PURPOSE_MISSING.raise();
+        if (written == null || written.isBlank()) throw InventoryRefusal.MOVEMENT_PURPOSE_MISSING.raise();
         try {
             return MovementPurpose.valueOf(written.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ignored) {
-            throw Refusal.MOVEMENT_PURPOSE_NOT_KNOWN.raise(written);
+            throw InventoryRefusal.MOVEMENT_PURPOSE_NOT_KNOWN.raise(written);
         }
     }
 
@@ -175,7 +175,7 @@ public class MovementFlowRoutes implements Routes {
         try {
             return Integer.valueOf(written.trim());
         } catch (NumberFormatException ignored) {
-            throw Refusal.NUMBER_EXPECTED_IN_ADDRESS.raise(written);
+            throw InventoryRefusal.NUMBER_EXPECTED_IN_ADDRESS.raise(written);
         }
     }
 
@@ -204,7 +204,7 @@ public class MovementFlowRoutes implements Routes {
     private void createFlow(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(FlowRequest.class);
-        if (request.purpose() == null) throw Refusal.FLOW_NEEDS_A_PURPOSE.raise();
+        if (request.purpose() == null) throw InventoryRefusal.FLOW_NEEDS_A_PURPOSE.raise();
         var flow = flowService.createFlow(session.stationId(), request.name(), request.purpose());
         ctx.status(HttpStatus.CREATED).json(toResponse(flow));
     }
@@ -224,8 +224,8 @@ public class MovementFlowRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(FlowRequest.class);
-        if (!flowService.renameFlow(id, request.name())) throw Refusal.FLOW_NOT_RENAMED.raise();
-        ctx.json(toResponse(flowService.findFlow(id).orElseThrow(Refusal.FLOW_NOT_HERE_AFTER_RENAME::raise)));
+        if (!flowService.renameFlow(id, request.name())) throw InventoryRefusal.FLOW_NOT_RENAMED.raise();
+        ctx.json(toResponse(flowService.findFlow(id).orElseThrow(InventoryRefusal.FLOW_NOT_HERE_AFTER_RENAME::raise)));
     }
 
     @OpenApi(
@@ -238,7 +238,7 @@ public class MovementFlowRoutes implements Routes {
     private void archiveFlow(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
-        if (!flowService.archiveFlow(id)) throw Refusal.FLOW_NOT_ARCHIVED.raise();
+        if (!flowService.archiveFlow(id)) throw InventoryRefusal.FLOW_NOT_ARCHIVED.raise();
         ctx.json(flowAsItStands(id));
     }
 
@@ -262,7 +262,7 @@ public class MovementFlowRoutes implements Routes {
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(MemberReceiptRequest.class);
         if (!flowService.setSkipMemberReceipt(id, request.skipMemberReceipt())) {
-            throw Refusal.FLOW_RECEIPT_NOT_CHANGED.raise();
+            throw InventoryRefusal.FLOW_RECEIPT_NOT_CHANGED.raise();
         }
         ctx.json(flowAsItStands(id));
     }
@@ -311,7 +311,7 @@ public class MovementFlowRoutes implements Routes {
                 request.subject(),
                 request.custodyAfter(),
                 request.picksItem())) {
-            throw Refusal.FLOW_STEP_NOT_CHANGED.raise();
+            throw InventoryRefusal.FLOW_STEP_NOT_CHANGED.raise();
         }
         ctx.json(flowAsItStands(flowId));
     }
@@ -327,7 +327,7 @@ public class MovementFlowRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int stepId = pathInt(ctx, "id");
         int flowId = requireOwnStep(stepId, session);
-        if (!flowService.archiveStep(stepId)) throw Refusal.FLOW_STEP_NOT_ARCHIVED.raise();
+        if (!flowService.archiveStep(stepId)) throw InventoryRefusal.FLOW_STEP_NOT_ARCHIVED.raise();
         ctx.json(flowAsItStands(flowId));
     }
 
@@ -355,7 +355,7 @@ public class MovementFlowRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(BindingRequest.class);
         if (request.ownerKind() == null || request.purpose() == null) {
-            throw Refusal.BINDING_NEEDS_AN_OWNER_AND_A_PURPOSE.raise();
+            throw InventoryRefusal.BINDING_NEEDS_AN_OWNER_AND_A_PURPOSE.raise();
         }
         flowService.bind(
                 session.stationId(),
@@ -389,7 +389,7 @@ public class MovementFlowRoutes implements Routes {
         int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(StepOrderRequest.class);
         if (request.stepIds() == null || request.stepIds().isEmpty()) {
-            throw Refusal.STEP_ORDER_NAMES_NO_STEPS.raise();
+            throw InventoryRefusal.STEP_ORDER_NAMES_NO_STEPS.raise();
         }
         flowService.reorderSteps(flowId, request.stepIds());
         ctx.json(flowAsItStands(flowId));
@@ -453,7 +453,7 @@ public class MovementFlowRoutes implements Routes {
 
     private void requireStepFields(StepRequest request) {
         if (request.actor() == null || request.subject() == null || request.custodyAfter() == null) {
-            throw Refusal.STEP_NEEDS_ITS_PARTS.raise();
+            throw InventoryRefusal.STEP_NEEDS_ITS_PARTS.raise();
         }
     }
 
@@ -462,22 +462,22 @@ public class MovementFlowRoutes implements Routes {
      * indistinguishable from outside.
      */
     private int requireOwnFlow(int flowId, StationSession session) {
-        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(Refusal.FLOW_NOT_HERE::raise);
+        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(InventoryRefusal.FLOW_NOT_HERE::raise);
         if (flow.stationId() == null || !flow.stationId().equals(session.stationId())) {
-            throw Refusal.FLOW_NOT_HERE.raise();
+            throw InventoryRefusal.FLOW_NOT_HERE.raise();
         }
         return flowId;
     }
 
     /** The chain a step belongs to, once it is established that the station may touch it. */
     private int requireOwnStep(int stepId, StationSession session) {
-        MovementFlowStep step = flowService.findStep(stepId).orElseThrow(Refusal.FLOW_STEP_NOT_HERE::raise);
+        MovementFlowStep step = flowService.findStep(stepId).orElseThrow(InventoryRefusal.FLOW_STEP_NOT_HERE::raise);
         return requireOwnFlow(step.flowId(), session);
     }
 
     /** The chain as it now stands, which is what every change to it answers with. */
     private FlowResponse flowAsItStands(int flowId) {
-        return toResponse(flowService.findFlow(flowId).orElseThrow(Refusal.FLOW_NOT_HERE_AFTER_CHANGE::raise));
+        return toResponse(flowService.findFlow(flowId).orElseThrow(InventoryRefusal.FLOW_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     private FlowResponse toResponse(MovementFlow flow) {

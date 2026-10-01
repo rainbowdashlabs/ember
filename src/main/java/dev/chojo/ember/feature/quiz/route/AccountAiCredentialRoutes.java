@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService.AiCredentialSummary;
 import io.javalin.http.Context;
@@ -75,10 +75,10 @@ public class AccountAiCredentialRoutes implements Routes {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(AiCredentialRequest.class);
         switch (credentials.save(session.accountId(), request.provider(), request.model(), request.apiKey())) {
-            case PROVIDER_UNKNOWN -> throw Refusal.AI_KEY_PROVIDER_UNKNOWN.raise();
-            case KEY_MISSING -> throw Refusal.AI_KEY_MISSING.raise();
+            case PROVIDER_UNKNOWN -> throw QuizRefusal.AI_KEY_PROVIDER_UNKNOWN.raise();
+            case KEY_MISSING -> throw QuizRefusal.AI_KEY_MISSING.raise();
             case SAVED ->
-                ctx.json(credentials.summary(session.accountId()).orElseThrow(Refusal.AI_KEY_NOT_READ_BACK::raise));
+                ctx.json(credentials.summary(session.accountId()).orElseThrow(QuizRefusal.AI_KEY_NOT_READ_BACK::raise));
         }
     }
 

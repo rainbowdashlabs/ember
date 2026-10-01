@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -181,7 +181,7 @@ public class InventoryFieldDefinitionService {
             throw new IllegalArgumentException("Field type is required");
         }
         if (!FieldTypes.INVENTORY.contains(fieldType)) {
-            throw Refusal.INVENTORY_FIELD_TYPE_NOT_OFFERED.raise();
+            throw InventoryRefusal.INVENTORY_FIELD_TYPE_NOT_OFFERED.raise();
         }
         if (artId != null && itemId != null) {
             throw new IllegalArgumentException("A field belongs to a kind or to a single piece, never to both");

@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
@@ -286,7 +286,7 @@ public class ClusterInventoryRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterStepOrderRequest.class);
         if (request.stepIds() == null || request.stepIds().isEmpty()) {
-            throw Refusal.CLUSTER_CHAIN_ORDER_NEEDS_STEPS.raise();
+            throw ClusterRefusal.CLUSTER_CHAIN_ORDER_NEEDS_STEPS.raise();
         }
         inventoryService.reorderSteps(cluster.id(), pathInt(ctx, "flowId"), request.stepIds());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -330,7 +330,7 @@ public class ClusterInventoryRoutes implements Routes {
 
     private static void requireStepFields(ClusterStepRequest request) {
         if (request.actor() == null || request.subject() == null || request.custodyAfter() == null) {
-            throw Refusal.CLUSTER_STEP_DETAILS_MISSING.raise();
+            throw ClusterRefusal.CLUSTER_STEP_DETAILS_MISSING.raise();
         }
     }
 
@@ -403,7 +403,7 @@ public class ClusterInventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(DispatchRequest.class);
-        if (request.stationUid() == null) throw Refusal.CLUSTER_DISPATCH_NEEDS_A_STATION.raise();
+        if (request.stationUid() == null) throw ClusterRefusal.CLUSTER_DISPATCH_NEEDS_A_STATION.raise();
 
         var actingForTheOwningCluster = new ItemMovementService.Actor(
                 session.memberOpt().map(StationMember::id).orElse(0), false, true);
@@ -437,7 +437,7 @@ public class ClusterInventoryRoutes implements Routes {
     private void setLossReportSettings(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(LossReportSettings.class);
-        if (request.requires() == null) throw Refusal.CLUSTER_LOSS_REPORT_NEEDS_A_REQUIREMENT.raise();
+        if (request.requires() == null) throw ClusterRefusal.CLUSTER_LOSS_REPORT_NEEDS_A_REQUIREMENT.raise();
         inventoryService.setLossReportRequires(cluster.id(), request.requires());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -445,16 +445,18 @@ public class ClusterInventoryRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_INVENTORY.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_CLUSTER_INVENTORY::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_INVENTORY.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_CLUSTER_INVENTORY::raise);
     }
 
     private static MovementPurpose parsePurpose(String raw) {
-        if (raw == null || raw.isBlank()) throw Refusal.CLUSTER_CHAIN_NEEDS_A_PURPOSE.raise();
+        if (raw == null || raw.isBlank()) throw ClusterRefusal.CLUSTER_CHAIN_NEEDS_A_PURPOSE.raise();
         try {
             return MovementPurpose.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_CHAIN_PURPOSE_UNKNOWN.raise(raw);
+            throw ClusterRefusal.CLUSTER_CHAIN_PURPOSE_UNKNOWN.raise(raw);
         }
     }
 

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -60,10 +60,10 @@ public class PublicStationInfoService {
      * @return what the station publishes about itself
      */
     public PublicStationInfo info(String address) {
-        var station = stations.findByAddress(address).orElseThrow(Refusal.PUBLIC_STATION_NOTHING_TO_SHOW::raise);
+        var station = stations.findByAddress(address).orElseThrow(StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW::raise);
         boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            if (!hasPublicKb) throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
+            if (!hasPublicKb) throw StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
             return publicInfo(station, new Offer(true, false, false, false, false), null);
         }
         var offer = new Offer(
@@ -73,7 +73,7 @@ public class PublicStationInfoService {
                 station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id()),
                 station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id()));
         if (offer.isEmpty() && !formService.hasOpenlyAddressedForms(station.id())) {
-            throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
+            throw StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
         }
         String landingPageSlug =
                 offer.pages() ? pageService.getLandingPageSlug(station.id()).orElse(null) : null;

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.page.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.PublicPartnerSummary;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
@@ -70,7 +70,7 @@ class PageSiteRoutesTest {
         var pages = mock(PageService.class);
         var site = mock(PublicSiteService.class);
         when(site.openStation("wache")).thenReturn(3);
-        when(site.openStation("closed")).thenThrow(Refusal.PUBLIC_PAGES_SWITCHED_OFF.raise());
+        when(site.openStation("closed")).thenThrow(PageRefusal.PUBLIC_PAGES_SWITCHED_OFF.raise());
         when(pages.listListedPages(3)).thenReturn(List.of());
         when(site.partners(3, "a,b")).thenReturn(List.of(new PublicPartnerSummary(STATION_UID, "Nord", null, null)));
         var harness = RouteHarness.serving(new PublicPageRoutes(pages, site));
@@ -83,7 +83,7 @@ class PageSiteRoutesTest {
                             .get(0)
                             .path("name")
                             .asString());
-            assertEquals(Refusal.PUBLIC_PAGES_SWITCHED_OFF, refusalOf(client.get(PREFIX + "/public/pages/closed")));
+            assertEquals(PageRefusal.PUBLIC_PAGES_SWITCHED_OFF, refusalOf(client.get(PREFIX + "/public/pages/closed")));
         });
     }
 
@@ -106,7 +106,7 @@ class PageSiteRoutesTest {
                     json(client.get(PREFIX + "/public/shared/t/brand"))
                             .path("name")
                             .asString());
-            assertEquals(Refusal.PAGE_LINK_UNKNOWN, refusalOf(client.get(PREFIX + "/public/shared/x/brand")));
+            assertEquals(PageRefusal.PAGE_LINK_UNKNOWN, refusalOf(client.get(PREFIX + "/public/shared/x/brand")));
         });
     }
 }

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.media.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MediaLibraryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class PublicMediaServiceTest {
     void aStationIsFoundByItsAddressOrRefused() {
         assertEquals(4, service.resolveStation("wache-nord"));
         assertEquals(
-                Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE,
+                MediaLibraryRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE,
                 assertThrows(RefusalResponse.class, () -> service.resolveStation("gone"))
                         .refusal());
     }
@@ -73,7 +73,7 @@ class PublicMediaServiceTest {
         when(media.readVariant(any(), anyString(), any(), any())).thenReturn(Optional.empty());
 
         assertEquals(
-                Refusal.PUBLIC_FILE_NOT_HERE,
+                MediaLibraryRefusal.PUBLIC_FILE_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.read(4, "abc", null, null))
                         .refusal());
     }

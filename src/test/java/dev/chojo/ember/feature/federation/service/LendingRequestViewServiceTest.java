@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -118,8 +119,12 @@ class LendingRequestViewServiceTest {
 
         assertEquals(1, service.requireParty(1, STATION).id());
         assertEquals(2, service.requireParty(2, STATION).id());
-        assertEquals(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refusal(() -> service.requireParty(3, STATION)));
-        assertEquals(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refusal(() -> service.requireParty(4, STATION)));
+        assertEquals(
+                FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS,
+                refusal(() -> service.requireParty(3, STATION)));
+        assertEquals(
+                FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS,
+                refusal(() -> service.requireParty(4, STATION)));
     }
 
     @Test
@@ -128,8 +133,10 @@ class LendingRequestViewServiceTest {
         when(lending.findRequest(2)).thenReturn(Optional.of(request(2, PARTNER, HERE, LendingStatus.LENT, null)));
 
         assertEquals(2, service.requireOwner(2, STATION).id());
-        assertEquals(Refusal.LENDING_NOT_THE_OWNING_STATION, refusal(() -> service.requireOwner(1, STATION)));
-        assertEquals(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refusal(() -> service.requireOwner(4, STATION)));
+        assertEquals(FederationRefusal.LENDING_NOT_THE_OWNING_STATION, refusal(() -> service.requireOwner(1, STATION)));
+        assertEquals(
+                FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS,
+                refusal(() -> service.requireOwner(4, STATION)));
     }
 
     @Test

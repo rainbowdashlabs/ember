@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -124,6 +124,6 @@ class TestProtocolRunServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.archive(RUN, "Knoten"));
 
-        assertEquals(Refusal.PROTOCOL_RUN_NOT_EXPORTED, refused.refusal());
+        assertEquals(TestProtocolRefusal.PROTOCOL_RUN_NOT_EXPORTED, refused.refusal());
     }
 }

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavourite;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
@@ -69,10 +69,10 @@ public class KbFavouriteRoutes implements Routes {
     private void mark(Context ctx) {
         var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(MarkFavouriteRequest.class);
-        if (request.target() == null) throw Refusal.KB_FAVOURITE_NEEDS_A_TARGET.raise();
+        if (request.target() == null) throw KnowledgeBaseRefusal.KB_FAVOURITE_NEEDS_A_TARGET.raise();
         KbFavourite marked;
         if (request.target().isPartner()) {
-            if (request.partnerStationUid() == null) throw Refusal.KB_FAVOURITE_NEEDS_A_PARTNER.raise();
+            if (request.partnerStationUid() == null) throw KnowledgeBaseRefusal.KB_FAVOURITE_NEEDS_A_PARTNER.raise();
             marked = favourites.markPartner(
                     session.stationId(),
                     session.member().id(),
@@ -93,7 +93,8 @@ public class KbFavouriteRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void unmark(Context ctx) {
         var member = StationSession.from(ctx).member();
-        if (!favourites.unmark(member.id(), pathInt(ctx, "id"))) throw Refusal.KB_FAVOURITE_NOT_HERE.raise();
+        if (!favourites.unmark(member.id(), pathInt(ctx, "id")))
+            throw KnowledgeBaseRefusal.KB_FAVOURITE_NOT_HERE.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

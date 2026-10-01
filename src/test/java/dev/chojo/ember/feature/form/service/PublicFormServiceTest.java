@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
@@ -56,9 +57,9 @@ class PublicFormServiceTest {
 
         assertEquals(form, service.sharedForm("t"));
         assertEquals(station, service.stationOf(form));
-        assertEquals(Refusal.FORM_LINK_UNKNOWN, refusalOf(() -> service.sharedForm("x")));
+        assertEquals(FormRefusal.FORM_LINK_UNKNOWN, refusalOf(() -> service.sharedForm("x")));
         assertEquals(
-                Refusal.STATION_NOT_HERE_BEHIND_FORM_LINK,
+                FormRefusal.STATION_NOT_HERE_BEHIND_FORM_LINK,
                 refusalOf(() -> service.stationOf(form(4, FormPurpose.POLL, FormVisibility.PUBLIC))));
     }
 
@@ -69,7 +70,7 @@ class PublicFormServiceTest {
 
         assertEquals(poll, service.resolveFormOfStation("wache", poll.publicUid()));
         assertEquals(
-                Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM,
+                FormRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM,
                 refusalOf(() -> service.resolveFormOfStation("gone", poll.publicUid())));
     }
 
@@ -85,16 +86,16 @@ class PublicFormServiceTest {
         when(forms.findByPublicUid(linkOnly.publicUid())).thenReturn(Optional.of(linkOnly));
 
         assertEquals(
-                Refusal.PUBLIC_FORM_NOT_HERE,
+                FormRefusal.PUBLIC_FORM_NOT_HERE,
                 refusalOf(() -> service.resolveFormOfStation("wache", foreign.publicUid())));
         assertEquals(
-                Refusal.FORM_NOT_ANSWERED_FROM_OUTSIDE,
+                FormRefusal.FORM_NOT_ANSWERED_FROM_OUTSIDE,
                 refusalOf(() -> service.resolveFormOfStation("wache", internal.publicUid())));
         assertEquals(
-                Refusal.FORM_NOT_OPENLY_ADDRESSED,
+                FormRefusal.FORM_NOT_OPENLY_ADDRESSED,
                 refusalOf(() -> service.resolveFormOfStation("wache", linkOnly.publicUid())));
         assertEquals(
-                Refusal.PUBLIC_FORM_NOT_HERE,
+                FormRefusal.PUBLIC_FORM_NOT_HERE,
                 refusalOf(() -> service.resolveFormOfStation("wache", UUID.randomUUID())));
     }
 }

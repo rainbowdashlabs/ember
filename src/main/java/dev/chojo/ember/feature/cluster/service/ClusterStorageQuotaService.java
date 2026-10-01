@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -196,7 +196,8 @@ public class ClusterStorageQuotaService {
     public void applyPreset(int clusterId, int presetId, List<UUID> stationUids) {
         Cluster cluster = requireCluster(clusterId);
         var preset = requirePreset(clusterId, presetId);
-        if (stationUids == null || stationUids.isEmpty()) throw Refusal.CLUSTER_QUOTA_TIER_NAMES_NO_STATION.raise();
+        if (stationUids == null || stationUids.isEmpty())
+            throw ClusterRefusal.CLUSTER_QUOTA_TIER_NAMES_NO_STATION.raise();
 
         List<Integer> stationIds = stationUids.stream()
                 .map(uid -> requireStationOf(cluster, uid).id())
@@ -211,7 +212,7 @@ public class ClusterStorageQuotaService {
                     .sum();
             long promised = others + preset.total() * stationIds.size();
             if (promised > cluster.storagePoolBytes()) {
-                throw Refusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL.raise();
+                throw ClusterRefusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL.raise();
             }
         }
 
@@ -353,12 +354,13 @@ public class ClusterStorageQuotaService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_QUOTA_CLUSTER_GONE::raise);
+        return clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_QUOTA_CLUSTER_GONE::raise);
     }
 
     private ClusterStorageQuotaPreset requirePreset(int clusterId, int presetId) {
-        var preset = quotaRepository.findPreset(presetId).orElseThrow(Refusal.CLUSTER_QUOTA_TIER_NOT_HERE::raise);
-        if (preset.clusterId() != clusterId) throw Refusal.CLUSTER_QUOTA_TIER_NOT_HERE.raise();
+        var preset =
+                quotaRepository.findPreset(presetId).orElseThrow(ClusterRefusal.CLUSTER_QUOTA_TIER_NOT_HERE::raise);
+        if (preset.clusterId() != clusterId) throw ClusterRefusal.CLUSTER_QUOTA_TIER_NOT_HERE.raise();
         return preset;
     }
 
@@ -369,16 +371,18 @@ public class ClusterStorageQuotaService {
      * the same pool as everybody else's.
      */
     private Station requireStationOf(Cluster cluster, UUID stationUid) {
-        Station station =
-                stationRepository.findByUid(stationUid).orElseThrow(Refusal.CLUSTER_QUOTA_STATION_NOT_KNOWN::raise);
+        Station station = stationRepository
+                .findByUid(stationUid)
+                .orElseThrow(ClusterRefusal.CLUSTER_QUOTA_STATION_NOT_KNOWN::raise);
         return requireStation(cluster, station.id());
     }
 
     private Station requireStation(Cluster cluster, int stationId) {
-        Station station = stationRepository.findById(stationId).orElseThrow(Refusal.CLUSTER_QUOTA_STATION_GONE::raise);
+        Station station =
+                stationRepository.findById(stationId).orElseThrow(ClusterRefusal.CLUSTER_QUOTA_STATION_GONE::raise);
         boolean ownStore = station.id() == cluster.homeStationId();
         if (!ownStore && (station.clusterId() == null || station.clusterId() != cluster.id())) {
-            throw Refusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER.raise();
+            throw ClusterRefusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER.raise();
         }
         return station;
     }
@@ -394,12 +398,12 @@ public class ClusterStorageQuotaService {
         if (pool == null || totalBytes == null) return;
         long othersTotal = quotaRepository.sumGrantedTotals(cluster.id(), stationId);
         if (othersTotal + totalBytes > pool) {
-            throw Refusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise();
+            throw ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise();
         }
     }
 
     private static String requireName(String name) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_QUOTA_TIER_NEEDS_A_NAME.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_QUOTA_TIER_NEEDS_A_NAME.raise();
         return name.trim();
     }
 
@@ -407,13 +411,13 @@ public class ClusterStorageQuotaService {
         boolean taken = quotaRepository.findPresets(clusterId).stream()
                 .anyMatch(
                         preset -> preset.id() != exceptPresetId && preset.name().equalsIgnoreCase(name));
-        if (taken) throw Refusal.CLUSTER_QUOTA_TIER_NAME_TAKEN.raise(name);
+        if (taken) throw ClusterRefusal.CLUSTER_QUOTA_TIER_NAME_TAKEN.raise(name);
     }
 
     /** Room is a size, and a size below zero is a typing mistake rather than a rule anybody meant. */
     private static void requirePositive(Long... values) {
         for (Long value : values) {
-            if (value != null && value < 0) throw Refusal.CLUSTER_QUOTA_ROOM_BELOW_NOTHING.raise();
+            if (value != null && value < 0) throw ClusterRefusal.CLUSTER_QUOTA_ROOM_BELOW_NOTHING.raise();
         }
     }
 

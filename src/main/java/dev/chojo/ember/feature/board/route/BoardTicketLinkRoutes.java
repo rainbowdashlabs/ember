@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketKbLink;
@@ -65,8 +65,9 @@ public class BoardTicketLinkRoutes implements Routes {
      * named in the body is not, and linking one pulls its title into a panel the caller can read.
      */
     private void requireTicketInStation(int ticketId, StationSession session) {
-        var ticket = ticketService.findById(ticketId).orElseThrow(Refusal.LINKED_TICKET_NOT_HERE::raise);
-        var board = boardService.findById(ticket.boardId()).orElseThrow(Refusal.LINKED_TICKET_BOARD_NOT_HERE::raise);
+        var ticket = ticketService.findById(ticketId).orElseThrow(BoardRefusal.LINKED_TICKET_NOT_HERE::raise);
+        var board =
+                boardService.findById(ticket.boardId()).orElseThrow(BoardRefusal.LINKED_TICKET_BOARD_NOT_HERE::raise);
         RouteSupport.requireSameStation(session.user(), board.stationId());
     }
 
@@ -75,7 +76,7 @@ public class BoardTicketLinkRoutes implements Routes {
      * reason: the link list shows what it points at.
      */
     private void requireKbFileInStation(int kbFileId, StationSession session) {
-        var file = knowledgeBaseService.findFile(kbFileId).orElseThrow(Refusal.LINKED_WIKI_FILE_NOT_HERE::raise);
+        var file = knowledgeBaseService.findFile(kbFileId).orElseThrow(BoardRefusal.LINKED_WIKI_FILE_NOT_HERE::raise);
         RouteSupport.requireSameStation(session.user(), file.stationId());
     }
 
@@ -186,7 +187,7 @@ public class BoardTicketLinkRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(WeblinkRequest.class);
-        if (req.url() == null || req.url().isBlank()) throw Refusal.WEBLINK_NEEDS_AN_ADDRESS.raise();
+        if (req.url() == null || req.url().isBlank()) throw BoardRefusal.WEBLINK_NEEDS_AN_ADDRESS.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(ticketService.addWeblink(ticketId, req.url(), req.title() != null ? req.title() : ""));
     }
@@ -207,7 +208,7 @@ public class BoardTicketLinkRoutes implements Routes {
         int ticketId = guards.editableTicketId(ctx, session);
         int weblinkId = pathInt(ctx, "weblinkId");
         if (ticketService.findWeblinks(ticketId).stream().noneMatch(w -> w.id() == weblinkId)) {
-            throw Refusal.WEBLINK_NOT_HERE.raise();
+            throw BoardRefusal.WEBLINK_NOT_HERE.raise();
         }
         ticketService.deleteWeblink(weblinkId);
         ctx.status(HttpStatus.NO_CONTENT);

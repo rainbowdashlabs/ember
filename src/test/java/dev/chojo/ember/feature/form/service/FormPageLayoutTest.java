@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -151,7 +151,7 @@ class FormPageLayoutTest extends RepositoryTestBase {
                 () -> service.saveLayout(
                         form, List.of(page("p0", null), page("two", PageTarget.page("p0"))), List.of()));
 
-        assertEquals(Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN, refused.refusal());
+        assertEquals(FormRefusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN, refused.refusal());
         assertEquals(List.of("p0"), keys(service.findPages(form)), "nothing was saved");
     }
 
@@ -163,7 +163,7 @@ class FormPageLayoutTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.saveLayout(form, List.of(page("p0", PageTarget.page("nowhere"))), List.of()));
 
-        assertEquals(Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN, refused.refusal());
+        assertEquals(FormRefusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN, refused.refusal());
     }
 
     @Test
@@ -171,17 +171,17 @@ class FormPageLayoutTest extends RepositoryTestBase {
         int form = newForm();
 
         assertEquals(
-                Refusal.FORM_PAGE_KEYS_NOT_DISTINCT,
+                FormRefusal.FORM_PAGE_KEYS_NOT_DISTINCT,
                 assertThrows(RefusalResponse.class, () -> service.saveLayout(form, List.of(), List.of()))
                         .refusal());
         assertEquals(
-                Refusal.FORM_PAGE_KEYS_NOT_DISTINCT,
+                FormRefusal.FORM_PAGE_KEYS_NOT_DISTINCT,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> service.saveLayout(form, List.of(page("a", null), page("a", null)), List.of()))
                         .refusal());
         assertEquals(
-                Refusal.FORM_PAGE_KEYS_NOT_DISTINCT,
+                FormRefusal.FORM_PAGE_KEYS_NOT_DISTINCT,
                 assertThrows(RefusalResponse.class, () -> service.saveLayout(form, List.of(page(" ", null)), List.of()))
                         .refusal());
     }
@@ -194,7 +194,7 @@ class FormPageLayoutTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.saveLayout(form, List.of(page("p0", null)), List.of(text(null, "elsewhere", "A"))));
 
-        assertEquals(Refusal.QUESTION_ON_NO_PAGE, refused.refusal());
+        assertEquals(FormRefusal.QUESTION_ON_NO_PAGE, refused.refusal());
     }
 
     private static int newForm() {

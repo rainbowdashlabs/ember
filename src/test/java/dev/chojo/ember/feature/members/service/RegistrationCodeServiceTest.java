@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -73,15 +73,15 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
         int elsewhere = station.id() + 100_000;
         assertTrue(service.findInStation(elsewhere, codeId).isEmpty());
         assertEquals(
-                Refusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS,
+                MemberRefusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS,
                 assertThrows(RefusalResponse.class, () -> service.findGroupIds(elsewhere, codeId))
                         .refusal());
         assertEquals(
-                Refusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS,
+                MemberRefusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS,
                 assertThrows(RefusalResponse.class, () -> service.setGroups(elsewhere, codeId, List.of()))
                         .refusal());
         assertEquals(
-                Refusal.REGISTRATION_CODE_NOT_DELETED,
+                MemberRefusal.REGISTRATION_CODE_NOT_DELETED,
                 assertThrows(RefusalResponse.class, () -> service.delete(elsewhere, codeId))
                         .refusal());
         assertTrue(service.findInStation(station.id(), codeId).isPresent());
@@ -145,13 +145,13 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
         var foreign = memberGroupRepo.create(elsewhere.id(), "Foreign");
 
         assertEquals(
-                Refusal.REGISTRATION_CODE_GROUP_WRONG_USER_TYPE,
+                MemberRefusal.REGISTRATION_CODE_GROUP_WRONG_USER_TYPE,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> service.setGroups(station.id(), codeId, List.of(trainers.id())))
                         .refusal());
         assertEquals(
-                Refusal.REGISTRATION_CODE_GROUP_NOT_HERE,
+                MemberRefusal.REGISTRATION_CODE_GROUP_NOT_HERE,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> service.setGroups(station.id(), codeId, List.of(foreign.id())))

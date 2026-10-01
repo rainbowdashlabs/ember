@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.media.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -93,7 +93,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> media.upload(station.id(), pageId, member.id(), "bomb.png", "image/png", bomb));
 
-        assertEquals(Refusal.PICTURE_TOO_MANY_PIXELS, refusal.refusal());
+        assertEquals(GeneralRefusal.PICTURE_TOO_MANY_PIXELS, refusal.refusal());
         assertEquals(before, media.listLibrary(station.id(), true).size());
     }
 

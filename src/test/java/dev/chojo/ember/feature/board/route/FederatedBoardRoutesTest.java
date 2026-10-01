@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.board.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
 import dev.chojo.ember.feature.board.service.FederatedBoardAccessService;
@@ -108,7 +108,7 @@ class FederatedBoardRoutesTest {
 
         var answer = harness.request(client -> client.get(PREFIX + "/federated/boards/" + stranger + "/EIN", user()));
 
-        assertEquals(Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOARD, refusalOf(answer));
+        assertEquals(BoardRefusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOARD, refusalOf(answer));
     }
 
     @Test
@@ -139,7 +139,7 @@ class FederatedBoardRoutesTest {
                                     user())
                             .code());
             assertEquals(
-                    Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOOKMARK,
+                    BoardRefusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOOKMARK,
                     refusalOf(client.post(
                             PREFIX + "/federated/boards/bookmarks",
                             body(bookmark.formatted(stranger, BOARD_UID)),

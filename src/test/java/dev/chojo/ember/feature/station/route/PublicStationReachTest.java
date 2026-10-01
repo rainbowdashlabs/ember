@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.station.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -105,7 +105,7 @@ class PublicStationReachTest {
     void aStationWithNothingPublicAtAllAnswersNobody() {
         var refused = askFor(routesWhereFormsReach(false));
 
-        assertEquals(Refusal.PUBLIC_STATION_NOTHING_TO_SHOW, refusalOf(refused));
+        assertEquals(StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW, refusalOf(refused));
         assertEquals(HttpStatus.NOT_FOUND.getCode(), refused.code());
     }
 

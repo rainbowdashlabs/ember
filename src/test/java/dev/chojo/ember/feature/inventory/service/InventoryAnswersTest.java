@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -143,7 +143,7 @@ class InventoryAnswersTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> written(FieldType.CHOICE, options, false, "colour", new ItemFieldValues.ItemEnumValue("Blau")));
-        assertEquals(Refusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED, refused.refusal());
     }
 
     /** A choice kept before the field types shared their names still reads as the same choice. */

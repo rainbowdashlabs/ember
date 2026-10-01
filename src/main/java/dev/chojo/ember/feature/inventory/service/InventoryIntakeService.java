@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -115,18 +116,18 @@ public class InventoryIntakeService {
             InventoryIntakeRow row = rows.get(line);
             int shown = line + 1;
             if (row.sizeId() != null && !sizes.contains(row.sizeId())) {
-                throw refusal(Refusal.INTAKE_SIZE_NOT_IN_INVENTORY, shown, null);
+                throw refusal(InventoryRefusal.INTAKE_SIZE_NOT_IN_INVENTORY, shown, null);
             }
             if (row.memberId() != null && !members.contains(row.memberId())) {
-                throw refusal(Refusal.INTAKE_MEMBER_NOT_AT_STATION, shown, null);
+                throw refusal(InventoryRefusal.INTAKE_MEMBER_NOT_AT_STATION, shown, null);
             }
             String number = blankToNull(row.internalId());
             if (number == null) continue;
             if (!numbers.add(number)) {
-                throw refusal(Refusal.INTAKE_NUMBER_TWICE, shown, number);
+                throw refusal(InventoryRefusal.INTAKE_NUMBER_TWICE, shown, number);
             }
             if (inventoryRepository.findByInternalId(stationId, number).isPresent()) {
-                throw refusal(Refusal.INTAKE_NUMBER_TAKEN, shown, number);
+                throw refusal(InventoryRefusal.INTAKE_NUMBER_TAKEN, shown, number);
             }
         }
     }

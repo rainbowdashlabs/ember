@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
@@ -61,7 +61,7 @@ class FormPathWalkerTest {
         var walk = FormPathWalker.walk(pages, List.of(question), Map.of(1, new FormAnswerValue.TextAnswer("  ")));
 
         assertEquals(
-                List.of(FormAnswersRefused.AnswerProblem.of(1, "p0", Refusal.QUESTION_NEEDS_AN_ANSWER)),
+                List.of(FormAnswersRefused.AnswerProblem.of(1, "p0", FormRefusal.QUESTION_NEEDS_AN_ANSWER)),
                 walk.problems());
     }
 
@@ -142,8 +142,8 @@ class FormPathWalkerTest {
 
         assertEquals(
                 List.of(
-                        FormAnswersRefused.AnswerProblem.of(42, null, Refusal.ANSWER_TO_QUESTION_NOT_ON_FORM),
-                        FormAnswersRefused.AnswerProblem.of(1, "p0", Refusal.ANSWER_DOES_NOT_FIT_QUESTION)),
+                        FormAnswersRefused.AnswerProblem.of(42, null, FormRefusal.ANSWER_TO_QUESTION_NOT_ON_FORM),
+                        FormAnswersRefused.AnswerProblem.of(1, "p0", FormRefusal.ANSWER_DOES_NOT_FIT_QUESTION)),
                 walk.problems());
     }
 

@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.news.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentOrigin;
 import dev.chojo.ember.feature.comment.entity.CreatedAudience;
@@ -61,7 +62,7 @@ public class NewsCommentTarget implements CommentTarget {
 
     @Override
     public Refusal missing() {
-        return Refusal.NEWS_NOT_HERE_OR_NOT_YOURS;
+        return NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS;
     }
 
     @Override

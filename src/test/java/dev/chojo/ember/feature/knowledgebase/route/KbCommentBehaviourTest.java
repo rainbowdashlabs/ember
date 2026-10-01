@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.CommentRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -147,17 +149,17 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
 
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.NOT_HERE_OR_NOT_YOURS,
+                    GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                     refusalOf(
                             client.get(PREFIX + "/kb/files/%d/comments".formatted(fileId), harness.as(as(stranger)))));
             assertEquals(
-                    Refusal.NOT_HERE_OR_NOT_YOURS,
+                    GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                     refusalOf(client.post(
                             PREFIX + "/kb/files/%d/comments".formatted(fileId),
                             body("{\"content\": \"x\"}"),
                             harness.as(as(stranger)))));
             assertEquals(
-                    Refusal.NOT_HERE_OR_NOT_YOURS,
+                    GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                     refusalOf(client.delete(
                             PREFIX + "/kb/comments/" + id,
                             null,
@@ -170,7 +172,7 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
         int id = write(author, fileId, "alt");
 
         assertEquals(
-                Refusal.KB_COMMENT_NOT_YOURS_TO_CHANGE,
+                KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_CHANGE,
                 refusalOf(change(as(other, StationPermission.KNOWLEDGE_MANAGER), id, "fremd")));
         var changed = json(change(as(author), id, "neu"));
 
@@ -182,7 +184,7 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
     void anEmptyChangeIsRefused() {
         int id = write(author, fileId, "alt");
 
-        assertEquals(Refusal.KB_COMMENT_EMPTY, refusalOf(change(as(author), id, " ")));
+        assertEquals(KnowledgeBaseRefusal.KB_COMMENT_EMPTY, refusalOf(change(as(author), id, " ")));
     }
 
     @Test
@@ -191,7 +193,7 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
         int foreign = write(author, fileId, "fremd");
         int managed = write(author, fileId, "verwaltet");
 
-        assertEquals(Refusal.KB_COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), foreign)));
+        assertEquals(KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), foreign)));
         assertEquals(204, remove(as(author), own).code());
         assertEquals(
                 204,
@@ -220,7 +222,7 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
 
         var answer = post(other, fileId, "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent));
 
-        assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refusalOf(answer));
+        assertEquals(CommentRefusal.COMMENT_PARENT_ELSEWHERE, refusalOf(answer));
     }
 
     @Test

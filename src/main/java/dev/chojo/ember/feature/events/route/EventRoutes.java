@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
@@ -347,7 +347,7 @@ public class EventRoutes implements Routes {
         try {
             return LocalDate.parse(value);
         } catch (DateTimeParseException e) {
-            throw Refusal.EVENT_LIST_BOUNDS_NOT_DATES.raise();
+            throw EventRefusal.EVENT_LIST_BOUNDS_NOT_DATES.raise();
         }
     }
 
@@ -511,7 +511,7 @@ public class EventRoutes implements Routes {
                             ctx.json(saved);
                         },
                         () -> {
-                            throw Refusal.EVENT_NOT_HERE_ON_CHANGE.raise();
+                            throw EventRefusal.EVENT_NOT_HERE_ON_CHANGE.raise();
                         });
     }
 
@@ -532,7 +532,7 @@ public class EventRoutes implements Routes {
         if (crudService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_NOT_HERE_ON_DELETE.raise();
+            throw EventRefusal.EVENT_NOT_HERE_ON_DELETE.raise();
         }
     }
 
@@ -564,9 +564,9 @@ public class EventRoutes implements Routes {
     }
 
     private void validate(EventRequest req) {
-        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_NEEDS_A_NAME.raise();
-        if (req.startTime() == null || req.endTime() == null) throw Refusal.EVENT_NEEDS_A_TIME.raise();
-        if (req.eventType() == null) throw Refusal.EVENT_NEEDS_A_KIND.raise();
+        if (req.name() == null || req.name().isBlank()) throw EventRefusal.EVENT_NEEDS_A_NAME.raise();
+        if (req.startTime() == null || req.endTime() == null) throw EventRefusal.EVENT_NEEDS_A_TIME.raise();
+        if (req.eventType() == null) throw EventRefusal.EVENT_NEEDS_A_KIND.raise();
     }
 
     /**
@@ -724,7 +724,7 @@ public class EventRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BatchCreateRequest.class);
         if (req.rows() == null || req.rows().isEmpty()) {
-            throw Refusal.BATCH_NEEDS_ROWS.raise();
+            throw EventRefusal.BATCH_NEEDS_ROWS.raise();
         }
         var requestedInlineFields = req.inlineFields();
         List<BatchFieldEntry> inlineFields = requestedInlineFields != null
@@ -780,7 +780,7 @@ public class EventRoutes implements Routes {
                 LocalDate.parse(req.to()),
                 generatedBy);
         if (pdf.isEmpty()) {
-            throw Refusal.EVENT_LIST_NOT_DRAWN.raise();
+            throw EventRefusal.EVENT_LIST_NOT_DRAWN.raise();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", pdf.get().contentDisposition());

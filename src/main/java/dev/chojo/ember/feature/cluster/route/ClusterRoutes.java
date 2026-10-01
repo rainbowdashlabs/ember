@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterAppointmentService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -129,8 +129,9 @@ public class ClusterRoutes implements Routes {
         if (autoFederate != null && autoFederate != cluster.autoFederate()) {
             clusterService.setAutoFederate(cluster.id(), autoFederate);
         }
-        ctx.json(toResponse(
-                clusterService.findById(cluster.id()).orElseThrow(Refusal.CLUSTER_NOT_HERE_AFTER_RENAME::raise)));
+        ctx.json(toResponse(clusterService
+                .findById(cluster.id())
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_AFTER_RENAME::raise)));
     }
 
     @OpenApi(
@@ -143,7 +144,7 @@ public class ClusterRoutes implements Routes {
     private void delete(Context ctx) {
         Cluster cluster = clusterService
                 .findByUid(parseUid(ctx.pathParam("clusterUid")))
-                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_DELETE::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_ON_DELETE::raise);
         clusterService.delete(cluster.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -168,7 +169,7 @@ public class ClusterRoutes implements Routes {
     private void appointAdministrator(Context ctx) {
         UUID clusterUid = parseUid(ctx.pathParam("clusterUid"));
         var request = ctx.bodyAsClass(AppointRequest.class);
-        if (request.accountUid() == null) throw Refusal.CLUSTER_APPOINTMENT_NEEDS_AN_ACCOUNT.raise();
+        if (request.accountUid() == null) throw ClusterRefusal.CLUSTER_APPOINTMENT_NEEDS_AN_ACCOUNT.raise();
         appointments.appointAdministrator(clusterUid, parseUid(request.accountUid()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -180,15 +181,15 @@ public class ClusterRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN.raise();
+        return clusterService.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE::raise);
     }
 
     private UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_NOT_AN_IDENTITY.raise(raw);
+            throw ClusterRefusal.CLUSTER_NOT_AN_IDENTITY.raise(raw);
         }
     }
 

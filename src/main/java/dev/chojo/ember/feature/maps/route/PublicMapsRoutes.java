@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.maps.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapTileRateLimiter;
@@ -55,7 +55,7 @@ public class PublicMapsRoutes implements Routes {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            throw Refusal.PUBLIC_MAP_TILE_NUMBER_NOT_A_NUMBER.raise(fieldName);
+            throw MapRefusal.PUBLIC_MAP_TILE_NUMBER_NOT_A_NUMBER.raise(fieldName);
         }
     }
 
@@ -102,10 +102,12 @@ public class PublicMapsRoutes implements Routes {
     private void getTile(Context ctx) {
         var retryAfter = rateLimiter.tryAcquire(ctx.ip());
         if (retryAfter.isPresent()) {
-            ctx.status(Refusal.MAP_TILES_TOO_OFTEN.status())
+            ctx.status(MapRefusal.MAP_TILES_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))
                     .json(ErrorResponseWrapper.of(
-                            Refusal.MAP_TILES_TOO_OFTEN, Refusal.MAP_TILES_TOO_OFTEN.message(), retryAfter.get()));
+                            MapRefusal.MAP_TILES_TOO_OFTEN,
+                            MapRefusal.MAP_TILES_TOO_OFTEN.message(),
+                            retryAfter.get()));
             return;
         }
         int z = parseInt(ctx.pathParam("z"), "z");

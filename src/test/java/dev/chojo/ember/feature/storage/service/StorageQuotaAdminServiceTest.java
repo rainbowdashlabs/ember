@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaAdminService.QuotaUpdateRequest;
@@ -63,7 +63,7 @@ class StorageQuotaAdminServiceTest {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.applyPreset(3, List.of(HERE.toString(), "not-a-station")));
 
-        assertEquals(Refusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN, refused.refusal());
+        assertEquals(StorageRefusal.STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN, refused.refusal());
         verify(presets, never()).applyToStation(anyInt(), anyInt());
     }
 
@@ -73,7 +73,7 @@ class StorageQuotaAdminServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.updateStationQuotas(GONE, request));
 
-        assertEquals(Refusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN, refused.refusal());
+        assertEquals(StorageRefusal.STATION_NOT_HERE_FOR_STORAGE_ADMIN, refused.refusal());
         verify(quotas, never()).updateStationQuotas(anyInt(), any(), any(), any(), any(), any(), any(), any());
     }
 

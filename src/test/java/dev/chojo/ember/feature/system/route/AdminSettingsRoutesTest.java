@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.InstanceMailSettingsService;
@@ -304,7 +304,7 @@ class AdminSettingsRoutesTest {
                     delete(client, "/admin/config/mailing/blocks?provider=BREVO&domain=example.org")
                             .code());
             assertEquals(
-                    Refusal.MAIL_PROVIDER_KIND_UNKNOWN,
+                    SystemRefusal.MAIL_PROVIDER_KIND_UNKNOWN,
                     refusalOf(delete(client, "/admin/config/mailing/blocks?provider=PIGEON")));
         });
 

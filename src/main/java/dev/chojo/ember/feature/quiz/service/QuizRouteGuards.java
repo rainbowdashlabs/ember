@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -65,7 +65,7 @@ public class QuizRouteGuards {
      * Loads a question and asserts its catalog belongs to the caller's station, returning it.
      */
     public QuizQuestion requireOwnedQuestion(Context ctx, int questionId) {
-        var question = questionService.findQuestion(questionId).orElseThrow(Refusal.QUIZ_QUESTION_NOT_HERE::raise);
+        var question = questionService.findQuestion(questionId).orElseThrow(QuizRefusal.QUIZ_QUESTION_NOT_HERE::raise);
         requireOwnedCatalog(ctx, question.catalogId());
         return question;
     }
@@ -82,7 +82,7 @@ public class QuizRouteGuards {
      * Loads an attempt and asserts its test belongs to the caller's station, returning it.
      */
     public QuizTestAttempt requireOwnedAttempt(Context ctx, int attemptId) {
-        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE::raise);
+        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(QuizRefusal.QUIZ_ATTEMPT_NOT_HERE::raise);
         requireOwnedTest(ctx, attempt.testId());
         return attempt;
     }
@@ -94,7 +94,7 @@ public class QuizRouteGuards {
      */
     public QuizTest requireModifiableTest(Context ctx) {
         var test = requireOwnedTest(ctx, pathInt(ctx, "id"));
-        if (test.status() == TestStatus.ACTIVE) throw Refusal.QUIZ_TEST_RUNNING_CANNOT_CHANGE.raise();
+        if (test.status() == TestStatus.ACTIVE) throw QuizRefusal.QUIZ_TEST_RUNNING_CANNOT_CHANGE.raise();
         return test;
     }
 
@@ -105,9 +105,10 @@ public class QuizRouteGuards {
      */
     public QuizTestAttempt requireMemberAttempt(Context ctx, StationSession session) {
         int attemptId = pathInt(ctx, "id");
-        var attempt =
-                attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER::raise);
-        if (attempt.memberId() != session.member().id()) throw Refusal.QUIZ_ATTEMPT_NOT_YOURS.raise();
+        var attempt = attemptService
+                .findAttemptById(attemptId)
+                .orElseThrow(QuizRefusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER::raise);
+        if (attempt.memberId() != session.member().id()) throw QuizRefusal.QUIZ_ATTEMPT_NOT_YOURS.raise();
         return attempt;
     }
 }

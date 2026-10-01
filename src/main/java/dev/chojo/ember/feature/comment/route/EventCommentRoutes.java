@@ -7,10 +7,10 @@ package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentFilter;
@@ -81,7 +81,7 @@ public class EventCommentRoutes implements Routes {
         try {
             return new CommentFilter.Occurrence(LocalDate.parse(dateParam));
         } catch (DateTimeParseException notADate) {
-            throw Refusal.COMMENT_DAY_NOT_A_DATE.raise();
+            throw CommentRefusal.COMMENT_DAY_NOT_A_DATE.raise();
         }
     }
 
@@ -125,7 +125,7 @@ public class EventCommentRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.COMMENT_NEEDS_TEXT.raise();
+            throw CommentRefusal.COMMENT_NEEDS_TEXT.raise();
         }
         var comment = commentService.create(
                 session,
@@ -152,17 +152,17 @@ public class EventCommentRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var comment = commentService
                 .findById(CommentEntityType.EVENT, commentId)
-                .orElseThrow(Refusal.COMMENT_NOT_HERE_ON_CHANGE::raise);
+                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_ON_CHANGE::raise);
         if (!commentService.mayModify(session, actor(session), comment, Moderation.EDIT)) {
-            throw Refusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var request = ctx.bodyAsClass(UpdateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
+            throw CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
         var updated = commentService
                 .update(comment, writer(session), request.content())
-                .orElseThrow(Refusal.COMMENT_NOT_HERE_AFTER_CHANGE::raise);
+                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(toResponse(updated));
     }
 
@@ -181,13 +181,13 @@ public class EventCommentRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var comment = commentService
                 .findById(CommentEntityType.EVENT, commentId)
-                .orElseThrow(Refusal.COMMENT_NOT_HERE_ON_DELETE::raise);
+                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_ON_DELETE::raise);
         commentService.requireSameStation(session, comment);
         if (!commentService.mayModify(session, actor(session), comment, Moderation.DELETE)) {
-            throw Refusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
         if (!commentService.delete(comment)) {
-            throw Refusal.COMMENT_NOT_DELETED.raise();
+            throw CommentRefusal.COMMENT_NOT_DELETED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

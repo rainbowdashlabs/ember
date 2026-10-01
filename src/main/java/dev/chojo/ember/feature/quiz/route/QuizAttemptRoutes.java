@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -89,7 +89,7 @@ public class QuizAttemptRoutes implements Routes {
         var test = guards.requireOwnedTest(ctx, testId);
         int memberId = session.member().id();
         if (!accessService.isTestAccessible(test, memberId, session.user().permissions())) {
-            throw Refusal.QUIZ_TEST_NOT_OPEN_TO_YOU.raise();
+            throw QuizRefusal.QUIZ_TEST_NOT_OPEN_TO_YOU.raise();
         }
         var existing = attemptService.findAttempt(testId, session.member().id());
         if (existing.isPresent()) {
@@ -137,7 +137,7 @@ public class QuizAttemptRoutes implements Routes {
         var session = StationSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
         if (attempt.status() != AttemptStatus.IN_PROGRESS) {
-            throw Refusal.QUIZ_ALREADY_HANDED_IN.raise();
+            throw QuizRefusal.QUIZ_ALREADY_HANDED_IN.raise();
         }
         var req = ctx.bodyAsClass(QuizAnswerRequest.class);
         attemptService.saveAnswer(attempt.id(), req.questionId(), req.answer());
@@ -160,11 +160,11 @@ public class QuizAttemptRoutes implements Routes {
         var session = StationSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
         if (!attemptService.submitAttempt(attempt.id())) {
-            throw Refusal.QUIZ_NOT_HANDED_IN.raise();
+            throw QuizRefusal.QUIZ_NOT_HANDED_IN.raise();
         }
         ctx.json(attemptService
                 .findAttemptById(attempt.id())
-                .orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_HANDING_IN::raise));
+                .orElseThrow(QuizRefusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_HANDING_IN::raise));
     }
 
     @OpenApi(
@@ -206,10 +206,10 @@ public class QuizAttemptRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizSuccessResponse.class)))
     private void gradeAnswer(Context ctx) {
         int answerId = pathInt(ctx, "id");
-        var answer = attemptService.findAnswerById(answerId).orElseThrow(Refusal.QUIZ_ANSWER_NOT_HERE::raise);
+        var answer = attemptService.findAnswerById(answerId).orElseThrow(QuizRefusal.QUIZ_ANSWER_NOT_HERE::raise);
         guards.requireOwnedAttempt(ctx, answer.attemptId());
         var req = ctx.bodyAsClass(QuizGradeRequest.class);
-        if (req.points() == null) throw Refusal.QUIZ_GRADE_NEEDS_POINTS.raise();
+        if (req.points() == null) throw QuizRefusal.QUIZ_GRADE_NEEDS_POINTS.raise();
         attemptService.gradeAnswer(answerId, req.points());
         ctx.json(new QuizSuccessResponse(true));
     }
@@ -224,7 +224,7 @@ public class QuizAttemptRoutes implements Routes {
         guards.requireOwnedAttempt(ctx, attemptId);
         attemptService.gradeAttempt(attemptId, session.member().id());
         attemptService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_GRADING.raise();
+            throw QuizRefusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_GRADING.raise();
         });
     }
 

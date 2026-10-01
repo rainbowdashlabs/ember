@@ -6,8 +6,9 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -395,7 +396,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
-        assertEquals(Refusal.FEDERATION_PARTNER_NOT_ACTIVE, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_NOT_ACTIVE, refused.refusal());
 
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);
     }
@@ -498,7 +499,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.updateFederatedComment(
                         stationB.id(), stationA.uid(), comment.id(), memberOfB(), "Hijacked"));
-        assertEquals(Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
+        assertEquals(NewsRefusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
     }
 
     @Test
@@ -518,7 +519,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.deleteFederatedComment(stationB.id(), stationA.uid(), comment.id(), memberOfB()));
-        assertEquals(Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE, refused.refusal());
+        assertEquals(NewsRefusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE, refused.refusal());
     }
 
     /**
@@ -531,7 +532,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         service.removeShare(news1.id());
         var listing = assertThrows(
                 RefusalResponse.class, () -> service.listFederatedComments(stationB.id(), stationA.uid(), news1.id()));
-        assertEquals(Refusal.NEWS_NOT_SHARED_WITH_PARTNER, listing.refusal());
+        assertEquals(NewsRefusal.NEWS_NOT_SHARED_WITH_PARTNER, listing.refusal());
         assertThrows(
                 RefusalResponse.class,
                 () -> service.createFederatedComment(
@@ -583,7 +584,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.listFederatedComments(stationB.id(), UUID.randomUUID(), news2.id()));
-        assertEquals(Refusal.NEWS_COMMENT_PARTNER_NOT_HERE, refused.refusal());
+        assertEquals(NewsRefusal.NEWS_COMMENT_PARTNER_NOT_HERE, refused.refusal());
     }
 
     @Test

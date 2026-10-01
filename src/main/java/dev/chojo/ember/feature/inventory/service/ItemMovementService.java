@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.MovementAdvanced;
@@ -309,7 +309,7 @@ public class ItemMovementService {
         Integer ownerClusterId = target.ownerClusterId();
         int flowId = target.flowId();
         List<MovementFlowStep> steps = walkable(flowService.findActiveSteps(flowId), lostReport);
-        if (steps.isEmpty()) throw Refusal.MOVEMENT_FLOW_HAS_NO_STEPS.raise();
+        if (steps.isEmpty()) throw InventoryRefusal.MOVEMENT_FLOW_HAS_NO_STEPS.raise();
 
         MovementFlowStep first = steps.getFirst();
         Integer promised = namesIncomingItem(first) ? null : pickedItemId;
@@ -390,11 +390,12 @@ public class ItemMovementService {
      */
     public ItemMovement correct(int movementId, Correction correction, Actor actor, String reason) {
         if (reason == null || reason.isBlank()) {
-            throw Refusal.MOVEMENT_CORRECTION_NEEDS_A_REASON.raise();
+            throw InventoryRefusal.MOVEMENT_CORRECTION_NEEDS_A_REASON.raise();
         }
-        ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_TO_CORRECT::raise);
-        if (movement.flowId() == null) throw Refusal.MOVEMENT_FLOW_GONE_BEFORE_CORRECTION.raise();
+        ItemMovement movement = movementRepository
+                .findById(movementId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_CORRECT::raise);
+        if (movement.flowId() == null) throw InventoryRefusal.MOVEMENT_FLOW_GONE_BEFORE_CORRECTION.raise();
 
         if (correction.detachArrival()) movementRepository.setIncomingItem(movementId, null);
         applyCorrectedCustody(movement, StepSubject.OUTGOING, correction.outgoing());
@@ -504,7 +505,7 @@ public class ItemMovementService {
     private void requireItIsStillThere(@Nullable Integer itemId) {
         if (itemId == null) return;
         if (inventoryRepository.findItemById(itemId).isEmpty()) {
-            throw Refusal.MOVEMENT_PIECE_NOT_HERE.raise();
+            throw InventoryRefusal.MOVEMENT_PIECE_NOT_HERE.raise();
         }
     }
 
@@ -516,10 +517,10 @@ public class ItemMovementService {
     private void requireFree(@Nullable Integer itemId) {
         if (itemId == null) return;
         movementRepository.findOpenByOutgoingItem(itemId).ifPresent(open -> {
-            throw Refusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
+            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
         });
         movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw Refusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
+            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
         });
     }
 
@@ -536,7 +537,7 @@ public class ItemMovementService {
         if (purpose != MovementPurpose.EXCHANGE || inventoryId == null) return;
         inventoryRepository.findById(inventoryId).ifPresent(inventory -> {
             if (!inventory.homogeneous()) {
-                throw Refusal.MOVEMENT_NOTHING_TO_SWAP_FOR.raise(inventory.name());
+                throw InventoryRefusal.MOVEMENT_NOTHING_TO_SWAP_FOR.raise(inventory.name());
             }
         });
     }
@@ -669,7 +670,7 @@ public class ItemMovementService {
     public ItemMovement force(
             int movementId, int stepId, Actor actor, @Nullable String note, @Nullable Integer pickedItemId) {
         if (note == null || note.isBlank()) {
-            throw Refusal.MOVEMENT_FORCE_NEEDS_A_NOTE.raise();
+            throw InventoryRefusal.MOVEMENT_FORCE_NEEDS_A_NOTE.raise();
         }
         return applyStep(movementId, stepId, actor, note, pickedItemId, true);
     }
@@ -691,16 +692,16 @@ public class ItemMovementService {
             boolean forced) {
         ItemMovement movement = requireOpen(movementId);
         if (movement.currentStepId() == null || movement.currentStepId() != stepId) {
-            throw Refusal.MOVEMENT_NOT_ON_THAT_STEP.raise();
+            throw InventoryRefusal.MOVEMENT_NOT_ON_THAT_STEP.raise();
         }
         MovementFlowStep step = flowService.findAllSteps(movement.flowId()).stream()
                 .filter(s -> s.id() == stepId)
                 .findFirst()
-                .orElseThrow(Refusal.MOVEMENT_STEP_GONE::raise);
+                .orElseThrow(InventoryRefusal.MOVEMENT_STEP_GONE::raise);
 
         AckKind ackKind = forced ? AckKind.FORCED : requireTurn(movement, step, actor);
         if (forced && step.actor() == StepActor.STATION) {
-            throw Refusal.MOVEMENT_STATION_STEP_NOT_FORCED.raise();
+            throw InventoryRefusal.MOVEMENT_STATION_STEP_NOT_FORCED.raise();
         }
 
         walk(movement, step, ackKind, actor.memberIdOrNull(), note, pickedItemId);
@@ -748,7 +749,7 @@ public class ItemMovementService {
         if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
         if (step.picksItem()) {
             Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
-            if (named == null) throw Refusal.MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE.raise();
+            if (named == null) throw InventoryRefusal.MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE.raise();
             movementRepository.setIncomingItem(movementId, named);
             subjectItemId = named;
         } else if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) {
@@ -866,7 +867,7 @@ public class ItemMovementService {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null && !mayAct(movement, step, actor) && !stillHoldsIt(movement, actor)) {
-            throw Refusal.MOVEMENT_NOT_YOURS_TO_CANCEL.raise();
+            throw InventoryRefusal.MOVEMENT_NOT_YOURS_TO_CANCEL.raise();
         }
         String itemName = itemName(movement.outgoingItemId());
         boolean away = hasLeftTheStation(movement.outgoingItemId());
@@ -1109,12 +1110,12 @@ public class ItemMovementService {
 
     private ItemMovement requireOpen(int movementId) {
         ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_TO_WALK::raise);
+                movementRepository.findById(movementId).orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_WALK::raise);
         if (movement.state().closed()) {
-            throw Refusal.MOVEMENT_ALREADY_CLOSED.raise();
+            throw InventoryRefusal.MOVEMENT_ALREADY_CLOSED.raise();
         }
         if (movement.flowId() == null) {
-            throw Refusal.MOVEMENT_FLOW_GONE.raise();
+            throw InventoryRefusal.MOVEMENT_FLOW_GONE.raise();
         }
         return movement;
     }
@@ -1171,7 +1172,7 @@ public class ItemMovementService {
      */
     private AckKind requireTurn(ItemMovement movement, MovementFlowStep step, Actor actor) {
         if (!mayAct(movement, step, actor)) {
-            throw Refusal.MOVEMENT_STEP_NOT_YOUR_TURN.raise();
+            throw InventoryRefusal.MOVEMENT_STEP_NOT_YOUR_TURN.raise();
         }
         return step.actor() == StepActor.OWNER && !actor.ownerRights() ? AckKind.ASSERTED : AckKind.CONFIRMED;
     }
@@ -1380,7 +1381,7 @@ public class ItemMovementService {
         ItemMovement movement = openMovement(movementId);
         int belongsOn = chainItBelongsOn(movement);
         var steps = flowService.findActiveSteps(belongsOn);
-        if (steps.isEmpty()) throw Refusal.MOVEMENT_RECHAIN_FLOW_HAS_NO_STEPS.raise();
+        if (steps.isEmpty()) throw InventoryRefusal.MOVEMENT_RECHAIN_FLOW_HAS_NO_STEPS.raise();
 
         MovementFlowStep standing = movement.currentStepId() == null
                 ? null
@@ -1389,12 +1390,12 @@ public class ItemMovementService {
         if (landing == null) {
             OptionalInt certain = sameMeaning(standing, steps);
             if (certain.isEmpty()) {
-                throw Refusal.MOVEMENT_RECHAIN_LANDING_NOT_CLEAR.raise();
+                throw InventoryRefusal.MOVEMENT_RECHAIN_LANDING_NOT_CLEAR.raise();
             }
             landing = certain.getAsInt();
         }
         if (landing < 0 || landing >= steps.size()) {
-            throw Refusal.MOVEMENT_RECHAIN_LANDING_OUT_OF_RANGE.raise();
+            throw InventoryRefusal.MOVEMENT_RECHAIN_LANDING_OUT_OF_RANGE.raise();
         }
 
         MovementFlowStep lands = steps.get(landing);
@@ -1436,10 +1437,11 @@ public class ItemMovementService {
     }
 
     private ItemMovement openMovement(int movementId) {
-        ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_TO_RECHAIN::raise);
+        ItemMovement movement = movementRepository
+                .findById(movementId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_RECHAIN::raise);
         if (movement.state() != MovementState.OPEN) {
-            throw Refusal.MOVEMENT_FINISHED_BEFORE_RECHAIN.raise();
+            throw InventoryRefusal.MOVEMENT_FINISHED_BEFORE_RECHAIN.raise();
         }
         return movement;
     }

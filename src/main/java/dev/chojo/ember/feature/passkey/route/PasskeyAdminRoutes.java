@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.passkey.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.PasskeyRefusal;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.passkey.entity.PasswordlessReport;
 import dev.chojo.ember.feature.passkey.entity.ResidueEntry;
@@ -97,8 +97,8 @@ public class PasskeyAdminRoutes implements Routes {
                 accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
             case RETIRED -> ctx.json(new MessageResponse("Password retired"));
-            case NO_PASSWORD -> throw Refusal.ACCOUNT_HOLDS_NO_PASSWORD_ON_RETIRE.raise();
-            case NO_TRIED_PASSKEY -> throw Refusal.NO_TRIED_PASSKEY_ON_RETIRE.raise();
+            case NO_PASSWORD -> throw PasskeyRefusal.ACCOUNT_HOLDS_NO_PASSWORD_ON_RETIRE.raise();
+            case NO_TRIED_PASSKEY -> throw PasskeyRefusal.NO_TRIED_PASSKEY_ON_RETIRE.raise();
         }
     }
 
@@ -136,11 +136,11 @@ public class PasskeyAdminRoutes implements Routes {
     private void updateConfig(Context ctx) {
         var request = ctx.bodyAsClass(PasskeysConfigRequest.class);
         var mode = request.mode();
-        if (mode == null) throw Refusal.PASSKEY_MODE_UNKNOWN.raise();
+        if (mode == null) throw PasskeyRefusal.PASSKEY_MODE_UNKNOWN.raise();
         var result = adminService.setMode(mode);
         switch (result.outcome()) {
-            case NO_MAIL_PROOF -> throw Refusal.PASSWORDLESS_NEEDS_WORKING_MAIL.raise();
-            case ACCOUNTS_DEPEND -> throw Refusal.PASSWORDLESS_ACCOUNTS_DEPEND.raise();
+            case NO_MAIL_PROOF -> throw PasskeyRefusal.PASSWORDLESS_NEEDS_WORKING_MAIL.raise();
+            case ACCOUNTS_DEPEND -> throw PasskeyRefusal.PASSWORDLESS_ACCOUNTS_DEPEND.raise();
             case OK -> ctx.json(toResponse(adminService.status()));
         }
     }

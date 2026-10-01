@@ -3,8 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.api;
+package dev.chojo.ember.api.refusal;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import io.javalin.http.HttpResponseException;
 
 /**

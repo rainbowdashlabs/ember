@@ -6,6 +6,9 @@
 package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.AccessGate;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -481,53 +484,53 @@ public class ApiServer {
         var method = ctx.method();
 
         if (DEMO_BLOCKED_PATHS.contains(path)) {
-            throw Refusal.DEMO_BLOCKS_ACTION.raise();
+            throw SystemRefusal.DEMO_BLOCKS_ACTION.raise();
         }
 
         if (method != HandlerType.GET && DEMO_BLOCKED_WRITE_PATHS.contains(path)) {
-            throw Refusal.DEMO_BLOCKS_UPLOAD.raise();
+            throw SystemRefusal.DEMO_BLOCKS_UPLOAD.raise();
         }
 
         if (path.startsWith("/api/v1/admin/stations") && (method == HandlerType.POST || method == HandlerType.DELETE)) {
-            throw Refusal.DEMO_BLOCKS_STATION_MANAGEMENT.raise();
+            throw SystemRefusal.DEMO_BLOCKS_STATION_MANAGEMENT.raise();
         }
 
         if (method == HandlerType.PUT
                 && (path.matches("/api/v1/station-members/\\d+/roles") || path.matches("/api/v1/groups/\\d+/roles"))) {
-            throw Refusal.DEMO_BLOCKS_ROLE_CHANGES.raise();
+            throw SystemRefusal.DEMO_BLOCKS_ROLE_CHANGES.raise();
         }
 
         if (path.startsWith("/api/v1/account/2fa/webauthn/register/")) {
-            throw Refusal.DEMO_BLOCKS_SECURITY_KEY_SETUP.raise();
+            throw SystemRefusal.DEMO_BLOCKS_SECURITY_KEY_SETUP.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/public/station-invite/[^/]+/accept")) {
-            throw Refusal.DEMO_BLOCKS_ACCEPTING_INVITES.raise();
+            throw SystemRefusal.DEMO_BLOCKS_ACCEPTING_INVITES.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/public/station/[^/]+/waitlists/[^/]+/register")) {
-            throw Refusal.DEMO_BLOCKS_PUBLIC_WAITING_LIST_SIGN_UP.raise();
+            throw SystemRefusal.DEMO_BLOCKS_PUBLIC_WAITING_LIST_SIGN_UP.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/pages/\\d+/files")) {
-            throw Refusal.DEMO_BLOCKS_PAGE_UPLOADS.raise();
+            throw SystemRefusal.DEMO_BLOCKS_PAGE_UPLOADS.raise();
         }
 
         if (method == HandlerType.POST
                 && (path.matches("/api/v1/kb/folders/\\d+/icon") || path.matches("/api/v1/kb/files/\\d+/images"))) {
-            throw Refusal.DEMO_BLOCKS_KB_UPLOADS.raise();
+            throw SystemRefusal.DEMO_BLOCKS_KB_UPLOADS.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/admin/discovery/peers/probe")) {
-            throw Refusal.DEMO_BLOCKS_PEER_PROBES.raise();
+            throw SystemRefusal.DEMO_BLOCKS_PEER_PROBES.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/lending/requests")) {
-            throw Refusal.DEMO_BLOCKS_LENDING.raise();
+            throw SystemRefusal.DEMO_BLOCKS_LENDING.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/ai/providers/[^/]+/models")) {
-            throw Refusal.DEMO_BLOCKS_AI_CALLS.raise();
+            throw SystemRefusal.DEMO_BLOCKS_AI_CALLS.raise();
         }
     }
 
@@ -553,7 +556,7 @@ public class ApiServer {
             Integer stationId = session == null ? null : session.stationId();
             if (stationId == null) return;
             if (stationRepository.isReadOnlyForTransfer(stationId)) {
-                throw Refusal.STATION_READ_ONLY_FOR_TRANSFER.raise();
+                throw StorageRefusal.STATION_READ_ONLY_FOR_TRANSFER.raise();
             }
             return;
         }
@@ -572,7 +575,7 @@ public class ApiServer {
             if (stationOpt.isEmpty()) return;
             int stationId = stationOpt.get().id();
             if (stationRepository.isReadOnlyForTransfer(stationId)) {
-                throw Refusal.STATION_READ_ONLY_FOR_TRANSFER_ON_ADMIN_STORAGE.raise();
+                throw StorageRefusal.STATION_READ_ONLY_FOR_TRANSFER_ON_ADMIN_STORAGE.raise();
             }
         }
     }
@@ -615,7 +618,7 @@ public class ApiServer {
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
         boolean expensivePath = ctx.path().contains("/ai/");
-        RateLimits.enforce(Refusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), expensivePath));
+        RateLimits.enforce(GeneralRefusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), expensivePath));
     }
 
     /**

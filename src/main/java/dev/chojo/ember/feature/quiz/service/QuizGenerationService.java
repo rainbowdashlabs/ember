@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -69,7 +69,7 @@ public class QuizGenerationService {
      */
     public String startQuestions(int stationId, int accountId, GenerateQuestionsRequest request) {
         if (request.entries() == null || request.entries().isEmpty()) {
-            throw Refusal.AI_GENERATION_NEEDS_ENTRIES.raise();
+            throw QuizRefusal.AI_GENERATION_NEEDS_ENTRIES.raise();
         }
         List<String> existingTitles = new ArrayList<>(existingTitles(stationId, request.catalogId()));
         Map<Integer, QuizCategory> categories = catalogService.findCategories(stationId).stream()
@@ -97,7 +97,7 @@ public class QuizGenerationService {
      */
     public GenerationPollResponse poll(int stationId, String jobId) {
         var job = jobs.get(jobId);
-        if (job == null || job.stationId() != stationId) throw Refusal.AI_GENERATION_NOT_HERE.raise();
+        if (job == null || job.stationId() != stationId) throw QuizRefusal.AI_GENERATION_NOT_HERE.raise();
         var results = job.drainResults();
         boolean done = job.isDone();
         if (done) jobs.remove(jobId);
@@ -200,7 +200,7 @@ public class QuizGenerationService {
         return catalogService
                 .findCatalog(catalogId)
                 .filter(catalog -> catalog.stationId() == stationId)
-                .orElseThrow(Refusal.AI_GENERATION_CATALOG_NOT_HERE::raise);
+                .orElseThrow(QuizRefusal.AI_GENERATION_CATALOG_NOT_HERE::raise);
     }
 
     private static String providerOf(@Nullable String provider) {

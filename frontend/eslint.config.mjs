@@ -1,3 +1,4 @@
+import {readdirSync} from 'node:fs'
 import vueI18n from '@intlify/eslint-plugin-vue-i18n'
 import {createTypeScriptImportResolver} from 'eslint-import-resolver-typescript'
 import vueA11y from 'eslint-plugin-vuejs-accessibility'
@@ -42,9 +43,15 @@ const BACKEND_KEY_FILES = [
     `${JAVA}feature/account/route/AuthRoutes.java`,
 ]
 
+/** The refusal enums, one per area, beside the `Refusal.java` that registers the areas. */
+const REFUSAL_FILES = readdirSync(`${import.meta.dirname}/${JAVA}api/refusal`)
+    .filter(name => name.endsWith('Refusal.java') && name !== 'Refusal.java')
+    .sort()
+    .map(name => `${JAVA}api/refusal/${name}`)
+
 /** Locale sections holding one entry per constant of a backend enum. */
 const ENUM_SECTIONS = [
-    {enumFiles: [`${JAVA}api/Refusal.java`], prefix: 'refusal', reader: 'refusal-codes'},
+    {enumFiles: REFUSAL_FILES, prefix: 'refusal', reader: 'refusal-codes'},
     {enumFiles: [`${JAVA}api/auth/StationPermission.java`, `${JAVA}api/auth/ClusterPermission.java`], prefix: 'permissions', leaves: ['label', 'desc']},
     {enumFiles: [`${JAVA}feature/notifications/entity/NotificationType.java`], prefix: 'notification.typeLabel'},
     {enumFiles: [`${JAVA}feature/twofactor/entity/TwoFactorEvent.java`], prefix: 'twoFactor.admin.audit.events'},

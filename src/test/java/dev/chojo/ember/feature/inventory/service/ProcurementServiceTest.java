@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -85,7 +85,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.create(station.id(), Integer.MAX_VALUE, member.id(), null, ""));
 
-        assertEquals(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT, refused.refusal());
     }
 
     /**
@@ -102,7 +102,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
             var refused = assertThrows(
                     RefusalResponse.class, () -> service.create(station.id(), foreign.id(), member.id(), null, ""));
 
-            assertEquals(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT, refused.refusal());
+            assertEquals(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT, refused.refusal());
             assertTrue(service.findByStation(other.id()).isEmpty());
         } finally {
             inventoryRepo.delete(foreign.id());

@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.documents.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
@@ -85,7 +85,7 @@ public class DocumentRoutes implements Routes {
      */
     private void requireModule(int stationId) {
         if (stationService.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw Refusal.DOCUMENTS_SWITCHED_OFF.raise();
+            throw DocumentRefusal.DOCUMENTS_SWITCHED_OFF.raise();
         }
     }
 
@@ -153,8 +153,8 @@ public class DocumentRoutes implements Routes {
     private Document take(Context ctx, int stationId, List<Integer> memberIds, StationSession session)
             throws IOException {
         UploadedFile file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.DOCUMENT_UPLOAD_MISSING_FILE.raise();
-        if (file.size() > MAX_UPLOAD_SIZE) throw Refusal.DOCUMENT_UPLOAD_TOO_LARGE.raise();
+        if (file == null) throw DocumentRefusal.DOCUMENT_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > MAX_UPLOAD_SIZE) throw DocumentRefusal.DOCUMENT_UPLOAD_TOO_LARGE.raise();
 
         String title = ctx.formParam("title");
         if (title == null || title.isBlank()) title = file.filename();
@@ -279,7 +279,7 @@ public class DocumentRoutes implements Routes {
                 .map(Integer::valueOf)
                 .toList();
         if (!ids.isEmpty() && !StationSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw Refusal.DOCUMENT_MEMBERS_NOT_YOURS_TO_NAME.raise();
+            throw DocumentRefusal.DOCUMENT_MEMBERS_NOT_YOURS_TO_NAME.raise();
         }
         for (int memberId : ids) {
             requireMemberStation(ctx, memberId);
@@ -323,7 +323,7 @@ public class DocumentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void content(Context ctx) {
         var document = requireReadable(ctx);
-        var data = documentService.read(document).orElseThrow(Refusal.DOCUMENT_CONTENT_NOT_HERE::raise);
+        var data = documentService.read(document).orElseThrow(DocumentRefusal.DOCUMENT_CONTENT_NOT_HERE::raise);
         var disposition = SafeInlineMime.isInlineSafe(document.mimeType())
                 ? SafeContentDisposition.Disposition.INLINE
                 : SafeContentDisposition.Disposition.ATTACHMENT;
@@ -342,7 +342,9 @@ public class DocumentRoutes implements Routes {
     private void thumbnail(Context ctx) {
         var document = requireReadable(ctx);
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
-        var picture = documentService.thumbnail(document, size).orElseThrow(Refusal.DOCUMENT_THUMBNAIL_NOT_HERE::raise);
+        var picture = documentService
+                .thumbnail(document, size)
+                .orElseThrow(DocumentRefusal.DOCUMENT_THUMBNAIL_NOT_HERE::raise);
         ctx.contentType(picture.contentType());
         ctx.result(picture.data());
     }

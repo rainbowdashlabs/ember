@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.AttendanceRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -135,7 +136,7 @@ public class AttendanceService {
      */
     private void requireNotCancelled(StationEvent event, LocalDate day) {
         if (event.cancelled() || cancellationRepository.isCancelled(event.id(), day)) {
-            throw Refusal.ATTENDANCE_DAY_CANCELLED.raise();
+            throw EventRefusal.ATTENDANCE_DAY_CANCELLED.raise();
         }
     }
 
@@ -237,16 +238,17 @@ public class AttendanceService {
      * Refuses a field of a type a sheet does not offer, or one set up to start from a value it would
      * then refuse as an answer.
      *
-     * @throws io.javalin.http.HttpResponseException {@link Refusal#ATTENDANCE_FIELD_TYPE_NOT_OFFERED}
-     * @throws io.javalin.http.HttpResponseException {@link Refusal#ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED}
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_TYPE_NOT_OFFERED}
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED}
      *                                               naming the field and what is wrong with its
      *                                               starting value
      */
     private void requireUsable(String name, FieldType fieldType, AttendanceFieldConfig config) {
-        if (!FieldTypes.ATTENDANCE.contains(fieldType)) throw Refusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED.raise();
+        if (!FieldTypes.ATTENDANCE.contains(fieldType))
+            throw AttendanceRefusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED.raise();
         var field = new AttendanceTemplateField(0, 0, name, fieldType, config, 0);
         QuestionCheck.defaultValue(field.question()).ifPresent(problem -> {
-            throw Refusal.ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+            throw AttendanceRefusal.ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
         });
     }
 
@@ -724,10 +726,10 @@ public class AttendanceService {
     private void requireUsableSpan(Instant startTime, Instant endTime) {
         if (startTime == null || endTime == null) return;
         if (!endTime.isAfter(startTime)) {
-            throw Refusal.ATTENDANCE_SHEET_ENDS_BEFORE_IT_STARTS.raise();
+            throw AttendanceRefusal.ATTENDANCE_SHEET_ENDS_BEFORE_IT_STARTS.raise();
         }
         if (Duration.between(startTime, endTime).compareTo(MAX_SESSION_LENGTH) > 0) {
-            throw Refusal.ATTENDANCE_SHEET_TOO_LONG.raise(MAX_SESSION_LENGTH.toDays() + " days");
+            throw AttendanceRefusal.ATTENDANCE_SHEET_TOO_LONG.raise(MAX_SESSION_LENGTH.toDays() + " days");
         }
     }
 
@@ -768,10 +770,10 @@ public class AttendanceService {
     private void requireUsableCountedMinutes(@Nullable Integer countedMinutes) {
         if (countedMinutes == null) return;
         if (countedMinutes < 0) {
-            throw Refusal.ATTENDANCE_COUNTED_HOURS_NEGATIVE.raise();
+            throw AttendanceRefusal.ATTENDANCE_COUNTED_HOURS_NEGATIVE.raise();
         }
         if (countedMinutes > MAX_COUNTED_MINUTES) {
-            throw Refusal.ATTENDANCE_COUNTED_HOURS_TOO_MANY.raise(MAX_COUNTED_MINUTES / 60 + " hours");
+            throw AttendanceRefusal.ATTENDANCE_COUNTED_HOURS_TOO_MANY.raise(MAX_COUNTED_MINUTES / 60 + " hours");
         }
     }
 
@@ -806,7 +808,7 @@ public class AttendanceService {
             if (field == null) continue;
             QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(entry.value()), memberEligibility)
                     .ifPresent(problem -> {
-                        throw Refusal.ATTENDANCE_SHEET_ANSWER_NOT_ACCEPTED.raise(problem.message());
+                        throw AttendanceRefusal.ATTENDANCE_SHEET_ANSWER_NOT_ACCEPTED.raise(problem.message());
                     });
         }
         for (var entry : fields) {
@@ -852,7 +854,7 @@ public class AttendanceService {
      */
     private void requireSessionOpen(int sessionId) {
         if (!isSessionOpen(sessionId)) {
-            throw Refusal.ATTENDANCE_SHEET_CLOSED.raise();
+            throw AttendanceRefusal.ATTENDANCE_SHEET_CLOSED.raise();
         }
     }
 
@@ -927,7 +929,7 @@ public class AttendanceService {
     public List<AttendanceEntry> createEntry(int sessionId, int memberId, AttendanceEntry.EntrySource source) {
         requireSessionOpen(sessionId);
         if (!hadJoinedBy(dateOf(sessionId), memberId)) {
-            throw Refusal.ATTENDANCE_MEMBER_NOT_YET_JOINED.raise();
+            throw AttendanceRefusal.ATTENDANCE_MEMBER_NOT_YET_JOINED.raise();
         }
         AttendanceEntry.AttendanceStatus status;
         if (attendanceRepository.isAbsent(memberId)) {

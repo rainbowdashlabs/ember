@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
@@ -211,7 +212,7 @@ public class WaitingListService implements TaskSource {
             boolean required,
             boolean isPublic) {
         requireOffered(fieldType);
-        requireSingleBirthDate(listId, fieldType, 0, Refusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CREATE);
+        requireSingleBirthDate(listId, fieldType, 0, WaitingListRefusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CREATE);
         var field = repository.createField(listId, name, fieldType, config, position, required, isPublic);
         log.info("Created waiting-list field {} on list {} (type {})", field.id(), listId, fieldType);
         return field;
@@ -229,7 +230,10 @@ public class WaitingListService implements TaskSource {
         repository
                 .findFieldById(fieldId)
                 .ifPresent(field -> requireSingleBirthDate(
-                        field.listId(), fieldType, fieldId, Refusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CHANGE));
+                        field.listId(),
+                        fieldType,
+                        fieldId,
+                        WaitingListRefusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CHANGE));
         var updated = repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
         if (updated.isPresent()) {
             log.info("Updated waiting-list field {}", fieldId);
@@ -242,10 +246,11 @@ public class WaitingListService implements TaskSource {
     /**
      * Refuses a type a waiting list does not offer, such as a member or a place.
      *
-     * @throws io.javalin.http.HttpResponseException {@link Refusal#WAITING_LIST_FIELD_TYPE_NOT_OFFERED}
+     * @throws io.javalin.http.HttpResponseException {@link WaitingListRefusal#WAITING_LIST_FIELD_TYPE_NOT_OFFERED}
      */
     private static void requireOffered(FieldType fieldType) {
-        if (!FieldTypes.WAITING_LIST.contains(fieldType)) throw Refusal.WAITING_LIST_FIELD_TYPE_NOT_OFFERED.raise();
+        if (!FieldTypes.WAITING_LIST.contains(fieldType))
+            throw WaitingListRefusal.WAITING_LIST_FIELD_TYPE_NOT_OFFERED.raise();
     }
 
     /**
@@ -330,7 +335,11 @@ public class WaitingListService implements TaskSource {
             insertGuardians(entry.id(), guardians);
         }
 
-        writeAnswers(invite.listId(), entry.id(), fieldValues, Refusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_INVITE);
+        writeAnswers(
+                invite.listId(),
+                entry.id(),
+                fieldValues,
+                WaitingListRefusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_INVITE);
 
         String displayName = entry.fullName();
 
@@ -389,7 +398,7 @@ public class WaitingListService implements TaskSource {
      * keeps its wider reach, because somebody with a permission is standing behind it.
      *
      * @param token the entry's access token
-     * @throws dev.chojo.ember.api.RefusalResponse when the entry has moved past being a list entry
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the entry has moved past being a list entry
      */
     public void removeByToken(String token) {
         repository
@@ -402,7 +411,7 @@ public class WaitingListService implements TaskSource {
                                         "Self-service removal refused for waiting-list entry {} (is {})",
                                         entry.id(),
                                         entry.status());
-                                throw Refusal.WAITING_LIST_ENTRY_NO_LONGER_REMOVABLE.raise();
+                                throw WaitingListRefusal.WAITING_LIST_ENTRY_NO_LONGER_REMOVABLE.raise();
                             }
                             withdrawEntry(entry.id());
                             log.info("Removed waiting-list entry {} via self-service token", entry.id());
@@ -446,7 +455,7 @@ public class WaitingListService implements TaskSource {
      * and a blank one clears what the question held.
      *
      * @param refusal what the caller refuses an answer with
-     * @throws dev.chojo.ember.api.RefusalResponse naming the question and what is wrong with the
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse naming the question and what is wrong with the
      *                                             answer
      */
     private void writeAnswers(int listId, int entryId, Map<Integer, JsonNode> fieldValues, Refusal refusal) {
@@ -488,7 +497,7 @@ public class WaitingListService implements TaskSource {
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);
         }
-        writeAnswers(listId, entry.id(), fieldValues, Refusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CREATE);
+        writeAnswers(listId, entry.id(), fieldValues, WaitingListRefusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CREATE);
         log.info("Created waiting-list entry {} on list {}", entry.id(), listId);
         return entry;
     }
@@ -511,7 +520,10 @@ public class WaitingListService implements TaskSource {
             repository
                     .findEntryById(entryId)
                     .ifPresent(entry -> writeAnswers(
-                            entry.listId(), entryId, fieldValues, Refusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CHANGE));
+                            entry.listId(),
+                            entryId,
+                            fieldValues,
+                            WaitingListRefusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CHANGE));
         }
         log.info("Updated waiting-list entry {}", entryId);
     }
@@ -622,7 +634,7 @@ public class WaitingListService implements TaskSource {
                 repository.findEntryByToken(token).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.INVITED) {
             log.info("Invitation answer refused for waiting-list entry {} (is {})", entry.id(), entry.status());
-            throw Refusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN.raise();
+            throw WaitingListRefusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN.raise();
         }
         requireAnswersTheCurrentInvitation(entry, eventId, date);
 
@@ -651,7 +663,7 @@ public class WaitingListService implements TaskSource {
                 : Integer.valueOf(current.eventId()).equals(eventId)
                         && current.date().equals(date);
         if (!matches) {
-            throw Refusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
+            throw WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
         }
     }
 
@@ -871,7 +883,7 @@ public class WaitingListService implements TaskSource {
         if (minAge == null) return;
         ageFromSubmitted(list.id(), values).ifPresent(age -> {
             if (age < minAge) {
-                throw Refusal.WAITING_LIST_REGISTRANT_TOO_YOUNG.raise("from age " + minAge);
+                throw WaitingListRefusal.WAITING_LIST_REGISTRANT_TOO_YOUNG.raise("from age " + minAge);
             }
         });
     }
@@ -1279,14 +1291,14 @@ public class WaitingListService implements TaskSource {
                 stationId,
                 testingGroupId,
                 StationUserType.TRIAL,
-                Refusal.WAITING_LIST_TESTING_GROUP_NOT_HERE,
-                Refusal.WAITING_LIST_TESTING_GROUP_WRONG_USER_TYPE);
+                WaitingListRefusal.WAITING_LIST_TESTING_GROUP_NOT_HERE,
+                WaitingListRefusal.WAITING_LIST_TESTING_GROUP_WRONG_USER_TYPE);
         groupMemberships.requireAdmits(
                 stationId,
                 joinGroupId,
                 StationUserType.MEMBER,
-                Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
-                Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
     }
 
     private Integer stationIdForList(int listId) {

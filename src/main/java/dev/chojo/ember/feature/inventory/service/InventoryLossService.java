@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -54,16 +54,17 @@ public class InventoryLossService {
      */
     public InventoryItem markLost(
             StationSession session, int itemId, @Nullable String note, @Nullable Integer selfCheckId) {
-        var item = inventory.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE_ON_LOSS::raise);
+        var item = inventory.findItemById(itemId).orElseThrow(InventoryRefusal.ITEM_NOT_HERE_ON_LOSS::raise);
         String trimmed = note == null || note.isBlank() ? null : note.trim();
         if (!session.hasPermission(StationPermission.INVENTORY_EDIT)) {
             requireHolds(session, item);
             if (trimmed == null && lossNoteRequired(session.stationId())) {
-                throw Refusal.LOSS_NEEDS_A_NOTE.raise();
+                throw InventoryRefusal.LOSS_NEEDS_A_NOTE.raise();
             }
         }
         Integer noteBy = trimmed == null ? null : session.member().id();
-        var lost = inventory.markLost(itemId, trimmed, noteBy).orElseThrow(Refusal.ITEM_NOT_MARKED_LOST::raise);
+        var lost =
+                inventory.markLost(itemId, trimmed, noteBy).orElseThrow(InventoryRefusal.ITEM_NOT_MARKED_LOST::raise);
         if (selfCheckId != null) {
             selfChecks.recordLoss(
                     selfCheckId,
@@ -100,10 +101,10 @@ public class InventoryLossService {
     private void requireHolds(StationSession session, InventoryItem item) {
         Integer holder = item.assignedTo();
         if (holder == null) {
-            throw Refusal.LOSS_NOT_YOURS_TO_REPORT.raise();
+            throw InventoryRefusal.LOSS_NOT_YOURS_TO_REPORT.raise();
         }
         if (!guardians.mayActFor(session.user(), holder)) {
-            throw Refusal.LOSS_NOT_YOURS_TO_REPORT_FOR_THEM.raise();
+            throw InventoryRefusal.LOSS_NOT_YOURS_TO_REPORT_FOR_THEM.raise();
         }
     }
 }

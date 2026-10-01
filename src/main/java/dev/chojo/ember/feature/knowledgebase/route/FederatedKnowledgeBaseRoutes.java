@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.CreateKbCommentRequest;
@@ -56,7 +56,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
     }
 
     private static String requireContent(String content) {
-        if (content == null || content.isBlank()) throw Refusal.PARTNER_KB_COMMENT_EMPTY.raise();
+        if (content == null || content.isBlank()) throw KnowledgeBaseRefusal.PARTNER_KB_COMMENT_EMPTY.raise();
         return content;
     }
 
@@ -159,9 +159,9 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             ctx.result(rendered.data());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw Refusal.PARTNER_KB_PDF_STOPPED.raise();
+            throw KnowledgeBaseRefusal.PARTNER_KB_PDF_STOPPED.raise();
         } catch (IOException e) {
-            throw Refusal.PARTNER_KB_PDF_NOT_MADE.raise();
+            throw KnowledgeBaseRefusal.PARTNER_KB_PDF_NOT_MADE.raise();
         }
     }
 

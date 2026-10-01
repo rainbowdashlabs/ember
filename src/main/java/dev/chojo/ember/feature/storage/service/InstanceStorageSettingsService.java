@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.storage.service;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.elements.StorageBackendSettings;
@@ -142,7 +142,7 @@ public class InstanceStorageSettingsService {
      *                         could not be written, or the move broke after it was written
      */
     public InstanceMigrationResultResponse apply(Actor actor, InstanceMigrateRequest request) {
-        if (request.target() == null) throw Refusal.INSTANCE_STORAGE_TARGET_MISSING.raise();
+        if (request.target() == null) throw StorageRefusal.INSTANCE_STORAGE_TARGET_MISSING.raise();
         StorageBackendSettings target = settingsFor(request.target());
         StorageBackendSettings live = current();
         StorageBackendSettings before = StorageBackendSettings.copyOf(live);
@@ -162,7 +162,7 @@ public class InstanceStorageSettingsService {
         } catch (MigrationException e) {
             move.record(StorageAuditAction.INSTANCE_MIGRATION_FAILED, e.getMessage());
             log.warn("Instance storage move could not be prepared", e);
-            throw Refusal.INSTANCE_STORAGE_MOVE_NOT_DONE.raise();
+            throw StorageRefusal.INSTANCE_STORAGE_MOVE_NOT_DONE.raise();
         }
     }
 
@@ -189,7 +189,7 @@ public class InstanceStorageSettingsService {
             migrationService.abort(prepared);
             move.record(StorageAuditAction.INSTANCE_MIGRATION_FAILED, e.getMessage());
             log.error("The move of the instance files broke while it was being committed", e);
-            throw Refusal.INSTANCE_STORAGE_MOVE_TAKEN_BACK.raise();
+            throw StorageRefusal.INSTANCE_STORAGE_MOVE_TAKEN_BACK.raise();
         }
     }
 

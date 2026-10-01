@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.form.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;

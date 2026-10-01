@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.documents.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
@@ -109,7 +110,7 @@ class DocumentAccessServiceTest {
     void aMemberAndTheirGuardianMayListTheirDocuments() {
         assertDoesNotThrow(() -> access.requireMayList(sessionOf(WARD), WARD));
         assertDoesNotThrow(() -> access.requireMayList(sessionOf(GUARDIAN), WARD));
-        assertRefused(Refusal.DOCUMENT_LIST_NOT_YOURS, () -> access.requireMayList(sessionOf(STRANGER), WARD));
+        assertRefused(DocumentRefusal.DOCUMENT_LIST_NOT_YOURS, () -> access.requireMayList(sessionOf(STRANGER), WARD));
     }
 
     @Test
@@ -129,7 +130,9 @@ class DocumentAccessServiceTest {
 
         assertDoesNotThrow(() -> access.requireReadable(sessionOf(WARD), onTheWard));
         assertDoesNotThrow(() -> access.requireReadable(sessionOf(GUARDIAN), onTheWard));
-        assertRefused(Refusal.DOCUMENT_NOT_YOURS_TO_READ, () -> access.requireReadable(sessionOf(STRANGER), onTheWard));
+        assertRefused(
+                DocumentRefusal.DOCUMENT_NOT_YOURS_TO_READ,
+                () -> access.requireReadable(sessionOf(STRANGER), onTheWard));
     }
 
     /** Hiding a document hides it from the member it names, and so from their guardian. */
@@ -138,8 +141,9 @@ class DocumentAccessServiceTest {
         when(documentRepository.isBoundTo(DOCUMENT, WARD)).thenReturn(true);
         var hidden = document(true, null);
 
-        assertRefused(Refusal.DOCUMENT_HIDDEN_FROM_YOU, () -> access.requireReadable(sessionOf(GUARDIAN), hidden));
-        assertRefused(Refusal.DOCUMENT_HIDDEN_FROM_YOU, () -> access.requireReadable(sessionOf(WARD), hidden));
+        assertRefused(
+                DocumentRefusal.DOCUMENT_HIDDEN_FROM_YOU, () -> access.requireReadable(sessionOf(GUARDIAN), hidden));
+        assertRefused(DocumentRefusal.DOCUMENT_HIDDEN_FROM_YOU, () -> access.requireReadable(sessionOf(WARD), hidden));
     }
 
     @Test
@@ -155,14 +159,14 @@ class DocumentAccessServiceTest {
         when(documentRepository.hasNoMembers(DOCUMENT)).thenReturn(true);
         assertDoesNotThrow(() -> access.requireMayEdit(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT), DOCUMENT));
         assertRefused(
-                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
                 () -> access.requireMayEdit(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), DOCUMENT));
 
         when(documentRepository.hasNoMembers(DOCUMENT)).thenReturn(false);
         assertDoesNotThrow(
                 () -> access.requireMayEdit(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), DOCUMENT));
         assertRefused(
-                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
                 () -> access.requireMayEdit(sessionOf(GUARDIAN, StationPermission.DOCUMENT_EDIT), DOCUMENT));
     }
 
@@ -170,10 +174,10 @@ class DocumentAccessServiceTest {
     void whoeverPutADocumentInMayTakeItOut() {
         assertDoesNotThrow(() -> access.requireMayDelete(sessionOf(GUARDIAN), document(false, GUARDIAN)));
         assertRefused(
-                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
                 () -> access.requireMayDelete(sessionOf(GUARDIAN), document(false, STRANGER)));
         assertRefused(
-                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
                 () -> access.requireMayDelete(sessionOf(GUARDIAN), document(false, null)));
     }
 
@@ -182,9 +186,9 @@ class DocumentAccessServiceTest {
         assertDoesNotThrow(() -> access.requireMayUpload(sessionOf(WARD, StationPermission.MEMBER_SELF_UPLOAD), WARD));
         assertDoesNotThrow(
                 () -> access.requireMayUpload(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), WARD));
-        assertRefused(Refusal.DOCUMENT_NOT_YOURS_TO_ADD, () -> access.requireMayUpload(sessionOf(WARD), WARD));
+        assertRefused(DocumentRefusal.DOCUMENT_NOT_YOURS_TO_ADD, () -> access.requireMayUpload(sessionOf(WARD), WARD));
         assertRefused(
-                Refusal.DOCUMENT_NOT_YOURS_TO_ADD,
+                DocumentRefusal.DOCUMENT_NOT_YOURS_TO_ADD,
                 () -> access.requireMayUpload(sessionOf(GUARDIAN, StationPermission.MEMBER_SELF_UPLOAD), WARD));
     }
 
@@ -193,6 +197,6 @@ class DocumentAccessServiceTest {
         assertDoesNotThrow(() -> access.requireMayHide(sessionOf(WARD), false));
         assertDoesNotThrow(
                 () -> access.requireMayHide(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), true));
-        assertRefused(Refusal.DOCUMENT_HIDING_NOT_ALLOWED, () -> access.requireMayHide(sessionOf(WARD), true));
+        assertRefused(DocumentRefusal.DOCUMENT_HIDING_NOT_ALLOWED, () -> access.requireMayHide(sessionOf(WARD), true));
     }
 }

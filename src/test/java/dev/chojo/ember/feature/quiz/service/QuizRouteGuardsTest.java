@@ -6,11 +6,13 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.api.ApiServer;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -94,8 +96,8 @@ class QuizRouteGuardsTest {
 
         assertSame(own, guards.requireOwnedCatalog(ctx, 1));
         assertSame(category, guards.requireOwnedCategory(ctx, 5));
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireOwnedCatalog(ctx, 2)));
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireOwnedCatalog(ctx, 7)));
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireOwnedCatalog(ctx, 2)));
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireOwnedCatalog(ctx, 7)));
     }
 
     @Test
@@ -110,8 +112,8 @@ class QuizRouteGuardsTest {
         when(questions.findQuestion(11)).thenReturn(Optional.of(foreign));
 
         assertSame(own, guards.requireOwnedQuestion(ctx, 10));
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireOwnedQuestion(ctx, 11)));
-        assertEquals(Refusal.QUIZ_QUESTION_NOT_HERE, refusalOf(() -> guards.requireOwnedQuestion(ctx, 12)));
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireOwnedQuestion(ctx, 11)));
+        assertEquals(QuizRefusal.QUIZ_QUESTION_NOT_HERE, refusalOf(() -> guards.requireOwnedQuestion(ctx, 12)));
     }
 
     @Test
@@ -122,7 +124,7 @@ class QuizRouteGuardsTest {
         when(attempts.findAttemptById(30)).thenReturn(Optional.of(attempt));
 
         assertSame(attempt, guards.requireOwnedAttempt(ctx, 30));
-        assertEquals(Refusal.QUIZ_ATTEMPT_NOT_HERE, refusalOf(() -> guards.requireOwnedAttempt(ctx, 31)));
+        assertEquals(QuizRefusal.QUIZ_ATTEMPT_NOT_HERE, refusalOf(() -> guards.requireOwnedAttempt(ctx, 31)));
     }
 
     @Test
@@ -137,7 +139,7 @@ class QuizRouteGuardsTest {
         pathId(20);
         assertSame(modifiable, guards.requireModifiableTest(ctx));
         pathId(21);
-        assertEquals(Refusal.QUIZ_TEST_RUNNING_CANNOT_CHANGE, refusalOf(() -> guards.requireModifiableTest(ctx)));
+        assertEquals(QuizRefusal.QUIZ_TEST_RUNNING_CANNOT_CHANGE, refusalOf(() -> guards.requireModifiableTest(ctx)));
     }
 
     @Test
@@ -153,9 +155,10 @@ class QuizRouteGuardsTest {
         pathId(40);
         assertSame(mine, guards.requireMemberAttempt(ctx, member));
         pathId(41);
-        assertEquals(Refusal.QUIZ_ATTEMPT_NOT_YOURS, refusalOf(() -> guards.requireMemberAttempt(ctx, member)));
+        assertEquals(QuizRefusal.QUIZ_ATTEMPT_NOT_YOURS, refusalOf(() -> guards.requireMemberAttempt(ctx, member)));
         pathId(42);
         assertEquals(
-                Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER, refusalOf(() -> guards.requireMemberAttempt(ctx, member)));
+                QuizRefusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER,
+                refusalOf(() -> guards.requireMemberAttempt(ctx, member)));
     }
 }

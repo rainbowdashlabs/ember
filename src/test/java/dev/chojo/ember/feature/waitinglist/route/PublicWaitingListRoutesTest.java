@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.waitinglist.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
@@ -69,7 +69,8 @@ class PublicWaitingListRoutesTest {
     void theStationsPublicListsAndAListsFormAreShown() {
         var open = list(false);
         when(lists.findPublicByStation(3)).thenReturn(List.of(open));
-        when(publicLists.publicList(3, 5, Refusal.PUBLIC_WAITING_LIST_NOT_HERE)).thenReturn(open);
+        when(publicLists.publicList(3, 5, WaitingListRefusal.PUBLIC_WAITING_LIST_NOT_HERE))
+                .thenReturn(open);
 
         harness.run((server, client) -> {
             assertEquals("Jugend", json(client.get(BASE)).get(0).path("name").asString());
@@ -84,15 +85,15 @@ class PublicWaitingListRoutesTest {
     @Test
     void aRegistrationNeedsAFirstNameAndAnAddressWhereMailFollows() {
         var mailing = list(true);
-        when(publicLists.publicList(3, 5, Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION))
+        when(publicLists.publicList(3, 5, WaitingListRefusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION))
                 .thenReturn(mailing);
 
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.PUBLIC_REGISTRATION_NEEDS_A_FIRST_NAME,
+                    WaitingListRefusal.PUBLIC_REGISTRATION_NEEDS_A_FIRST_NAME,
                     refusalOf(client.post(BASE + "/5/register", body("{\"firstname\": \" \"}"))));
             assertEquals(
-                    Refusal.PUBLIC_REGISTRATION_NEEDS_AN_ADDRESS,
+                    WaitingListRefusal.PUBLIC_REGISTRATION_NEEDS_AN_ADDRESS,
                     refusalOf(client.post(BASE + "/5/register", body("{\"firstname\": \"Kim\"}"))));
         });
 
@@ -102,7 +103,7 @@ class PublicWaitingListRoutesTest {
     @Test
     void aRegistrationIsTakenWithItsGuardians() {
         var mailing = list(true);
-        when(publicLists.publicList(3, 5, Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION))
+        when(publicLists.publicList(3, 5, WaitingListRefusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION))
                 .thenReturn(mailing);
 
         var answer = harness.request(client -> client.post(BASE + "/5/register", body("""
@@ -117,10 +118,11 @@ class PublicWaitingListRoutesTest {
 
     @Test
     void anAddressThatNamesNoStationIsRefusedAsTheServiceSays() {
-        when(publicLists.stationIdFor(anyString())).thenThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST.raise());
+        when(publicLists.stationIdFor(anyString()))
+                .thenThrow(WaitingListRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST.raise());
 
         var answer = harness.request(client -> client.get(PREFIX + "/public/station/west/waitlists"));
 
-        assertEquals(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST, refusalOf(answer));
+        assertEquals(WaitingListRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST, refusalOf(answer));
     }
 }

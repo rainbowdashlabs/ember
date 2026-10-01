@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -172,7 +172,7 @@ class RegistrationAnswerAuthorTest {
     void anotherMemberIsTurnedAway() {
         var answer = change(sessionWith(), registrationOf(OTHER_MEMBER_ID));
 
-        assertEquals(Refusal.REGISTRATION_ANSWERS_NOT_YOURS, RouteHarness.refusalOf(answer));
+        assertEquals(EventRefusal.REGISTRATION_ANSWERS_NOT_YOURS, RouteHarness.refusalOf(answer));
         verify(registrationFieldService, never()).replaceAnswers(anyInt(), anyInt(), anyMap(), anyBoolean());
     }
 }

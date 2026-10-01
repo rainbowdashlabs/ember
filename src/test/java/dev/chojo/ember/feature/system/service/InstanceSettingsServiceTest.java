@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.UnwritableConf;
@@ -105,7 +105,7 @@ class InstanceSettingsServiceTest {
     void aLanguageWithoutTemplatesChangesNothing() {
         var refused = assertThrows(RefusalResponse.class, () -> service.update(request("forest", "CORNERS", "fr")));
 
-        assertEquals(Refusal.NO_MAIL_WRITTEN_IN_THAT_LANGUAGE, refused.refusal());
+        assertEquals(SystemRefusal.NO_MAIL_WRITTEN_IN_THAT_LANGUAGE, refused.refusal());
         assertEquals("ember", service.settings().instanceDefaultTheme());
         verify(settings, never()).setBoolean(anyString(), anyBoolean());
     }
@@ -114,7 +114,7 @@ class InstanceSettingsServiceTest {
     void anUnknownLookChangesNothing() {
         var refused = assertThrows(RefusalResponse.class, () -> service.update(request("forest", "WOBBLY", "de")));
 
-        assertEquals(Refusal.THEME_FEEL_UNKNOWN, refused.refusal());
+        assertEquals(SystemRefusal.THEME_FEEL_UNKNOWN, refused.refusal());
         assertEquals("ember", service.settings().instanceDefaultTheme());
         verify(settings, never()).setBoolean(anyString(), anyBoolean());
     }
@@ -126,7 +126,7 @@ class InstanceSettingsServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> failing.update(request("forest", "CORNERS", "de")));
 
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refused.refusal());
+        assertEquals(SystemRefusal.SETTINGS_NOT_SAVED, refused.refusal());
         assertEquals("ember", failing.settings().instanceDefaultTheme());
         assertFalse(failing.settings().instanceLockFeel());
         verify(settings, never()).setBoolean(anyString(), anyBoolean());

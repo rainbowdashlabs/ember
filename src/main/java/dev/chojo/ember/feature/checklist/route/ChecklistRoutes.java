@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.checklist.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ChecklistRefusal;
 import dev.chojo.ember.feature.checklist.entity.Checklist;
 import dev.chojo.ember.feature.checklist.entity.ChecklistCell;
 import dev.chojo.ember.feature.checklist.entity.ChecklistCellNoteHistory;
@@ -148,10 +148,10 @@ public class ChecklistRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateRequest.class);
         if (request.name() == null || request.name().isBlank()) {
-            throw Refusal.CHECKLIST_NEEDS_A_NAME.raise();
+            throw ChecklistRefusal.CHECKLIST_NEEDS_A_NAME.raise();
         }
         if (request.columns() == null || request.columns().isEmpty()) {
-            throw Refusal.CHECKLIST_NEEDS_A_COLUMN.raise();
+            throw ChecklistRefusal.CHECKLIST_NEEDS_A_COLUMN.raise();
         }
         var columnSpecs = request.columns().stream()
                 .map(c -> new ColumnSpec(requireLabel(c.label()), c.description() == null ? "" : c.description()))
@@ -198,11 +198,11 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(UpdateRequest.class);
         String name = request.name() != null ? request.name() : checklist.name();
-        if (name.isBlank()) throw Refusal.CHECKLIST_RENAME_NEEDS_A_NAME.raise();
+        if (name.isBlank()) throw ChecklistRefusal.CHECKLIST_RENAME_NEEDS_A_NAME.raise();
         String description = request.description() != null ? request.description() : checklist.description();
         OccurrenceSpec occurrence = resolveOccurrence(session, request.source());
         if (occurrence != null && request.restriction() != null) {
-            throw Refusal.CHECKLIST_FOLLOWS_ONE_THING.raise();
+            throw ChecklistRefusal.CHECKLIST_FOLLOWS_ONE_THING.raise();
         }
         RestrictionMode mode = request.restriction() != null ? resolveMode(request.restriction()) : checklist.mode();
         FilterSpec filterSpec = request.restriction() != null ? toFilterSpec(request.restriction()) : null;
@@ -306,12 +306,12 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(ReorderColumnsRequest.class);
         if (request.orderedIds() == null || request.orderedIds().isEmpty()) {
-            throw Refusal.CHECKLIST_COLUMN_ORDER_MISSING.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_ORDER_MISSING.raise();
         }
         try {
             checklistService.reorderColumns(checklist.id(), request.orderedIds());
         } catch (IllegalArgumentException e) {
-            throw Refusal.CHECKLIST_COLUMN_ORDER_INCOMPLETE.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_ORDER_INCOMPLETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -328,7 +328,7 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(AddMembersRequest.class);
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            throw Refusal.CHECKLIST_NAMES_NO_MEMBERS.raise();
+            throw ChecklistRefusal.CHECKLIST_NAMES_NO_MEMBERS.raise();
         }
         var validIds = checklistService.membersOfStation(request.memberIds(), checklist.stationId());
         var result = checklistService.addMembers(checklist.id(), validIds);
@@ -418,7 +418,7 @@ public class ChecklistRoutes implements Routes {
         var column = loadColumn(ctx, checklist);
         var request = ctx.bodyAsClass(BulkSetRequest.class);
         if (request.entryIds() == null) {
-            throw Refusal.CHECKLIST_NAMES_NO_ROWS.raise();
+            throw ChecklistRefusal.CHECKLIST_NAMES_NO_ROWS.raise();
         }
         var validEntryIds = checklistService.rowsOfChecklist(request.entryIds(), checklist.id());
         int updated = checklistService.bulkSetColumn(
@@ -460,11 +460,11 @@ public class ChecklistRoutes implements Routes {
             ctx.result(pdf.bytes());
         } catch (IOException e) {
             log.error("Failed to render checklist PDF for {}", checklist.id(), e);
-            throw Refusal.CHECKLIST_PDF_NOT_MADE.raise();
+            throw ChecklistRefusal.CHECKLIST_PDF_NOT_MADE.raise();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("Rendering the PDF of checklist {} was interrupted", checklist.id(), e);
-            throw Refusal.CHECKLIST_PDF_INTERRUPTED.raise();
+            throw ChecklistRefusal.CHECKLIST_PDF_INTERRUPTED.raise();
         }
     }
 
@@ -475,18 +475,19 @@ public class ChecklistRoutes implements Routes {
 
     private ChecklistColumn loadColumn(Context ctx, Checklist checklist) {
         int columnId = pathInt(ctx, "columnId");
-        var column = checklistService.findColumn(columnId).orElseThrow(Refusal.CHECKLIST_COLUMN_NOT_HERE::raise);
+        var column =
+                checklistService.findColumn(columnId).orElseThrow(ChecklistRefusal.CHECKLIST_COLUMN_NOT_HERE::raise);
         if (column.checklistId() != checklist.id()) {
-            throw Refusal.CHECKLIST_COLUMN_ON_ANOTHER_LIST.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_ON_ANOTHER_LIST.raise();
         }
         return column;
     }
 
     private ChecklistEntry loadEntry(Context ctx, Checklist checklist) {
         int entryId = pathInt(ctx, "entryId");
-        var entry = checklistService.findEntry(entryId).orElseThrow(Refusal.CHECKLIST_ROW_NOT_HERE::raise);
+        var entry = checklistService.findEntry(entryId).orElseThrow(ChecklistRefusal.CHECKLIST_ROW_NOT_HERE::raise);
         if (entry.checklistId() != checklist.id()) {
-            throw Refusal.CHECKLIST_ROW_ON_ANOTHER_LIST.raise();
+            throw ChecklistRefusal.CHECKLIST_ROW_ON_ANOTHER_LIST.raise();
         }
         return entry;
     }
@@ -554,14 +555,14 @@ public class ChecklistRoutes implements Routes {
     private OccurrenceSpec resolveOccurrence(StationSession session, SourceOccurrenceRequest request) {
         if (request == null || request.eventId() == null) return null;
         LocalDate date = parseDate(request.date());
-        if (date == null) throw Refusal.CHECKLIST_OCCURRENCE_DAY_MISSING.raise();
+        if (date == null) throw ChecklistRefusal.CHECKLIST_OCCURRENCE_DAY_MISSING.raise();
         var event = eventCrudService
                 .findById(request.eventId())
                 .filter(e -> e.stationId() == session.stationId())
-                .orElseThrow(Refusal.CHECKLIST_APPOINTMENT_NOT_HERE::raise);
+                .orElseThrow(ChecklistRefusal.CHECKLIST_APPOINTMENT_NOT_HERE::raise);
         if (!eventRestrictionService.canView(
                 event.id(), session.member().id(), session.user().permissions())) {
-            throw Refusal.CHECKLIST_APPOINTMENT_NOT_YOURS_TO_FOLLOW.raise();
+            throw ChecklistRefusal.CHECKLIST_APPOINTMENT_NOT_YOURS_TO_FOLLOW.raise();
         }
         return new OccurrenceSpec(event.id(), date);
     }
@@ -571,7 +572,7 @@ public class ChecklistRoutes implements Routes {
         try {
             return LocalDate.parse(raw.trim());
         } catch (DateTimeParseException e) {
-            throw Refusal.CHECKLIST_DAY_NOT_A_DATE.raise(raw.trim());
+            throw ChecklistRefusal.CHECKLIST_DAY_NOT_A_DATE.raise(raw.trim());
         }
     }
 
@@ -642,7 +643,7 @@ public class ChecklistRoutes implements Routes {
 
     private static String requireLabel(String label) {
         if (label == null || label.isBlank()) {
-            throw Refusal.CHECKLIST_COLUMN_NEEDS_A_LABEL.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_NEEDS_A_LABEL.raise();
         }
         return label.trim();
     }

@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.board.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -387,11 +387,11 @@ class BoardServiceTest extends RepositoryTestBase {
                         null)));
 
         var hidden = assertThrows(RefusalResponse.class, () -> guards.requireViewAccess(boardId, session));
-        assertEquals(Refusal.BOARD_NOT_HERE_OR_NOT_YOURS, hidden.refusal());
+        assertEquals(BoardRefusal.BOARD_NOT_HERE_OR_NOT_YOURS, hidden.refusal());
         assertEquals(HttpStatus.NOT_FOUND.getCode(), hidden.getStatus());
 
         var uneditable = assertThrows(RefusalResponse.class, () -> guards.requireEditAccess(boardId, session));
-        assertEquals(Refusal.BOARD_NOT_YOURS_TO_EDIT, uneditable.refusal());
+        assertEquals(BoardRefusal.BOARD_NOT_YOURS_TO_EDIT, uneditable.refusal());
         assertEquals(HttpStatus.FORBIDDEN.getCode(), uneditable.getStatus());
 
         boardService.setViewAccess(boardId, List.of(), List.of(), List.of());

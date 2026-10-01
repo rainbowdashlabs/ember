@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
 import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
@@ -39,7 +39,7 @@ public class SavedFilterService {
      */
     public SavedFilter create(int accountId, CreateFilterRequest request) {
         if (request.tableType() == null || request.name() == null || request.filterData() == null) {
-            throw Refusal.SAVED_FILTER_DETAILS_MISSING.raise();
+            throw MemberRefusal.SAVED_FILTER_DETAILS_MISSING.raise();
         }
         int position =
                 repository.findByAccountAndTable(accountId, request.tableType()).size();
@@ -54,7 +54,7 @@ public class SavedFilterService {
      */
     public void delete(int accountId, int id) {
         if (!repository.delete(id, accountId)) {
-            throw Refusal.SAVED_FILTER_NOT_HERE_ON_DELETE.raise();
+            throw MemberRefusal.SAVED_FILTER_NOT_HERE_ON_DELETE.raise();
         }
     }
 

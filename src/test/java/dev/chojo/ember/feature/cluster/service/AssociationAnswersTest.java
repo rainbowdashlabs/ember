@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -117,7 +117,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "15"), memberId));
 
-        assertEquals(Refusal.PROFILE_AGE_TAKES_NO_ANSWER, refusal.refusal());
+        assertEquals(MemberRefusal.PROFILE_AGE_TAKES_NO_ANSWER, refusal.refusal());
     }
 
     @Test

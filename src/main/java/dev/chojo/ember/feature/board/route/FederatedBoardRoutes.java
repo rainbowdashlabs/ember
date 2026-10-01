@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.FederationHeaders;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
@@ -247,7 +247,7 @@ public class FederatedBoardRoutes implements Routes {
         UUID partnerUid = pathUuid(ctx, "partnerUid");
         return federationService
                 .findPartnerByRemoteUid(session.stationId(), partnerUid)
-                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOARD::raise)
+                .orElseThrow(BoardRefusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOARD::raise)
                 .id();
     }
 
@@ -260,7 +260,7 @@ public class FederatedBoardRoutes implements Routes {
         if (board == null) return;
         if (!accessService.canView(
                 partnerId, board.uid(), board.id(), session.member().id())) {
-            throw Refusal.FEDERATED_BOARD_NOT_YOURS_TO_VIEW.raise();
+            throw BoardRefusal.FEDERATED_BOARD_NOT_YOURS_TO_VIEW.raise();
         }
     }
 
@@ -273,7 +273,7 @@ public class FederatedBoardRoutes implements Routes {
         if (board == null) return;
         if (!accessService.canWrite(
                 partnerId, board.uid(), board.id(), session.member().id())) {
-            throw Refusal.FEDERATED_BOARD_NOT_YOURS_TO_EDIT.raise();
+            throw BoardRefusal.FEDERATED_BOARD_NOT_YOURS_TO_EDIT.raise();
         }
     }
 
@@ -338,7 +338,7 @@ public class FederatedBoardRoutes implements Routes {
         UUID partnerUid = req.partnerUid();
         int partnerId = federationService
                 .findPartnerByRemoteUid(session.stationId(), partnerUid)
-                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOOKMARK::raise)
+                .orElseThrow(BoardRefusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOOKMARK::raise)
                 .id();
         ctx.json(federatedBoardService.createBookmark(
                 session.member().id(),
@@ -1190,7 +1190,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         UUID boardUid = locator.resolveFederatedBoardUid(partnerId, boardKey);
-        if (boardUid == null) throw Refusal.FEDERATED_BOARD_NOT_HERE_ON_OVERRIDE_READ.raise();
+        if (boardUid == null) throw BoardRefusal.FEDERATED_BOARD_NOT_HERE_ON_OVERRIDE_READ.raise();
         var view = accessService.getLocalViewOverride(partnerId, boardUid);
         var edit = accessService.getLocalEditOverride(partnerId, boardUid);
         ctx.json(new AccessOverrideResponse(view, edit));
@@ -1211,7 +1211,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         UUID boardUid = locator.resolveFederatedBoardUid(partnerId, boardKey);
-        if (boardUid == null) throw Refusal.FEDERATED_BOARD_NOT_HERE_ON_OVERRIDE_WRITE.raise();
+        if (boardUid == null) throw BoardRefusal.FEDERATED_BOARD_NOT_HERE_ON_OVERRIDE_WRITE.raise();
         var req = ctx.bodyAsClass(LocalOverrideRequest.class);
         accessService.setLocalViewOverride(
                 partnerId, boardUid, new AccessData(req.viewUserTypes(), req.viewGroupIds(), req.viewTagIds()));

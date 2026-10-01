@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -85,7 +85,7 @@ class FormCompletionRouteTest extends RepositoryTestBase {
         var refused = harness.request(
                 client -> client.post(RouteHarness.PREFIX + "/forms", form("Neu", NOT_A_LINK), harness.as(creator())));
 
-        assertEquals(Refusal.FORM_COMPLETION_LINK_NOT_A_LINK, refusalOf(refused));
+        assertEquals(FormRefusal.FORM_COMPLETION_LINK_NOT_A_LINK, refusalOf(refused));
         assertEquals(before, formService.findByStation(station.id()).size());
     }
 
@@ -98,7 +98,7 @@ class FormCompletionRouteTest extends RepositoryTestBase {
         var refused = harness.request(client ->
                 client.put(RouteHarness.PREFIX + "/forms/" + form, form("Neu", NOT_A_LINK), harness.as(creator())));
 
-        assertEquals(Refusal.FORM_COMPLETION_LINK_NOT_A_LINK, refusalOf(refused));
+        assertEquals(FormRefusal.FORM_COMPLETION_LINK_NOT_A_LINK, refusalOf(refused));
         assertEquals("Alt", formService.findById(form).orElseThrow().title());
     }
 

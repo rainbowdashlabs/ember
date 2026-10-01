@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
@@ -137,7 +137,7 @@ public class StationMailSettingsService {
             next.add(entryOf(next.size() + 1, entry, i < stored.size() ? stored.get(i) : null));
         }
         if (next.isEmpty() && !stored.isEmpty()) {
-            throw Refusal.MAIL_PROVIDER_LIST_EMPTY.raise();
+            throw StationRefusal.MAIL_PROVIDER_LIST_EMPTY.raise();
         }
         providers.replace(stationId, next);
         log.info("Station {} set {} mail fallback(s)", stationId, next.size());
@@ -175,7 +175,7 @@ public class StationMailSettingsService {
      */
     public void requireProvider(int stationId) {
         if (providers.findByStation(stationId).isEmpty()) {
-            throw Refusal.NO_MAIL_PROVIDER_SET.raise();
+            throw StationRefusal.NO_MAIL_PROVIDER_SET.raise();
         }
     }
 

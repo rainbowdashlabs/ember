@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.insights.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InsightsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository.HourlyTotal;
@@ -71,11 +71,11 @@ class PageInsightsServiceTest {
         when(pages.findById(9)).thenReturn(Optional.empty());
 
         assertEquals(
-                Refusal.INSIGHTS_PAGE_NOT_HERE,
+                InsightsRefusal.INSIGHTS_PAGE_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.pageDetail(3, 8, FROM, TO))
                         .refusal());
         assertEquals(
-                Refusal.INSIGHTS_PAGE_NOT_HERE,
+                InsightsRefusal.INSIGHTS_PAGE_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.pageDetail(3, 9, FROM, TO))
                         .refusal());
     }

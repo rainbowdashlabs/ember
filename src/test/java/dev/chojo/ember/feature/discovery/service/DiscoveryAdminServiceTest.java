@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.AdminRefusal;
+import dev.chojo.ember.api.refusal.DiscoveryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryBlocklistEntry;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
@@ -86,24 +88,27 @@ class DiscoveryAdminServiceTest {
 
     @Test
     void aProbeNeedsAnAddressAndSaysWhyAPeerDidNotAnswer() {
-        assertEquals(Refusal.PROBE_NEEDS_AN_ADDRESS, refusalOf(() -> service.probe(" ")));
-        assertEquals(Refusal.PROBE_NEEDS_AN_ADDRESS, refusalOf(() -> service.probe(null)));
+        assertEquals(DiscoveryRefusal.PROBE_NEEDS_AN_ADDRESS, refusalOf(() -> service.probe(" ")));
+        assertEquals(DiscoveryRefusal.PROBE_NEEDS_AN_ADDRESS, refusalOf(() -> service.probe(null)));
         peerAnswers(null);
-        assertEquals(Refusal.PEER_DID_NOT_ANSWER, refusalOf(() -> service.probe(URL)));
+        assertEquals(AdminRefusal.PEER_DID_NOT_ANSWER, refusalOf(() -> service.probe(URL)));
     }
 
     @Test
     void aPeerIsAddedOnlyWhenItNamesTheExpectedKeyAndWantsDiscovery() {
-        assertEquals(Refusal.PEER_NEEDS_AN_ADDRESS, refusalOf(() -> service.addPeer(new AddPeerRequest(null, null))));
+        assertEquals(
+                DiscoveryRefusal.PEER_NEEDS_AN_ADDRESS,
+                refusalOf(() -> service.addPeer(new AddPeerRequest(null, null))));
         peerAnswers(new DiscoveryInfoResponse(URL, "i1", null, "1", true));
-        assertEquals(Refusal.PEER_NAMED_NO_KEY, refusalOf(() -> service.addPeer(new AddPeerRequest(URL, null))));
+        assertEquals(AdminRefusal.PEER_NAMED_NO_KEY, refusalOf(() -> service.addPeer(new AddPeerRequest(URL, null))));
         peerAnswers(new DiscoveryInfoResponse(URL, "i1", "k1", "1", true));
         assertEquals(
-                Refusal.PEER_KEY_NOT_THE_EXPECTED_ONE,
+                DiscoveryRefusal.PEER_KEY_NOT_THE_EXPECTED_ONE,
                 refusalOf(() -> service.addPeer(new AddPeerRequest(URL, "other"))));
         peerAnswers(new DiscoveryInfoResponse(URL, "i1", "k1", "1", false));
         assertEquals(
-                Refusal.PEER_DOES_NOT_WANT_DISCOVERY, refusalOf(() -> service.addPeer(new AddPeerRequest(URL, ""))));
+                DiscoveryRefusal.PEER_DOES_NOT_WANT_DISCOVERY,
+                refusalOf(() -> service.addPeer(new AddPeerRequest(URL, ""))));
         verify(peers, never()).upsert(any(), any(), any(), any(), any());
     }
 
@@ -123,8 +128,8 @@ class DiscoveryAdminServiceTest {
     void aPeerThatIsNotHereCannotBeChangedOrPinged() {
         when(peers.findByPublicKey("gone")).thenReturn(Optional.empty());
 
-        assertEquals(Refusal.PEER_NOT_HERE, refusalOf(() -> service.upvote("gone")));
-        assertEquals(Refusal.PEER_NOT_HERE_ON_PING, refusalOf(() -> service.pingNow("gone")));
+        assertEquals(DiscoveryRefusal.PEER_NOT_HERE, refusalOf(() -> service.upvote("gone")));
+        assertEquals(DiscoveryRefusal.PEER_NOT_HERE_ON_PING, refusalOf(() -> service.pingNow("gone")));
         verify(reputation, never()).upvote(any());
     }
 
@@ -149,7 +154,7 @@ class DiscoveryAdminServiceTest {
     void aPeerThatVanishesDuringAChangeIsSaidSo() {
         when(peers.findByPublicKey("k1")).thenReturn(Optional.of(peer("k1", false)), Optional.empty());
 
-        assertEquals(Refusal.PEER_NOT_HERE_AFTER_CHANGE, refusalOf(() -> service.block("k1")));
+        assertEquals(DiscoveryRefusal.PEER_NOT_HERE_AFTER_CHANGE, refusalOf(() -> service.block("k1")));
     }
 
     @Test
@@ -173,13 +178,13 @@ class DiscoveryAdminServiceTest {
         when(blocklist.remove("x")).thenReturn(true);
 
         assertEquals(
-                Refusal.BLOCKLIST_ENTRY_INCOMPLETE,
+                DiscoveryRefusal.BLOCKLIST_ENTRY_INCOMPLETE,
                 refusalOf(() -> service.addToBlocklist(new BlocklistRequest(" ", BlocklistKind.BASE_URL, null))));
         assertEquals(
-                Refusal.BLOCKLIST_ENTRY_INCOMPLETE,
+                DiscoveryRefusal.BLOCKLIST_ENTRY_INCOMPLETE,
                 refusalOf(() -> service.addToBlocklist(new BlocklistRequest("x", null, null))));
         assertEquals(
-                Refusal.BLOCKLIST_ENTRY_INCOMPLETE,
+                DiscoveryRefusal.BLOCKLIST_ENTRY_INCOMPLETE,
                 refusalOf(() -> service.addToBlocklist(new BlocklistRequest(null, BlocklistKind.BASE_URL, null))));
         service.addToBlocklist(new BlocklistRequest("x", BlocklistKind.PUBLIC_KEY, "spam"));
 

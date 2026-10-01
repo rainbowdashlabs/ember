@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -92,7 +92,7 @@ class GroupRulesServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.create(station.id(), "Anfänger", new GroupRules(foreignSet, Set.of()), manager));
 
-        assertEquals(Refusal.GROUP_SET_NOT_HERE_FOR_GROUP, refused.refusal());
+        assertEquals(MemberRefusal.GROUP_SET_NOT_HERE_FOR_GROUP, refused.refusal());
         stationRepo.delete(elsewhere.id());
     }
 
@@ -105,7 +105,7 @@ class GroupRulesServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 GroupRuleRefused.class, () -> service.update(crew, "Crew", null, 0, onlyMembers, false, manager));
-        assertEquals(Refusal.GROUP_BINDING_EXCLUDES_MEMBERS, refused.refusal());
+        assertEquals(MemberRefusal.GROUP_BINDING_EXCLUDES_MEMBERS, refused.refusal());
         assertEquals(
                 List.of(parent.id()),
                 refused.conflicts().stream()
@@ -139,7 +139,7 @@ class GroupRulesServiceTest extends RepositoryTestBase {
                 () -> service.update(
                         advanced, "Fortgeschritten", null, 0, new GroupRules(levels, Set.of()), false, manager));
 
-        assertEquals(Refusal.GROUP_SET_MEMBERS_OVERLAP, refused.refusal());
+        assertEquals(MemberRefusal.GROUP_SET_MEMBERS_OVERLAP, refused.refusal());
         assertEquals(1, refused.conflicts().size());
         assertEquals(child.id(), refused.conflicts().getFirst().memberId());
         assertEquals(

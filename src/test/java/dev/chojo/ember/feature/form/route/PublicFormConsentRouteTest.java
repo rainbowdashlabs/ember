@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.LegalRefusal;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -87,7 +87,7 @@ class PublicFormConsentRouteTest extends RepositoryTestBase {
     @Test
     void anAnswerAgainstChangedLegalDocumentsIsAConflictOfItsOwn() {
         when(consent.requireAcceptance(any(), anyString(), anyString(), anyString()))
-                .thenThrow(Refusal.LEGAL_DOCUMENTS_CHANGED.raise());
+                .thenThrow(LegalRefusal.LEGAL_DOCUMENTS_CHANGED.raise());
         int form = formService
                 .create(station.id(), "Kontakt", "", false, true, false, null, null, member.id(), FormPurpose.CONTACT)
                 .id();
@@ -99,6 +99,6 @@ class PublicFormConsentRouteTest extends RepositoryTestBase {
                         {"answers": {}, "consentVersion": "old", "privacyVersion": "old", "tosVersion": "old"}""")));
 
         assertEquals(409, answer.code());
-        assertEquals(Refusal.LEGAL_DOCUMENTS_CHANGED, refusalOf(answer));
+        assertEquals(LegalRefusal.LEGAL_DOCUMENTS_CHANGED, refusalOf(answer));
     }
 }

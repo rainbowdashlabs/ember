@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;

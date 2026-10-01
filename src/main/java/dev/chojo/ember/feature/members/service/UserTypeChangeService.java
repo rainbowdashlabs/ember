@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.util.sql.Transactions;
@@ -61,7 +61,7 @@ public class UserTypeChangeService {
         var userType = Arrays.stream(StationUserType.values())
                 .filter(type -> type.name().equals(named))
                 .findFirst()
-                .orElseThrow(() -> Refusal.USER_TYPE_UNKNOWN_FOR_CONSEQUENCES.raise(named));
+                .orElseThrow(() -> MemberRefusal.USER_TYPE_UNKNOWN_FOR_CONSEQUENCES.raise(named));
         return consequences(memberId, userType);
     }
 

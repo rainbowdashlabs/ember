@@ -6,9 +6,10 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.InstallationRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.system.service.InstallPresetService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -55,7 +56,7 @@ public class InstallRoutes implements Routes {
     private void createPreset(Context ctx) {
         var answers = ctx.bodyAsClass(InstallPresetRequest.class);
         if (answers.options() == null || answers.options().isEmpty()) {
-            throw Refusal.INSTALL_ANSWERS_MISSING.raise();
+            throw SystemRefusal.INSTALL_ANSWERS_MISSING.raise();
         }
         String code = presets.store(answers.options());
         ctx.json(new InstallPresetResponse(code, presets.lifetime().toHours()));
@@ -81,13 +82,15 @@ public class InstallRoutes implements Routes {
     private void readPreset(Context ctx) {
         var retryAfter = presets.tryLookup(ctx.ip());
         if (retryAfter.isPresent()) {
-            ctx.status(Refusal.SETUP_TOO_OFTEN.status())
+            ctx.status(InstallationRefusal.SETUP_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))
                     .json(ErrorResponseWrapper.of(
-                            Refusal.SETUP_TOO_OFTEN, Refusal.SETUP_TOO_OFTEN.message(), retryAfter.get()));
+                            InstallationRefusal.SETUP_TOO_OFTEN,
+                            InstallationRefusal.SETUP_TOO_OFTEN.message(),
+                            retryAfter.get()));
             return;
         }
-        var options = presets.find(ctx.pathParam("code")).orElseThrow(Refusal.INSTALL_CODE_NOT_GOOD::raise);
+        var options = presets.find(ctx.pathParam("code")).orElseThrow(SystemRefusal.INSTALL_CODE_NOT_GOOD::raise);
         var body = new StringBuilder();
         options.forEach(
                 (key, value) -> body.append(key).append('=').append(value).append('\n'));

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
@@ -69,6 +69,6 @@ class TestProtocolEvaluationServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.evaluate(RUN));
 
-        assertEquals(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EVALUATE, refused.refusal());
+        assertEquals(TestProtocolRefusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EVALUATE, refused.refusal());
     }
 }

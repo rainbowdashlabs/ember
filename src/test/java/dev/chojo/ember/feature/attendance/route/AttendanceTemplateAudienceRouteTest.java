@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.attendance.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
@@ -146,7 +146,7 @@ class AttendanceTemplateAudienceRouteTest extends RepositoryTestBase {
                 body("{\"userTypes\":[\"TEAM\"]}"),
                 harness.as(sessionAt(otherStation, StationPermission.ATTENDANCE_CONFIGURE))));
 
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(answer));
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(answer));
         assertEquals(Set.of(), attendanceService.findTemplateUserTypes(templateId));
     }
 

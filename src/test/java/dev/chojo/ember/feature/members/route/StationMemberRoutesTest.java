@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -154,9 +155,10 @@ class StationMemberRoutesTest {
     @Test
     void aMemberOfAnotherStationIsNotThere() {
         harness.run((server, client) -> {
-            assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(get(client, "/station-members/8")));
+            assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(get(client, "/station-members/8")));
             assertEquals(
-                    Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(post(client, "/station-members/8/resend-setup-mail")));
+                    GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
+                    refusalOf(post(client, "/station-members/8/resend-setup-mail")));
         });
 
         verify(setupMail, never()).resend(any());
@@ -171,7 +173,8 @@ class StationMemberRoutesTest {
                     200, get(client, "/station-members/by-uid/" + MEMBER_UID).code());
             when(memberService.findById(7)).thenReturn(Optional.of(member(STATION_ID, true)));
             assertEquals(
-                    Refusal.MEMBER_NOT_HERE_BY_UID, refusalOf(get(client, "/station-members/by-uid/" + MEMBER_UID)));
+                    MemberRefusal.MEMBER_NOT_HERE_BY_UID,
+                    refusalOf(get(client, "/station-members/by-uid/" + MEMBER_UID)));
         });
     }
 
@@ -216,13 +219,15 @@ class StationMemberRoutesTest {
                     put(client, "/station-members/7/user-type", "{\"userType\": \"TEAM\"}")
                             .code());
             assertEquals(
-                    Refusal.MEMBER_USER_TYPE_NOT_NAMED, refusalOf(put(client, "/station-members/7/user-type", "{}")));
+                    MemberRefusal.MEMBER_USER_TYPE_NOT_NAMED,
+                    refusalOf(put(client, "/station-members/7/user-type", "{}")));
             assertEquals(
                     204,
                     put(client, "/station-members/7/join-date", "{\"joinDate\": \"2019-03-04\"}")
                             .code());
             assertEquals(
-                    Refusal.MEMBER_JOIN_DATE_NOT_NAMED, refusalOf(put(client, "/station-members/7/join-date", "{}")));
+                    MemberRefusal.MEMBER_JOIN_DATE_NOT_NAMED,
+                    refusalOf(put(client, "/station-members/7/join-date", "{}")));
             assertEquals(
                     200,
                     put(client, "/station-members/7/managed", "{\"managedIds\": []}")

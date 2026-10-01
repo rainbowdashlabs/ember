@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -147,7 +147,7 @@ public class TestProtocolRunService {
             return bytes.toByteArray();
         } catch (IOException | RuntimeException e) {
             log.error("Test protocol export failed", e);
-            throw Refusal.PROTOCOL_RUN_NOT_EXPORTED.raise();
+            throw TestProtocolRefusal.PROTOCOL_RUN_NOT_EXPORTED.raise();
         }
     }
 

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.media.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.AcceptedFormats;
@@ -107,7 +107,7 @@ public class ImageVariants {
      *
      * @param profile  the family, one of the sized ones
      * @param maxBytes upper bound on the raw upload size; {@code 0} disables the check
-     * @throws dev.chojo.ember.api.RefusalResponse when the upload is too large, is none of the
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the upload is too large, is none of the
      *                                             formats the category takes, cannot be decoded, or
      *                                             declares more pixels than {@link PixelBudget#MAX_PIXELS}
      * @throws IOException                         when the picture cannot be encoded; nothing stored has
@@ -119,10 +119,10 @@ public class ImageVariants {
         if (profile.layout() != VariantLayout.SIZED) {
             throw new IllegalArgumentException("The library keeps its own originals; add sizes to them instead");
         }
-        if (maxBytes > 0 && data.length > maxBytes) throw Refusal.PICTURE_TOO_LARGE.raise();
+        if (maxBytes > 0 && data.length > maxBytes) throw GeneralRefusal.PICTURE_TOO_LARGE.raise();
         ImageFormat format = ImageFormat.sniff(data)
                 .filter(sniffed -> category.acceptsMimeType(sniffed.mimeType()))
-                .orElseThrow(Refusal.PICTURE_KIND_NOT_TAKEN::raise);
+                .orElseThrow(GeneralRefusal.PICTURE_KIND_NOT_TAKEN::raise);
         BufferedImage image = decode(data);
 
         var encoded = new ArrayList<Encoded>();
@@ -253,10 +253,10 @@ public class ImageVariants {
     private static BufferedImage decode(byte[] data) {
         try {
             BufferedImage image = PixelBudget.read(data);
-            if (image == null) throw Refusal.PICTURE_KIND_NOT_TAKEN.raise();
+            if (image == null) throw GeneralRefusal.PICTURE_KIND_NOT_TAKEN.raise();
             return image;
         } catch (IOException e) {
-            throw Refusal.PICTURE_KIND_NOT_TAKEN.raise();
+            throw GeneralRefusal.PICTURE_KIND_NOT_TAKEN.raise();
         }
     }
 

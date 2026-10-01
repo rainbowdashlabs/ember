@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.beacon.entity.BeaconFault;
 import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
@@ -82,11 +83,11 @@ public class BeaconAdminService {
 
     /** What a beacon has gathered is only worth asking for when this instance is one. */
     private void requireBeacon() {
-        if (!config.receiving()) throw Refusal.BEACON_NOT_RECEIVING.raise();
+        if (!config.receiving()) throw BeaconRefusal.BEACON_NOT_RECEIVING.raise();
     }
 
     private void requireEnabled() {
-        if (!config.enabled()) throw Refusal.BEACON_NOT_SET_UP.raise();
+        if (!config.enabled()) throw BeaconRefusal.BEACON_NOT_SET_UP.raise();
     }
 
     public List<BeaconFault> faults(boolean includeAcknowledged) {
@@ -98,7 +99,7 @@ public class BeaconAdminService {
     public void resolveFault(int id, boolean acknowledged, @Nullable String resolvedIn) {
         requireBeacon();
         if (!collected.resolveFault(id, acknowledged, resolvedIn)) {
-            throw Refusal.BEACON_FAULT_NOT_HERE.raise();
+            throw BeaconRefusal.BEACON_FAULT_NOT_HERE.raise();
         }
     }
 
@@ -109,7 +110,7 @@ public class BeaconAdminService {
 
     public void acknowledgeReport(int id) {
         requireBeacon();
-        if (!collected.acknowledgeReport(id)) throw Refusal.BEACON_REPORT_NOT_ACKNOWLEDGED.raise();
+        if (!collected.acknowledgeReport(id)) throw BeaconRefusal.BEACON_REPORT_NOT_ACKNOWLEDGED.raise();
     }
 
     /**
@@ -124,9 +125,10 @@ public class BeaconAdminService {
         var report = collected.reports(true).stream()
                 .filter(row -> row.id() == id)
                 .findFirst()
-                .orElseThrow(Refusal.BEACON_REPORT_NOT_HERE_FOR_PICTURE::raise);
-        if (report.screenshotFileId() == null) throw Refusal.BEACON_REPORT_HAS_NO_PICTURE.raise();
-        return pictures.read(report.screenshotFileId()).orElseThrow(Refusal.BEACON_REPORT_PICTURE_NOT_HERE::raise);
+                .orElseThrow(BeaconRefusal.BEACON_REPORT_NOT_HERE_FOR_PICTURE::raise);
+        var screenshotFileId = report.screenshotFileId();
+        if (screenshotFileId == null) throw BeaconRefusal.BEACON_REPORT_HAS_NO_PICTURE.raise();
+        return pictures.read(screenshotFileId).orElseThrow(BeaconRefusal.BEACON_REPORT_PICTURE_NOT_HERE::raise);
     }
 
     /**
@@ -177,11 +179,11 @@ public class BeaconAdminService {
     }
 
     private ProblemLogAppender.ProblemSnapshot problem(long id) {
-        return runningLog(Refusal.PROBLEM_LOG_NOT_RUNNING).getProblems(true).stream()
+        return runningLog(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING).getProblems(true).stream()
                 .filter(problem -> problem.id() == id)
                 .map(ProblemLogAppender.ProblemEntry::snapshot)
                 .findFirst()
-                .orElseThrow(Refusal.BEACON_PROBLEM_NOT_HERE::raise);
+                .orElseThrow(BeaconRefusal.BEACON_PROBLEM_NOT_HERE::raise);
     }
 
     /** The exact payload one problem would travel as, shown before anything is sent. */
@@ -198,9 +200,9 @@ public class BeaconAdminService {
     public SendResult sendProblems(List<Long> ids) {
         requireEnabled();
         if (ids == null || ids.isEmpty()) {
-            throw Refusal.BEACON_NOTHING_CHOSEN_TO_SEND.raise();
+            throw BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND.raise();
         }
-        var chosen = runningLog(Refusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND).getProblems(true).stream()
+        var chosen = runningLog(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND).getProblems(true).stream()
                 .filter(problem -> ids.contains(problem.id()))
                 .map(ProblemLogAppender.ProblemEntry::snapshot)
                 .toList();
@@ -208,7 +210,7 @@ public class BeaconAdminService {
     }
 
     private ProblemReport report(int id) {
-        return problemReports.find(id).orElseThrow(Refusal.BEACON_REPORT_NOT_HERE::raise);
+        return problemReports.find(id).orElseThrow(BeaconRefusal.BEACON_REPORT_NOT_HERE::raise);
     }
 
     /**

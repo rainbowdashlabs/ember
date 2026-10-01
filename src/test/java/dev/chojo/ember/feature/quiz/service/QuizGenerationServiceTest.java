@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig.MultipleChoice.ChoiceOption;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -101,12 +102,12 @@ class QuizGenerationServiceTest {
                 service.startQuestions(STATION, ACCOUNT, order(new GenerateEntry(QuizQuestionType.FREE_ANSWER, 2, 2)));
 
         assertEquals(List.of("Old question"), titlesSeen);
-        assertEquals(Refusal.AI_GENERATION_NOT_HERE, refusalOf(() -> service.poll(STATION + 1, jobId)));
+        assertEquals(QuizRefusal.AI_GENERATION_NOT_HERE, refusalOf(() -> service.poll(STATION + 1, jobId)));
         var poll = service.poll(STATION, jobId);
         assertTrue(poll.done());
         assertEquals("Bowline?", poll.questions().getFirst().title());
         assertEquals(2, poll.questions().getFirst().categoryId());
-        assertEquals(Refusal.AI_GENERATION_NOT_HERE, refusalOf(() -> service.poll(STATION, jobId)));
+        assertEquals(QuizRefusal.AI_GENERATION_NOT_HERE, refusalOf(() -> service.poll(STATION, jobId)));
     }
 
     @Test
@@ -132,10 +133,10 @@ class QuizGenerationServiceTest {
         catalog(STATION + 1);
 
         assertEquals(
-                Refusal.AI_GENERATION_NEEDS_ENTRIES,
+                QuizRefusal.AI_GENERATION_NEEDS_ENTRIES,
                 refusalOf(() -> service.startQuestions(STATION, ACCOUNT, order())));
         assertEquals(
-                Refusal.AI_GENERATION_CATALOG_NOT_HERE,
+                QuizRefusal.AI_GENERATION_CATALOG_NOT_HERE,
                 refusalOf(() -> service.startQuestions(
                         STATION, ACCOUNT, order(new GenerateEntry(QuizQuestionType.FREE_ANSWER, 1, null)))));
         verifyNoInteractions(scheduler);
@@ -184,7 +185,7 @@ class QuizGenerationServiceTest {
         catalog(STATION + 1);
 
         assertEquals(
-                Refusal.AI_GENERATION_CATALOG_NOT_HERE,
+                QuizRefusal.AI_GENERATION_CATALOG_NOT_HERE,
                 refusalOf(() -> service.fillDistractors(
                         STATION, ACCOUNT, CATALOG, new BatchGenerateRequest(null, null, null))));
         verify(questions, never()).findQuestions(anyInt());
@@ -196,7 +197,7 @@ class QuizGenerationServiceTest {
         when(catalogs.findCatalog(CATALOG)).thenReturn(Optional.empty());
 
         assertEquals(
-                Refusal.AI_GENERATION_CATALOG_NOT_HERE,
+                QuizRefusal.AI_GENERATION_CATALOG_NOT_HERE,
                 refusalOf(() -> service.fillDistractors(
                         STATION, ACCOUNT, CATALOG, new BatchGenerateRequest(null, null, null))));
         verify(questions, never()).findQuestions(anyInt());

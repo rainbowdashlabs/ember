@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.storage.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService.BackendOverrideResponse;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
@@ -125,7 +125,7 @@ public class StationStorageBackendRoutes implements Routes {
 
     private Actor actor(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        if (session.user().account() == null) throw Refusal.NO_ACCOUNT_BEHIND_STORAGE_CHANGE.raise();
+        if (session.user().account() == null) throw StorageRefusal.NO_ACCOUNT_BEHIND_STORAGE_CHANGE.raise();
         return Actor.human(session.accountId(), session.member().id());
     }
 }

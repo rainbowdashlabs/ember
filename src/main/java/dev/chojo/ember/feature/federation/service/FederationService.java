@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
@@ -619,7 +619,7 @@ public class FederationService {
     private void requirePausable(int partnerId) {
         repository.findPartnerById(partnerId).ifPresent(partner -> {
             if (!partner.pausableByStation()) {
-                throw Refusal.FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE.raise();
+                throw FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE.raise();
             }
         });
     }
@@ -627,7 +627,7 @@ public class FederationService {
     private void requireDeletable(int partnerId) {
         repository.findPartnerById(partnerId).ifPresent(partner -> {
             if (!partner.deletableByStation()) {
-                throw Refusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE.raise();
+                throw FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE.raise();
             }
         });
     }

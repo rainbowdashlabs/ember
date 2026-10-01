@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -674,7 +674,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id()));
-        assertEquals(Refusal.SELF_CHECK_REVIEW_TASK_NOT_WAITING, refused.refusal());
+        assertEquals(InventoryRefusal.SELF_CHECK_REVIEW_TASK_NOT_WAITING, refused.refusal());
     }
 
     @Test
@@ -689,7 +689,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> selfCheckReviewService.take(ownTask.id(), row.id(), station.id(), reviewer.id()));
-        assertEquals(Refusal.SELF_CHECK_REVIEW_OF_OWN_GEAR, refused.refusal());
+        assertEquals(InventoryRefusal.SELF_CHECK_REVIEW_OF_OWN_GEAR, refused.refusal());
         var review = selfCheckReviewService.read(ownTask.id(), station.id(), reviewer.id());
         assertFalse(review.mayApprove());
         assertEquals("This submission is about your own gear", review.approvalRefusal());

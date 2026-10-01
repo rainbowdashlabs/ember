@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.StationCalendar.DateCheck;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -130,7 +131,8 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
                 occurrenceCalendar.dateInView(weekly).orElseThrow());
         assertFalse(occurrenceCalendar.occurrencesWithin(weekly, 21).contains(firstThursday));
         assertRefused(
-                Refusal.REGISTRATION_DAY_IN_A_BREAK, () -> occurrenceCalendar.dateToAnswerFor(weekly, firstThursday));
+                EventRefusal.REGISTRATION_DAY_IN_A_BREAK,
+                () -> occurrenceCalendar.dateToAnswerFor(weekly, firstThursday));
 
         eventBreakRepo.delete(closed.id());
     }
@@ -149,7 +151,7 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
         assertEquals(lastMonday, occurrenceCalendar.dateInView(over).orElseThrow());
         assertTrue(occurrenceCalendar.occurrencesWithin(over, 365).isEmpty());
         assertRefused(
-                Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
+                EventRefusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
                 () -> occurrenceCalendar.dateToAnswerFor(over, lastMonday.plusWeeks(1)));
     }
 
@@ -168,9 +170,9 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
 
         assertEquals(firstMonday, occurrenceCalendar.dateToAnswerFor(monthly, firstMonday));
         assertRefused(
-                Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
+                EventRefusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
                 () -> occurrenceCalendar.dateToAnswerFor(monthly, firstMonday.plusWeeks(1)));
-        assertRefused(Refusal.REGISTRATION_NEEDS_A_DAY, () -> occurrenceCalendar.dateToAnswerFor(monthly, null));
+        assertRefused(EventRefusal.REGISTRATION_NEEDS_A_DAY, () -> occurrenceCalendar.dateToAnswerFor(monthly, null));
     }
 
     /** A series that ends after a number of times takes no answer for the time after that. */
@@ -186,7 +188,7 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
 
         assertEquals(first.plusWeeks(1), occurrenceCalendar.dateToAnswerFor(counted, first.plusWeeks(1)));
         assertRefused(
-                Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
+                EventRefusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
                 () -> occurrenceCalendar.dateToAnswerFor(counted, first.plusWeeks(2)));
     }
 
@@ -215,7 +217,7 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
                 calendar.cancelledDates(weekly).stream().map(c -> c.eventDate()).toList());
         assertFalse(calendar.cancelledAltogether(weekly));
         assertEquals(first, occurrenceCalendar.next(weekly).orElseThrow(), "a cancelled date is still listed");
-        assertRefused(Refusal.REGISTRATION_DAY_CANCELLED, () -> occurrenceCalendar.dateToAnswerFor(weekly, first));
+        assertRefused(EventRefusal.REGISTRATION_DAY_CANCELLED, () -> occurrenceCalendar.dateToAnswerFor(weekly, first));
         assertEquals(first.plusWeeks(1), occurrenceCalendar.dateToAnswerFor(weekly, first.plusWeeks(1)));
 
         eventDateCancellationRepo.restore(weekly.id(), first);
@@ -236,12 +238,12 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
         var calendar = occurrenceCalendar.forStation(station.id());
         assertTrue(calendar.cancelledAltogether(one));
         assertTrue(calendar.cancelledDates(one).isEmpty(), "a one-off is called off as a whole, not by date");
-        assertRefused(Refusal.REGISTRATION_DAY_CANCELLED, () -> occurrenceCalendar.dateToAnswerFor(one, null));
+        assertRefused(EventRefusal.REGISTRATION_DAY_CANCELLED, () -> occurrenceCalendar.dateToAnswerFor(one, null));
         assertTrue(calendar.cancelledAltogether(cancelledSeries));
         LocalDate nextFriday = occurrenceCalendar.next(cancelledSeries).orElseThrow();
         assertTrue(calendar.isCancelled(cancelledSeries, nextFriday));
         assertRefused(
-                Refusal.REGISTRATION_DAY_CANCELLED,
+                EventRefusal.REGISTRATION_DAY_CANCELLED,
                 () -> occurrenceCalendar.dateToAnswerFor(cancelledSeries, nextFriday));
     }
 

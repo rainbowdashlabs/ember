@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.BodyRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
@@ -96,8 +99,9 @@ public class ExceptionMapping {
 
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
             log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
-            String said = Failures.readable(err.getMessage()).orElse(Refusal.INPUT_NOT_USABLE.message());
-            ctx.json(ErrorResponseWrapper.of(Refusal.INPUT_NOT_USABLE, said)).status(Refusal.INPUT_NOT_USABLE.status());
+            String said = Failures.readable(err.getMessage()).orElse(BodyRefusal.INPUT_NOT_USABLE.message());
+            ctx.json(ErrorResponseWrapper.of(BodyRefusal.INPUT_NOT_USABLE, said))
+                    .status(BodyRefusal.INPUT_NOT_USABLE.status());
         });
 
         routes.exception(MigrationException.class, (err, ctx) -> {
@@ -113,7 +117,7 @@ public class ExceptionMapping {
 
         routes.exception(StreamReadException.class, (err, ctx) -> {
             log.warn("Malformed body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            answerRefusal(ctx, Refusal.BODY_NOT_JSON, Refusal.BODY_NOT_JSON.message());
+            answerRefusal(ctx, BodyRefusal.BODY_NOT_JSON, BodyRefusal.BODY_NOT_JSON.message());
         });
 
         routes.exception(MismatchedInputException.class, (err, ctx) -> {
@@ -121,16 +125,17 @@ public class ExceptionMapping {
             if (err instanceof UnrecognizedPropertyException unknown) {
                 answerRefusal(
                         ctx,
-                        Refusal.BODY_UNEXPECTED_FIELD,
-                        Refusal.BODY_UNEXPECTED_FIELD.message() + ": " + unknown.getPropertyName());
+                        BodyRefusal.BODY_UNEXPECTED_FIELD,
+                        BodyRefusal.BODY_UNEXPECTED_FIELD.message() + ": " + unknown.getPropertyName());
                 return;
             }
-            answerRefusal(ctx, Refusal.BODY_DOES_NOT_MATCH, atFieldPath(Refusal.BODY_DOES_NOT_MATCH, err.getPath()));
+            answerRefusal(
+                    ctx, BodyRefusal.BODY_DOES_NOT_MATCH, atFieldPath(BodyRefusal.BODY_DOES_NOT_MATCH, err.getPath()));
         });
 
         routes.exception(ValueInstantiationException.class, (err, ctx) -> {
             log.warn("Rejected value in body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            answerRefusal(ctx, Refusal.BODY_VALUE_REJECTED, rejectedValueDetail(err));
+            answerRefusal(ctx, BodyRefusal.BODY_VALUE_REJECTED, rejectedValueDetail(err));
         });
 
         routes.exception(Exception.class, (err, ctx) -> {
@@ -230,6 +235,6 @@ public class ExceptionMapping {
         String said = err.getCause() == null ? null : err.getCause().getMessage();
         return Failures.readable(said)
                 .map(prose -> prose + where)
-                .orElse(Refusal.BODY_VALUE_REJECTED.message() + where);
+                .orElse(BodyRefusal.BODY_VALUE_REJECTED.message() + where);
     }
 }

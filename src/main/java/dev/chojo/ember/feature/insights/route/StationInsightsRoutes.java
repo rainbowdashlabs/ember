@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.insights.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InsightsRefusal;
 import dev.chojo.ember.feature.insights.service.PageInsightsService;
 import dev.chojo.ember.feature.insights.service.PageInsightsService.LeaderboardResponse;
 import dev.chojo.ember.feature.insights.service.PageInsightsService.PageDetailResponse;
@@ -49,19 +49,19 @@ public class StationInsightsRoutes implements Routes {
         try {
             return Integer.parseInt(ctx.pathParam("pageId"));
         } catch (NumberFormatException e) {
-            throw Refusal.INSIGHTS_PAGE_NOT_A_NUMBER.raise();
+            throw InsightsRefusal.INSIGHTS_PAGE_NOT_A_NUMBER.raise();
         }
     }
 
     private static Instant parseInstant(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) {
-            throw Refusal.INSIGHTS_WINDOW_MISSING.raise();
+            throw InsightsRefusal.INSIGHTS_WINDOW_MISSING.raise();
         }
         try {
             return Instant.parse(raw);
         } catch (Exception e) {
-            throw Refusal.INSIGHTS_WINDOW_NOT_A_MOMENT.raise(raw);
+            throw InsightsRefusal.INSIGHTS_WINDOW_NOT_A_MOMENT.raise(raw);
         }
     }
 
@@ -71,11 +71,11 @@ public class StationInsightsRoutes implements Routes {
         try {
             int parsed = Integer.parseInt(raw);
             if (parsed <= 0 || parsed > 500) {
-                throw Refusal.INSIGHTS_LIMIT_OUT_OF_RANGE.raise();
+                throw InsightsRefusal.INSIGHTS_LIMIT_OUT_OF_RANGE.raise();
             }
             return parsed;
         } catch (NumberFormatException e) {
-            throw Refusal.INSIGHTS_LIMIT_NOT_A_NUMBER.raise(raw);
+            throw InsightsRefusal.INSIGHTS_LIMIT_NOT_A_NUMBER.raise(raw);
         }
     }
 
@@ -102,7 +102,7 @@ public class StationInsightsRoutes implements Routes {
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw Refusal.INSIGHTS_WINDOW_ENDS_BEFORE_IT_STARTS.raise();
+            throw InsightsRefusal.INSIGHTS_WINDOW_ENDS_BEFORE_IT_STARTS.raise();
         }
         ctx.json(insights.leaderboard(stationId, from, to, parseOptionalLimit(ctx)));
     }
@@ -124,7 +124,7 @@ public class StationInsightsRoutes implements Routes {
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw Refusal.INSIGHTS_PAGE_WINDOW_ENDS_BEFORE_IT_STARTS.raise();
+            throw InsightsRefusal.INSIGHTS_PAGE_WINDOW_ENDS_BEFORE_IT_STARTS.raise();
         }
         ctx.json(insights.pageDetail(stationId, pageId, from, to));
     }

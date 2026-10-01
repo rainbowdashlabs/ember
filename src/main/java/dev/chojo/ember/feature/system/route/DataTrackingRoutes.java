@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.system.service.DataTrackingAdminService;
 import dev.chojo.ember.feature.system.service.DataTrackingAdminService.Summary;
@@ -97,7 +97,7 @@ public class DataTrackingRoutes implements Routes {
             ctx.status(HttpStatus.OK).json(updated);
         } catch (IllegalArgumentException e) {
             log.warn("Data tracking table {} could not be written", table, e);
-            throw Refusal.TRACKED_TABLE_NOT_HERE.raise();
+            throw SystemRefusal.TRACKED_TABLE_NOT_HERE.raise();
         }
     }
 
@@ -115,7 +115,7 @@ public class DataTrackingRoutes implements Routes {
             ctx.status(HttpStatus.OK).json(updated);
         } catch (IllegalArgumentException e) {
             log.warn("Data tracking columns of table {} could not be checked", table, e);
-            throw Refusal.TRACKED_TABLE_NOT_HERE_ON_CHECK.raise();
+            throw SystemRefusal.TRACKED_TABLE_NOT_HERE_ON_CHECK.raise();
         }
     }
 }

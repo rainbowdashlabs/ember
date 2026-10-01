@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.procedure.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.ProcedureRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
@@ -90,7 +90,7 @@ class ProcedureRoutesTest {
                 body("{\"checked\": true, \"note\": \"erledigt\"}"),
                 harness.as(TestSessions.member(STATION, StationPermission.USER))));
 
-        assertEquals(Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(answer));
+        assertEquals(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(answer));
         verify(repository, never()).checkItem(anyInt(), anyInt());
         verify(repository, never()).updateItemNote(anyInt(), anyString());
     }
@@ -104,7 +104,7 @@ class ProcedureRoutesTest {
                     harness.as(TestSessions.member(STATION, StationPermission.USER, StationPermission.PROCEDURE_EDIT));
 
             assertEquals(
-                    Refusal.PROCEDURE_STEP_NOTE_NOT_YOURS,
+                    ProcedureRefusal.PROCEDURE_STEP_NOTE_NOT_YOURS,
                     refusalOf(client.patch(step, body("{\"checked\": true, \"note\": \"erledigt\"}"), assignee)));
             verify(repository, never()).checkItem(anyInt(), anyInt());
             verify(repository, never()).updateItemNote(anyInt(), anyString());
@@ -124,10 +124,12 @@ class ProcedureRoutesTest {
             String foreign = PREFIX + "/procedures/" + PROCEDURE + "/items/" + FOREIGN_STEP;
 
             assertEquals(
-                    Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(client.put(foreign, body(STEP_BODY), editor)));
-            assertEquals(Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(client.delete(foreign, null, editor)));
+                    ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE,
+                    refusalOf(client.put(foreign, body(STEP_BODY), editor)));
             assertEquals(
-                    Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE,
+                    ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(client.delete(foreign, null, editor)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE,
                     refusalOf(client.patch(foreign, body("{\"checked\": false}"), editor)));
         });
 
@@ -143,7 +145,7 @@ class ProcedureRoutesTest {
                 body("{\"dependencies\": [{\"itemId\": " + OWN_STEP + ", \"dependsOnItemId\": " + FOREIGN_STEP + "}]}"),
                 harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT))));
 
-        assertEquals(Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(answer));
+        assertEquals(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(answer));
         verify(repository, never()).setItemDependencies(anyInt(), any());
     }
 
@@ -154,12 +156,13 @@ class ProcedureRoutesTest {
             String foreign = PREFIX + "/procedure-templates/" + TEMPLATE + "/items/" + FOREIGN_TEMPLATE_STEP;
 
             assertEquals(
-                    Refusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE,
+                    ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE,
                     refusalOf(client.put(foreign, body(STEP_BODY), manager)));
             assertEquals(
-                    Refusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE, refusalOf(client.delete(foreign, null, manager)));
+                    ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE,
+                    refusalOf(client.delete(foreign, null, manager)));
             assertEquals(
-                    Refusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE,
+                    ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE,
                     refusalOf(client.put(
                             PREFIX + "/procedure-templates/" + TEMPLATE + "/dependencies",
                             body("{\"dependencies\": [{\"itemId\": " + FOREIGN_TEMPLATE_STEP + ", \"dependsOnItemId\": "

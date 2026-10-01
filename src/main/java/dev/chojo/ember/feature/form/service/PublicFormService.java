@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -36,14 +36,14 @@ public class PublicFormService {
      * @param token the token the link carries
      */
     public Form sharedForm(String token) {
-        return forms.findByShareToken(token).orElseThrow(Refusal.FORM_LINK_UNKNOWN::raise);
+        return forms.findByShareToken(token).orElseThrow(FormRefusal.FORM_LINK_UNKNOWN::raise);
     }
 
     /**
      * The station a form behind a link belongs to, whose name and colours frame it.
      */
     public Station stationOf(Form form) {
-        return stations.findById(form.stationId()).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_FORM_LINK::raise);
+        return stations.findById(form.stationId()).orElseThrow(FormRefusal.STATION_NOT_HERE_BEHIND_FORM_LINK::raise);
     }
 
     /**
@@ -57,17 +57,17 @@ public class PublicFormService {
      * @param formUid        the form's public identity
      */
     public Form resolveFormOfStation(String stationAddress, UUID formUid) {
-        var station =
-                stations.findByAddress(stationAddress).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM::raise);
-        var form = forms.findByPublicUid(formUid).orElseThrow(Refusal.PUBLIC_FORM_NOT_HERE::raise);
+        var station = stations.findByAddress(stationAddress)
+                .orElseThrow(FormRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM::raise);
+        var form = forms.findByPublicUid(formUid).orElseThrow(FormRefusal.PUBLIC_FORM_NOT_HERE::raise);
         if (form.stationId() != station.id()) {
-            throw Refusal.PUBLIC_FORM_NOT_HERE.raise();
+            throw FormRefusal.PUBLIC_FORM_NOT_HERE.raise();
         }
         if (form.purpose() != FormPurpose.CONTACT && form.purpose() != FormPurpose.POLL) {
-            throw Refusal.FORM_NOT_ANSWERED_FROM_OUTSIDE.raise();
+            throw FormRefusal.FORM_NOT_ANSWERED_FROM_OUTSIDE.raise();
         }
         if (!form.visibility().openlyAddressed()) {
-            throw Refusal.FORM_NOT_OPENLY_ADDRESSED.raise();
+            throw FormRefusal.FORM_NOT_OPENLY_ADDRESSED.raise();
         }
         return form;
     }

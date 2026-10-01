@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.transport;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import io.javalin.http.Context;
@@ -109,7 +109,7 @@ public record PathParams(Map<String, String> path, Map<String, String> query) {
         try {
             return Integer.parseInt(text(name));
         } catch (NumberFormatException e) {
-            throw Refusal.ADDRESS_NOT_AN_IDENTIFIER.raise();
+            throw GeneralRefusal.ADDRESS_NOT_AN_IDENTIFIER.raise();
         }
     }
 
@@ -123,7 +123,7 @@ public record PathParams(Map<String, String> path, Map<String, String> query) {
         try {
             return UUID.fromString(text(name));
         } catch (IllegalArgumentException e) {
-            throw Refusal.ADDRESS_NOT_AN_IDENTIFIER.raise();
+            throw GeneralRefusal.ADDRESS_NOT_AN_IDENTIFIER.raise();
         }
     }
 

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.util;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.jspecify.annotations.Nullable;
 
@@ -61,7 +61,7 @@ public final class PixelBudget {
 
     /** Refuses a picture over the budget. */
     public static void requireWithin(byte[] data) {
-        if (!fits(data)) throw Refusal.PICTURE_TOO_MANY_PIXELS.raise();
+        if (!fits(data)) throw GeneralRefusal.PICTURE_TOO_MANY_PIXELS.raise();
     }
 
     /**
@@ -75,7 +75,7 @@ public final class PixelBudget {
             var reader = readerFor(stream);
             if (reader.isEmpty()) return null;
             try {
-                if (!dimensionsOf(reader.get()).fits()) throw Refusal.PICTURE_TOO_MANY_PIXELS.raise();
+                if (!dimensionsOf(reader.get()).fits()) throw GeneralRefusal.PICTURE_TOO_MANY_PIXELS.raise();
                 return reader.get().read(0, reader.get().getDefaultReadParam());
             } finally {
                 reader.get().dispose();

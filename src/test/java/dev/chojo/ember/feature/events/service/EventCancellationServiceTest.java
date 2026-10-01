@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
@@ -186,27 +187,28 @@ class EventCancellationServiceTest extends RepositoryTestBase {
 
         assertTrue(occurrenceCalendar.forStation(station.id()).cancelledAltogether(event));
         assertRefused(
-                Refusal.ONE_TIME_EVENT_CANCELLED_AS_SERIES, () -> service.cancelSeries(station.id(), event.id(), null));
+                EventRefusal.ONE_TIME_EVENT_CANCELLED_AS_SERIES,
+                () -> service.cancelSeries(station.id(), event.id(), null));
     }
 
     @Test
     void aDateTheAppointmentDoesNotFallOnOrThatIsPastOrOffAlreadyIsRefused() {
         weekly();
         assertRefused(
-                Refusal.DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT,
+                EventRefusal.DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT,
                 () -> service.cancelDate(event, firstDate().plusDays(1), null, null));
         assertRefused(
-                Refusal.DATE_TO_CANCEL_IN_THE_PAST,
+                EventRefusal.DATE_TO_CANCEL_IN_THE_PAST,
                 () -> service.cancelDate(event, firstDate().minusWeeks(1), null, null));
         var breakRow = eventBreakRepo.create(
                 station.id(), "Ferien", firstDate().plusWeeks(2), firstDate().plusWeeks(2));
         assertRefused(
-                Refusal.DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT,
+                EventRefusal.DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT,
                 () -> service.cancelDate(event, firstDate().plusWeeks(2), null, null));
         eventBreakRepo.delete(breakRow.id());
 
         service.cancelDate(event, firstDate(), null, null);
-        assertRefused(Refusal.DATE_ALREADY_CANCELLED, () -> service.cancelDate(event, firstDate(), null, null));
+        assertRefused(EventRefusal.DATE_ALREADY_CANCELLED, () -> service.cancelDate(event, firstDate(), null, null));
     }
 
     /** A date brought back takes place again, and whoever kept their place is told. */
@@ -226,7 +228,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
                         eq(NotificationType.EVENT_DATE_RESTORED),
                         any(),
                         eq(Delivery.EVERY_TIME));
-        assertRefused(Refusal.DATE_TO_RESTORE_NOT_CANCELLED, () -> service.restoreDate(event, firstDate()));
+        assertRefused(EventRefusal.DATE_TO_RESTORE_NOT_CANCELLED, () -> service.restoreDate(event, firstDate()));
     }
 
     @Test
@@ -235,7 +237,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         LocalDate past = firstDate().minusWeeks(1);
         eventDateCancellationRepo.cancel(event.id(), past, CancellationCause.MANUAL, null, null);
 
-        assertRefused(Refusal.DATE_TO_RESTORE_IN_THE_PAST, () -> service.restoreDate(event, past));
+        assertRefused(EventRefusal.DATE_TO_RESTORE_IN_THE_PAST, () -> service.restoreDate(event, past));
     }
 
     /** A series called off as a whole tells every place still to come and stays off for good. */
@@ -257,16 +259,19 @@ class EventCancellationServiceTest extends RepositoryTestBase {
                         eq(NotificationType.EVENT_CANCELLED),
                         any(),
                         eq(Delivery.EVERY_TIME));
-        assertRefused(Refusal.SERIES_ALREADY_CANCELLED, () -> service.cancelSeries(station.id(), event.id(), null));
-        assertRefused(Refusal.DATE_ALREADY_CANCELLED, () -> service.cancelDate(cancelled, firstDate(), null, null));
-        assertRefused(Refusal.DATE_OF_CANCELLED_SERIES_NOT_RESTORED, () -> service.restoreDate(cancelled, firstDate()));
+        assertRefused(
+                EventRefusal.SERIES_ALREADY_CANCELLED, () -> service.cancelSeries(station.id(), event.id(), null));
+        assertRefused(
+                EventRefusal.DATE_ALREADY_CANCELLED, () -> service.cancelDate(cancelled, firstDate(), null, null));
+        assertRefused(
+                EventRefusal.DATE_OF_CANCELLED_SERIES_NOT_RESTORED, () -> service.restoreDate(cancelled, firstDate()));
     }
 
     @Test
     void aSeriesOfAnotherStationIsNotHere() {
         weekly();
-        assertRefused(Refusal.EVENT_NOT_HERE_ON_CANCELLATION, () -> service.cancelSeries(-1, event.id(), null));
-        assertRefused(Refusal.EVENT_NOT_HERE_ON_CANCELLATION, () -> service.cancelSeries(station.id(), -1, null));
+        assertRefused(EventRefusal.EVENT_NOT_HERE_ON_CANCELLATION, () -> service.cancelSeries(-1, event.id(), null));
+        assertRefused(EventRefusal.EVENT_NOT_HERE_ON_CANCELLATION, () -> service.cancelSeries(station.id(), -1, null));
     }
 
     /** The check calls a date off once and leaves a date alone that a manager brought back. */

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -387,7 +387,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.serveMessages(servingAForB(outsider.uid()), request.uid()));
-        assertEquals(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refused.refusal());
+        assertEquals(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refused.refusal());
         assertThrows(
                 RefusalResponse.class, () -> service.serveMessages(servingAForB(stationB.uid()), UUID.randomUUID()));
 
@@ -799,7 +799,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var line = lineOn(stationA, inv.id(), null);
 
         var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, held.id(), stationA.id()));
-        assertEquals(Refusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
+        assertEquals(FederationRefusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
     }
 
     /**
@@ -825,7 +825,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var line = lineOn(stationA, inv.id(), null);
 
         var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, foreign.id(), stationA.id()));
-        assertEquals(Refusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
+        assertEquals(FederationRefusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
     }
 
     /**
@@ -1261,7 +1261,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.serveStatus(
                         asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.LENT, null)));
-        assertEquals(Refusal.LENDING_NOT_THE_OWNING_STATION, early.refusal());
+        assertEquals(FederationRefusal.LENDING_NOT_THE_OWNING_STATION, early.refusal());
 
         service.serveStatus(asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.RETURNED, null));
         assertEquals(
@@ -1292,7 +1292,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.serveRequest(new ServingPartner(row, elsewhere), sent));
-        assertEquals(Refusal.LENDING_LINE_NAMES_FOREIGN_GEAR, refused.refusal());
+        assertEquals(FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR, refused.refusal());
         assertTrue(lendingRepo.findRequestByUid(sent.uid()).isEmpty());
 
         var stranger = new ServingPartner(row, UUID.randomUUID());

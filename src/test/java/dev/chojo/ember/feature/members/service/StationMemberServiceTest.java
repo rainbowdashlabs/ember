@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -116,7 +116,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.setPermissions(
                         member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER), null));
-        assertEquals(Refusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT, refused.refusal());
+        assertEquals(MemberRefusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT, refused.refusal());
     }
 
     @Test
@@ -258,7 +258,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
                         List.of(loginPerm.id()),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN),
                         null));
-        assertEquals(Refusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS, refused.refusal());
+        assertEquals(MemberRefusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS, refused.refusal());
 
         service.delete(noEmailMember.id());
         accountRepo.delete(noEmailAccount.id());
@@ -284,7 +284,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
                         List.of(),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                         member3.id()));
-        assertEquals(Refusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE, refused.refusal());
+        assertEquals(MemberRefusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE, refused.refusal());
 
         service.delete(member3.id());
         accountRepo.delete(account3.id());
@@ -339,7 +339,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
                         List.of(userPerm.id()),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                         null));
-        assertEquals(Refusal.MEMBER_OWNER_KEEPS_ADMINISTRATION, refused.refusal());
+        assertEquals(MemberRefusal.MEMBER_OWNER_KEEPS_ADMINISTRATION, refused.refusal());
 
         stationRepo.setOwner(ownerStation.id(), null);
         service.delete(ownerMember.id());
@@ -353,7 +353,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
         stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
-        assertEquals(Refusal.MEMBER_TYPE_TAKES_NO_GUARDIANS, refused.refusal());
+        assertEquals(MemberRefusal.MEMBER_TYPE_TAKES_NO_GUARDIANS, refused.refusal());
         stationMemberRepo.setUserType(member2.id(), StationUserType.MEMBER);
     }
 

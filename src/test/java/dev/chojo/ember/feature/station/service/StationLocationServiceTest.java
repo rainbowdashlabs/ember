@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -146,9 +146,9 @@ class StationLocationServiceTest extends RepositoryTestBase {
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(null, null, tooLong, null, null, null)));
-        assertEquals(Refusal.STATION_ADDRESS_LINE_TOO_LONG, addressLine.refusal());
-        assertEquals(Refusal.STATION_POSTAL_CODE_TOO_LONG, postalCode.refusal());
-        assertEquals(Refusal.STATION_CITY_TOO_LONG, city.refusal());
+        assertEquals(StationRefusal.STATION_ADDRESS_LINE_TOO_LONG, addressLine.refusal());
+        assertEquals(StationRefusal.STATION_POSTAL_CODE_TOO_LONG, postalCode.refusal());
+        assertEquals(StationRefusal.STATION_CITY_TOO_LONG, city.refusal());
     }
 
     @Test

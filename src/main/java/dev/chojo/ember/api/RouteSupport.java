@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import io.javalin.http.Context;
 
 import java.util.Optional;
@@ -38,7 +39,7 @@ public final class RouteSupport {
         try {
             return UUID.fromString(ctx.pathParam(name));
         } catch (IllegalArgumentException e) {
-            throw Refusal.ADDRESS_NOT_AN_IDENTIFIER.raise();
+            throw GeneralRefusal.ADDRESS_NOT_AN_IDENTIFIER.raise();
         }
     }
 
@@ -59,7 +60,7 @@ public final class RouteSupport {
     public static void requireSameStation(UserSession session, int entityStationId) {
         Integer stationId = session.stationId();
         if (stationId == null || entityStationId != stationId) {
-            throw Refusal.NOT_YOURS_TO_OPEN.raise();
+            throw GeneralRefusal.NOT_YOURS_TO_OPEN.raise();
         }
     }
 
@@ -76,10 +77,10 @@ public final class RouteSupport {
      */
     public static <T> T requireOwnedOrNotFound(
             Context ctx, int id, IntFunction<Optional<T>> finder, ToIntFunction<T> stationOf) {
-        T entity = finder.apply(id).orElseThrow(Refusal.NOT_HERE_OR_NOT_YOURS::raise);
+        T entity = finder.apply(id).orElseThrow(GeneralRefusal.NOT_HERE_OR_NOT_YOURS::raise);
         Integer stationId = UserSession.from(ctx).stationId();
         if (stationId == null || stationOf.applyAsInt(entity) != stationId) {
-            throw Refusal.NOT_HERE_OR_NOT_YOURS.raise();
+            throw GeneralRefusal.NOT_HERE_OR_NOT_YOURS.raise();
         }
         return entity;
     }

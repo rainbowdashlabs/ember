@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.page.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.feature.federation.entity.PublicPartnerSummary;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.page.entity.StationPage;
@@ -79,9 +79,9 @@ public class PublicPageRoutes implements Routes {
         int stationId = resolveOpenStation(ctx);
         String pagePath = ctx.pathParam("pagePath");
 
-        var page = pageService.getPageByPath(stationId, pagePath).orElseThrow(Refusal.PUBLIC_PAGE_NOT_HERE::raise);
+        var page = pageService.getPageByPath(stationId, pagePath).orElseThrow(PageRefusal.PUBLIC_PAGE_NOT_HERE::raise);
 
-        var rendered = pageService.getPageRendered(page.id()).orElseThrow(Refusal.PUBLIC_PAGE_NOT_RENDERED::raise);
+        var rendered = pageService.getPageRendered(page.id()).orElseThrow(PageRefusal.PUBLIC_PAGE_NOT_RENDERED::raise);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(rendered);
     }
@@ -92,7 +92,7 @@ public class PublicPageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPage.class)))
     private void getLandingPage(Context ctx) {
         int stationId = resolveOpenStation(ctx);
-        var page = pageService.getLandingPage(stationId).orElseThrow(Refusal.PUBLIC_LANDING_PAGE_NOT_HERE::raise);
+        var page = pageService.getLandingPage(stationId).orElseThrow(PageRefusal.PUBLIC_LANDING_PAGE_NOT_HERE::raise);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(page);
     }

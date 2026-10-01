@@ -6,12 +6,13 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.ApiServer;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -79,7 +80,7 @@ class KbGuardsTest {
         assertEquals(trashed, KbGuards.requireOwnedTrashedFile(ctx, knowledgeBase, 1));
         assertEquals(trashedFolder, KbGuards.requireOwnedTrashedFolder(ctx, knowledgeBase, 1));
         assertEquals(
-                Refusal.NOT_HERE_OR_NOT_YOURS,
+                GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                 assertThrows(RefusalResponse.class, () -> KbGuards.requireOwnedFile(ctx, knowledgeBase, 2))
                         .refusal());
     }
@@ -112,7 +113,7 @@ class KbGuardsTest {
 
         assertDoesNotThrow(() -> KbGuards.requireLevel(ctx, access, 5, null, KbAccessLevel.READ));
         assertEquals(
-                Refusal.KB_ENTRY_NOT_YOURS_TO_OPEN,
+                KnowledgeBaseRefusal.KB_ENTRY_NOT_YOURS_TO_OPEN,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> KbGuards.requireLevel(ctx, access, 5, null, KbAccessLevel.WRITE))

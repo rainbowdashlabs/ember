@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -127,7 +127,7 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.saveQuestions(form.id(), List.of(kept(form.first(), "First"), kept(other.first(), "x"))));
 
-        assertEquals(Refusal.QUESTION_NOT_ON_THIS_FORM, refused.refusal());
+        assertEquals(FormRefusal.QUESTION_NOT_ON_THIS_FORM, refused.refusal());
         assertEquals(List.of(form.first().id(), form.second().id()), ids(service.findQuestions(form.id())));
         assertEquals(List.of(other.first().id(), other.second().id()), ids(service.findQuestions(other.id())));
     }
@@ -150,7 +150,7 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.saveQuestions(form.id(), List.of(retyped, kept(form.second(), "Second"))));
 
-        assertEquals(Refusal.QUESTION_TYPE_NOT_CHANGEABLE, refused.refusal());
+        assertEquals(FormRefusal.QUESTION_TYPE_NOT_CHANGEABLE, refused.refusal());
         assertEquals(
                 FormQuestionType.TEXT,
                 service.findQuestions(form.id()).getFirst().formQuestionType());

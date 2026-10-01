@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -138,11 +139,11 @@ class StationManageServicesTest {
                 null, null, null);
         doThrow(new IllegalArgumentException("taken")).when(stations).updatePublicSlug(3, "taken");
 
-        assertEquals(Refusal.STATION_NEEDS_A_NAME_ON_CHANGE, refusalOf(() -> service.update(3, named(" "))));
-        assertEquals(Refusal.STATION_NEEDS_A_NAME_ON_CHANGE, refusalOf(() -> service.update(3, named(null))));
-        assertEquals(Refusal.STATION_TIME_ZONE_NOT_KNOWN, refusalOf(() -> service.update(3, badZone)));
-        assertEquals(Refusal.STATION_ADDRESS_NOT_USABLE, refusalOf(() -> service.update(3, takenSlug)));
-        assertEquals(Refusal.STATION_NOT_HERE_AFTER_CHANGE, refusalOf(() -> service.update(3, named("Nord"))));
+        assertEquals(StationRefusal.STATION_NEEDS_A_NAME_ON_CHANGE, refusalOf(() -> service.update(3, named(" "))));
+        assertEquals(StationRefusal.STATION_NEEDS_A_NAME_ON_CHANGE, refusalOf(() -> service.update(3, named(null))));
+        assertEquals(StationRefusal.STATION_TIME_ZONE_NOT_KNOWN, refusalOf(() -> service.update(3, badZone)));
+        assertEquals(StationRefusal.STATION_ADDRESS_NOT_USABLE, refusalOf(() -> service.update(3, takenSlug)));
+        assertEquals(StationRefusal.STATION_NOT_HERE_AFTER_CHANGE, refusalOf(() -> service.update(3, named("Nord"))));
         verify(stations, never()).updateThemeSettings(anyInt(), any(), anyBoolean(), any(), any(), anyBoolean());
     }
 
@@ -170,10 +171,11 @@ class StationManageServicesTest {
         assertEquals(30, times.floorMinutes());
         verify(schedules).setStationSendTimes(3, List.of(LocalTime.of(8, 30)));
         verify(schedules).setStationSendTimes(3, List.of());
-        assertEquals(Refusal.NOTIFICATION_TIME_NOT_A_TIME, refusalOf(() -> service.update(3, List.of("soon"))));
+        assertEquals(StationRefusal.NOTIFICATION_TIME_NOT_A_TIME, refusalOf(() -> service.update(3, List.of("soon"))));
         assertEquals(
-                Refusal.NOTIFICATION_TIME_NOT_A_TIME, refusalOf(() -> service.update(3, Arrays.asList((String) null))));
-        assertEquals(Refusal.NOTIFICATION_TIMES_NOT_SET, refusalOf(() -> service.times(4)));
+                StationRefusal.NOTIFICATION_TIME_NOT_A_TIME,
+                refusalOf(() -> service.update(3, Arrays.asList((String) null))));
+        assertEquals(StationRefusal.NOTIFICATION_TIMES_NOT_SET, refusalOf(() -> service.times(4)));
     }
 
     @Test
@@ -192,7 +194,7 @@ class StationManageServicesTest {
         service.deleteMoved(3);
 
         verify(repository).invalidateUidCache(3);
-        assertEquals(Refusal.STATION_NOT_MOVED, refusalOf(() -> service.deleteMoved(4)));
+        assertEquals(StationRefusal.STATION_NOT_MOVED, refusalOf(() -> service.deleteMoved(4)));
         verify(repository, never()).delete(4);
     }
 }

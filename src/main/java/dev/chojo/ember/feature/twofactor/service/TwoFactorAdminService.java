@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.repository.AccountRepository.PickerAccount;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -58,14 +58,15 @@ public class TwoFactorAdminService {
     public void resetForStation(
             int stationId, int targetId, int actorAccountId, @Nullable String userAgent, @Nullable String country) {
         if (memberRepository.findByStationAndAccount(stationId, targetId).isEmpty()) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_RESET.raise();
+            throw TwoFactorRefusal.MEMBER_NOT_YOURS_TO_RESET.raise();
         }
-        var target = accountRepository.findById(targetId).orElseThrow(Refusal.MEMBER_NOT_YOURS_TO_RESET::raise);
+        var target =
+                accountRepository.findById(targetId).orElseThrow(TwoFactorRefusal.MEMBER_NOT_YOURS_TO_RESET::raise);
         if (target.instanceUserType() == InstanceUserType.ADMINISTRATOR) {
-            throw Refusal.ADMIN_ONLY_RESET_BY_ADMIN.raise();
+            throw TwoFactorRefusal.ADMIN_ONLY_RESET_BY_ADMIN.raise();
         }
         if (!twoFactorService.resetAccount2FA(targetId, actorAccountId, userAgent, country)) {
-            throw Refusal.SECOND_FACTOR_NOT_RESET_ON_STATION.raise();
+            throw TwoFactorRefusal.SECOND_FACTOR_NOT_RESET_ON_STATION.raise();
         }
     }
 

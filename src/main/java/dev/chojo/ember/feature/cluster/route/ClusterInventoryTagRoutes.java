@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterInventoryTag;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryTagService;
@@ -125,8 +125,10 @@ public class ClusterInventoryTagRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_INVENTORY_TAGS.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_INVENTORY_TAGS::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_INVENTORY_TAGS.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_INVENTORY_TAGS::raise);
     }
 
     /**

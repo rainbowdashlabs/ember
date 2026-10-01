@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventDateRestored;
@@ -74,9 +74,9 @@ public class EventCancellationService {
         var event = eventRepository
                 .findById(eventId)
                 .filter(found -> found.stationId() == stationId)
-                .orElseThrow(Refusal.EVENT_NOT_HERE_ON_CANCELLATION::raise);
-        if (!event.isRecurring()) throw Refusal.ONE_TIME_EVENT_CANCELLED_AS_SERIES.raise();
-        if (event.cancelled()) throw Refusal.SERIES_ALREADY_CANCELLED.raise();
+                .orElseThrow(EventRefusal.EVENT_NOT_HERE_ON_CANCELLATION::raise);
+        if (!event.isRecurring()) throw EventRefusal.ONE_TIME_EVENT_CANCELLED_AS_SERIES.raise();
+        if (event.cancelled()) throw EventRefusal.SERIES_ALREADY_CANCELLED.raise();
 
         eventRepository.cancelEvent(eventId, reason);
         equipmentRelease.withdrawRequests(eventId, stationId);
@@ -95,10 +95,10 @@ public class EventCancellationService {
     public void cancelDate(StationEvent event, LocalDate date, @Nullable String reason, @Nullable Integer cancelledBy) {
         var calendar = occurrenceCalendar.forStation(event.stationId());
         switch (calendar.check(event, date)) {
-            case NOT_AN_OCCURRENCE, IN_A_BREAK -> throw Refusal.DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT.raise();
-            case CANCELLED -> throw Refusal.DATE_ALREADY_CANCELLED.raise();
+            case NOT_AN_OCCURRENCE, IN_A_BREAK -> throw EventRefusal.DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT.raise();
+            case CANCELLED -> throw EventRefusal.DATE_ALREADY_CANCELLED.raise();
             case OCCURRENCE -> {
-                if (date.isBefore(calendar.today())) throw Refusal.DATE_TO_CANCEL_IN_THE_PAST.raise();
+                if (date.isBefore(calendar.today())) throw EventRefusal.DATE_TO_CANCEL_IN_THE_PAST.raise();
             }
         }
         if (cancellationRepository.cancel(event.id(), date, CancellationCause.MANUAL, reason, cancelledBy)) {
@@ -131,10 +131,10 @@ public class EventCancellationService {
      * @param date  the date, on the station's calendar
      */
     public void restoreDate(StationEvent event, LocalDate date) {
-        if (event.cancelled()) throw Refusal.DATE_OF_CANCELLED_SERIES_NOT_RESTORED.raise();
+        if (event.cancelled()) throw EventRefusal.DATE_OF_CANCELLED_SERIES_NOT_RESTORED.raise();
         var calendar = occurrenceCalendar.forStation(event.stationId());
-        if (calendar.cancellationOn(event, date).isEmpty()) throw Refusal.DATE_TO_RESTORE_NOT_CANCELLED.raise();
-        if (date.isBefore(calendar.today())) throw Refusal.DATE_TO_RESTORE_IN_THE_PAST.raise();
+        if (calendar.cancellationOn(event, date).isEmpty()) throw EventRefusal.DATE_TO_RESTORE_NOT_CANCELLED.raise();
+        if (date.isBefore(calendar.today())) throw EventRefusal.DATE_TO_RESTORE_IN_THE_PAST.raise();
 
         cancellationRepository.restore(event.id(), date);
         eventRepository.touch(event.id());

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
 import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
@@ -45,7 +45,7 @@ class SavedFilterServiceTest {
                 new CreateFilterRequest(FilterTableType.MEMBERS, null, "{}"),
                 new CreateFilterRequest(FilterTableType.MEMBERS, "a", null))) {
             var refused = assertThrows(RefusalResponse.class, () -> service.create(1, request));
-            assertEquals(Refusal.SAVED_FILTER_DETAILS_MISSING, refused.refusal());
+            assertEquals(MemberRefusal.SAVED_FILTER_DETAILS_MISSING, refused.refusal());
         }
     }
 
@@ -56,6 +56,6 @@ class SavedFilterServiceTest {
         verify(repository).delete(5, 1);
 
         var refused = assertThrows(RefusalResponse.class, () -> service.delete(2, 5));
-        assertEquals(Refusal.SAVED_FILTER_NOT_HERE_ON_DELETE, refused.refusal());
+        assertEquals(MemberRefusal.SAVED_FILTER_NOT_HERE_ON_DELETE, refused.refusal());
     }
 }

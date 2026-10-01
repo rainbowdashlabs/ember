@@ -21,7 +21,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Every failure a reader can be shown has to be a named {@link dev.chojo.ember.api.Refusal}.
+ * Every failure a reader can be shown has to be a named {@link dev.chojo.ember.api.refusal.Refusal}.
  *
  * <p>A raw {@code throw new BadRequestResponse("...")} hands the reader a sentence written at the
  * throw and nothing to quote in a report, which is the state the refusal registry replaced. That
@@ -42,7 +42,7 @@ public class RefusalCoverageTest {
     private static final Set<String> NOT_REFUSALS =
             Set.of(NoContentResponse.class.getName(), RedirectResponse.class.getName());
 
-    private static final String REFUSAL_RESPONSE = "dev.chojo.ember.api.RefusalResponse";
+    private static final String REFUSAL_RESPONSE = "dev.chojo.ember.api.refusal.RefusalResponse";
 
     private static JavaClasses backend;
 

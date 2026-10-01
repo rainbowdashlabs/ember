@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.media.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MediaLibraryRefusal;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.entity.StationFileFolder;
@@ -292,7 +292,7 @@ public class MediaLibraryService {
         if (file == null) return false;
         int handedOut = references.handedOutBy(fileId);
         if (handedOut > 0) {
-            throw Refusal.MEDIA_FILE_STILL_ATTACHED.raise(String.valueOf(handedOut));
+            throw MediaLibraryRefusal.MEDIA_FILE_STILL_ATTACHED.raise(String.valueOf(handedOut));
         }
         boolean deleted = fileRepository.delete(fileId);
         if (deleted) {

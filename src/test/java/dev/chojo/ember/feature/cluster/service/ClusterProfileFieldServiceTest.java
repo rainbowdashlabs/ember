@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -264,7 +264,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         reaching.id()));
-        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE, refused.refusal());
 
         clusterProfileFieldService.create(
                 clusterId,
@@ -300,7 +300,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         null));
-        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
     }
 
     /** An association asks for an expiry date as a station does, and keeps its settings. */
@@ -347,7 +347,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         null));
-        assertEquals(Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
     }
 
     @Test
@@ -479,7 +479,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> clusterProfileFieldService.findValues(clusterId, memberId));
-        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER, refused.refusal());
 
         clusterService.releaseStation(otherClusterId, elsewhere.id());
         stationRepo.delete(elsewhere.id());
@@ -546,7 +546,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> clusterProfileFieldService.delete(clusterId, field.id()));
-        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_NOT_HERE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_NOT_HERE, refused.refusal());
     }
 
     @Test

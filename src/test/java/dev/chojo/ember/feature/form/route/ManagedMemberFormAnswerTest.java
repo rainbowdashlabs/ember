@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -231,7 +232,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
         var refused = harness.request(client -> client.post(
                 forChild(editableFormId), answer(editableQuestionId, "Red"), harness.as(sessionOf(guardian))));
 
-        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
+        assertEquals(FormRefusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
         assertTrue(answerOf(child, editableFormId).contains("Blue"));
     }
 
@@ -243,7 +244,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
         var refused = harness.request(client ->
                 client.post(forChild(lockedFormId), answer(lockedQuestionId, "Red"), harness.as(sessionOf(guardian))));
 
-        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
+        assertEquals(FormRefusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
         assertTrue(answerOf(child, lockedFormId).contains("Blue"));
     }
 
@@ -265,7 +266,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
         var refused = harness.request(client ->
                 client.put(forChild(lockedFormId), answer(lockedQuestionId, "Red"), harness.as(sessionOf(guardian))));
 
-        assertEquals(Refusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER, refusalOf(refused));
+        assertEquals(FormRefusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER, refusalOf(refused));
         assertTrue(answerOf(child, lockedFormId).contains("Blue"));
     }
 
@@ -275,7 +276,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
 
         var refused = harness.request(client -> client.get(forChild(editableFormId), harness.as(sessionOf(stranger))));
 
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(refused));
+        assertEquals(FormRefusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(refused));
     }
 
     @Test
@@ -283,7 +284,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
         var refused = harness.request(client -> client.post(
                 forChild(editableFormId), answer(editableQuestionId, "Red"), harness.as(sessionOf(stranger))));
 
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(refused));
+        assertEquals(FormRefusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(refused));
         assertTrue(formService.findResponse(editableFormId, child.id()).isEmpty());
     }
 
@@ -291,7 +292,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     void somebodyOutsideTheStationIsRefused() {
         var refused = harness.request(client -> client.get(forChild(editableFormId), harness.as(sessionOf(null))));
 
-        assertEquals(Refusal.NOT_A_MEMBER_OF_THIS_STATION, refusalOf(refused));
+        assertEquals(GeneralRefusal.NOT_A_MEMBER_OF_THIS_STATION, refusalOf(refused));
     }
 
     @Test
@@ -311,7 +312,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
         var refused = harness.request(client ->
                 client.post(own(lockedFormId), answer(lockedQuestionId, "Red"), harness.as(sessionOf(stranger))));
 
-        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
+        assertEquals(FormRefusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
         assertTrue(answerOf(stranger, lockedFormId).contains("Blue"));
     }
 }

@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import jakarta.inject.Inject;
@@ -67,8 +68,8 @@ public class RegistrationCodeService {
      * @param id        the code
      */
     public void delete(int stationId, int id) {
-        requireInStation(stationId, id, Refusal.REGISTRATION_CODE_NOT_DELETED);
-        if (!codeRepository.delete(id)) throw Refusal.REGISTRATION_CODE_NOT_DELETED.raise();
+        requireInStation(stationId, id, MemberRefusal.REGISTRATION_CODE_NOT_DELETED);
+        if (!codeRepository.delete(id)) throw MemberRefusal.REGISTRATION_CODE_NOT_DELETED.raise();
         log.info("Registration code deleted: id={}, station={}", id, stationId);
     }
 
@@ -80,7 +81,7 @@ public class RegistrationCodeService {
      * @return the ids of its groups
      */
     public List<Integer> findGroupIds(int stationId, int codeId) {
-        requireInStation(stationId, codeId, Refusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS);
+        requireInStation(stationId, codeId, MemberRefusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS);
         return codeRepository.findGroupIds(codeId);
     }
 
@@ -97,13 +98,13 @@ public class RegistrationCodeService {
      * @return the ids of its groups afterwards
      */
     public List<Integer> setGroups(int stationId, int codeId, List<Integer> desiredGroupIds) {
-        requireInStation(stationId, codeId, Refusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS);
+        requireInStation(stationId, codeId, MemberRefusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS);
         desiredGroupIds.forEach(groupId -> groupMemberships.requireAdmits(
                 stationId,
                 groupId,
                 StationUserType.MEMBER,
-                Refusal.REGISTRATION_CODE_GROUP_NOT_HERE,
-                Refusal.REGISTRATION_CODE_GROUP_WRONG_USER_TYPE));
+                MemberRefusal.REGISTRATION_CODE_GROUP_NOT_HERE,
+                MemberRefusal.REGISTRATION_CODE_GROUP_WRONG_USER_TYPE));
         List<Integer> currentGroupIds = codeRepository.findGroupIds(codeId);
 
         for (int groupId : currentGroupIds) {

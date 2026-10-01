@@ -6,6 +6,7 @@
 package dev.chojo.ember.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.api.refusal.Refusal;
 import org.jspecify.annotations.Nullable;
 
 /**

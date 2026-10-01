@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -124,7 +124,7 @@ public class QuizFederationService implements FederationServer {
                 .findCatalog(catalogId)
                 .filter(found -> found.stationId() == partner.servingStationId())
                 .filter(found -> isShared(partner, catalogId))
-                .orElseThrow(Refusal.REMOTE_QUIZ_CATALOG_NOT_SHARED::raise);
+                .orElseThrow(QuizRefusal.REMOTE_QUIZ_CATALOG_NOT_SHARED::raise);
         var categories = catalogService.findCategories(catalog.stationId());
         var questions = questionService.findQuestions(catalog.id());
         return new RemoteCatalogDetail(catalog, categories, questions);

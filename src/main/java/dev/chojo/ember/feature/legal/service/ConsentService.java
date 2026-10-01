@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.LegalRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
@@ -243,7 +243,7 @@ public class ConsentService {
      * @param privacyVersion the privacy policy version the submitter clicked through
      * @param tosVersion     the terms of service version the submitter clicked through
      * @return a populated {@link ConsentProof} ready to persist on the submission row
-     * @throws dev.chojo.ember.api.RefusalResponse if any hash is missing or does not match the
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse if any hash is missing or does not match the
      *                                             current published version (the caller's UI
      *                                             should refresh the documents and re-prompt)
      */
@@ -253,20 +253,20 @@ public class ConsentService {
             @Nullable String privacyVersion,
             @Nullable String tosVersion) {
         if (consentVersion == null || consentVersion.isBlank()) {
-            throw Refusal.LEGAL_CONSENT_VERSION_MISSING.raise();
+            throw LegalRefusal.LEGAL_CONSENT_VERSION_MISSING.raise();
         }
         if (privacyVersion == null || privacyVersion.isBlank()) {
-            throw Refusal.LEGAL_PRIVACY_VERSION_MISSING.raise();
+            throw LegalRefusal.LEGAL_PRIVACY_VERSION_MISSING.raise();
         }
         if (tosVersion == null || tosVersion.isBlank()) {
-            throw Refusal.LEGAL_TERMS_VERSION_MISSING.raise();
+            throw LegalRefusal.LEGAL_TERMS_VERSION_MISSING.raise();
         }
 
         var current = getCurrentVersions();
         if (!current.consentVersion().equals(consentVersion)
                 || !current.privacyVersion().equals(privacyVersion)
                 || !current.tosVersion().equals(tosVersion)) {
-            throw Refusal.LEGAL_DOCUMENTS_CHANGED.raise();
+            throw LegalRefusal.LEGAL_DOCUMENTS_CHANGED.raise();
         }
 
         String ipAddress = anonymizeIp(InetAddress.ofLiteral(ctx.ip()));

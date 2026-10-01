@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -661,7 +661,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> itemMovementService.force(fresh.id(), fresh.currentStepId(), team, "Keine Antwort", null));
-        assertEquals(Refusal.MOVEMENT_STATION_STEP_NOT_FORCED, refused.refusal());
+        assertEquals(InventoryRefusal.MOVEMENT_STATION_STEP_NOT_FORCED, refused.refusal());
 
         itemMovementService.decline(fresh.id(), team, "Aufgeräumt");
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
@@ -1024,7 +1024,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                         "Doppelt versprochen",
                         team,
                         shelf));
-        assertEquals(Refusal.MOVEMENT_PIECE_ALREADY_PROMISED, second.refusal());
+        assertEquals(InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED, second.refusal());
 
         assertThrows(
                 RefusalResponse.class,

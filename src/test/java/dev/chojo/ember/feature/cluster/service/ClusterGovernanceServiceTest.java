@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -164,7 +164,7 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertEquals(Refusal.CLUSTER_STATION_GROUP_STILL_HAS_MODULES_OFF, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_HAS_MODULES_OFF, refused.refusal());
 
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), EnumSet.noneOf(StationModule.class));
         clusterStationGroupService.delete(clusterId, group.id());
@@ -181,7 +181,7 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         var denied = assertThrows(
                 RefusalResponse.class,
                 () -> clusterGovernanceService.setDeniedModules(clusterId, group.id(), Set.of(StationModule.QUIZ)));
-        assertEquals(Refusal.CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN, denied.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN, denied.refusal());
         assertThrows(RefusalResponse.class, () -> clusterGovernanceService.findDeniedModules(clusterId, group.id()));
 
         clusterStationGroupService.delete(otherId, group.id());
@@ -266,6 +266,6 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> clusterGovernanceService.setDeniedModules(999_999, null, Set.of(StationModule.QUIZ)));
-        assertEquals(Refusal.CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE, refused.refusal());
     }
 }

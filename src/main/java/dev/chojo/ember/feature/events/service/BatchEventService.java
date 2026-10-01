@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
@@ -147,7 +147,7 @@ public class BatchEventService {
      */
     private static String nameOf(BatchRow row, BatchRequest request) {
         String name = Objects.requireNonNullElse(row.name(), Objects.requireNonNullElse(request.name(), ""));
-        if (name.isBlank()) throw Refusal.EVENT_NEEDS_A_NAME.raise();
+        if (name.isBlank()) throw EventRefusal.EVENT_NEEDS_A_NAME.raise();
         return name;
     }
 
@@ -159,7 +159,7 @@ public class BatchEventService {
     private List<BatchFieldEntry> resolveFieldDefs(BatchRequest request) {
         var fields = Objects.requireNonNullElse(request.inlineFields(), List.<BatchFieldEntry>of());
         if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
-            throw Refusal.BATCH_FIELD_TYPE_NOT_OFFERED.raise();
+            throw EventRefusal.BATCH_FIELD_TYPE_NOT_OFFERED.raise();
         }
         return fields;
     }

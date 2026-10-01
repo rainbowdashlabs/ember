@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.mailimport.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.MailImportRefusal;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.feature.mailimport.entity.MailImportEntry;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
@@ -346,13 +347,13 @@ public class MailImportRoutes implements Routes {
      */
     private void requireMayFile(UserSession session) {
         if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw Refusal.DOCUMENT_NOT_YOURS_TO_FILE.raise();
+            throw DocumentRefusal.DOCUMENT_NOT_YOURS_TO_FILE.raise();
         }
     }
 
     private void requireModule(int stationId) {
         if (stationService.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw Refusal.MAIL_IMPORT_SWITCHED_OFF.raise();
+            throw MailImportRefusal.MAIL_IMPORT_SWITCHED_OFF.raise();
         }
     }
 
@@ -362,7 +363,8 @@ public class MailImportRoutes implements Routes {
         requireModule(stationId);
         var mailbox =
                 mailboxService.find(ctx.pathParamAsClass("id", Integer.class).get());
-        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw Refusal.MAILBOX_NOT_HERE.raise();
+        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId)
+            throw MailImportRefusal.MAILBOX_NOT_HERE.raise();
         return mailbox.get();
     }
 
@@ -371,9 +373,10 @@ public class MailImportRoutes implements Routes {
         requireModule(stationId);
         var rule = mailboxService.findRule(
                 ctx.pathParamAsClass("ruleId", Integer.class).get());
-        if (rule.isEmpty()) throw Refusal.MAILBOX_RULE_NOT_HERE.raise();
+        if (rule.isEmpty()) throw MailImportRefusal.MAILBOX_RULE_NOT_HERE.raise();
         var mailbox = mailboxService.find(rule.get().mailboxId());
-        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw Refusal.MAILBOX_RULE_NOT_HERE.raise();
+        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId)
+            throw MailImportRefusal.MAILBOX_RULE_NOT_HERE.raise();
         return rule.get();
     }
 

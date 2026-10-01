@@ -1,4 +1,5 @@
 import {readFileSync} from 'node:fs'
+import {dirname, join} from 'node:path'
 
 /**
  * The source of a Java file, or null where it does not exist.
@@ -39,20 +40,25 @@ export function enumConstants(text) {
 }
 
 /**
- * The codes of every refusal the backend can raise, read off the registry that declares them.
+ * The codes of the refusals one area's enum declares.
  *
- * <p>Refusals are keyed by their code, which each constant spells as an area and a number; the
- * area holds the one- or two-letter prefix, so both halves are read to put a code together.
+ * <p>Refusals are keyed by their code, which is the area's one- or two-letter prefix and the
+ * constant's number. Each area enum names its area once, where it builds its definition; the
+ * prefixes are declared by the area registry in `Refusal.java` beside it, so both are read to put
+ * a code together.
  *
- * @param text the source of the registry
+ * @param text the source of one area's enum
+ * @param file the absolute path of that source
  * @returns every code it declares, as the locale writes them
  */
-export function refusalCodes(text) {
-    const prefixes = new Map()
-    for (const match of text.matchAll(/^\s{8}([A-Z_]+)\("([A-Z]{1,2})",/gm)) prefixes.set(match[1], match[2])
+export function refusalCodes(text, file) {
+    const area = text.match(/new Definition\(Area\.([A-Z_]+),/)?.[1]
+    const registry = javaSource(join(dirname(file), 'Refusal.java')) ?? ''
+    const prefix = registry.match(new RegExp(`^\\s{8}${area}\\("([A-Z]{1,2})",`, 'm'))?.[1]
     const codes = new Set()
-    for (const match of text.matchAll(/^\s{4}[A-Z][A-Z0-9_]*\(\s*Area\.([A-Z_]+),\s*(\d+),/gm)) {
-        codes.add(`${prefixes.get(match[1])}-${String(match[2]).padStart(3, '0')}`)
+    if (!prefix) return codes
+    for (const match of text.matchAll(/^\s{4}[A-Z][A-Z0-9_]*\(\s*(\d+),/gm)) {
+        codes.add(`${prefix}-${String(match[1]).padStart(3, '0')}`)
     }
     return codes
 }

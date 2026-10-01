@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -183,7 +183,7 @@ class KbFavouriteServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> favourites.markLocal(station.id(), reader(), KbFavouriteTarget.FILE, file.id()));
-        assertEquals(Refusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
     }
 
     @Test
@@ -193,7 +193,7 @@ class KbFavouriteServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> favourites.markLocal(station.id(), reader(), KbFavouriteTarget.FILE, foreign.id()));
-        assertEquals(Refusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
     }
 
     /** The name comes from the partner's answer, never from whatever the page sent. */

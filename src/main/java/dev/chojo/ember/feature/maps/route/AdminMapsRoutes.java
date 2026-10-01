@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.maps.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
@@ -45,11 +45,11 @@ public class AdminMapsRoutes implements Routes {
 
     private static int parseIntParam(Context ctx, String name) {
         String raw = ctx.queryParam(name);
-        if (raw == null) throw Refusal.MAP_TILE_NUMBER_MISSING.raise(name);
+        if (raw == null) throw MapRefusal.MAP_TILE_NUMBER_MISSING.raise(name);
         try {
             return Integer.parseInt(raw);
         } catch (NumberFormatException e) {
-            throw Refusal.MAP_TILE_NUMBER_NOT_A_NUMBER.raise(name);
+            throw MapRefusal.MAP_TILE_NUMBER_NOT_A_NUMBER.raise(name);
         }
     }
 

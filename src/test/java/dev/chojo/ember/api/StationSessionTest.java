@@ -7,6 +7,8 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -35,7 +37,7 @@ class StationSessionTest {
     void aRequestNamingNoStationIsRefusedAsABadRequest() {
         var refused = assertThrows(RefusalResponse.class, () -> StationSession.of(TestSessions.administrator()));
 
-        assertEquals(Refusal.NO_STATION_CHOSEN, refused.refusal());
+        assertEquals(GeneralRefusal.NO_STATION_CHOSEN, refused.refusal());
         assertEquals(400, refused.getStatus());
     }
 
@@ -53,7 +55,7 @@ class StationSessionTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> StationSession.of(outsider));
 
-        assertEquals(Refusal.NOT_A_MEMBER_OF_THIS_STATION, refused.refusal());
+        assertEquals(GeneralRefusal.NOT_A_MEMBER_OF_THIS_STATION, refused.refusal());
         assertEquals(403, refused.getStatus());
     }
 }

@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -49,11 +50,11 @@ class EventGuardsTest {
 
         assertSame(own, EventOwnership.requireOwnedEvent(crud, 1, session));
         assertEquals(
-                Refusal.NOT_YOURS_TO_OPEN,
+                GeneralRefusal.NOT_YOURS_TO_OPEN,
                 assertThrows(RefusalResponse.class, () -> EventOwnership.requireOwnedEvent(crud, 2, session))
                         .refusal());
         assertEquals(
-                Refusal.EVENT_NOT_HERE,
+                EventRefusal.EVENT_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> EventOwnership.requireOwnedEvent(crud, 3, session))
                         .refusal());
     }

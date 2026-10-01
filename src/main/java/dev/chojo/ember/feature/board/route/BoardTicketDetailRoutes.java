@@ -6,10 +6,11 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
@@ -133,7 +134,7 @@ public class BoardTicketDetailRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) throw Refusal.TICKET_COMMENT_NEEDS_TEXT.raise();
+        if (req.content() == null || req.content().isBlank()) throw BoardRefusal.TICKET_COMMENT_NEEDS_TEXT.raise();
         var comment = commentService.create(
                 session,
                 CommentEntityType.BOARD_TICKET,
@@ -159,12 +160,14 @@ public class BoardTicketDetailRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
         if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.EDIT)) {
-            throw Refusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
         String content = req.content();
-        if (content == null || content.isBlank()) throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
-        commentService.update(comment, writer(session), content).orElseThrow(Refusal.TICKET_COMMENT_NOT_HERE::raise);
+        if (content == null || content.isBlank()) throw CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
+        commentService
+                .update(comment, writer(session), content)
+                .orElseThrow(BoardRefusal.TICKET_COMMENT_NOT_HERE::raise);
         ctx.status(HttpStatus.OK);
     }
 
@@ -183,7 +186,7 @@ public class BoardTicketDetailRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
         if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.DELETE)) {
-            throw Refusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
         commentService.delete(comment);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -222,7 +225,7 @@ public class BoardTicketDetailRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ChecklistItemRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw Refusal.CHECKLIST_ITEM_NEEDS_A_TITLE.raise();
+        if (req.title() == null || req.title().isBlank()) throw BoardRefusal.CHECKLIST_ITEM_NEEDS_A_TITLE.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(ticketService.addChecklistItem(
                         ticketId, req.title(), session.member().id()));
@@ -381,11 +384,11 @@ public class BoardTicketDetailRoutes implements Routes {
         var field = boardService.findFields(boardId).stream()
                 .filter(f -> f.id() == fieldId)
                 .findFirst()
-                .orElseThrow(Refusal.TICKET_FIELD_NOT_HERE::raise);
+                .orElseThrow(BoardRefusal.TICKET_FIELD_NOT_HERE::raise);
         var value = BoardFieldValue.parse(field.fieldType(), ctx.body());
-        if (value == null) throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
+        if (value == null) throw BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
         QuestionCheck.answer(field.question(), value.answer()).ifPresent(problem -> {
-            throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
+            throw BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
         });
         ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(
@@ -414,7 +417,7 @@ public class BoardTicketDetailRoutes implements Routes {
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         boolean required = boardService.findFields(boardId).stream()
                 .anyMatch(field -> field.id() == fieldId && field.config().required());
-        if (required) throw Refusal.TICKET_FIELD_VALUE_REQUIRED.raise();
+        if (required) throw BoardRefusal.TICKET_FIELD_VALUE_REQUIRED.raise();
         ticketService.deleteFieldValue(ticketId, fieldId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -428,7 +431,7 @@ public class BoardTicketDetailRoutes implements Routes {
         return commentService
                 .findById(CommentEntityType.BOARD_TICKET, pathInt(ctx, "commentId"))
                 .filter(comment -> comment.targetId() == ticketId)
-                .orElseThrow(Refusal.TICKET_COMMENT_NOT_HERE::raise);
+                .orElseThrow(BoardRefusal.TICKET_COMMENT_NOT_HERE::raise);
     }
 
     private CommentWriter writer(StationSession session) {

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService.Expected;
@@ -128,7 +128,7 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.setPolicy(cluster.id(), ClusterBackendReach.EVERY_STATION, false));
-        assertEquals(Refusal.CLUSTER_STORAGE_REACH_WITHOUT_STORAGE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STORAGE_REACH_WITHOUT_STORAGE, refused.refusal());
 
         clusterService.delete(cluster.id());
     }
@@ -248,7 +248,7 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
 
         assertTrue(rowFor(cluster.id(), station.id()).inPlace());
         var refused = assertThrows(RefusalResponse.class, () -> service.moveStation(cluster.id(), station.id()));
-        assertEquals(Refusal.CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE, refused.refusal());
 
         placements.remove(station.id());
         clusterService.releaseStation(cluster.id(), station.id());
@@ -296,7 +296,7 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
         service.setPolicy(cluster.id(), ClusterBackendReach.EVERY_STATION, false);
 
         var refused = assertThrows(RefusalResponse.class, () -> service.moveStation(cluster.id(), station.id()));
-        assertEquals(Refusal.CLUSTER_STORAGE_STATION_NOT_IN_CLUSTER, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STORAGE_STATION_NOT_IN_CLUSTER, refused.refusal());
 
         clusterService.releaseStation(other.id(), station.id());
         stationRepo.delete(station.id());

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -478,7 +478,7 @@ class StationServiceTest extends RepositoryTestBase {
         var slug = stationRepo.findById(other.id()).orElseThrow().publicSlug();
 
         var refused = assertThrows(RefusalResponse.class, () -> service.updatePublicSlug(stationId, slug));
-        assertEquals(Refusal.STATION_SLUG_TAKEN, refused.refusal());
+        assertEquals(StationRefusal.STATION_SLUG_TAKEN, refused.refusal());
         assertEquals(HttpStatus.CONFLICT.getCode(), refused.getStatus());
 
         stationRepo.delete(other.id());

@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentFilter;
@@ -231,7 +231,7 @@ public class NewsFederationService implements FederationServer {
      */
     public RemoteNewsDetail serveNews(ServingPartner partner, int newsId) {
         requireShared(partner, newsId);
-        var news = newsService.findById(newsId).orElseThrow(Refusal.REMOTE_NEWS_NOT_HERE::raise);
+        var news = newsService.findById(newsId).orElseThrow(NewsRefusal.REMOTE_NEWS_NOT_HERE::raise);
         return new RemoteNewsDetail(
                 news.id(),
                 news.title(),
@@ -270,7 +270,7 @@ public class NewsFederationService implements FederationServer {
     public CommentResponse serveNewComment(ServingPartner partner, int newsId, RemoteNewsCommentRequest request) {
         requireShared(partner, newsId);
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT.raise();
+            throw NewsRefusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT.raise();
         }
         var author = new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid());
         var comment = storePartnerComment(
@@ -286,8 +286,9 @@ public class NewsFederationService implements FederationServer {
      * tells, which the entry's comment target decides.
      */
     private Comment storePartnerComment(int newsId, CommentWriter writer, NewComment comment) {
-        var target =
-                commentService.target(CommentEntityType.NEWS, newsId).orElseThrow(Refusal.REMOTE_NEWS_NOT_HERE::raise);
+        var target = commentService
+                .target(CommentEntityType.NEWS, newsId)
+                .orElseThrow(NewsRefusal.REMOTE_NEWS_NOT_HERE::raise);
         return commentService.createOn(target, writer, comment);
     }
 
@@ -302,18 +303,18 @@ public class NewsFederationService implements FederationServer {
     public CommentResponse serveCommentEdit(
             ServingPartner partner, int commentId, RemoteNewsCommentUpdateRequest request) {
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
+            throw NewsRefusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
         }
         var comment = commentService
                 .findById(CommentEntityType.NEWS, commentId)
-                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
+                .orElseThrow(NewsRefusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
         var editor = new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid());
         if (!editor.sameMember(comment.author())) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
+            throw NewsRefusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
         }
         return toCommentResponse(commentService
                 .update(comment, CommentWriter.partner(editor, ""), request.content())
-                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise));
+                .orElseThrow(NewsRefusal.REMOTE_NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise));
     }
 
     /**
@@ -326,12 +327,12 @@ public class NewsFederationService implements FederationServer {
     public void serveCommentDeletion(ServingPartner partner, int commentId, RemoteNewsCommentDeleteRequest request) {
         var comment = commentService
                 .findById(CommentEntityType.NEWS, commentId)
-                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
+                .orElseThrow(NewsRefusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
         if (!new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid()).sameMember(comment.author())) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
+            throw NewsRefusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
         if (!commentService.delete(comment)) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NOT_DELETED.raise();
+            throw NewsRefusal.REMOTE_NEWS_COMMENT_NOT_DELETED.raise();
         }
     }
 
@@ -342,7 +343,7 @@ public class NewsFederationService implements FederationServer {
      */
     private void requireShared(ServingPartner partner, int newsId) {
         if (!sharedWith(partner).contains(newsId)) {
-            throw Refusal.NEWS_NOT_SHARED_WITH_PARTNER.raise();
+            throw NewsRefusal.NEWS_NOT_SHARED_WITH_PARTNER.raise();
         }
     }
 
@@ -481,7 +482,7 @@ public class NewsFederationService implements FederationServer {
     private FederationPartner requirePartner(int stationId, UUID partnerStationUid) {
         return partnerRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(Refusal.NEWS_COMMENT_PARTNER_NOT_HERE::raise);
+                .orElseThrow(NewsRefusal.NEWS_COMMENT_PARTNER_NOT_HERE::raise);
     }
 
     private CommentResponse toCommentResponse(Comment comment) {

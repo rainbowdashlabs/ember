@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.maps.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService.CacheStatus;
@@ -74,7 +74,7 @@ class PublicMapsRoutesTest {
 
             var refused = tileFrom(client, "203.0.113.7");
 
-            assertEquals(Refusal.MAP_TILES_TOO_OFTEN, refusalOf(refused));
+            assertEquals(MapRefusal.MAP_TILES_TOO_OFTEN, refusalOf(refused));
             assertNotNull(header(refused, "Retry-After"));
             verify(cache, times(MapTileRateLimiter.BURST_CAPACITY)).fetch(3, 1, 2);
         });

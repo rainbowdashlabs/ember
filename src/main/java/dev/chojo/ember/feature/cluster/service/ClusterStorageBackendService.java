@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -95,7 +95,7 @@ public class ClusterStorageBackendService {
         requireCluster(clusterId);
         if (reach != ClusterBackendReach.NONE
                 && configRepository.findCurrent(clusterId).isEmpty()) {
-            throw Refusal.CLUSTER_STORAGE_REACH_WITHOUT_STORAGE.raise();
+            throw ClusterRefusal.CLUSTER_STORAGE_REACH_WITHOUT_STORAGE.raise();
         }
         clusterRepository.setStorageBackendPolicy(clusterId, reach, locked);
         log.info("Cluster {} storage reaches {} and is {}", clusterId, reach, locked ? "locked" : "open");
@@ -178,7 +178,7 @@ public class ClusterStorageBackendService {
         Policy policy = findPolicy(clusterId);
         Placement placement = placementOf(station, policy, station.id() == cluster.homeStationId());
         if (placement.inPlace()) {
-            throw Refusal.CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE.raise();
+            throw ClusterRefusal.CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE.raise();
         }
         return migrationService.moveStation(stationId, destinationFor(placement.expected(), policy));
     }
@@ -274,12 +274,12 @@ public class ClusterStorageBackendService {
         return switch (expected) {
             case THE_CLUSTERS -> {
                 ClusterStorageConfig current = policy.current();
-                if (current == null) throw Refusal.CLUSTER_STORAGE_NONE_TO_MOVE_ONTO.raise();
+                if (current == null) throw ClusterRefusal.CLUSTER_STORAGE_NONE_TO_MOVE_ONTO.raise();
                 yield new StorageMigrationService.Destination.Cluster(
                         current.clusterId(), current.id(), current.config());
             }
             case INSTANCE_DEFAULT, WHEREVER_IT_IS -> new StorageMigrationService.Destination.InstanceDefault();
-            case ITS_OWN -> throw Refusal.CLUSTER_STORAGE_STATION_OWN_STORAGE.raise();
+            case ITS_OWN -> throw ClusterRefusal.CLUSTER_STORAGE_STATION_OWN_STORAGE.raise();
         };
     }
 
@@ -290,15 +290,15 @@ public class ClusterStorageBackendService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_STORAGE_CLUSTER_GONE::raise);
+        return clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_STORAGE_CLUSTER_GONE::raise);
     }
 
     private Station requireStationOf(Cluster cluster, int stationId) {
         Station station =
-                stationRepository.findById(stationId).orElseThrow(Refusal.CLUSTER_STORAGE_STATION_GONE::raise);
+                stationRepository.findById(stationId).orElseThrow(ClusterRefusal.CLUSTER_STORAGE_STATION_GONE::raise);
         boolean belongs = station.id() == cluster.homeStationId()
                 || (station.clusterId() != null && station.clusterId() == cluster.id());
-        if (!belongs) throw Refusal.CLUSTER_STORAGE_STATION_NOT_IN_CLUSTER.raise();
+        if (!belongs) throw ClusterRefusal.CLUSTER_STORAGE_STATION_NOT_IN_CLUSTER.raise();
         return station;
     }
 

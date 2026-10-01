@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePreset;
@@ -83,7 +84,7 @@ class MemberTableRoutesTest {
                     client.delete(PREFIX + "/member-table/presets/4", null, harness.as(reader))
                             .code());
             assertEquals(
-                    Refusal.NOT_HERE_OR_NOT_YOURS,
+                    GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                     refusalOf(client.delete(PREFIX + "/member-table/presets/5", null, harness.as(reader))));
         });
 
@@ -110,6 +111,6 @@ class MemberTableRoutesTest {
         var refused = harness.request(
                 client -> client.post(PREFIX + "/member-table", body("{\"memberIds\": []}"), harness.as(reader)));
 
-        assertEquals(Refusal.STATION_NOT_HERE_FOR_MEMBER_TABLE, refusalOf(refused));
+        assertEquals(MemberRefusal.STATION_NOT_HERE_FOR_MEMBER_TABLE, refusalOf(refused));
     }
 }

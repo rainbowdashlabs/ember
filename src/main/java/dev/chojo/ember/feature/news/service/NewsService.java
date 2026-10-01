@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
@@ -214,9 +214,9 @@ public class NewsService {
      * @return the entry
      */
     public News requireReadable(StationSession session, int newsId) {
-        var news = findById(newsId).orElseThrow(Refusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
+        var news = findById(newsId).orElseThrow(NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
         if (!isVisibleForMember(newsId, session.member().id(), session.hasPermission(StationPermission.NEWS_MANAGER))) {
-            throw Refusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();
+            throw NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();
         }
         return news;
     }
@@ -392,7 +392,7 @@ public class NewsService {
         if (news == null) return Optional.empty();
         Integer containerId = news.containerId();
         if (news.contentMode() != ContentMode.RICH || containerId == null) {
-            throw Refusal.NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS.raise();
+            throw NewsRefusal.NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS.raise();
         }
 
         blocks.save(containerId, rows, ContentBlockService.Scope.ARTICLE);

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
@@ -317,7 +317,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
 
         var locked = assertThrows(
                 RefusalResponse.class, () -> service.startCheck(station.id(), target.id(), otherMember.id()));
-        assertEquals(Refusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED, locked.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED, locked.refusal());
 
         service.cancelCheck(target.id(), checker.id());
         stationMemberRepo.delete(otherMember.id());

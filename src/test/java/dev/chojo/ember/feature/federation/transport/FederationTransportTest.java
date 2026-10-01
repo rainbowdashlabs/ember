@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.transport;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -102,7 +102,7 @@ class FederationTransportTest {
             endpoints.serve(POST_MANY, (partner, params, body) -> List.of(new Answer(3, ((Body) body).text(), 5)));
             endpoints.serve(PUT_NOTHING, (partner, params, body) -> null);
             endpoints.serve(POST_NOTHING, (partner, params, body) -> {
-                throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
+                throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
             });
         }));
         var local = new LocalFederationTransport(() -> registry, federationRepo, stationRepo);
@@ -183,7 +183,7 @@ class FederationTransportTest {
         var local = partner(null, FederationStatus.ACTIVE);
 
         var refused = assertThrows(RefusalResponse.class, () -> transport.get(local, GET_ONE.at(1), Answer.class));
-        assertEquals(Refusal.FEDERATION_PARTNERSHIP_NOT_ACTIVE_THERE, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNERSHIP_NOT_ACTIVE_THERE, refused.refusal());
 
         when(stationRepo.findByUid(servingUid)).thenReturn(Optional.empty());
         assertThrows(RefusalResponse.class, () -> transport.getList(local, GET_MANY.at(), Answer.class));
@@ -231,7 +231,7 @@ class FederationTransportTest {
         when(httpClient.canSign(1)).thenReturn(true);
 
         var refused = assertThrows(RefusalResponse.class, () -> transport.get(remote, GET_ONE.at(1), Answer.class));
-        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
         assertThrows(RefusalResponse.class, () -> transport.send(remote, POST_ONE.at(1), new Body("x"), Answer.class));
         assertThrows(RefusalResponse.class, () -> transport.deliver(remote, PUT_NOTHING.at(1), new Body("x")));
         assertTrue(transport

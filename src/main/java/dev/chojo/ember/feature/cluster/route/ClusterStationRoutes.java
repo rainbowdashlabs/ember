@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplication;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
@@ -109,7 +109,7 @@ public class ClusterStationRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         Station station = stationService
                 .findByUid(parseUid(ctx.pathParam("stationUid")))
-                .orElseThrow(Refusal.STATION_NOT_HERE_ON_CLUSTER_RELEASE::raise);
+                .orElseThrow(ClusterRefusal.STATION_NOT_HERE_ON_CLUSTER_RELEASE::raise);
         clusterService.releaseStation(cluster.id(), station.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -159,15 +159,17 @@ public class ClusterStationRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_STATIONS.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_CLUSTER_STATIONS::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_STATIONS.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_CLUSTER_STATIONS::raise);
     }
 
     private static UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_RELEASE.raise(raw);
+            throw ClusterRefusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_RELEASE.raise(raw);
         }
     }
 

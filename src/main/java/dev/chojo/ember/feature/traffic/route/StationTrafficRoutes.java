@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.traffic.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.TrafficRefusal;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.service.TrafficReportService;
 import dev.chojo.ember.feature.traffic.service.TrafficReportService.HourlyTrafficResponse;
@@ -46,12 +46,12 @@ public class StationTrafficRoutes implements Routes {
     private static Instant parseInstant(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) {
-            throw Refusal.STATION_TRAFFIC_SPAN_MISSING.raise(paramName);
+            throw TrafficRefusal.STATION_TRAFFIC_SPAN_MISSING.raise(paramName);
         }
         try {
             return Instant.parse(raw);
         } catch (Exception e) {
-            throw Refusal.STATION_TRAFFIC_SPAN_NOT_A_TIME.raise(paramName);
+            throw TrafficRefusal.STATION_TRAFFIC_SPAN_NOT_A_TIME.raise(paramName);
         }
     }
 
@@ -61,7 +61,7 @@ public class StationTrafficRoutes implements Routes {
         try {
             return AuthBucket.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.STATION_TRAFFIC_KIND_UNKNOWN.raise();
+            throw TrafficRefusal.STATION_TRAFFIC_KIND_UNKNOWN.raise();
         }
     }
 
@@ -86,7 +86,7 @@ public class StationTrafficRoutes implements Routes {
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw Refusal.STATION_TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
+            throw TrafficRefusal.STATION_TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
         }
         ctx.json(traffic.hourly(from, to, session.stationId(), parseOptionalAuth(ctx)));
     }

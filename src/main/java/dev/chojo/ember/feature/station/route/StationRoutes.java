@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
@@ -78,7 +78,7 @@ public class StationRoutes implements Routes {
     private void create(Context ctx) {
         var request = ctx.bodyAsClass(StationRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.STATION_NEEDS_A_NAME.raise();
+            throw StationRefusal.STATION_NEEDS_A_NAME.raise();
         }
         Station station;
         if (!isBlank(request.managerEmail())) {
@@ -120,17 +120,17 @@ public class StationRoutes implements Routes {
         int id = station.id();
         var request = ctx.bodyAsClass(StationRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.STATION_NEEDS_A_NAME_ON_UPDATE.raise();
+            throw StationRefusal.STATION_NEEDS_A_NAME_ON_UPDATE.raise();
         }
         if (!isBlank(request.managerEmail())) {
             stationService
                     .updateWithManager(id, request.name(), request.managerEmail())
                     .ifPresentOrElse(s -> ctx.json(toDetail(s)), () -> {
-                        throw Refusal.STATION_NOT_HERE_ON_MANAGER_UPDATE.raise();
+                        throw StationRefusal.STATION_NOT_HERE_ON_MANAGER_UPDATE.raise();
                     });
         } else {
             stationService.update(id, request.name()).ifPresentOrElse(s -> ctx.json(toDetail(s)), () -> {
-                throw Refusal.STATION_NOT_HERE_ON_UPDATE.raise();
+                throw StationRefusal.STATION_NOT_HERE_ON_UPDATE.raise();
             });
         }
     }
@@ -150,7 +150,7 @@ public class StationRoutes implements Routes {
         if (stationService.delete(station.id())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.STATION_NOT_DELETED.raise();
+            throw StationRefusal.STATION_NOT_DELETED.raise();
         }
     }
 
@@ -158,10 +158,10 @@ public class StationRoutes implements Routes {
         String idParam = ctx.pathParam("id");
         try {
             UUID uid = UUID.fromString(idParam);
-            return stationService.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BY_NAME::raise);
+            return stationService.findByUid(uid).orElseThrow(StationRefusal.STATION_NOT_HERE_BY_NAME::raise);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid station UUID: {}", idParam, e);
-            throw Refusal.STATION_NAME_NOT_READABLE.raise();
+            throw StationRefusal.STATION_NAME_NOT_READABLE.raise();
         }
     }
 

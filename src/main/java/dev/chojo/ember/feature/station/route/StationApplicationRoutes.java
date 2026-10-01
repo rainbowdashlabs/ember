@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.station.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.station.entity.StationApplication;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
 import dev.chojo.ember.feature.system.service.InstanceSettingsService;
@@ -70,14 +70,14 @@ public class StationApplicationRoutes implements Routes {
             })
     private void submit(Context ctx) {
         if (!instanceSettings.stationRegistrationEnabled()) {
-            throw Refusal.STATION_REGISTRATION_SWITCHED_OFF.raise();
+            throw StationRefusal.STATION_REGISTRATION_SWITCHED_OFF.raise();
         }
         var request = ctx.bodyAsClass(ApplicationRequest.class);
         if (isBlank(request.firstName())
                 || isBlank(request.lastName())
                 || isBlank(request.email())
                 || isBlank(request.stationName())) {
-            throw Refusal.STATION_APPLICATION_NEEDS_EVERY_FIELD.raise();
+            throw StationRefusal.STATION_APPLICATION_NEEDS_EVERY_FIELD.raise();
         }
         var application = applicationService.submit(
                 request.firstName(),
@@ -98,12 +98,12 @@ public class StationApplicationRoutes implements Routes {
     private void verify(Context ctx) {
         var request = ctx.bodyAsClass(VerifyRequest.class);
         if (isBlank(request.token())) {
-            throw Refusal.STATION_APPLICATION_LINK_CARRIES_NOTHING.raise();
+            throw StationRefusal.STATION_APPLICATION_LINK_CARRIES_NOTHING.raise();
         }
         if (applicationService.verify(request.token())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.STATION_APPLICATION_LINK_UNKNOWN.raise();
+            throw StationRefusal.STATION_APPLICATION_LINK_UNKNOWN.raise();
         }
     }
 
@@ -130,7 +130,7 @@ public class StationApplicationRoutes implements Routes {
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         applicationService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.STATION_APPLICATION_NOT_HERE.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_HERE.raise();
         });
     }
 
@@ -152,10 +152,10 @@ public class StationApplicationRoutes implements Routes {
             ctx.json(result);
         } catch (IllegalArgumentException e) {
             log.warn("Station application not found for accept, id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_HERE_ON_ACCEPTANCE.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_HERE_ON_ACCEPTANCE.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when accepting station application id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_ACCEPTED.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_ACCEPTED.raise();
         }
     }
 
@@ -179,10 +179,10 @@ public class StationApplicationRoutes implements Routes {
             ctx.json(result);
         } catch (IllegalArgumentException e) {
             log.warn("Station application not found for deny, id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_HERE_ON_DENIAL.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_HERE_ON_DENIAL.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when denying station application id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_DENIED.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_DENIED.raise();
         }
     }
 

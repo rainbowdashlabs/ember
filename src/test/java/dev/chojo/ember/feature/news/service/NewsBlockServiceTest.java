@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
@@ -207,7 +207,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         try {
             var rows = List.of(row(CellContentType.MARKDOWN, "x", CellConfig.EMPTY));
             var refused = assertThrows(RefusalResponse.class, () -> service.saveBlocks(id, rows));
-            assertEquals(Refusal.NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS, refused.refusal());
+            assertEquals(NewsRefusal.NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS, refused.refusal());
             assertTrue(service.loadBlocks(newsRepo.findById(id).orElseThrow()).isEmpty());
             assertTrue(service.saveBlocks(99999, rows).isEmpty());
         } finally {

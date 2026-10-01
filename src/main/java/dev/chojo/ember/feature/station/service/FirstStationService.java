@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -59,8 +59,8 @@ public class FirstStationService {
      * @return the new station
      */
     public Station found(String name, int accountId) {
-        if (name == null || name.isBlank()) throw Refusal.FIRST_STATION_NEEDS_A_NAME.raise();
-        if (!isNeeded()) throw Refusal.FIRST_STATION_ALREADY_FOUNDED.raise();
+        if (name == null || name.isBlank()) throw StationRefusal.FIRST_STATION_NEEDS_A_NAME.raise();
+        if (!isNeeded()) throw StationRefusal.FIRST_STATION_ALREADY_FOUNDED.raise();
 
         var station = stationService.create(name.trim());
         var member = memberRepository.create(station.id(), accountId);

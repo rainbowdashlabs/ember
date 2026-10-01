@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -617,7 +617,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                         false,
                         null),
                 "a second date of birth is a duplicate, not a different question");
-        assertEquals(Refusal.PROFILE_BIRTH_DATE_ALREADY_ASKED, refused.refusal());
+        assertEquals(MemberRefusal.PROFILE_BIRTH_DATE_ALREADY_ASKED, refused.refusal());
 
         profileFieldRepo.delete(birthDate.id());
     }
@@ -761,7 +761,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.create(
                         station.id(), "Führerschein gültig bis", FieldType.EXPIRY_DATE, backwards, false, false, null));
-        assertEquals(Refusal.EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
+        assertEquals(MemberRefusal.EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
 
         var licence = service.create(
                 station.id(),
@@ -979,7 +979,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                         false,
                         null));
 
-        assertEquals(Refusal.PROFILE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(MemberRefusal.PROFILE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
         assertEquals(before, service.findByStation(station.id()).size());
     }
 

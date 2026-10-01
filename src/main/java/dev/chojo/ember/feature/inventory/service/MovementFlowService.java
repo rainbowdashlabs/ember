@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
@@ -565,10 +565,11 @@ public class MovementFlowService {
      * which is not here.
      */
     private MovementFlow restorableFlow(int flowId) {
-        MovementFlow flow =
-                flowRepository.findFlowById(flowId).orElseThrow(Refusal.MOVEMENT_FLOW_NOT_HERE_TO_RESTORE::raise);
+        MovementFlow flow = flowRepository
+                .findFlowById(flowId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_HERE_TO_RESTORE::raise);
         if (flow.stationId() == null) {
-            throw Refusal.MOVEMENT_FLOW_RESTORE_BELONGS_TO_ASSOCIATION.raise();
+            throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_BELONGS_TO_ASSOCIATION.raise();
         }
         return flow;
     }
@@ -591,13 +592,13 @@ public class MovementFlowService {
         MovementFlowBinding binding = flowRepository.findBindings(flow.stationId()).stream()
                 .filter(candidate -> candidate.flowId() == flow.id())
                 .findFirst()
-                .orElseThrow(Refusal.MOVEMENT_FLOW_RESTORE_NOT_BOUND::raise);
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_RESTORE_NOT_BOUND::raise);
         String combination = combinationOf(binding.ownerKind(), binding.purpose(), binding.party());
         return PRESETS.stream()
                 .filter(preset -> combinationOf(preset.ownerKind(), preset.purpose(), preset.party())
                         .equals(combination))
                 .findFirst()
-                .orElseThrow(Refusal.MOVEMENT_FLOW_RESTORE_NO_PRESET::raise);
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_RESTORE_NO_PRESET::raise);
     }
 
     /**
@@ -616,7 +617,8 @@ public class MovementFlowService {
             Integer landing = choices.get(standing == null ? null : standing.id());
             if (landing == null && certain.isPresent()) landing = certain.getAsInt();
             if (landing == null) {
-                throw Refusal.MOVEMENT_FLOW_RESTORE_LANDING_MISSING.raise(standing == null ? null : standing.label());
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_MISSING.raise(
+                        standing == null ? null : standing.label());
             }
             for (OpenMovementOnFlow movement : group.getValue()) {
                 carries.add(new Carry(movement.id(), standing == null ? null : standing.label(), landing));
@@ -642,16 +644,16 @@ public class MovementFlowService {
         for (ChosenLanding choice : chosen) {
             Integer stepIndex = choice.stepIndex();
             if (stepIndex == null) {
-                throw Refusal.MOVEMENT_FLOW_RESTORE_LANDING_NAMES_NO_STEP.raise();
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_NAMES_NO_STEP.raise();
             }
             if (!occupied.contains(choice.stepId())) {
-                throw Refusal.MOVEMENT_FLOW_RESTORE_LANDING_FOR_EMPTY_STEP.raise();
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_FOR_EMPTY_STEP.raise();
             }
             if (stepIndex < 0 || stepIndex >= replacements.size()) {
-                throw Refusal.MOVEMENT_FLOW_RESTORE_LANDING_OUT_OF_RANGE.raise();
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_OUT_OF_RANGE.raise();
             }
             if (choices.put(choice.stepId(), stepIndex) != null) {
-                throw Refusal.MOVEMENT_FLOW_RESTORE_LANDING_TWICE.raise();
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_TWICE.raise();
             }
         }
         return choices;
@@ -814,7 +816,7 @@ public class MovementFlowService {
         }
         return flowRepository
                 .findBoundFlow(stationId, inventoryId, ownerKind, purpose, party)
-                .orElseThrow(Refusal.MOVEMENT_FLOW_NOT_BOUND::raise);
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND::raise);
     }
 
     /**
@@ -969,8 +971,9 @@ public class MovementFlowService {
             StepSubject subject,
             ItemCustody custodyAfter,
             boolean picksItem) {
-        MovementFlowStep step =
-                flowRepository.findStepById(stepId).orElseThrow(Refusal.MOVEMENT_FLOW_STEP_NOT_HERE_TO_CHANGE::raise);
+        MovementFlowStep step = flowRepository
+                .findStepById(stepId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_STEP_NOT_HERE_TO_CHANGE::raise);
         requireLabel(label);
         requireStepCustody(custodyAfter);
         boolean behaviourChanges = step.actor() != actor
@@ -1000,8 +1003,9 @@ public class MovementFlowService {
      * way they were walked.
      */
     public boolean archiveStep(int stepId) {
-        MovementFlowStep step =
-                flowRepository.findStepById(stepId).orElseThrow(Refusal.MOVEMENT_FLOW_STEP_NOT_HERE_TO_ARCHIVE::raise);
+        MovementFlowStep step = flowRepository
+                .findStepById(stepId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_STEP_NOT_HERE_TO_ARCHIVE::raise);
         requireNoOpenMovement(step.flowId());
         if (flowRepository.isBound(step.flowId())) {
             var remaining = flowRepository.findActiveSteps(step.flowId()).stream()
@@ -1063,7 +1067,7 @@ public class MovementFlowService {
         return flowRepository
                 .findFlowById(flowId)
                 .map(MovementFlow::purpose)
-                .orElseThrow(Refusal.MOVEMENT_FLOW_NOT_HERE_FOR_PURPOSE::raise);
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_HERE_FOR_PURPOSE::raise);
     }
 
     public void bind(
@@ -1074,12 +1078,12 @@ public class MovementFlowService {
             MovementParty party,
             int flowId) {
         MovementFlow flow =
-                flowRepository.findFlowById(flowId).orElseThrow(Refusal.MOVEMENT_FLOW_NOT_HERE_TO_BIND::raise);
+                flowRepository.findFlowById(flowId).orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_HERE_TO_BIND::raise);
         if (flow.stationId() == null || flow.stationId() != stationId) {
-            throw Refusal.MOVEMENT_FLOW_NOT_YOURS_TO_BIND.raise();
+            throw InventoryRefusal.MOVEMENT_FLOW_NOT_YOURS_TO_BIND.raise();
         }
         if (flow.purpose() != purpose) {
-            throw Refusal.MOVEMENT_FLOW_BOUND_TO_OTHER_PURPOSE.raise();
+            throw InventoryRefusal.MOVEMENT_FLOW_BOUND_TO_OTHER_PURPOSE.raise();
         }
         MovementFlowValidation.requireWalkable(purpose, flowRepository.findActiveSteps(flowId));
         flowRepository.bind(stationId, inventoryId, ownerKind, purpose, party, flowId);

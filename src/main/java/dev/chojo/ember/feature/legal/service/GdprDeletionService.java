@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -74,7 +74,7 @@ public class GdprDeletionService {
         for (var member : stationMemberRepository.findAllByAccountId(accountId)) {
             boolean administers = stationMemberRepository.findPermissions(member.id()).stream()
                     .anyMatch(role -> role.permission() == StationPermission.STATION_ADMINISTRATOR);
-            if (administers) throw Refusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise();
+            if (administers) throw MemberRefusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise();
         }
         deleteAccount(accountId);
     }

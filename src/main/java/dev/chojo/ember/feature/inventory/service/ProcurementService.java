@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
@@ -80,9 +80,11 @@ public class ProcurementService {
                 .findById(inventoryId)
                 .filter(inventory -> inventory.stationId() == stationId)
                 .map(Inventory::name)
-                .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
         inventoryService.requireHomogeneous(
-                inventoryId, Refusal.INVENTORY_NOT_HERE_FOR_ORDER, Refusal.INVENTORY_ORDER_ON_A_COLLECTION);
+                inventoryId,
+                InventoryRefusal.INVENTORY_NOT_HERE_FOR_ORDER,
+                InventoryRefusal.INVENTORY_ORDER_ON_A_COLLECTION);
         var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
         if (memberId != null) {
             eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));
@@ -191,8 +193,8 @@ public class ProcurementService {
                     new ItemMovementService.Actor(memberId, true),
                     item.id());
         } catch (RefusalResponse noChain) {
-            if (noChain.refusal() != Refusal.MOVEMENT_FLOW_NOT_BOUND
-                    && noChain.refusal() != Refusal.MOVEMENT_FLOW_HAS_NO_STEPS) {
+            if (noChain.refusal() != InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND
+                    && noChain.refusal() != InventoryRefusal.MOVEMENT_FLOW_HAS_NO_STEPS) {
                 throw noChain;
             }
             log.info(

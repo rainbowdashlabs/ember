@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.legal.entity.DocumentPlaceholder;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
@@ -147,11 +147,11 @@ public class AdminSettingsRoutes implements Routes {
     private static String safeLocale(Context ctx, Path base) {
         String locale = ctx.pathParam("locale");
         if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
-            throw Refusal.SETTINGS_LOCALE_NOT_A_LANGUAGE.raise();
+            throw SystemRefusal.SETTINGS_LOCALE_NOT_A_LANGUAGE.raise();
         }
         Path resolved = base.resolve(locale).normalize();
         if (!resolved.startsWith(base.normalize())) {
-            throw Refusal.SETTINGS_LOCALE_OUT_OF_PLACE.raise();
+            throw SystemRefusal.SETTINGS_LOCALE_OUT_OF_PLACE.raise();
         }
         return locale;
     }
@@ -163,7 +163,7 @@ public class AdminSettingsRoutes implements Routes {
     private static Path resolveLocaleDir(Path base, String locale) {
         Path resolved = base.resolve(locale).normalize();
         if (!resolved.startsWith(base.normalize())) {
-            throw Refusal.SETTINGS_LOCALE_FOLDER_OUT_OF_PLACE.raise();
+            throw SystemRefusal.SETTINGS_LOCALE_FOLDER_OUT_OF_PLACE.raise();
         }
         return resolved;
     }
@@ -600,7 +600,7 @@ public class AdminSettingsRoutes implements Routes {
             })
     private void sendTestMail(Context ctx) {
         if (!emailService.isGlobalMailConfigured()) {
-            throw Refusal.INSTANCE_HAS_NO_MAIL_PROVIDER.raise();
+            throw SystemRefusal.INSTANCE_HAS_NO_MAIL_PROVIDER.raise();
         }
         UserSession session = UserSession.from(ctx);
         var account = session.account();
@@ -627,7 +627,7 @@ public class AdminSettingsRoutes implements Routes {
         try {
             position = Integer.parseInt(ctx.pathParam("position"));
         } catch (NumberFormatException e) {
-            throw Refusal.INSTANCE_MAIL_PROVIDER_POSITION_NOT_A_NUMBER.raise(ctx.pathParam("position"));
+            throw SystemRefusal.INSTANCE_MAIL_PROVIDER_POSITION_NOT_A_NUMBER.raise(ctx.pathParam("position"));
         }
         var body = ctx.body().isBlank() ? null : ctx.bodyAsClass(ProviderTestRequest.class);
         String recipient = body == null ? null : body.recipient();
@@ -639,7 +639,7 @@ public class AdminSettingsRoutes implements Routes {
         String error = emailService.sendTestMailThrough(
                 null,
                 position,
-                MailAddress.require(recipient, Refusal.INSTANCE_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS),
+                MailAddress.require(recipient, SystemRefusal.INSTANCE_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS),
                 account.firstName(),
                 mailLocaleService.forAccount(account.id()));
         ctx.json(new MailTestResponse(error == null, error));
@@ -694,7 +694,7 @@ public class AdminSettingsRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
-                .orElseThrow(Refusal.MAIL_PROVIDER_KIND_UNKNOWN::raise);
+                .orElseThrow(SystemRefusal.MAIL_PROVIDER_KIND_UNKNOWN::raise);
         dashboardService.liftBlock(null, provider, ctx.queryParam("domain"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -1066,7 +1066,7 @@ public class AdminSettingsRoutes implements Routes {
             return PandocConverter.toMarkdown(data, format);
         } catch (Exception e) {
             log.warn("Legal document conversion failed", e);
-            throw Refusal.LEGAL_DOCUMENT_NOT_READ.raise();
+            throw SystemRefusal.LEGAL_DOCUMENT_NOT_READ.raise();
         }
     }
 
@@ -1107,7 +1107,7 @@ public class AdminSettingsRoutes implements Routes {
             markdown = request.markdown();
         }
         if (markdown == null || markdown.isBlank()) {
-            throw Refusal.LEGAL_DOCUMENT_NEEDS_TEXT.raise();
+            throw SystemRefusal.LEGAL_DOCUMENT_NEEDS_TEXT.raise();
         }
         var imported = LegalImportService.normalise(markdown);
         var files = imported.sections().stream()
@@ -1178,7 +1178,7 @@ public class AdminSettingsRoutes implements Routes {
         try {
             return LegalDocumentType.fromSlug(ctx.pathParam("type"));
         } catch (IllegalArgumentException e) {
-            throw Refusal.LEGAL_DOCUMENT_KIND_UNKNOWN.raise(ctx.pathParam("type"));
+            throw SystemRefusal.LEGAL_DOCUMENT_KIND_UNKNOWN.raise(ctx.pathParam("type"));
         }
     }
 

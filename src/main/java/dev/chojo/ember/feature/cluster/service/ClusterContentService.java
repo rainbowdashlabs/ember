@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -126,7 +126,7 @@ public class ClusterContentService {
      */
     public KbFolder createFolder(
             int clusterId, @Nullable Integer parentId, String name, String description, int accountId) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_KB_FOLDER_NEEDS_A_NAME.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_KB_FOLDER_NEEDS_A_NAME.raise();
         int homeStationId = homeStationOf(clusterId);
         KbFolder folder = knowledgeBaseService.createFolder(
                 homeStationId,
@@ -162,7 +162,7 @@ public class ClusterContentService {
      */
     public KbFile createArticle(
             int clusterId, Integer folderId, String name, String description, String content, int accountId) {
-        if (name == null || name.isBlank()) throw Refusal.CLUSTER_KB_ARTICLE_NEEDS_A_NAME.raise();
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_KB_ARTICLE_NEEDS_A_NAME.raise();
         int homeStationId = homeStationOf(clusterId);
         KbFile file = knowledgeBaseService.createMarkdownFile(
                 homeStationId,
@@ -183,13 +183,14 @@ public class ClusterContentService {
      */
     public void deleteArticle(int clusterId, int fileId) {
         int homeStationId = homeStationOf(clusterId);
-        KbFile file = knowledgeBaseService.findFile(fileId).orElseThrow(Refusal.CLUSTER_KB_ARTICLE_NOT_HERE::raise);
-        if (file.stationId() != homeStationId) throw Refusal.CLUSTER_KB_ARTICLE_NOT_HERE.raise();
+        KbFile file =
+                knowledgeBaseService.findFile(fileId).orElseThrow(ClusterRefusal.CLUSTER_KB_ARTICLE_NOT_HERE::raise);
+        if (file.stationId() != homeStationId) throw ClusterRefusal.CLUSTER_KB_ARTICLE_NOT_HERE.raise();
         trashService.deleteFile(fileId, null);
         log.info("Cluster {} withdrew knowledge article {}", clusterId, fileId);
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_KB_CLUSTER_NOT_HERE::raise);
+        return clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_KB_CLUSTER_NOT_HERE::raise);
     }
 }

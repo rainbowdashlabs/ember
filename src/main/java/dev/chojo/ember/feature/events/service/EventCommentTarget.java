@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentOrigin;
 import dev.chojo.ember.feature.comment.entity.CreatedAudience;
@@ -54,7 +55,7 @@ public class EventCommentTarget implements CommentTarget {
 
     @Override
     public Refusal missing() {
-        return Refusal.EVENT_NOT_HERE;
+        return EventRefusal.EVENT_NOT_HERE;
     }
 
     @Override

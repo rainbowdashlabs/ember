@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.LendingMessageSent;
 import dev.chojo.ember.event.events.LendingRequested;
@@ -157,7 +157,7 @@ public class LendingService implements FederationServer {
                     .map(LocalDate::parse)
                     .orElse(null);
         } catch (DateTimeParseException e) {
-            throw Refusal.LENDING_DAY_NOT_A_DAY.raise();
+            throw FederationRefusal.LENDING_DAY_NOT_A_DAY.raise();
         }
     }
 
@@ -278,7 +278,7 @@ public class LendingService implements FederationServer {
     private FederationPartner requireLendingPartner(int requestingStationId, UUID owningUid) {
         var partner = findPartnerForStation(requestingStationId, owningUid);
         if (partner == null || !lendsWith(partner)) {
-            throw Refusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
+            throw FederationRefusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
         }
         return partner;
     }
@@ -301,7 +301,7 @@ public class LendingService implements FederationServer {
             var request = known.get();
             if (!lendingUid.equals(request.owningStationUid())
                     || !partner.askingStationUid().equals(request.requestingStationUid())) {
-                throw Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
+                throw FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
             }
             return new RemoteLendingAccepted(labelsOf(request.id()));
         }
@@ -310,7 +310,7 @@ public class LendingService implements FederationServer {
             var target =
                     new LendingRequestItem(0, 0, line.inventoryId(), line.itemId(), line.artId(), 0, null, "").target();
             if (target == null || !ownsTarget(partner.servingStationId(), target)) {
-                throw Refusal.LENDING_LINE_NAMES_FOREIGN_GEAR.raise();
+                throw FederationRefusal.LENDING_LINE_NAMES_FOREIGN_GEAR.raise();
             }
         }
         var request = repository.createRequest(
@@ -381,7 +381,7 @@ public class LendingService implements FederationServer {
         return repository
                 .findRequestByUid(uid)
                 .filter(request -> request.isParty(servingUid) && request.isParty(partner.askingStationUid()))
-                .orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
+                .orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
     }
 
     /**
@@ -511,7 +511,7 @@ public class LendingService implements FederationServer {
         var item = inventoryRepository.findItemById(itemId).orElse(null);
         if (item == null) return;
         if (!isLendable(lenderAt(stationId), item)) {
-            throw Refusal.LENDING_GEAR_NOT_THE_STATIONS.raise();
+            throw FederationRefusal.LENDING_GEAR_NOT_THE_STATIONS.raise();
         }
     }
 
@@ -672,7 +672,7 @@ public class LendingService implements FederationServer {
         var request = sharedRequest(partner, uid);
         boolean lendersOnly = body.status() == LendingStatus.APPROVED || body.status() == LendingStatus.LENT;
         if (lendersOnly && !request.owningStationUid().equals(partner.askingStationUid())) {
-            throw Refusal.LENDING_NOT_THE_OWNING_STATION.raise();
+            throw FederationRefusal.LENDING_NOT_THE_OWNING_STATION.raise();
         }
         if (request.status() == body.status()) return;
         if (!repository.updateRequestStatus(request.id(), body.status())) return;

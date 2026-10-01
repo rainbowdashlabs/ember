@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.api.auth;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -82,7 +82,7 @@ class CsrfGuardTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> guard.require(ctx, "session"));
 
-        assertEquals(Refusal.REQUEST_NOT_FROM_THIS_PAGE, refused.refusal());
+        assertEquals(MemberRefusal.REQUEST_NOT_FROM_THIS_PAGE, refused.refusal());
     }
 
     @Test
@@ -98,7 +98,7 @@ class CsrfGuardTest {
     void aSignInFromAnotherSiteIsRefused() {
         when(ctx.header("Origin")).thenReturn("https://attacker.example.net");
         var refused = assertThrows(RefusalResponse.class, () -> guard.requireOwnOrigin(ctx));
-        assertEquals(Refusal.SIGN_IN_FROM_ANOTHER_SITE, refused.refusal());
+        assertEquals(MemberRefusal.SIGN_IN_FROM_ANOTHER_SITE, refused.refusal());
 
         when(ctx.header("Origin")).thenReturn("null");
         assertThrows(RefusalResponse.class, () -> guard.requireOwnOrigin(ctx));

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
@@ -62,7 +62,7 @@ class ProblemReportServiceTest {
     void aReportWithoutAMessageIsRefusedBeforeAnythingIsKept() {
         var refused = assertThrows(RefusalResponse.class, () -> service.submit(3, 11, "Mara", request(" ", "abc")));
 
-        assertEquals(Refusal.PROBLEM_REPORT_NEEDS_A_MESSAGE, refused.refusal());
+        assertEquals(SystemRefusal.PROBLEM_REPORT_NEEDS_A_MESSAGE, refused.refusal());
         verify(screenshots, never()).store(any(), any());
         assertThrows(RefusalResponse.class, () -> service.submit(3, 11, "Mara", request(null, null)));
     }
@@ -139,13 +139,13 @@ class ProblemReportServiceTest {
         when(screenshots.read(9)).thenReturn(Optional.of(PICTURE));
 
         assertEquals(
-                Refusal.PROBLEM_REPORT_NOT_HERE,
+                SystemRefusal.PROBLEM_REPORT_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.picture(1)).refusal());
         assertEquals(
-                Refusal.PROBLEM_REPORT_HAS_NO_PICTURE,
+                SystemRefusal.PROBLEM_REPORT_HAS_NO_PICTURE,
                 assertThrows(RefusalResponse.class, () -> service.picture(2)).refusal());
         assertEquals(
-                Refusal.PROBLEM_REPORT_PICTURE_NOT_HERE,
+                SystemRefusal.PROBLEM_REPORT_PICTURE_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.picture(3)).refusal());
         assertEquals(PICTURE, service.picture(4));
         assertTrue(service.find(4).isPresent());

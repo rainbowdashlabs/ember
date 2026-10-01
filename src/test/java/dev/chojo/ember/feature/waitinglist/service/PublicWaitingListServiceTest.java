@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -65,11 +65,11 @@ class PublicWaitingListServiceTest {
 
         assertEquals(3, service.stationIdFor("nord"));
         assertEquals(
-                Refusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF,
+                WaitingListRefusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF,
                 assertThrows(RefusalResponse.class, () -> service.stationIdFor("sued"))
                         .refusal());
         assertEquals(
-                Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST,
+                WaitingListRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST,
                 assertThrows(RefusalResponse.class, () -> service.stationIdFor("west"))
                         .refusal());
     }
@@ -82,7 +82,7 @@ class PublicWaitingListServiceTest {
         when(lists.findById(1)).thenReturn(Optional.of(open));
         when(lists.findById(2)).thenReturn(Optional.of(hidden));
         when(lists.findById(3)).thenReturn(Optional.of(foreign));
-        var notHere = Refusal.PUBLIC_WAITING_LIST_NOT_HERE;
+        var notHere = WaitingListRefusal.PUBLIC_WAITING_LIST_NOT_HERE;
 
         assertSame(open, service.publicList(3, 1, notHere));
         for (int id : new int[] {2, 3, 4}) {
@@ -102,7 +102,7 @@ class PublicWaitingListServiceTest {
 
         assertSame(WaitlistInvitationDetails.NONE, service.invitationDetails(3, invitation));
         assertEquals(
-                Refusal.STATION_NOT_HERE_BEHIND_INVITATION,
+                WaitingListRefusal.STATION_NOT_HERE_BEHIND_INVITATION,
                 assertThrows(RefusalResponse.class, () -> service.invitationDetails(4, invitation))
                         .refusal());
     }

@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.lostandfound.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.LostAndFoundRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
@@ -157,7 +157,7 @@ public class LostAndFoundRoutes implements Routes {
                             ctx.result(img.data());
                         },
                         () -> {
-                            throw Refusal.LOST_ITEM_PICTURE_NOT_HERE.raise();
+                            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_NOT_HERE.raise();
                         });
     }
 
@@ -174,11 +174,11 @@ public class LostAndFoundRoutes implements Routes {
         requireOwnedItem(ctx, id);
         var file = ctx.uploadedFile("image");
         if (file == null) {
-            throw Refusal.LOST_ITEM_UPLOAD_MISSING_FILE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_UPLOAD_MISSING_FILE.raise();
         }
         String contentType = file.contentType();
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-            throw Refusal.LOST_ITEM_PICTURE_KIND_NOT_TAKEN.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -186,10 +186,10 @@ public class LostAndFoundRoutes implements Routes {
             ctx.json(new MessageResponse("Image uploaded"));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing lost-and-found image for item {}", id, e);
-            throw Refusal.LOST_ITEM_PICTURE_NOT_TAKEN.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_NOT_TAKEN.raise();
         } catch (IOException e) {
             log.error("Failed to process lost-and-found image for item {}", id, e);
-            throw Refusal.LOST_ITEM_PICTURE_NOT_PROCESSED.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_NOT_PROCESSED.raise();
         }
     }
 
@@ -210,12 +210,12 @@ public class LostAndFoundRoutes implements Routes {
         Integer named = request.memberId();
         int claimMemberId = named != null ? named : session.member().id();
         if (!maySpeakFor(session, claimMemberId)) {
-            throw Refusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_MAKE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_MAKE.raise();
         }
 
         String claimerName = resolveMemberName(claimMemberId);
         if (!lostAndFoundService.claim(id, claimMemberId, session.stationId(), claimerName)) {
-            throw Refusal.LOST_ITEM_ALREADY_CLAIMED.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_ALREADY_CLAIMED.raise();
         }
         ctx.json(new MessageResponse("Item claimed"));
     }
@@ -235,14 +235,14 @@ public class LostAndFoundRoutes implements Routes {
         var item = requireOwnedItem(ctx, id);
         Integer claimedBy = item.claimedBy();
         if (claimedBy == null) {
-            throw Refusal.LOST_ITEM_NOT_CLAIMED_TO_RELEASE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_NOT_CLAIMED_TO_RELEASE.raise();
         }
         boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
         if (!isManager && !maySpeakFor(session, claimedBy)) {
-            throw Refusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_RELEASE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_RELEASE.raise();
         }
         if (!lostAndFoundService.release(id)) {
-            throw Refusal.LOST_ITEM_CLAIM_ALREADY_GONE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_CLAIM_ALREADY_GONE.raise();
         }
         ctx.json(new MessageResponse("Claim released"));
     }
@@ -259,7 +259,7 @@ public class LostAndFoundRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var item = requireOwnedItem(ctx, id);
         if (item.claimedBy() == null) {
-            throw Refusal.LOST_ITEM_NOT_CLAIMED_TO_HAND_OVER.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_NOT_CLAIMED_TO_HAND_OVER.raise();
         }
         lostAndFoundService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -307,7 +307,7 @@ public class LostAndFoundRoutes implements Routes {
         try {
             return LocalDate.parse(foundAt);
         } catch (DateTimeParseException e) {
-            throw Refusal.LOST_ITEM_FOUND_DATE_NOT_A_DATE.raise(foundAt);
+            throw LostAndFoundRefusal.LOST_ITEM_FOUND_DATE_NOT_A_DATE.raise(foundAt);
         }
     }
 

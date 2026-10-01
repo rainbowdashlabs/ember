@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
@@ -501,7 +501,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
             var foreignRefusal =
                     assertThrows(RefusalResponse.class, () -> templates.requireOwn(station.id(), foreign.id()));
             var goneRefusal = assertThrows(RefusalResponse.class, () -> templates.requireOwn(station.id(), -1));
-            assertEquals(Refusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE, foreignRefusal.refusal());
+            assertEquals(EventRefusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE, foreignRefusal.refusal());
             assertEquals(goneRefusal.refusal(), foreignRefusal.refusal(), "the two read alike");
         } finally {
             stationRepo.delete(elsewhere.id());
@@ -516,7 +516,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 () -> service.replaceFields(
                         event.id(),
                         List.of(draft("Treffpunkt", FieldType.LOCATION, EventQuestionSettings.empty(), true))));
-        assertEquals(Refusal.REGISTRATION_QUESTION_TYPE_NOT_OFFERED, refusal.refusal());
+        assertEquals(EventRefusal.REGISTRATION_QUESTION_TYPE_NOT_OFFERED, refusal.refusal());
         assertEquals(2, service.findByEvent(event.id()).size(), "nothing was written");
     }
 

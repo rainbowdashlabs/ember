@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.service.FormService;
@@ -42,7 +42,8 @@ class PublicFormAddressRoutesTest {
         when(station.name()).thenReturn("Wache");
         when(publicForms.sharedForm("t")).thenReturn(form);
         when(publicForms.stationOf(form)).thenReturn(station);
-        when(publicForms.resolveFormOfStation(eq("wache"), any())).thenThrow(Refusal.FORM_NOT_OPENLY_ADDRESSED.raise());
+        when(publicForms.resolveFormOfStation(eq("wache"), any()))
+                .thenThrow(FormRefusal.FORM_NOT_OPENLY_ADDRESSED.raise());
         var harness = RouteHarness.serving(new PublicFormRoutes(
                 mock(FormService.class),
                 publicForms,
@@ -59,7 +60,7 @@ class PublicFormAddressRoutesTest {
                             .path("name")
                             .asString());
             assertEquals(
-                    Refusal.FORM_NOT_OPENLY_ADDRESSED,
+                    FormRefusal.FORM_NOT_OPENLY_ADDRESSED,
                     refusalOf(client.get(PREFIX + "/public/wache/forms/" + UUID.randomUUID())));
         });
     }

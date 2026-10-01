@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -109,12 +109,14 @@ public class ProfileFieldChangeRoutes implements Routes {
     private void assertVisible(StationSession session, int memberId) {
         var visible = visibleMembers(session);
         if (visible.isEmpty()) {
-            var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_ON_CHANGE_HISTORY::raise);
+            var member = memberService
+                    .findById(memberId)
+                    .orElseThrow(MemberRefusal.MEMBER_NOT_HERE_ON_CHANGE_HISTORY::raise);
             RouteSupport.requireSameStation(session.user(), member.stationId());
             return;
         }
         if (!visible.get().contains(memberId)) {
-            throw Refusal.MEMBER_CHANGES_NOT_YOURS.raise();
+            throw MemberRefusal.MEMBER_CHANGES_NOT_YOURS.raise();
         }
     }
 
@@ -211,7 +213,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                 session,
                 profileFieldService
                         .findMemberOfChange(changeId)
-                        .orElseThrow(Refusal.PROFILE_FIELD_CHANGE_NOT_HERE::raise));
+                        .orElseThrow(MemberRefusal.PROFILE_FIELD_CHANGE_NOT_HERE::raise));
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);
         ctx.json(profileFieldService.acknowledge(changeId, session.member().id(), request.comment()));
     }

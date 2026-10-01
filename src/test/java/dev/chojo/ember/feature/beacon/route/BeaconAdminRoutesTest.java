@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.beacon.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.MetricsBatch;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ProblemPayload;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ReportPayload;
@@ -98,7 +98,7 @@ class BeaconAdminRoutesTest {
                     json(post(client, "/problems/send", body("{\"ids\": [1, 2]}")))
                             .path("queued")
                             .asInt());
-            assertEquals(Refusal.BEACON_PROBLEM_ID_NOT_A_NUMBER, refusalOf(get(client, "/problems/x/preview")));
+            assertEquals(BeaconRefusal.BEACON_PROBLEM_ID_NOT_A_NUMBER, refusalOf(get(client, "/problems/x/preview")));
         });
 
         verify(beacon).previewProblem(7L);
@@ -116,7 +116,7 @@ class BeaconAdminRoutesTest {
                     json(post(client, "/reports/5/send", null)).path("queued").asInt());
             post(client, "/reports/5/send", body("{\"screenshot\": null, \"dropScreenshot\": true}"));
             assertEquals(200, get(client, "/figures/preview").code());
-            assertEquals(Refusal.BEACON_ID_NOT_A_NUMBER, refusalOf(post(client, "/reports/x/send", null)));
+            assertEquals(BeaconRefusal.BEACON_ID_NOT_A_NUMBER, refusalOf(post(client, "/reports/x/send", null)));
         });
 
         verify(beacon).previewReport(5);

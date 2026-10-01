@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.transfer;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
@@ -78,14 +78,15 @@ class StationTransferAssetRoutesTest {
                 3,
                 new ObjectMetadata("application/pdf", "", Optional.empty(), Optional.empty()));
         when(files.open(4, StorageCategory.KB_FILES, "manual.pdf")).thenReturn(stream);
-        when(files.open(4, StorageCategory.KB_FILES, "gone.pdf")).thenThrow(Refusal.TRANSFER_FILE_NOT_HERE.raise());
+        when(files.open(4, StorageCategory.KB_FILES, "gone.pdf"))
+                .thenThrow(StorageRefusal.TRANSFER_FILE_NOT_HERE.raise());
 
         harness.run((server, client) -> {
             var served = client.get(BASE + "/kb_files/manual.pdf");
             assertEquals(200, served.code());
             assertTrue(header(served, "Content-Type").startsWith("application/pdf"));
             assertEquals("3", header(served, "Content-Length"));
-            assertEquals(Refusal.TRANSFER_FILE_NOT_HERE, refusalOf(client.get(BASE + "/kb_files/gone.pdf")));
+            assertEquals(StorageRefusal.TRANSFER_FILE_NOT_HERE, refusalOf(client.get(BASE + "/kb_files/gone.pdf")));
         });
     }
 }

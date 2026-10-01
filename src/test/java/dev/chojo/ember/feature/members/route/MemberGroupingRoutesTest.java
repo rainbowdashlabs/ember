@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -118,7 +118,7 @@ class MemberGroupingRoutesTest {
                     client.get(PREFIX + "/station-members/7/groups", harness.as(session))
                             .code());
             assertEquals(
-                    Refusal.NOT_HERE_OR_NOT_YOURS,
+                    GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                     refusalOf(client.get(PREFIX + "/station-members/8/groups", harness.as(session))));
         });
 
@@ -144,7 +144,7 @@ class MemberGroupingRoutesTest {
                     client.get(PREFIX + "/station-members/7/tags", harness.as(session))
                             .code());
             assertEquals(
-                    Refusal.NOT_HERE_OR_NOT_YOURS,
+                    GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                     refusalOf(client.get(PREFIX + "/station-members/8/tags", harness.as(session))));
         });
 

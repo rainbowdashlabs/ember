@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.account.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
@@ -74,13 +74,13 @@ class AccountEmailServiceTest extends RepositoryTestBase {
     @Test
     void anAddressThatIsNotOneIsRefused() {
         var refused = assertThrows(RefusalResponse.class, () -> service.setEmail(account.id(), "no-at-sign"));
-        assertEquals(Refusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE, refused.refusal());
+        assertEquals(MemberRefusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     @Test
     void anAddressAnotherAccountHasIsRefused() {
         var refused = assertThrows(RefusalResponse.class, () -> service.setEmail(account.id(), other.email()));
-        assertEquals(Refusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE, refused.refusal());
+        assertEquals(MemberRefusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     /**
@@ -111,7 +111,7 @@ class AccountEmailServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.setEmailFor(account.id(), account.id(), "self-service@test.com"));
-        assertEquals(Refusal.OWN_ADDRESS_NOT_WRITTEN_UNCONFIRMED, refused.refusal());
+        assertEquals(MemberRefusal.OWN_ADDRESS_NOT_WRITTEN_UNCONFIRMED, refused.refusal());
 
         assertEquals(before, accountRepo.findById(account.id()).orElseThrow().email());
         accountRepo.setInstanceUserType(account.id(), InstanceUserType.USER);

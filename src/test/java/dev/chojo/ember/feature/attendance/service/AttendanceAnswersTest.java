@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;

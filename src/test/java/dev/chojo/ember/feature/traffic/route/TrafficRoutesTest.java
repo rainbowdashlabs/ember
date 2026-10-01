@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.traffic.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.TrafficRefusal;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.service.TrafficReportService;
 import dev.chojo.ember.feature.traffic.service.TrafficReportService.HourlyTrafficResponse;
@@ -49,9 +49,11 @@ class TrafficRoutesTest {
                     200,
                     client.get(PREFIX + "/admin/traffic/hourly" + SPAN + "&stationId=4&auth=" + auth, admin)
                             .code());
-            assertEquals(Refusal.TRAFFIC_SPAN_MISSING, refusalOf(client.get(PREFIX + "/admin/traffic/hourly", admin)));
             assertEquals(
-                    Refusal.TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS,
+                    TrafficRefusal.TRAFFIC_SPAN_MISSING,
+                    refusalOf(client.get(PREFIX + "/admin/traffic/hourly", admin)));
+            assertEquals(
+                    TrafficRefusal.TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS,
                     refusalOf(client.get(
                             PREFIX + "/admin/traffic/hourly?from=2026-09-02T00:00:00Z&to=2026-09-01T00:00:00Z",
                             admin)));

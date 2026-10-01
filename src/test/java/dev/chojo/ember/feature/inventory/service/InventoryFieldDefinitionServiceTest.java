@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
@@ -267,7 +267,7 @@ class InventoryFieldDefinitionServiceTest {
     void createRefusesATypeAnInventoryDoesNotOffer() {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.create(1, "link", "Link", FieldType.URL, false, 0, null));
-        assertEquals(Refusal.INVENTORY_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(InventoryRefusal.INVENTORY_FIELD_TYPE_NOT_OFFERED, refused.refusal());
         Mockito.verify(repository, Mockito.never())
                 .create(
                         Mockito.anyInt(),

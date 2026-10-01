@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
@@ -61,11 +61,11 @@ class ClusterRouteServicesTest {
 
         verify(clusters).addMember(5, TestSessions.ACCOUNT_ID, ClusterUserType.CLUSTER_ADMIN);
         assertEquals(
-                Refusal.CLUSTER_NOT_HERE_ON_APPOINTMENT,
+                ClusterRefusal.CLUSTER_NOT_HERE_ON_APPOINTMENT,
                 assertThrows(RefusalResponse.class, () -> service.appointAdministrator(UUID.randomUUID(), ACCOUNT_UID))
                         .refusal());
         assertEquals(
-                Refusal.ACCOUNT_NOT_HERE_ON_CLUSTER_APPOINTMENT,
+                ClusterRefusal.ACCOUNT_NOT_HERE_ON_CLUSTER_APPOINTMENT,
                 assertThrows(RefusalResponse.class, () -> service.appointAdministrator(CLUSTER_UID, UUID.randomUUID()))
                         .refusal());
     }

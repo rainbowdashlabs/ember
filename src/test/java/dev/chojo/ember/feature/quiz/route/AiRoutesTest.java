@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.QuizGenerationService;
 import dev.chojo.ember.feature.quiz.service.QuizGenerationService.BatchGenerateRequest;
@@ -44,7 +44,7 @@ class AiRoutesTest {
         when(generation.startQuestions(eq(STATION), eq(TestSessions.ACCOUNT_ID), any()))
                 .thenReturn("job-1");
         when(generation.poll(STATION, "job-1")).thenReturn(new GenerationPollResponse(List.of(), true));
-        when(generation.poll(STATION, "job-2")).thenThrow(Refusal.AI_GENERATION_NOT_HERE.raise());
+        when(generation.poll(STATION, "job-2")).thenThrow(QuizRefusal.AI_GENERATION_NOT_HERE.raise());
 
         harness.run((server, client) -> {
             var editor = harness.as(TestSessions.member(STATION, StationPermission.TEST_CATALOG_EDIT));
@@ -55,7 +55,7 @@ class AiRoutesTest {
                     .get("done")
                     .asBoolean());
             assertEquals(
-                    Refusal.AI_GENERATION_NOT_HERE,
+                    QuizRefusal.AI_GENERATION_NOT_HERE,
                     refusalOf(client.get(PREFIX + "/ai/generate-questions/job-2", editor)));
         });
     }
@@ -66,7 +66,7 @@ class AiRoutesTest {
                         STATION, TestSessions.ACCOUNT_ID, 30, new BatchGenerateRequest("claude", null, 4)))
                 .thenReturn(new BatchResult(2, List.of()));
         when(generation.fillDistractors(eq(STATION), eq(TestSessions.ACCOUNT_ID), eq(31), any()))
-                .thenThrow(Refusal.AI_GENERATION_CATALOG_NOT_HERE.raise());
+                .thenThrow(QuizRefusal.AI_GENERATION_CATALOG_NOT_HERE.raise());
 
         harness.run((server, client) -> {
             var editor = harness.as(TestSessions.member(STATION, StationPermission.TEST_CATALOG_EDIT));
@@ -74,7 +74,7 @@ class AiRoutesTest {
                     {"provider":"claude","targetTotalOptions":4}"""), editor);
             assertEquals(2, json(filled).get("generatedCount").asInt());
             assertEquals(
-                    Refusal.AI_GENERATION_CATALOG_NOT_HERE,
+                    QuizRefusal.AI_GENERATION_CATALOG_NOT_HERE,
                     refusalOf(client.post(PREFIX + "/ai/batch-generate/31", body("{}"), editor)));
         });
     }

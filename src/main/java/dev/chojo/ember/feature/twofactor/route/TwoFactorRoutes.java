@@ -8,13 +8,13 @@ package dev.chojo.ember.feature.twofactor.route;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
@@ -192,7 +192,7 @@ public class TwoFactorRoutes implements Routes {
     private void beginTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (twoFactorService.isEnrolled(session.accountId())) {
-            throw Refusal.ALREADY_ENROLLED_ON_TOTP_SETUP.raise();
+            throw TwoFactorRefusal.ALREADY_ENROLLED_ON_TOTP_SETUP.raise();
         }
         var enrollment = twoFactorService.beginTotpEnrollment(
                 session.accountId(), session.account().email());
@@ -215,7 +215,7 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TotpConfirmRequest.class);
         if (request.secret() == null || request.code() == null || request.recoveryCodes() == null) {
-            throw Refusal.TOTP_CONFIRMATION_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.TOTP_CONFIRMATION_DETAILS_MISSING.raise();
         }
         boolean confirmed = twoFactorService.confirmTotpEnrollment(
                 session.accountId(),
@@ -225,7 +225,7 @@ public class TwoFactorRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (!confirmed) {
-            throw Refusal.TOTP_SETUP_CODE_WRONG.raise();
+            throw TwoFactorRefusal.TOTP_SETUP_CODE_WRONG.raise();
         }
         ctx.json(new MessageResponse("TOTP enrolled"));
     }
@@ -242,7 +242,7 @@ public class TwoFactorRoutes implements Routes {
         boolean removed =
                 twoFactorService.removeTotpFactor(session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (!removed) {
-            throw Refusal.NO_TOTP_TO_REMOVE.raise();
+            throw TwoFactorRefusal.NO_TOTP_TO_REMOVE.raise();
         }
         ctx.json(new MessageResponse("TOTP removed"));
     }
@@ -257,7 +257,7 @@ public class TwoFactorRoutes implements Routes {
     private void regenerateBackupCodes(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (!twoFactorService.isEnrolled(session.accountId())) {
-            throw Refusal.NOT_ENROLLED_ON_BACKUP_CODES.raise();
+            throw TwoFactorRefusal.NOT_ENROLLED_ON_BACKUP_CODES.raise();
         }
         List<String> codes = twoFactorService.regenerateBackupCodes(
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
@@ -272,11 +272,11 @@ public class TwoFactorRoutes implements Routes {
     private void verify2fa(Context ctx) {
         var request = ctx.bodyAsClass(Verify2faRequest.class);
         if (request.preAuthToken() == null || request.proof() == null) {
-            throw Refusal.TWO_FACTOR_CHECK_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.TWO_FACTOR_CHECK_DETAILS_MISSING.raise();
         }
 
-        int accountId = signIn.waitingAccount(request.preAuthToken(), Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR);
-        RateLimits.enforce(Refusal.TWO_FACTOR_CODE_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
+        int accountId = signIn.waitingAccount(request.preAuthToken(), TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR);
+        RateLimits.enforce(TwoFactorRefusal.TWO_FACTOR_CODE_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
         signIn.verify(
                 accountId,
                 request.preAuthToken(),
@@ -317,7 +317,7 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (!trustedDeviceService.revoke(id, session.accountId())) {
-            throw Refusal.TRUSTED_DEVICE_NOT_HERE.raise();
+            throw TwoFactorRefusal.TRUSTED_DEVICE_NOT_HERE.raise();
         }
         auditService.record(
                 session.accountId(),
@@ -358,13 +358,13 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(StepUpRequest.class);
         if (request.factor() == null || request.proof() == null) {
-            throw Refusal.STEP_UP_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.STEP_UP_DETAILS_MISSING.raise();
         }
         if (!twoFactorService.isEnrolled(session.accountId())) {
-            throw Refusal.NOT_ENROLLED_ON_STEP_UP.raise();
+            throw TwoFactorRefusal.NOT_ENROLLED_ON_STEP_UP.raise();
         }
         RateLimits.enforce(
-                Refusal.TWO_FACTOR_STEP_UP_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
+                TwoFactorRefusal.TWO_FACTOR_STEP_UP_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
 
         boolean verified;
         TwoFactorKind kind;
@@ -379,7 +379,7 @@ public class TwoFactorRoutes implements Routes {
         }
 
         if (!verified) {
-            throw Refusal.STEP_UP_CODE_WRONG.raise();
+            throw TwoFactorRefusal.STEP_UP_CODE_WRONG.raise();
         }
 
         twoFactorService.markSessionTwoFactorVerified(
@@ -424,7 +424,7 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnRegisterFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw Refusal.SECURITY_KEY_SETUP_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SETUP_DETAILS_MISSING.raise();
         }
         var factor = webAuthnService.finishRegistration(
                 session.accountId(),
@@ -434,7 +434,7 @@ public class TwoFactorRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (factor.isEmpty()) {
-            throw Refusal.SECURITY_KEY_NOT_REGISTERED.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_NOT_REGISTERED.raise();
         }
         List<String> issuedCodes = twoFactorService.issueInitialBackupCodesIfMissing(
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
@@ -455,7 +455,7 @@ public class TwoFactorRoutes implements Routes {
         int factorId = pathInt(ctx, "id");
         if (!twoFactorService.removeFactor(
                 session.accountId(), factorId, ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw Refusal.FACTOR_NOT_HERE_ON_REMOVAL.raise();
+            throw TwoFactorRefusal.FACTOR_NOT_HERE_ON_REMOVAL.raise();
         }
         ctx.json(new MessageResponse("Factor removed"));
     }
@@ -470,7 +470,7 @@ public class TwoFactorRoutes implements Routes {
         int factorId = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(RenameFactorRequest.class);
         if (!twoFactorService.renameFactor(session.accountId(), factorId, request.label())) {
-            throw Refusal.FACTOR_NOT_RENAMED.raise();
+            throw TwoFactorRefusal.FACTOR_NOT_RENAMED.raise();
         }
         ctx.json(new MessageResponse("Factor renamed"));
     }
@@ -483,7 +483,7 @@ public class TwoFactorRoutes implements Routes {
     private void beginWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginBeginRequest.class);
         if (request.preAuthToken() == null) {
-            throw Refusal.SECURITY_KEY_SIGN_IN_TOKEN_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SIGN_IN_TOKEN_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
         var start = webAuthnService.startAssertion(accountId);
@@ -498,12 +498,13 @@ public class TwoFactorRoutes implements Routes {
     private void finishWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginFinishRequest.class);
         if (request.preAuthToken() == null || request.challengeToken() == null || request.credentialJson() == null) {
-            throw Refusal.SECURITY_KEY_SIGN_IN_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SIGN_IN_DETAILS_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
-        RateLimits.enforce(Refusal.SECURITY_KEY_SIGN_IN_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
+        RateLimits.enforce(
+                TwoFactorRefusal.SECURITY_KEY_SIGN_IN_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
-            throw Refusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
         }
         signIn.finish(request.preAuthToken());
         auditService.record(
@@ -575,12 +576,13 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnStepUpFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw Refusal.SECURITY_KEY_STEP_UP_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_STEP_UP_DETAILS_MISSING.raise();
         }
         RateLimits.enforce(
-                Refusal.SECURITY_KEY_STEP_UP_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
+                TwoFactorRefusal.SECURITY_KEY_STEP_UP_TOO_OFTEN,
+                rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
-            throw Refusal.SECURITY_KEY_STEP_UP_REFUSED.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_STEP_UP_REFUSED.raise();
         }
         twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.SECURITY_KEY);
         auditService.record(
@@ -598,7 +600,7 @@ public class TwoFactorRoutes implements Routes {
      * assertion can be retried with the same pre-auth token.
      */
     private int consumeReadOnlyPreAuth(String preAuthToken) {
-        return signIn.waitingAccount(preAuthToken, Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY);
+        return signIn.waitingAccount(preAuthToken, TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY);
     }
 
     public record TwoFactorStatusResponse(

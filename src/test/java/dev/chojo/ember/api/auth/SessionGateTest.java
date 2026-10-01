@@ -7,9 +7,9 @@ package dev.chojo.ember.api.auth;
 
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ApiServer;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import io.javalin.http.Context;
@@ -59,7 +59,9 @@ class SessionGateTest {
     @Test
     void aChangeWithoutTheTokenStopsBeforeTheSessionIsUsed() {
         when(accessManager.resolveUserSession("live", null, null)).thenReturn(Optional.of(mock(UserSession.class)));
-        doThrow(Refusal.REQUEST_NOT_FROM_THIS_PAGE.raise()).when(csrfGuard).require(ctx, "live");
+        doThrow(MemberRefusal.REQUEST_NOT_FROM_THIS_PAGE.raise())
+                .when(csrfGuard)
+                .require(ctx, "live");
 
         assertThrows(RefusalResponse.class, () -> gate.admit(ctx, "live", null, null));
 

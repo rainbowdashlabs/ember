@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.board.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -44,7 +44,7 @@ public class FederatedBoardLocator {
      * @throws RefusalResponse when no such partner exists
      */
     public FederationPartner requirePartner(int partnerId) {
-        return federationRepository.findPartnerById(partnerId).orElseThrow(Refusal.BOARD_PARTNER_NOT_HERE::raise);
+        return federationRepository.findPartnerById(partnerId).orElseThrow(BoardRefusal.BOARD_PARTNER_NOT_HERE::raise);
     }
 
     /**

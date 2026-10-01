@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.auth.signing.SignedRequests;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
@@ -76,21 +76,21 @@ public class BeaconIntakeService {
      */
     public String accept(byte[] publicKey, BeaconPayloads.Envelope envelope, String ownUrl) {
         if (envelope == null || envelope.issuedAt() == null || envelope.nonce() == null) {
-            throw Refusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE.raise();
+            throw BeaconRefusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE.raise();
         }
         if (envelope.protocolVersion() > BeaconPayloads.PROTOCOL_VERSION) {
-            throw Refusal.BEACON_DELIVERY_PROTOCOL_TOO_NEW.raise();
+            throw BeaconRefusal.BEACON_DELIVERY_PROTOCOL_TOO_NEW.raise();
         }
         if (!SignedRequests.withinDrift(envelope.issuedAt(), Instant.now(), DRIFT)) {
-            throw Refusal.BEACON_DELIVERY_OUT_OF_TIME.raise();
+            throw BeaconRefusal.BEACON_DELIVERY_OUT_OF_TIME.raise();
         }
         if (envelope.audience() == null || !sameHost(envelope.audience(), ownUrl)) {
-            throw Refusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON.raise();
+            throw BeaconRefusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON.raise();
         }
         String instanceId = DiscoveryKeyService.computeInstanceId(publicKey);
         Instant forgettable = envelope.issuedAt().plus(DRIFT).plus(DRIFT);
         if (!replayStore.firstSighting("beacon:" + instanceId, envelope.nonce(), forgettable)) {
-            throw Refusal.BEACON_DELIVERY_ALREADY_TAKEN.raise();
+            throw BeaconRefusal.BEACON_DELIVERY_ALREADY_TAKEN.raise();
         }
         return instanceId;
     }
@@ -112,7 +112,7 @@ public class BeaconIntakeService {
     /** Files a fault and what this instance knows about it. */
     public void storeProblem(String instanceId, String publicKey, BeaconPayloads.ProblemPayload payload) {
         if (payload.fingerprint() == null || payload.fingerprint().isBlank()) {
-            throw Refusal.BEACON_FAULT_FINGERPRINT_MISSING.raise();
+            throw BeaconRefusal.BEACON_FAULT_FINGERPRINT_MISSING.raise();
         }
         String version = validVersion(payload.version());
         repository.touchInstance(
@@ -128,7 +128,7 @@ public class BeaconIntakeService {
     /** Stores somebody's own words. */
     public void storeReport(String instanceId, String publicKey, BeaconPayloads.ReportPayload payload) {
         if (payload.message() == null || payload.message().isBlank()) {
-            throw Refusal.BEACON_REPORT_MESSAGE_MISSING.raise();
+            throw BeaconRefusal.BEACON_REPORT_MESSAGE_MISSING.raise();
         }
         repository.touchInstance(
                 instanceId,
@@ -158,19 +158,19 @@ public class BeaconIntakeService {
      */
     public int storeMetrics(BeaconPayloads.MetricsBatch batch) {
         if (batch.subjects() == null || batch.subjects().isEmpty()) {
-            throw Refusal.BEACON_FIGURES_WITHOUT_SUBJECTS.raise();
+            throw BeaconRefusal.BEACON_FIGURES_WITHOUT_SUBJECTS.raise();
         }
         if (batch.subjects().size() > MAX_SUBJECTS) {
-            throw Refusal.BEACON_FIGURES_TOO_MANY_SUBJECTS.raise();
+            throw BeaconRefusal.BEACON_FIGURES_TOO_MANY_SUBJECTS.raise();
         }
         LocalDate day;
         try {
             day = LocalDate.parse(batch.day());
         } catch (Exception e) {
-            throw Refusal.BEACON_FIGURES_DAY_MISSING.raise();
+            throw BeaconRefusal.BEACON_FIGURES_DAY_MISSING.raise();
         }
         if (day.isAfter(LocalDate.now().plusDays(1))) {
-            throw Refusal.BEACON_FIGURES_DAY_IN_THE_FUTURE.raise();
+            throw BeaconRefusal.BEACON_FIGURES_DAY_IN_THE_FUTURE.raise();
         }
         String version = validVersion(batch.version());
         int stored = 0;

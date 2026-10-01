@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.maps.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
@@ -132,10 +132,10 @@ public class MapTileCacheService {
      */
     private static void requireOnTheMap(MapsTilesConfig tiles, int z, int x, int y) {
         if (z < Math.max(0, tiles.minZoom()) || z > tiles.maxZoom()) {
-            throw Refusal.MAP_TILE_ZOOM_OUT_OF_RANGE.raise();
+            throw MapRefusal.MAP_TILE_ZOOM_OUT_OF_RANGE.raise();
         }
         long size = 1L << z;
-        if (x < 0 || y < 0 || x >= size || y >= size) throw Refusal.MAP_TILE_OFF_THE_MAP.raise();
+        if (x < 0 || y < 0 || x >= size || y >= size) throw MapRefusal.MAP_TILE_OFF_THE_MAP.raise();
     }
 
     /**

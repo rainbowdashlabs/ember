@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
@@ -14,6 +13,7 @@ import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAdminService;
@@ -155,7 +155,7 @@ public class TwoFactorAdminRoutes implements Routes {
     private void deleteInstancePolicy(Context ctx) {
         int id = pathInt(ctx, "id");
         if (!policyService.deletePolicy(id)) {
-            throw Refusal.POLICY_NOT_HERE.raise();
+            throw TwoFactorRefusal.POLICY_NOT_HERE.raise();
         }
         ctx.json(new MessageResponse("Policy removed"));
     }
@@ -204,10 +204,10 @@ public class TwoFactorAdminRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var policies = policyService.listStationPolicies(stationId);
         if (policies.stream().noneMatch(p -> p.id() == id)) {
-            throw Refusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
+            throw TwoFactorRefusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
         }
         if (!policyService.deletePolicy(id)) {
-            throw Refusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
+            throw TwoFactorRefusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
         }
         ctx.json(new MessageResponse("Policy removed"));
     }
@@ -238,7 +238,7 @@ public class TwoFactorAdminRoutes implements Routes {
         UserSession actor = UserSession.from(ctx);
         if (!twoFactorService.resetAccount2FA(
                 targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw Refusal.SECOND_FACTOR_NOT_RESET.raise();
+            throw TwoFactorRefusal.SECOND_FACTOR_NOT_RESET.raise();
         }
         ctx.json(new MessageResponse("2FA reset"));
     }

@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -68,13 +68,13 @@ public class MovementGuards {
      */
     public ItemMovement requireVisible(UserSession session, int movementId) {
         ItemMovement movement =
-                movements.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS::raise);
+                movements.findById(movementId).orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS::raise);
         if (hasOwnerRights(session, movement)) return movement;
 
         RouteSupport.requireSameStation(session, movement.stationId());
         if (session.hasPermission(StationPermission.INVENTORY_MOVEMENTS)) return movement;
         if (movement.memberId() != null && guardians.mayActFor(session, movement.memberId())) return movement;
-        throw Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS.raise();
+        throw InventoryRefusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS.raise();
     }
 
     /**
@@ -87,7 +87,7 @@ public class MovementGuards {
     public void requireMayStartFor(UserSession session, @Nullable Integer memberId) {
         if (memberId == null || session.hasPermission(StationPermission.INVENTORY_MOVEMENTS)) return;
         if (!guardians.mayActFor(session, memberId)) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise();
+            throw InventoryRefusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise();
         }
     }
 

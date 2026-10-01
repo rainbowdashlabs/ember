@@ -6,7 +6,8 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.transport.PathParams;
@@ -48,7 +49,7 @@ public class FederatedBoardGuards {
     public int viewableBoardId(ServingPartner partner, PathParams params) {
         int boardId = boardId(partner, params);
         if (!federatedBoardService.canFederatedView(boardId, partner.partnerId())) {
-            throw Refusal.REMOTE_BOARD_NOT_SHARED.raise();
+            throw BoardRefusal.REMOTE_BOARD_NOT_SHARED.raise();
         }
         return boardId;
     }
@@ -60,7 +61,7 @@ public class FederatedBoardGuards {
     public int writableBoardId(ServingPartner partner, PathParams params) {
         int boardId = boardId(partner, params);
         if (!federatedBoardService.canFederatedWrite(boardId, partner.partnerId())) {
-            throw Refusal.REMOTE_BOARD_NOT_WRITABLE.raise();
+            throw BoardRefusal.REMOTE_BOARD_NOT_WRITABLE.raise();
         }
         return boardId;
     }
@@ -85,7 +86,7 @@ public class FederatedBoardGuards {
     public int ticketId(int boardId, int ticketNumber) {
         return ticketService
                 .findByBoardAndNumber(boardId, ticketNumber)
-                .orElseThrow(Refusal.REMOTE_BOARD_TICKET_NOT_HERE::raise)
+                .orElseThrow(BoardRefusal.REMOTE_BOARD_TICKET_NOT_HERE::raise)
                 .id();
     }
 
@@ -94,7 +95,7 @@ public class FederatedBoardGuards {
      */
     public int laneOnBoard(int boardId, int laneId) {
         if (boardService.findLanes(boardId).stream().noneMatch(lane -> lane.id() == laneId)) {
-            throw Refusal.REMOTE_LANE_NOT_ON_BOARD.raise();
+            throw FederationRefusal.REMOTE_LANE_NOT_ON_BOARD.raise();
         }
         return laneId;
     }
@@ -106,7 +107,7 @@ public class FederatedBoardGuards {
         return boardService.findLabels(boardId).stream()
                 .filter(label -> label.id() == labelId)
                 .findFirst()
-                .orElseThrow(Refusal.REMOTE_LABEL_NOT_ON_BOARD::raise);
+                .orElseThrow(FederationRefusal.REMOTE_LABEL_NOT_ON_BOARD::raise);
     }
 
     /**
@@ -114,7 +115,7 @@ public class FederatedBoardGuards {
      */
     public int checklistItemOnTicket(int ticketId, int itemId) {
         if (ticketService.findChecklistItems(ticketId).stream().noneMatch(item -> item.id() == itemId)) {
-            throw Refusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET.raise();
+            throw FederationRefusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET.raise();
         }
         return itemId;
     }
@@ -126,7 +127,7 @@ public class FederatedBoardGuards {
     public int linkedTicketId(int boardId, int ticketNumber) {
         return ticketService
                 .findByBoardAndNumber(boardId, ticketNumber)
-                .orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_BY_NUMBER::raise)
+                .orElseThrow(BoardRefusal.REMOTE_TICKET_NOT_HERE_BY_NUMBER::raise)
                 .id();
     }
 
@@ -149,7 +150,7 @@ public class FederatedBoardGuards {
     private int boardId(ServingPartner partner, PathParams params) {
         return boardService
                 .findByShortKey(partner.servingStationId(), params.text("boardKey"))
-                .orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE::raise)
+                .orElseThrow(BoardRefusal.REMOTE_BOARD_NOT_HERE::raise)
                 .id();
     }
 }

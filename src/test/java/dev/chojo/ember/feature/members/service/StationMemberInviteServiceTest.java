@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
@@ -195,7 +195,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
                         station.id(),
                         List.of(new InviteRequest(email, "Cli", "Mber", StationUserType.MEMBER, groupId, List.of()))));
 
-        assertEquals(Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE, refused.refusal());
+        assertEquals(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE, refused.refusal());
         assertTrue(accountRepo.findByEmail(email).isEmpty());
     }
 

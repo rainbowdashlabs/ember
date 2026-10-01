@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.elements.Logging;
@@ -120,7 +120,7 @@ public class ApplicationLogService {
                 ? "DEBUG"
                 : request.databaseLevel().toUpperCase(Locale.ROOT);
         if (!LOG_LEVELS.contains(level)) {
-            throw Refusal.LOG_LEVEL_UNKNOWN.raise(request.databaseLevel());
+            throw SystemRefusal.LOG_LEVEL_UNKNOWN.raise(request.databaseLevel());
         }
         SecuritySettingsService.requireRange(request.retentionDays(), 1, 3650, "retentionDays");
         var logging = conf.main().logging();

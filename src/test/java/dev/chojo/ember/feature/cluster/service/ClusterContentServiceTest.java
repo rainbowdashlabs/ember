@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
@@ -120,7 +120,7 @@ class ClusterContentServiceTest extends RepositoryTestBase {
     @Test
     void aClusterThatIsNotThereHasNowhereToPutContent() {
         var refused = assertThrows(RefusalResponse.class, () -> service.homeStationOf(999_999));
-        assertEquals(Refusal.CLUSTER_KB_CLUSTER_NOT_HERE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_KB_CLUSTER_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -165,7 +165,7 @@ class ClusterContentServiceTest extends RepositoryTestBase {
         var file = service.createArticle(other.id(), null, "Fremd", null, "x", account.id());
 
         var refused = assertThrows(RefusalResponse.class, () -> service.deleteArticle(cluster.id(), file.id()));
-        assertEquals(Refusal.CLUSTER_KB_ARTICLE_NOT_HERE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_KB_ARTICLE_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -176,9 +176,9 @@ class ClusterContentServiceTest extends RepositoryTestBase {
 
         var folder = assertThrows(
                 RefusalResponse.class, () -> service.createFolder(cluster.id(), null, " ", null, account.id()));
-        assertEquals(Refusal.CLUSTER_KB_FOLDER_NEEDS_A_NAME, folder.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_KB_FOLDER_NEEDS_A_NAME, folder.refusal());
         var article = assertThrows(
                 RefusalResponse.class, () -> service.createArticle(cluster.id(), null, " ", null, "x", account.id()));
-        assertEquals(Refusal.CLUSTER_KB_ARTICLE_NEEDS_A_NAME, article.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_KB_ARTICLE_NEEDS_A_NAME, article.refusal());
     }
 }

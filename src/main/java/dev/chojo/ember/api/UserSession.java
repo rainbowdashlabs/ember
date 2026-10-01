@@ -12,6 +12,8 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -153,12 +155,12 @@ public record UserSession(
      *
      * @param ctx the Javalin context
      * @return the session stored as a context attribute
-     * @throws RefusalResponse {@link Refusal#NOT_SIGNED_IN} when the request carries no session
+     * @throws RefusalResponse {@link GeneralRefusal#NOT_SIGNED_IN} when the request carries no session
      */
     public static UserSession from(Context ctx) {
         UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
         if (session == null) {
-            throw Refusal.NOT_SIGNED_IN.raise();
+            throw GeneralRefusal.NOT_SIGNED_IN.raise();
         }
         return session;
     }
@@ -168,11 +170,11 @@ public record UserSession(
      * as one an instance administrator works in.
      *
      * @return the station id
-     * @throws RefusalResponse {@link Refusal#NO_STATION_CHOSEN} when the request names no station
+     * @throws RefusalResponse {@link GeneralRefusal#NO_STATION_CHOSEN} when the request names no station
      */
     public int requireStationId() {
         Integer id = stationId;
-        if (id == null) throw Refusal.NO_STATION_CHOSEN.raise();
+        if (id == null) throw GeneralRefusal.NO_STATION_CHOSEN.raise();
         return id;
     }
 

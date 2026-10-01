@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.util;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -49,7 +49,7 @@ class PixelBudgetTest {
 
         var refusal = assertThrows(RefusalResponse.class, () -> PixelBudget.read(bomb));
 
-        assertEquals(Refusal.PICTURE_TOO_MANY_PIXELS, refusal.refusal());
+        assertEquals(GeneralRefusal.PICTURE_TOO_MANY_PIXELS, refusal.refusal());
         assertEquals(413, refusal.getStatus());
     }
 

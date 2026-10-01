@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -98,7 +98,7 @@ class FirstStationServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.found("Noch eine", ACCOUNT));
 
-        assertEquals(Refusal.FIRST_STATION_ALREADY_FOUNDED, refused.refusal());
+        assertEquals(StationRefusal.FIRST_STATION_ALREADY_FOUNDED, refused.refusal());
         verify(stationService, never()).create(anyString());
     }
 
@@ -106,7 +106,7 @@ class FirstStationServiceTest {
     void aFirstStationNeedsAName() {
         var refused = assertThrows(RefusalResponse.class, () -> service.found("  ", ACCOUNT));
 
-        assertEquals(Refusal.FIRST_STATION_NEEDS_A_NAME, refused.refusal());
+        assertEquals(StationRefusal.FIRST_STATION_NEEDS_A_NAME, refused.refusal());
         assertThrows(RefusalResponse.class, () -> service.found(null, ACCOUNT));
     }
 }

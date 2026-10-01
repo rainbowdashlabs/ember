@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
@@ -171,7 +171,7 @@ public class ClusterFieldRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var req = ctx.bodyAsClass(ClusterFieldOrderRequest.class);
         if (req.scope() == null) {
-            throw Refusal.CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE.raise();
+            throw ClusterRefusal.CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE.raise();
         }
         fieldService.reorder(
                 cluster.id(), parseScope(req.scope()), req.fieldIds() != null ? req.fieldIds() : List.of());
@@ -291,8 +291,8 @@ public class ClusterFieldRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_FIELDS.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_FIELDS::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_FIELDS.raise();
+        return clusterService.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_FIELDS::raise);
     }
 
     /**
@@ -304,7 +304,7 @@ public class ClusterFieldRoutes implements Routes {
         return FieldTypes.PROFILE.stream()
                 .filter(type -> type.name().equals(raw))
                 .findFirst()
-                .orElseThrow(() -> Refusal.CLUSTER_FIELD_TYPE_UNKNOWN.raise(raw));
+                .orElseThrow(() -> ClusterRefusal.CLUSTER_FIELD_TYPE_UNKNOWN.raise(raw));
     }
 
     private static ProfileFieldScope parseScope(String raw) {
@@ -312,7 +312,7 @@ public class ClusterFieldRoutes implements Routes {
         try {
             return ProfileFieldScope.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_FIELD_AUDIENCE_UNKNOWN.raise(raw);
+            throw ClusterRefusal.CLUSTER_FIELD_AUDIENCE_UNKNOWN.raise(raw);
         }
     }
 

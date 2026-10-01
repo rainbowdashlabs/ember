@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.beacon.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
 import dev.chojo.ember.feature.beacon.entity.BeaconFault;
 import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.MetricsBatch;
@@ -155,7 +155,7 @@ public class BeaconAdminRoutes implements Routes {
         try {
             return Integer.parseInt(ctx.pathParam("id"));
         } catch (NumberFormatException e) {
-            throw Refusal.BEACON_ID_NOT_A_NUMBER.raise();
+            throw BeaconRefusal.BEACON_ID_NOT_A_NUMBER.raise();
         }
     }
 
@@ -163,7 +163,7 @@ public class BeaconAdminRoutes implements Routes {
         try {
             return Long.parseLong(ctx.pathParam("id"));
         } catch (NumberFormatException e) {
-            throw Refusal.BEACON_PROBLEM_ID_NOT_A_NUMBER.raise();
+            throw BeaconRefusal.BEACON_PROBLEM_ID_NOT_A_NUMBER.raise();
         }
     }
 

@@ -6,13 +6,13 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
@@ -149,7 +149,7 @@ public class MemberGroupRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.GROUP_NAME_MISSING_ON_CREATE.raise();
+            throw MemberRefusal.GROUP_NAME_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(groupRules.create(session.stationId(), request.name(), request.groupRules(), session.user()));
@@ -176,7 +176,7 @@ public class MemberGroupRoutes implements Routes {
                             ctx.json(new GroupDetail(group.id(), group.stationId(), group.name(), members));
                         },
                         () -> {
-                            throw Refusal.GROUP_NOT_HERE_ON_READ.raise();
+                            throw MemberRefusal.GROUP_NOT_HERE_ON_READ.raise();
                         });
     }
 
@@ -202,7 +202,7 @@ public class MemberGroupRoutes implements Routes {
         var group = requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.GROUP_NAME_MISSING_ON_CHANGE.raise();
+            throw MemberRefusal.GROUP_NAME_MISSING_ON_CHANGE.raise();
         }
         ctx.json(groupRules.update(
                 group,
@@ -230,7 +230,7 @@ public class MemberGroupRoutes implements Routes {
         if (groupService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.GROUP_NOT_HERE_ON_DELETE.raise();
+            throw MemberRefusal.GROUP_NOT_HERE_ON_DELETE.raise();
         }
     }
 

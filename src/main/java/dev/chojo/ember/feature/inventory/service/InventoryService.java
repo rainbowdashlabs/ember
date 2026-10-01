@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -397,7 +398,7 @@ public class InventoryService {
         if (inventory == null || !inventory.borrowed()) return;
         if (inventoryRepository.findItems(id).isEmpty()) return;
         log.info("Refused to delete the borrowed shelf of inventory {}: it still holds gear", id);
-        throw Refusal.INVENTORY_BORROWED_SHELF_NOT_EMPTY.raise();
+        throw InventoryRefusal.INVENTORY_BORROWED_SHELF_NOT_EMPTY.raise();
     }
 
     /**
@@ -410,7 +411,10 @@ public class InventoryService {
      * @return the updated list of all sizes for the inventory
      */
     public List<InventorySize> createSize(int inventoryId, String label, int position, String note) {
-        requireHomogeneous(inventoryId, Refusal.INVENTORY_NOT_HERE_FOR_SIZE, Refusal.INVENTORY_SIZE_ON_A_COLLECTION);
+        requireHomogeneous(
+                inventoryId,
+                InventoryRefusal.INVENTORY_NOT_HERE_FOR_SIZE,
+                InventoryRefusal.INVENTORY_SIZE_ON_A_COLLECTION);
         inventoryRepository.createSize(inventoryId, label, position, note);
         log.info("Created size (label='{}', position={}) in inventory {}", label, position, inventoryId);
         return inventoryRepository.findSizes(inventoryId);
@@ -528,7 +532,7 @@ public class InventoryService {
             String name,
             @Nullable Integer sizeId,
             @Nullable InventoryItemMetadata metadata) {
-        requireNotTheBorrowedShelf(inventoryId, Refusal.INVENTORY_BORROWED_SHELF_ON_CREATE);
+        requireNotTheBorrowedShelf(inventoryId, InventoryRefusal.INVENTORY_BORROWED_SHELF_ON_CREATE);
         InventoryItem item = inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
         log.info(
                 "Created item {} (name='{}', internalId='{}', sizeId={}) in inventory {}",
@@ -595,14 +599,14 @@ public class InventoryService {
             ItemOwner ownerKind,
             @Nullable Integer ownerClusterId) {
         if (ownerKind == ItemOwner.PARTNER_STATION) {
-            throw Refusal.INVENTORY_PARTNER_GEAR_BY_HAND.raise();
+            throw InventoryRefusal.INVENTORY_PARTNER_GEAR_BY_HAND.raise();
         }
-        requireNotTheBorrowedShelf(inventoryId, Refusal.INVENTORY_BORROWED_SHELF_ON_OWNED_CREATE);
+        requireNotTheBorrowedShelf(inventoryId, InventoryRefusal.INVENTORY_BORROWED_SHELF_ON_OWNED_CREATE);
         requireOwnerFits(inventoryId, ownerKind);
         Integer owner =
                 ownerKind == ItemOwner.CLUSTER && ownerClusterId == null ? clusterAbove(inventoryId) : ownerClusterId;
         requireOwningCluster(inventoryId, owner);
-        requireArtOfInventory(inventoryId, artId, Refusal.INVENTORY_ITEM_KIND_ELSEWHERE_ON_CREATE);
+        requireArtOfInventory(inventoryId, artId, InventoryRefusal.INVENTORY_ITEM_KIND_ELSEWHERE_ON_CREATE);
         InventoryItem item = inventoryRepository.createItem(
                 inventoryId, internalId, name, sizeId, artId, metadata, ownerKind, owner);
         log.info(
@@ -669,7 +673,7 @@ public class InventoryService {
         var type = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::inventoryType)
-                .orElseThrow(Refusal.INVENTORY_NOT_HERE_FOR_OWNER_CHECK::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_OWNER_CHECK::raise);
         boolean fits =
                 switch (type) {
                     case MIXED -> true;
@@ -678,8 +682,8 @@ public class InventoryService {
                 };
         if (!fits) {
             throw (ownerKind == ItemOwner.STATION
-                            ? Refusal.INVENTORY_HOLDS_NO_STATION_GEAR
-                            : Refusal.INVENTORY_HOLDS_NO_ASSOCIATION_GEAR)
+                            ? InventoryRefusal.INVENTORY_HOLDS_NO_STATION_GEAR
+                            : InventoryRefusal.INVENTORY_HOLDS_NO_ASSOCIATION_GEAR)
                     .raise();
         }
     }
@@ -707,17 +711,17 @@ public class InventoryService {
         int stationId = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::stationId)
-                .orElseThrow(Refusal.INVENTORY_NOT_HERE_FOR_REQUIREMENT_GROUP::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_REQUIREMENT_GROUP::raise);
         int groupCluster = stationGroupRepository
                 .findById(stationGroupId)
                 .map(ClusterStationGroup::clusterId)
-                .orElseThrow(Refusal.INVENTORY_REQUIREMENT_GROUP_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_REQUIREMENT_GROUP_NOT_HERE::raise);
         boolean itsOwnStore = clusterRepository
                 .findById(groupCluster)
                 .map(cluster -> cluster.homeStationId() == stationId)
                 .orElse(false);
         if (!itsOwnStore) {
-            throw Refusal.INVENTORY_REQUIREMENT_GROUP_OF_ANOTHER_ASSOCIATION.raise();
+            throw InventoryRefusal.INVENTORY_REQUIREMENT_GROUP_OF_ANOTHER_ASSOCIATION.raise();
         }
     }
 
@@ -726,7 +730,7 @@ public class InventoryService {
         int stationId = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::stationId)
-                .orElseThrow(Refusal.INVENTORY_NOT_HERE_FOR_ASSOCIATION_CHECK::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_ASSOCIATION_CHECK::raise);
 
         boolean answersToIt = clusterRepository
                 .findByStation(stationId)
@@ -737,7 +741,7 @@ public class InventoryService {
                 .map(cluster -> cluster.homeStationId() == stationId)
                 .orElse(false);
         if (!answersToIt && !isItsOwnStore) {
-            throw Refusal.INVENTORY_GEAR_OF_ANOTHER_ASSOCIATION.raise();
+            throw InventoryRefusal.INVENTORY_GEAR_OF_ANOTHER_ASSOCIATION.raise();
         }
     }
 
@@ -794,15 +798,15 @@ public class InventoryService {
             @Nullable Integer actingClusterId) {
         requireOwned(
                 id,
-                Refusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DESCRIBE,
-                Refusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE,
+                InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DESCRIBE,
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE,
                 actingClusterId);
         InventoryItem before = inventoryRepository.findItemById(id).orElse(null);
         if (before == null) {
             log.warn("Update of item {} did not find a row to change", id);
             return Optional.empty();
         }
-        requireArtOfInventory(before.inventoryId(), artId, Refusal.INVENTORY_ITEM_KIND_ELSEWHERE_ON_CHANGE);
+        requireArtOfInventory(before.inventoryId(), artId, InventoryRefusal.INVENTORY_ITEM_KIND_ELSEWHERE_ON_CHANGE);
         requireAnswerable(asItWillBe(before, artId, metadata), metadata);
         InventoryItemMetadata kept = keepUndescribedValues(before, artId, metadata);
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, artId, kept)) {
@@ -847,7 +851,7 @@ public class InventoryService {
             QuestionCheck.answerIfGiven(
                             definition.question(), written.getValue().asText())
                     .ifPresent(problem -> {
-                        throw Refusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
+                        throw InventoryRefusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
                     });
         }
     }
@@ -916,19 +920,21 @@ public class InventoryService {
     public Optional<InventoryItem> moveItem(int itemId, int inventoryId, @Nullable Integer actingClusterId) {
         requireOwned(
                 itemId,
-                Refusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_MOVE,
-                Refusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_MOVE,
+                InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_MOVE,
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_MOVE,
                 actingClusterId);
-        requireNotTheBorrowedShelf(inventoryId, Refusal.INVENTORY_BORROWED_SHELF_ON_MOVE);
-        InventoryItem item =
-                inventoryRepository.findItemById(itemId).orElseThrow(Refusal.INVENTORY_ITEM_NOT_HERE_TO_MOVE::raise);
-        Inventory target =
-                inventoryRepository.findById(inventoryId).orElseThrow(Refusal.INVENTORY_MOVE_TARGET_NOT_HERE::raise);
+        requireNotTheBorrowedShelf(inventoryId, InventoryRefusal.INVENTORY_BORROWED_SHELF_ON_MOVE);
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(InventoryRefusal.INVENTORY_ITEM_NOT_HERE_TO_MOVE::raise);
+        Inventory target = inventoryRepository
+                .findById(inventoryId)
+                .orElseThrow(InventoryRefusal.INVENTORY_MOVE_TARGET_NOT_HERE::raise);
         Inventory source = inventoryRepository
                 .findById(item.inventoryId())
-                .orElseThrow(Refusal.INVENTORY_MOVE_SOURCE_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_MOVE_SOURCE_NOT_HERE::raise);
         if (target.stationId() != source.stationId()) {
-            throw Refusal.INVENTORY_MOVE_TO_ANOTHER_STATION.raise();
+            throw InventoryRefusal.INVENTORY_MOVE_TO_ANOTHER_STATION.raise();
         }
         if (target.id() == source.id()) {
             return Optional.of(item);
@@ -1003,7 +1009,8 @@ public class InventoryService {
      * @return the created piece
      */
     public InventoryItem createAndHandOut(int inventoryId, @Nullable Integer sizeId, int memberId, String actorName) {
-        Inventory inventory = findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_TO_HAND_OUT_NEW::raise);
+        Inventory inventory =
+                findById(inventoryId).orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_TO_HAND_OUT_NEW::raise);
         ItemOwner owner = inventory.inventoryType() == InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION;
         InventoryItem item = createItem(inventoryId, null, inventory.name(), sizeId, null, owner, null);
         return assignItem(item.id(), memberId, actorName).orElse(item);
@@ -1041,8 +1048,8 @@ public class InventoryService {
     public boolean deleteItem(int id, @Nullable Integer actingClusterId) {
         requireOwned(
                 id,
-                Refusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DELETE,
-                Refusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DELETE,
+                InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DELETE,
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DELETE,
                 actingClusterId);
         boolean deleted = inventoryRepository.deleteItem(id);
         if (deleted) log.info("Deleted item {}", id);
@@ -1141,7 +1148,9 @@ public class InventoryService {
             @Nullable Integer stationGroupId,
             int quantity) {
         requireHomogeneous(
-                inventoryId, Refusal.INVENTORY_NOT_HERE_FOR_REQUIREMENT, Refusal.INVENTORY_REQUIREMENT_ON_A_COLLECTION);
+                inventoryId,
+                InventoryRefusal.INVENTORY_NOT_HERE_FOR_REQUIREMENT,
+                InventoryRefusal.INVENTORY_REQUIREMENT_ON_A_COLLECTION);
         requireGroupOfTheOwningCluster(inventoryId, stationGroupId);
         InventoryRequirement requirement =
                 inventoryRepository.createRequirement(inventoryId, userType, groupId, stationGroupId, quantity);

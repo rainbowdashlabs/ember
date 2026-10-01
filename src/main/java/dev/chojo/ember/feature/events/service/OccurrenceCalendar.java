@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.DateCancellations;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
@@ -97,19 +97,21 @@ public class OccurrenceCalendar {
         LocalDate date = event.isRecurring() ? requireNamed(requested) : firstDateOf(event, calendar);
         return switch (calendar.check(event, date)) {
             case OCCURRENCE -> date;
-            case NOT_AN_OCCURRENCE -> throw Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE.raise();
-            case IN_A_BREAK -> throw Refusal.REGISTRATION_DAY_IN_A_BREAK.raise();
-            case CANCELLED -> throw Refusal.REGISTRATION_DAY_CANCELLED.raise();
+            case NOT_AN_OCCURRENCE -> throw EventRefusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE.raise();
+            case IN_A_BREAK -> throw EventRefusal.REGISTRATION_DAY_IN_A_BREAK.raise();
+            case CANCELLED -> throw EventRefusal.REGISTRATION_DAY_CANCELLED.raise();
         };
     }
 
     private static LocalDate requireNamed(@Nullable LocalDate requested) {
-        if (requested == null) throw Refusal.REGISTRATION_NEEDS_A_DAY.raise();
+        if (requested == null) throw EventRefusal.REGISTRATION_NEEDS_A_DAY.raise();
         return requested;
     }
 
     private static LocalDate firstDateOf(StationEvent event, StationCalendar calendar) {
-        return calendar.ruleOf(event).map(OccurrenceRule::first).orElseThrow(Refusal.EVENT_HAS_NO_START_TIME::raise);
+        return calendar.ruleOf(event)
+                .map(OccurrenceRule::first)
+                .orElseThrow(EventRefusal.EVENT_HAS_NO_START_TIME::raise);
     }
 
     /**

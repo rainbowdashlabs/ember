@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
@@ -144,7 +144,7 @@ public class EventFieldService {
      */
     public void replaceFields(int eventId, List<EventFieldDraft> fields) {
         if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
-            throw Refusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
+            throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
         }
         var keeping = NamedAlready.in(
                 repository.findByEvent(eventId).stream()
@@ -174,10 +174,12 @@ public class EventFieldService {
      *                         per date, or the answer is not one it takes
      */
     public AppointmentField setValueOn(int eventId, int fieldId, LocalDate date, @Nullable String value) {
-        var field = repository.findById(fieldId).orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_DATE_ANSWER::raise);
-        if (field.eventId() != eventId) throw Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_DATE_ANSWER.raise();
+        var field = repository
+                .findById(fieldId)
+                .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_DATE_ANSWER::raise);
+        if (field.eventId() != eventId) throw EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_DATE_ANSWER.raise();
         if (!field.config().perDate()) {
-            throw Refusal.APPOINTMENT_FIELD_NOT_PER_DATE.raise();
+            throw EventRefusal.APPOINTMENT_FIELD_NOT_PER_DATE.raise();
         }
         var stored = repository
                 .findByIdOn(fieldId, date)
@@ -185,13 +187,13 @@ public class EventFieldService {
                 .orElse("");
         var keeping = NamedAlready.in(List.of(stored), eligibility);
         QuestionCheck.answerIfGiven(field.question(), value, keeping).ifPresent(problem -> {
-            throw Refusal.APPOINTMENT_DATE_ANSWER_NOT_ACCEPTED.raise(problem.message());
+            throw EventRefusal.APPOINTMENT_DATE_ANSWER_NOT_ACCEPTED.raise(problem.message());
         });
         repository.updateValueOn(fieldId, date, QuestionValues.writeText(field.fieldType(), value));
         fieldRegistrationService.reconcile(eventId);
         return repository
                 .findByIdOn(fieldId, date)
-                .orElseThrow(Refusal.APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE::raise);
+                .orElseThrow(EventRefusal.APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE::raise);
     }
 
     /**
@@ -207,7 +209,7 @@ public class EventFieldService {
     private static EventFieldDraft answered(EventFieldDraft field, MemberEligibility eligibility) {
         QuestionCheck.answerIfGiven(field.question(), field.value(), eligibility)
                 .ifPresent(problem -> {
-                    throw Refusal.APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
+                    throw EventRefusal.APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
                 });
         return field.withValue(QuestionValues.writeText(field.fieldType(), field.value()));
     }
@@ -264,24 +266,24 @@ public class EventFieldService {
             int eventId, int fieldId, int memberId, @Nullable LocalDate date, boolean runsTheEvent) {
         var raw = repository
                 .findById(fieldId)
-                .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
+                .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
         LocalDate day = raw.config().perDate() ? requiredDay(date) : null;
         var field = day != null
                 ? repository
                         .findByIdOn(fieldId, day)
-                        .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise)
+                        .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise)
                 : raw;
         if (field.eventId() != eventId) {
-            throw Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION.raise();
+            throw EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION.raise();
         }
         if (!field.fieldType().namesMembers()) {
-            throw Refusal.APPOINTMENT_FIELD_NAMES_NO_MEMBERS.raise();
+            throw EventRefusal.APPOINTMENT_FIELD_NAMES_NO_MEMBERS.raise();
         }
         if (!field.config().selfRegistration()) {
-            throw Refusal.APPOINTMENT_FIELD_SELF_REGISTRATION_OFF.raise();
+            throw EventRefusal.APPOINTMENT_FIELD_SELF_REGISTRATION_OFF.raise();
         }
         if (memberRepository.findById(memberId).isEmpty()) {
-            throw Refusal.APPOINTMENT_SELF_REGISTRATION_MEMBER_NOT_HERE.raise();
+            throw EventRefusal.APPOINTMENT_SELF_REGISTRATION_MEMBER_NOT_HERE.raise();
         }
 
         var ids = QuestionValues.memberIds(field.value());
@@ -302,10 +304,10 @@ public class EventFieldService {
         return day != null
                 ? repository
                         .findByIdOn(fieldId, day)
-                        .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION::raise)
+                        .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION::raise)
                 : repository
                         .findById(fieldId)
-                        .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION::raise);
+                        .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION::raise);
     }
 
     /**
@@ -318,7 +320,7 @@ public class EventFieldService {
             ids.add(memberId);
             return QuestionValues.formatMembers(ids);
         }
-        if (!ids.isEmpty()) throw Refusal.APPOINTMENT_FIELD_SLOT_TAKEN.raise();
+        if (!ids.isEmpty()) throw EventRefusal.APPOINTMENT_FIELD_SLOT_TAKEN.raise();
         return QuestionValues.formatMember(memberId);
     }
 
@@ -339,15 +341,15 @@ public class EventFieldService {
         QuestionCheck.answerIfGiven(field.question(), QuestionValues.formatMember(memberId), eligibility)
                 .ifPresent(problem -> {
                     if (problem.code() == QuestionProblem.Code.NOT_ELIGIBLE) {
-                        throw Refusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU.raise(problem.message());
+                        throw EventRefusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU.raise(problem.message());
                     }
-                    throw Refusal.APPOINTMENT_FIELD_NARROWING_LOST.raise(problem.message());
+                    throw EventRefusal.APPOINTMENT_FIELD_NARROWING_LOST.raise(problem.message());
                 });
     }
 
     private static LocalDate requiredDay(@Nullable LocalDate date) {
         if (date == null) {
-            throw Refusal.APPOINTMENT_FIELD_DATE_MISSING.raise();
+            throw EventRefusal.APPOINTMENT_FIELD_DATE_MISSING.raise();
         }
         return date;
     }
@@ -363,11 +365,11 @@ public class EventFieldService {
     private void requireStillTakingPeople(int eventId) {
         var event = eventRepository
                 .findById(eventId)
-                .orElseThrow(Refusal.APPOINTMENT_NOT_HERE_FOR_SELF_REGISTRATION::raise);
+                .orElseThrow(EventRefusal.APPOINTMENT_NOT_HERE_FOR_SELF_REGISTRATION::raise);
         Instant deadline = event.registrationDeadline();
         if (!event.requiresRegistration() || deadline == null) return;
         if (Instant.now().isAfter(deadline)) {
-            throw Refusal.REGISTRATION_CLOSED_ON_SELF_REGISTRATION.raise();
+            throw EventRefusal.REGISTRATION_CLOSED_ON_SELF_REGISTRATION.raise();
         }
     }
 }

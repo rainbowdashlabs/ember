@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -88,15 +88,16 @@ public class LendingRequestViewService {
      * @param requestId the request
      * @param stationId the station asking
      * @return the request
-     * @throws dev.chojo.ember.api.RefusalResponse when there is none or the station is neither party
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when there is none or the station is neither party
      */
     public LendingRequest requireParty(int requestId, int stationId) {
-        var request =
-                lendingService.findRequest(requestId).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
+        var request = lendingService
+                .findRequest(requestId)
+                .orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         UUID stationUid = stationRepository.resolveUid(stationId);
         if (!Objects.equals(request.requestingStationUid(), stationUid)
                 && !Objects.equals(request.owningStationUid(), stationUid)) {
-            throw Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
+            throw FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
         }
         return request;
     }
@@ -107,13 +108,14 @@ public class LendingRequestViewService {
      * @param requestId the request
      * @param stationId the station asking
      * @return the request
-     * @throws dev.chojo.ember.api.RefusalResponse when there is none or the station does not own the gear
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when there is none or the station does not own the gear
      */
     public LendingRequest requireOwner(int requestId, int stationId) {
-        var request =
-                lendingService.findRequest(requestId).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
+        var request = lendingService
+                .findRequest(requestId)
+                .orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         if (!Objects.equals(request.owningStationUid(), stationRepository.resolveUid(stationId))) {
-            throw Refusal.LENDING_NOT_THE_OWNING_STATION.raise();
+            throw FederationRefusal.LENDING_NOT_THE_OWNING_STATION.raise();
         }
         return request;
     }

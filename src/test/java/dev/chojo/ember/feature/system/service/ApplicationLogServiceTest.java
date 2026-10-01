@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.UnwritableConf;
@@ -109,10 +109,10 @@ class ApplicationLogServiceTest {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.updateConfig(new LoggingConfigRequest(true, "LOUD", 30)));
-        assertEquals(Refusal.LOG_LEVEL_UNKNOWN, refused.refusal());
+        assertEquals(SystemRefusal.LOG_LEVEL_UNKNOWN, refused.refusal());
         var outOfRange = assertThrows(
                 RefusalResponse.class, () -> service.updateConfig(new LoggingConfigRequest(true, "INFO", 0)));
-        assertEquals(Refusal.SETTING_OUT_OF_RANGE, outOfRange.refusal());
+        assertEquals(SystemRefusal.SETTING_OUT_OF_RANGE, outOfRange.refusal());
     }
 
     @Test
@@ -123,7 +123,7 @@ class ApplicationLogServiceTest {
         var refused = assertThrows(
                 RefusalResponse.class, () -> failing.updateConfig(new LoggingConfigRequest(true, "ERROR", 30)));
 
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refused.refusal());
+        assertEquals(SystemRefusal.SETTINGS_NOT_SAVED, refused.refusal());
         assertFalse(failing.config().databaseEnabled());
         assertEquals(14, failing.config().retentionDays());
     }

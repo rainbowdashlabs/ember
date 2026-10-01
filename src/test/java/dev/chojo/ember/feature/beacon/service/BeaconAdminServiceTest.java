@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconSettingsRequest;
@@ -87,12 +88,12 @@ class BeaconAdminServiceTest {
 
     @Test
     void whatABeaconGatheredIsOnlyThereWhereThisInstanceIsOne() {
-        assertEquals(Refusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.faults(false)));
-        assertEquals(Refusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.collectedReports(false)));
-        assertEquals(Refusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.collectedMetrics(30)));
-        assertEquals(Refusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.acknowledgeReport(1)));
-        assertEquals(Refusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.resolveFault(1, true, null)));
-        assertEquals(Refusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.collectedPicture(1)));
+        assertEquals(BeaconRefusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.faults(false)));
+        assertEquals(BeaconRefusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.collectedReports(false)));
+        assertEquals(BeaconRefusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.collectedMetrics(30)));
+        assertEquals(BeaconRefusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.acknowledgeReport(1)));
+        assertEquals(BeaconRefusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.resolveFault(1, true, null)));
+        assertEquals(BeaconRefusal.BEACON_NOT_RECEIVING, refusalOf(() -> service.collectedPicture(1)));
     }
 
     @Test
@@ -110,8 +111,8 @@ class BeaconAdminServiceTest {
         verify(collected).faults(true);
         verify(collected).reports(false);
         verify(collected).metrics(365);
-        assertEquals(Refusal.BEACON_FAULT_NOT_HERE, refusalOf(() -> service.resolveFault(9, true, null)));
-        assertEquals(Refusal.BEACON_REPORT_NOT_ACKNOWLEDGED, refusalOf(() -> service.acknowledgeReport(9)));
+        assertEquals(BeaconRefusal.BEACON_FAULT_NOT_HERE, refusalOf(() -> service.resolveFault(9, true, null)));
+        assertEquals(BeaconRefusal.BEACON_REPORT_NOT_ACKNOWLEDGED, refusalOf(() -> service.acknowledgeReport(9)));
     }
 
     @Test
@@ -123,9 +124,9 @@ class BeaconAdminServiceTest {
         when(pictures.read(8)).thenReturn(Optional.empty());
 
         assertEquals(PICTURE, service.collectedPicture(2));
-        assertEquals(Refusal.BEACON_REPORT_HAS_NO_PICTURE, refusalOf(() -> service.collectedPicture(1)));
-        assertEquals(Refusal.BEACON_REPORT_PICTURE_NOT_HERE, refusalOf(() -> service.collectedPicture(3)));
-        assertEquals(Refusal.BEACON_REPORT_NOT_HERE_FOR_PICTURE, refusalOf(() -> service.collectedPicture(4)));
+        assertEquals(BeaconRefusal.BEACON_REPORT_HAS_NO_PICTURE, refusalOf(() -> service.collectedPicture(1)));
+        assertEquals(BeaconRefusal.BEACON_REPORT_PICTURE_NOT_HERE, refusalOf(() -> service.collectedPicture(3)));
+        assertEquals(BeaconRefusal.BEACON_REPORT_NOT_HERE_FOR_PICTURE, refusalOf(() -> service.collectedPicture(4)));
     }
 
     @Test
@@ -142,7 +143,7 @@ class BeaconAdminServiceTest {
 
     @Test
     void problemsAreSentOnlyFromARunningLogOfABeaconThatIsSetUp() {
-        assertEquals(Refusal.BEACON_NOT_SET_UP, refusalOf(() -> service.sendProblem(1)));
+        assertEquals(BeaconRefusal.BEACON_NOT_SET_UP, refusalOf(() -> service.sendProblem(1)));
         when(config.enabled()).thenReturn(true);
         var failing = new BeaconAdminService(
                 config,
@@ -153,10 +154,10 @@ class BeaconAdminServiceTest {
                 problemReports,
                 pictures,
                 () -> null);
-        assertEquals(Refusal.PROBLEM_LOG_NOT_RUNNING, refusalOf(() -> failing.sendProblem(1)));
-        assertEquals(Refusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND, refusalOf(() -> failing.sendProblems(List.of(1L))));
-        assertEquals(Refusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(List.of())));
-        assertEquals(Refusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(null)));
+        assertEquals(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING, refusalOf(() -> failing.sendProblem(1)));
+        assertEquals(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND, refusalOf(() -> failing.sendProblems(List.of(1L))));
+        assertEquals(BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(List.of())));
+        assertEquals(BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(null)));
     }
 
     @Test
@@ -171,7 +172,7 @@ class BeaconAdminServiceTest {
         service.previewProblem(1);
         assertEquals(1, service.sendProblem(2).queued());
         assertEquals(1, service.sendProblems(List.of(2L)).queued());
-        assertEquals(Refusal.BEACON_PROBLEM_NOT_HERE, refusalOf(() -> service.previewProblem(9)));
+        assertEquals(BeaconRefusal.BEACON_PROBLEM_NOT_HERE, refusalOf(() -> service.previewProblem(9)));
 
         verify(reports).payloadFor(first.snapshot(), "1.2.3");
         verify(reports).sendAll(List.of(second.snapshot()), "1.2.3");
@@ -201,9 +202,10 @@ class BeaconAdminServiceTest {
         when(config.enabled()).thenReturn(true);
         when(problemReports.find(anyInt())).thenReturn(Optional.empty());
 
-        assertEquals(Refusal.BEACON_REPORT_NOT_HERE, refusalOf(() -> service.previewReport(5)));
+        assertEquals(BeaconRefusal.BEACON_REPORT_NOT_HERE, refusalOf(() -> service.previewReport(5)));
         assertEquals(
-                Refusal.BEACON_REPORT_NOT_HERE, refusalOf(() -> service.sendReport(5, SendReportRequest.AS_IT_STANDS)));
+                BeaconRefusal.BEACON_REPORT_NOT_HERE,
+                refusalOf(() -> service.sendReport(5, SendReportRequest.AS_IT_STANDS)));
         verify(problemReports, never()).forward(any(), any(), anyBoolean());
     }
 

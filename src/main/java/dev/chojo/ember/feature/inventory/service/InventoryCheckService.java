@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
@@ -173,14 +173,14 @@ public class InventoryCheckService {
         var existingLock = checkRepository.findLock(memberId);
         if (existingLock.isPresent()) {
             if (existingLock.get().lockedBy() != lockedBy) {
-                throw Refusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED.raise();
+                throw InventoryRefusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED.raise();
             }
             return false;
         }
         checkRepository.releaseLockByLocker(lockedBy);
         Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
         if (lock.isEmpty()) {
-            throw Refusal.INVENTORY_CHECK_MEMBER_LOCKED_MEANWHILE.raise();
+            throw InventoryRefusal.INVENTORY_CHECK_MEMBER_LOCKED_MEANWHILE.raise();
         }
         log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
         return true;
@@ -557,7 +557,7 @@ public class InventoryCheckService {
     public InventoryItem correct(int memberId, ItemCorrection correction) {
         Inventory inventory = inventoryRepository
                 .findById(correction.inventoryId())
-                .orElseThrow(Refusal.INVENTORY_CHECK_CORRECTION_INVENTORY_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_CHECK_CORRECTION_INVENTORY_NOT_HERE::raise);
         ItemOwner owner = ownerOfNewPiece(inventory, correction);
         InventoryItem replacement = correction.picksFromStock()
                 ? fromStock(correction.pickedItemId(), inventory.id())
@@ -602,10 +602,10 @@ public class InventoryCheckService {
             case EXTERNAL -> ItemOwner.CLUSTER;
             case MIXED -> {
                 if (correction.ownerKind() == null) {
-                    throw Refusal.INVENTORY_CHECK_CORRECTION_OWNER_MISSING.raise();
+                    throw InventoryRefusal.INVENTORY_CHECK_CORRECTION_OWNER_MISSING.raise();
                 }
                 if (correction.ownerKind() == ItemOwner.PARTNER_STATION) {
-                    throw Refusal.INVENTORY_CHECK_CORRECTION_OWNED_BY_PARTNER.raise();
+                    throw InventoryRefusal.INVENTORY_CHECK_CORRECTION_OWNED_BY_PARTNER.raise();
                 }
                 yield correction.ownerKind();
             }
@@ -619,12 +619,12 @@ public class InventoryCheckService {
     private InventoryItem fromStock(int itemId, int inventoryId) {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
-                .orElseThrow(Refusal.INVENTORY_CHECK_PICKED_ITEM_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_NOT_HERE::raise);
         if (item.inventoryId() != inventoryId) {
-            throw Refusal.INVENTORY_CHECK_PICKED_ITEM_IN_OTHER_INVENTORY.raise();
+            throw InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_IN_OTHER_INVENTORY.raise();
         }
         if (item.assignedTo() != null) {
-            throw Refusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN.raise();
+            throw InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN.raise();
         }
         return item;
     }
@@ -647,10 +647,10 @@ public class InventoryCheckService {
     private void release(int itemId, int memberId) {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
-                .orElseThrow(Refusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_HERE::raise);
         Integer holder = item.assignedTo();
         if (holder == null || holder != memberId) {
-            throw Refusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS.raise();
+            throw InventoryRefusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS.raise();
         }
         if (item.custody() == ItemCustody.LOST) {
             inventoryRepository.markSpellCorrected(itemId, memberId);

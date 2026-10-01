@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
@@ -99,16 +99,19 @@ public class LossReportService {
      */
     public ItemMovement report(
             int stationId, int itemId, @Nullable String note, @Nullable Attachment document, int reportedBy) {
-        InventoryItem item =
-                inventoryRepository.findItemById(itemId).orElseThrow(Refusal.LOSS_REPORT_PIECE_NOT_HERE::raise);
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(InventoryRefusal.LOSS_REPORT_PIECE_NOT_HERE::raise);
         if (item.custody() != ItemCustody.LOST) {
-            throw Refusal.LOSS_REPORT_PIECE_NOT_MISSING.raise();
+            throw InventoryRefusal.LOSS_REPORT_PIECE_NOT_MISSING.raise();
         }
         Integer ownerClusterId = item.ownerClusterId();
         if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) {
-            throw Refusal.LOSS_REPORT_STATION_OWNS_IT.raise();
+            throw InventoryRefusal.LOSS_REPORT_STATION_OWNS_IT.raise();
         }
-        var cluster = clusterRepository.findById(ownerClusterId).orElseThrow(Refusal.LOSS_REPORT_OWNER_NOT_HERE::raise);
+        var cluster = clusterRepository
+                .findById(ownerClusterId)
+                .orElseThrow(InventoryRefusal.LOSS_REPORT_OWNER_NOT_HERE::raise);
         requireEnough(cluster.lossReportRequires(), note, document);
 
         ItemMovement movement = movementService.create(
@@ -144,10 +147,10 @@ public class LossReportService {
     private void requireEnough(LossReportRequirement requires, @Nullable String note, @Nullable Attachment document) {
         if (requires == LossReportRequirement.NOTHING) return;
         if (note == null || note.isBlank()) {
-            throw Refusal.LOSS_REPORT_NEEDS_A_NOTE.raise();
+            throw InventoryRefusal.LOSS_REPORT_NEEDS_A_NOTE.raise();
         }
         if (requires == LossReportRequirement.DOCUMENT && document == null) {
-            throw Refusal.LOSS_REPORT_NEEDS_A_DOCUMENT.raise();
+            throw InventoryRefusal.LOSS_REPORT_NEEDS_A_DOCUMENT.raise();
         }
     }
 

@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -197,7 +198,7 @@ class PublicKbFileAccessRouteTest {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID, KbFileType.MARKDOWN)));
         published(false);
 
-        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
         nothingWasServed();
     }
 
@@ -211,7 +212,7 @@ class PublicKbFileAccessRouteTest {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID + 1, KbFileType.MARKDOWN)));
         published(true);
 
-        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
         nothingWasServed();
     }
 
@@ -220,7 +221,7 @@ class PublicKbFileAccessRouteTest {
     void anUnknownFileIsAbsent(String rendering) throws Exception {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.empty());
 
-        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
         nothingWasServed();
     }
 
@@ -263,6 +264,6 @@ class PublicKbFileAccessRouteTest {
         published(true);
         when(pictureService.read(STATION_ID, FILE_ID, "application/pdf", 256)).thenReturn(Optional.empty());
 
-        assertEquals(Refusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE, absent("picture"));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE, absent("picture"));
     }
 }

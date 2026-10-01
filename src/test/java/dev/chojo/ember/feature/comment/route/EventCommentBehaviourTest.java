@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.comment.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.CommentRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -170,10 +172,10 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
 
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.NOT_YOURS_TO_OPEN,
+                    GeneralRefusal.NOT_YOURS_TO_OPEN,
                     refusalOf(client.get(PREFIX + "/events/%d/comments".formatted(eventId), harness.as(as(stranger)))));
             assertEquals(
-                    Refusal.NOT_YOURS_TO_OPEN,
+                    GeneralRefusal.NOT_YOURS_TO_OPEN,
                     refusalOf(client.post(
                             PREFIX + "/events/%d/comments".formatted(eventId),
                             body("{\"content\": \"x\"}"),
@@ -185,11 +187,11 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
     void aMemberOutsideTheAudienceNeitherReadsNorWrites() {
         harness.run((server, client) -> {
             assertEquals(
-                    Refusal.EVENT_NOT_YOURS_TO_SEE,
+                    EventRefusal.EVENT_NOT_YOURS_TO_SEE,
                     refusalOf(client.get(
                             PREFIX + "/events/%d/comments".formatted(hiddenEventId), harness.as(as(author)))));
             assertEquals(
-                    Refusal.EVENT_NOT_YOURS_TO_SEE,
+                    EventRefusal.EVENT_NOT_YOURS_TO_SEE,
                     refusalOf(client.post(
                             PREFIX + "/events/%d/comments".formatted(hiddenEventId),
                             body("{\"content\": \"x\"}"),
@@ -203,7 +205,7 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
         int id = write(author, eventId, "alt");
 
         assertEquals(
-                Refusal.COMMENT_NOT_YOURS_TO_CHANGE,
+                CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE,
                 refusalOf(change(as(other, StationPermission.EVENT_MANAGER), id, "fremd")));
         var changed = json(change(as(author), id, "neu"));
 
@@ -215,7 +217,7 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
     void anEmptyChangeIsRefused() {
         int id = write(author, eventId, "alt");
 
-        assertEquals(Refusal.COMMENT_CHANGE_NEEDS_TEXT, refusalOf(change(as(author), id, " ")));
+        assertEquals(CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT, refusalOf(change(as(author), id, " ")));
     }
 
     @Test
@@ -224,9 +226,10 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
         int foreign = write(author, eventId, "fremd");
         int managed = write(author, eventId, "verwaltet");
 
-        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), foreign)));
+        assertEquals(CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), foreign)));
         assertEquals(
-                Refusal.NOT_YOURS_TO_OPEN, refusalOf(remove(as(stranger, StationPermission.EVENT_MANAGER), managed)));
+                GeneralRefusal.NOT_YOURS_TO_OPEN,
+                refusalOf(remove(as(stranger, StationPermission.EVENT_MANAGER), managed)));
         assertEquals(204, remove(as(author), own).code());
         assertEquals(
                 204, remove(as(other, StationPermission.EVENT_MANAGER), managed).code());
@@ -257,7 +260,7 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
 
         var answer = post(other, eventId, "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent));
 
-        assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refusalOf(answer));
+        assertEquals(CommentRefusal.COMMENT_PARENT_ELSEWHERE, refusalOf(answer));
     }
 
     @Test
@@ -271,7 +274,7 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
         assertEquals(List.of("am Tag"), contents(list(author, day, "?date=2027-05-01")));
         assertEquals(List.of("ganz", "spaeter"), contents(list(author, day, "?scope=date&date=none")));
         assertEquals(
-                Refusal.COMMENT_DAY_NOT_A_DATE,
+                CommentRefusal.COMMENT_DAY_NOT_A_DATE,
                 refusalOf(harness.request(client -> client.get(
                         PREFIX + "/events/%d/comments?date=morgen".formatted(day), harness.as(as(author))))));
     }

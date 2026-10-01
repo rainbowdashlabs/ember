@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.beacon.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.service.BeaconIntakeService;
@@ -90,7 +90,7 @@ public class BeaconIntakeRoutes implements Routes {
 
     /** A beacon that is not one answers nothing, so an instance is never a beacon by accident. */
     private void requireBeacon() {
-        if (!config.receiving()) throw Refusal.BEACON_INTAKE_NOT_RECEIVING.raise();
+        if (!config.receiving()) throw BeaconRefusal.BEACON_INTAKE_NOT_RECEIVING.raise();
     }
 
     /**
@@ -104,11 +104,11 @@ public class BeaconIntakeRoutes implements Routes {
     private String guardedBody(Context ctx, int maxBytes) {
         requireBeacon();
         if (limiter.tryAcquire(ctx.ip()).isPresent()) {
-            throw Refusal.BEACON_INTAKE_TOO_MANY.raise();
+            throw BeaconRefusal.BEACON_INTAKE_TOO_MANY.raise();
         }
         String body = ctx.body();
         if (body.length() > maxBytes) {
-            throw Refusal.BEACON_INTAKE_TOO_LARGE.raise();
+            throw BeaconRefusal.BEACON_INTAKE_TOO_LARGE.raise();
         }
         return body;
     }
@@ -129,17 +129,17 @@ public class BeaconIntakeRoutes implements Routes {
         String key = ctx.header(DiscoverySigningService.BEACON_KEY_HEADER);
         String signature = ctx.header(DiscoverySigningService.SIGNATURE_HEADER);
         if (key == null || signature == null) {
-            throw Refusal.BEACON_INTAKE_NOT_SIGNED.raise();
+            throw BeaconRefusal.BEACON_INTAKE_NOT_SIGNED.raise();
         }
         if (!signing.verify(body, signature, key)) {
-            throw Refusal.BEACON_INTAKE_SIGNATURE_NOT_GOOD.raise();
+            throw BeaconRefusal.BEACON_INTAKE_SIGNATURE_NOT_GOOD.raise();
         }
         byte[] raw;
         try {
             raw = Base64.getDecoder().decode(key);
         } catch (IllegalArgumentException e) {
             log.warn("A beacon delivery carried a key that is not Base64", e);
-            throw Refusal.BEACON_INTAKE_KEY_NOT_READ.raise();
+            throw BeaconRefusal.BEACON_INTAKE_KEY_NOT_READ.raise();
         }
         return new Sender(intake.accept(raw, envelope, api.baseUrl()), key);
     }
@@ -172,7 +172,8 @@ public class BeaconIntakeRoutes implements Routes {
         var payload = ctx.bodyAsClass(BeaconPayloads.ReportImagePayload.class);
         var sender = senderOf(ctx, body, payload.envelope());
         intake.noteReportImage(sender.instanceId(), sender.publicKey());
-        int imageId = pictures.store(payload.data(), null).orElseThrow(Refusal.BEACON_INTAKE_PICTURE_MISSING::raise);
+        int imageId =
+                pictures.store(payload.data(), null).orElseThrow(BeaconRefusal.BEACON_INTAKE_PICTURE_MISSING::raise);
         ctx.status(HttpStatus.ACCEPTED).json(new BeaconPayloads.ReportImageAccepted(imageId));
     }
 
@@ -188,7 +189,7 @@ public class BeaconIntakeRoutes implements Routes {
         guardedBody(ctx);
         var batch = ctx.bodyAsClass(BeaconPayloads.MetricsBatch.class);
         if (batch.protocolVersion() > BeaconPayloads.PROTOCOL_VERSION) {
-            throw Refusal.BEACON_INTAKE_PROTOCOL_TOO_NEW.raise();
+            throw BeaconRefusal.BEACON_INTAKE_PROTOCOL_TOO_NEW.raise();
         }
         int stored = intake.storeMetrics(batch);
         log.debug("Took {} metrics subject(s)", stored);

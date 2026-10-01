@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
@@ -108,7 +108,8 @@ class MovementFlowRoutesTest {
     @Test
     void aChainOfAnotherStationIsNotHere() {
         harness.run((server, client) -> assertEquals(
-                Refusal.FLOW_NOT_HERE, refusalOf(put(client, ELSEWHERE, true, StationPermission.INVENTORY_MANAGER))));
+                InventoryRefusal.FLOW_NOT_HERE,
+                refusalOf(put(client, ELSEWHERE, true, StationPermission.INVENTORY_MANAGER))));
 
         verify(flowService, never()).setSkipMemberReceipt(eq(ELSEWHERE), anyBoolean());
     }
@@ -118,7 +119,7 @@ class MovementFlowRoutesTest {
         when(flowService.setSkipMemberReceipt(FLOW, true)).thenReturn(false);
 
         harness.run((server, client) -> assertEquals(
-                Refusal.FLOW_RECEIPT_NOT_CHANGED,
+                InventoryRefusal.FLOW_RECEIPT_NOT_CHANGED,
                 refusalOf(put(client, FLOW, true, StationPermission.INVENTORY_MANAGER))));
     }
 

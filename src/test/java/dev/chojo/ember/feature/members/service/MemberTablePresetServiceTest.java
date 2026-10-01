@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePreset;
 import dev.chojo.ember.feature.members.repository.MemberTablePresetRepository;
@@ -41,7 +41,7 @@ class MemberTablePresetServiceTest {
     void aSelectionNeedsAName() {
         for (String name : new String[] {null, " "}) {
             var refused = assertThrows(RefusalResponse.class, () -> service.save(3, name, List.of(NAME)));
-            assertEquals(Refusal.MEMBER_TABLE_PRESET_NAME_MISSING, refused.refusal());
+            assertEquals(MemberRefusal.MEMBER_TABLE_PRESET_NAME_MISSING, refused.refusal());
         }
     }
 

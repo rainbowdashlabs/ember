@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.CancellationNotice;
 import dev.chojo.ember.feature.events.entity.CancelledEventDate;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -179,7 +179,7 @@ public class EventCancellationRoutes implements Routes {
         try {
             return LocalDate.parse(ctx.pathParam("date"));
         } catch (DateTimeParseException e) {
-            throw Refusal.CANCELLATION_DAY_NOT_A_DATE.raise();
+            throw EventRefusal.CANCELLATION_DAY_NOT_A_DATE.raise();
         }
     }
 

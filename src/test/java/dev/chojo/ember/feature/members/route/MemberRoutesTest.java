@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AuthService.EmailChangeResult;
@@ -90,13 +90,14 @@ class MemberRoutesTest {
                     harness.as(manager));
             assertEquals(200, reset.code());
             var unnamed = client.post(PREFIX + "/members/reset-password", body("{}"), harness.as(manager));
-            assertEquals(Refusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET, refusalOf(unnamed));
+            assertEquals(MemberRefusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET, refusalOf(unnamed));
             var failed =
                     client.post(PREFIX + "/members/reset-password", body("{\"accountId\": 43}"), harness.as(manager));
-            assertEquals(Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL, refusalOf(failed));
+            assertEquals(MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL, refusalOf(failed));
         });
 
-        verify(memberAccounts).actionableAccount(eq(TARGET), any(), eq(Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET));
+        verify(memberAccounts)
+                .actionableAccount(eq(TARGET), any(), eq(MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET));
     }
 
     @Test
@@ -108,10 +109,11 @@ class MemberRoutesTest {
                     client.post(PREFIX + "/members/onboard-again", body("{\"accountId\": 42}"), harness.as(manager));
             assertTrue(json(again).path("mailed").asBoolean());
             var unnamed = client.post(PREFIX + "/members/onboard-again", body("{}"), harness.as(manager));
-            assertEquals(Refusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN, refusalOf(unnamed));
+            assertEquals(MemberRefusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN, refusalOf(unnamed));
         });
 
-        verify(memberAccounts).actionableAccount(eq(TARGET), any(), eq(Refusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN));
+        verify(memberAccounts)
+                .actionableAccount(eq(TARGET), any(), eq(MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN));
     }
 
     @Test
@@ -125,7 +127,7 @@ class MemberRoutesTest {
                     client.post(PREFIX + "/members/passkey-code", body("{\"accountId\": 42}"), harness.as(manager));
             assertEquals("123456", json(issued).path("code").asString());
             var unnamed = client.post(PREFIX + "/members/passkey-code", body("{}"), harness.as(manager));
-            assertEquals(Refusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE, refusalOf(unnamed));
+            assertEquals(MemberRefusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE, refusalOf(unnamed));
             assertEquals(
                     200,
                     client.delete(PREFIX + "/members/passkey-code/42", null, harness.as(manager))

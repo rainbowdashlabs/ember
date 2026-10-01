@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.twofactor.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BodyRefusal;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAdminService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAdminService.AuditResponse;
@@ -62,7 +63,7 @@ class TwoFactorAdminRoutesTest {
             assertEquals("INSTANCE", saved.path("scope").asString());
             assertEquals("TEAM", saved.path("userType").asString());
             assertEquals(
-                    Refusal.BODY_DOES_NOT_MATCH,
+                    BodyRefusal.BODY_DOES_NOT_MATCH,
                     refusalOf(
                             client.put(path, body("{\"userType\": \"VISITOR\", \"required\": true}"), administrator)));
         });
@@ -71,7 +72,7 @@ class TwoFactorAdminRoutesTest {
     @Test
     void aStationAdministratorResetsForTheirStation() {
         var stationAdmin = TestSessions.member(3, StationPermission.STATION_ADMINISTRATOR);
-        doThrow(Refusal.MEMBER_NOT_YOURS_TO_RESET.raise())
+        doThrow(TwoFactorRefusal.MEMBER_NOT_YOURS_TO_RESET.raise())
                 .when(admin)
                 .resetForStation(eq(3), eq(43), anyInt(), any(), any());
 
@@ -81,7 +82,7 @@ class TwoFactorAdminRoutesTest {
                     client.post(PREFIX + "/station/accounts/42/2fa/reset", null, harness.as(stationAdmin))
                             .code());
             assertEquals(
-                    Refusal.MEMBER_NOT_YOURS_TO_RESET,
+                    TwoFactorRefusal.MEMBER_NOT_YOURS_TO_RESET,
                     refusalOf(client.post(PREFIX + "/station/accounts/43/2fa/reset", null, harness.as(stationAdmin))));
         });
 

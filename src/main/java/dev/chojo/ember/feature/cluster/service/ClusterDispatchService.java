@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -68,7 +68,7 @@ public class ClusterDispatchService {
      * @return its free stock
      */
     public List<InventoryItem> sendable(int clusterId) {
-        clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_DISPATCH_CLUSTER_NOT_HERE::raise);
+        clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_DISPATCH_CLUSTER_NOT_HERE::raise);
         return inventoryRepository.findItemsOwnedByCluster(clusterId).stream()
                 .filter(item -> item.custody() == ItemCustody.WITH_OWNER)
                 .toList();
@@ -90,7 +90,7 @@ public class ClusterDispatchService {
         boolean hasIssueFlow = flowService.findClusterFlows(clusterId).stream()
                 .anyMatch(flow -> flow.purpose() == MovementPurpose.ISSUE);
         if (!hasIssueFlow) {
-            throw Refusal.CLUSTER_DISPATCH_WITHOUT_CHAIN.raise();
+            throw ClusterRefusal.CLUSTER_DISPATCH_WITHOUT_CHAIN.raise();
         }
     }
 
@@ -122,18 +122,19 @@ public class ClusterDispatchService {
             List<Integer> itemIds,
             @Nullable String reason,
             ItemMovementService.Actor actor) {
-        if (itemIds.isEmpty()) throw Refusal.CLUSTER_DISPATCH_WITHOUT_GEAR.raise();
-        Station station =
-                stationRepository.findByUid(stationUid).orElseThrow(Refusal.CLUSTER_DISPATCH_STATION_NOT_HERE::raise);
+        if (itemIds.isEmpty()) throw ClusterRefusal.CLUSTER_DISPATCH_WITHOUT_GEAR.raise();
+        Station station = stationRepository
+                .findByUid(stationUid)
+                .orElseThrow(ClusterRefusal.CLUSTER_DISPATCH_STATION_NOT_HERE::raise);
         if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw Refusal.CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER.raise();
+            throw ClusterRefusal.CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER.raise();
         }
 
         List<InventoryItem> sending = sendable(clusterId).stream()
                 .filter(item -> itemIds.contains(item.id()))
                 .toList();
         if (sending.size() != itemIds.size()) {
-            throw Refusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE.raise();
+            throw ClusterRefusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE.raise();
         }
         requireOwnChain(clusterId);
 

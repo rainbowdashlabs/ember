@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService.Dimensions;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
@@ -49,7 +49,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         clusterStorageQuotaService.setTotal(clusterId, first.id(), 800L);
         var refused = assertThrows(
                 RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, second.id(), 300L));
-        assertEquals(Refusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
 
         clusterStorageQuotaService.setTotal(clusterId, second.id(), 200L);
         var overview = clusterStorageQuotaService.findOverview(clusterId);
@@ -85,7 +85,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         clusterStorageQuotaService.setTotal(clusterId, cluster.homeStationId(), 600L);
         var refused = assertThrows(
                 RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, station.id(), 500L));
-        assertEquals(Refusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
 
         clusterStorageQuotaService.setTotal(clusterId, station.id(), 400L);
         var overview = clusterStorageQuotaService.findOverview(clusterId);
@@ -144,13 +144,13 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         var station = clusterService.createStation(otherClusterId, "Wache Fremd " + NAMES.incrementAndGet());
 
         assertEquals(
-                Refusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER,
+                ClusterRefusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> clusterStorageQuotaService.setTotal(clusterId, station.id(), 10L))
                         .refusal());
         assertEquals(
-                Refusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER,
+                ClusterRefusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> clusterStorageQuotaService.setGrant(clusterId, station.uid(), total(10L)))
@@ -166,7 +166,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, 999_999, 1L));
-        assertEquals(Refusal.CLUSTER_QUOTA_STATION_GONE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_QUOTA_STATION_GONE, refused.refusal());
     }
 
     @Test
@@ -203,7 +203,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> clusterStorageQuotaService.setGrant(clusterId, station.uid(), total(-1L)));
-        assertEquals(Refusal.CLUSTER_QUOTA_ROOM_BELOW_NOTHING, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_QUOTA_ROOM_BELOW_NOTHING, refused.refusal());
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
@@ -258,12 +258,12 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         var unnamed = assertThrows(
                 RefusalResponse.class,
                 () -> clusterStorageQuotaService.createPreset(clusterId, "  ", GIB, GIB, GIB, GIB, GIB, 1024, 1024));
-        assertEquals(Refusal.CLUSTER_QUOTA_TIER_NEEDS_A_NAME, unnamed.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_QUOTA_TIER_NEEDS_A_NAME, unnamed.refusal());
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> clusterStorageQuotaService.createPreset(
                         clusterId, "standard", GIB, GIB, GIB, GIB, GIB, 1024, 1024));
-        assertEquals(Refusal.CLUSTER_QUOTA_TIER_NAME_TAKEN, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_QUOTA_TIER_NAME_TAKEN, refused.refusal());
     }
 
     @Test
@@ -274,11 +274,11 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
                 otherClusterId, "Fremde Stufe", GIB, GIB, GIB, GIB, GIB, 1024, 1024);
 
         assertEquals(
-                Refusal.CLUSTER_QUOTA_TIER_NOT_HERE,
+                ClusterRefusal.CLUSTER_QUOTA_TIER_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> clusterStorageQuotaService.deletePreset(clusterId, tier.id()))
                         .refusal());
         assertEquals(
-                Refusal.CLUSTER_QUOTA_TIER_NOT_HERE,
+                ClusterRefusal.CLUSTER_QUOTA_TIER_NOT_HERE,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of()))
@@ -298,7 +298,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of(first.uid(), second.uid())));
-        assertEquals(Refusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL, refused.refusal());
 
         clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of(first.uid()));
         var grant = clusterStorageQuotaRepo.findGrant(first.id()).orElseThrow();

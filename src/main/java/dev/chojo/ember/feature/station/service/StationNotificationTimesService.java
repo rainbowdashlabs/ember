@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import jakarta.inject.Inject;
@@ -38,7 +38,7 @@ public class StationNotificationTimesService {
     public NotificationSchedulePayload times(int stationId) {
         var schedule = schedules.findDigestGroups(List.of(stationId), List.of()).stream()
                 .findFirst()
-                .orElseThrow(Refusal.NOTIFICATION_TIMES_NOT_SET::raise);
+                .orElseThrow(StationRefusal.NOTIFICATION_TIMES_NOT_SET::raise);
         return new NotificationSchedulePayload(
                 schedule.sendTimes().stream().map(LocalTime::toString).toList(),
                 mailing.notificationDigestIntervalMinutes());
@@ -55,11 +55,11 @@ public class StationNotificationTimesService {
     public void update(int stationId, List<String> sendTimes) {
         var times = new ArrayList<LocalTime>();
         for (String raw : sendTimes == null ? List.<String>of() : sendTimes) {
-            if (raw == null) throw Refusal.NOTIFICATION_TIME_NOT_A_TIME.raise();
+            if (raw == null) throw StationRefusal.NOTIFICATION_TIME_NOT_A_TIME.raise();
             try {
                 times.add(LocalTime.parse(raw));
             } catch (DateTimeParseException e) {
-                throw Refusal.NOTIFICATION_TIME_NOT_A_TIME.raise();
+                throw StationRefusal.NOTIFICATION_TIME_NOT_A_TIME.raise();
             }
         }
         schedules.setStationSendTimes(stationId, times);

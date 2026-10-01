@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -42,13 +42,14 @@ public class StationSettingsService {
      */
     public Station update(int stationId, UpdateStationRequest request) {
         if (request.name() == null || request.name().isBlank()) {
-            throw Refusal.STATION_NEEDS_A_NAME_ON_CHANGE.raise();
+            throw StationRefusal.STATION_NEEDS_A_NAME_ON_CHANGE.raise();
         }
         updateClock(stationId, request);
         updateLook(stationId, request);
         updatePublicReach(stationId, request);
         updatePublicSlug(stationId, request.publicSlug());
-        return stations.update(stationId, request.name()).orElseThrow(Refusal.STATION_NOT_HERE_AFTER_CHANGE::raise);
+        return stations.update(stationId, request.name())
+                .orElseThrow(StationRefusal.STATION_NOT_HERE_AFTER_CHANGE::raise);
     }
 
     private void updateClock(int stationId, UpdateStationRequest request) {
@@ -57,7 +58,7 @@ public class StationSettingsService {
                 ZoneId.of(request.timezone());
             } catch (ZoneRulesException e) {
                 log.warn("Invalid timezone: {}", request.timezone(), e);
-                throw Refusal.STATION_TIME_ZONE_NOT_KNOWN.raise();
+                throw StationRefusal.STATION_TIME_ZONE_NOT_KNOWN.raise();
             }
             stations.updateTimezone(stationId, request.timezone());
         }
@@ -118,7 +119,7 @@ public class StationSettingsService {
             stations.updatePublicSlug(stationId, slug.isBlank() ? null : slug);
         } catch (IllegalArgumentException e) {
             log.warn("Station {} could not be given the public address it asked for", stationId, e);
-            throw Refusal.STATION_ADDRESS_NOT_USABLE.raise();
+            throw StationRefusal.STATION_ADDRESS_NOT_USABLE.raise();
         }
     }
 

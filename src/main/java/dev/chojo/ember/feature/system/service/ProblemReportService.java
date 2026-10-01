@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
@@ -55,7 +55,7 @@ public class ProblemReportService {
      */
     public ProblemReport submit(int stationId, @Nullable Integer memberId, String reporterName, ReportRequest request) {
         if (request.message() == null || request.message().isBlank()) {
-            throw Refusal.PROBLEM_REPORT_NEEDS_A_MESSAGE.raise();
+            throw SystemRefusal.PROBLEM_REPORT_NEEDS_A_MESSAGE.raise();
         }
         var picture = screenshots.store(request.screenshot(), memberId);
         var report = reports.create(
@@ -124,10 +124,10 @@ public class ProblemReportService {
      * The picture a report was written with.
      */
     public MediaContent picture(int id) {
-        var report = reports.findById(id).orElseThrow(Refusal.PROBLEM_REPORT_NOT_HERE::raise);
+        var report = reports.findById(id).orElseThrow(SystemRefusal.PROBLEM_REPORT_NOT_HERE::raise);
         Integer screenshotFileId = report.screenshotFileId();
-        if (screenshotFileId == null) throw Refusal.PROBLEM_REPORT_HAS_NO_PICTURE.raise();
-        return screenshots.read(screenshotFileId).orElseThrow(Refusal.PROBLEM_REPORT_PICTURE_NOT_HERE::raise);
+        if (screenshotFileId == null) throw SystemRefusal.PROBLEM_REPORT_HAS_NO_PICTURE.raise();
+        return screenshots.read(screenshotFileId).orElseThrow(SystemRefusal.PROBLEM_REPORT_PICTURE_NOT_HERE::raise);
     }
 
     /**

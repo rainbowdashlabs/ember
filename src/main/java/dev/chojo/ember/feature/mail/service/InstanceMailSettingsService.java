@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.mail.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.elements.MailProviderEntry;
@@ -84,7 +84,7 @@ public class InstanceMailSettingsService {
             next.add(entryOf(entry, i < stored.size() ? stored.get(i) : null));
         }
         if (next.isEmpty() && !stored.isEmpty()) {
-            throw Refusal.INSTANCE_MAIL_PROVIDER_LIST_EMPTY.raise();
+            throw SystemRefusal.INSTANCE_MAIL_PROVIDER_LIST_EMPTY.raise();
         }
         var before = mailing.senders();
         var after = before.withProviders(next);

@@ -5,13 +5,14 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -94,7 +95,7 @@ public class GroupMembershipService {
         Map<Integer, MemberGroup> stationGroups = byId(groupRepository.findByStation(member.stationId()));
         Set<Integer> wanted = new LinkedHashSet<>(groupIds);
         if (!stationGroups.keySet().containsAll(wanted)) {
-            throw Refusal.GROUP_NOT_HERE_FOR_MEMBER.raise();
+            throw MemberRefusal.GROUP_NOT_HERE_FOR_MEMBER.raise();
         }
         Set<Integer> current = groupIdsOf(member.id());
         List<MemberGroup> added = pick(stationGroups, wanted, id -> !current.contains(id));
@@ -102,11 +103,11 @@ public class GroupMembershipService {
 
         for (MemberGroup group : added) {
             if (!group.admits(member.userType())) {
-                throw Refusal.GROUP_WRONG_USER_TYPE_FOR_MEMBER.raise(group.name());
+                throw MemberRefusal.GROUP_WRONG_USER_TYPE_FOR_MEMBER.raise(group.name());
             }
         }
         requireOneGroupPerSet(pick(stationGroups, wanted, _ -> true));
-        requireRightsFor(added, by.user(), Refusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER);
+        requireRightsFor(added, by.user(), MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER);
         requirePresenceFor(concat(added, removed), by.user());
 
         Transactions.run(() -> {
@@ -139,7 +140,7 @@ public class GroupMembershipService {
                 .collect(Collectors.toMap(StationMember::id, Function.identity()));
         Set<Integer> wanted = new LinkedHashSet<>(memberIds);
         if (!stationMembers.keySet().containsAll(wanted)) {
-            throw Refusal.GROUP_MEMBER_NOT_HERE.raise();
+            throw MemberRefusal.GROUP_MEMBER_NOT_HERE.raise();
         }
         Set<Integer> current = groupRepository.findMembers(group.id()).stream()
                 .map(StationMember::id)
@@ -155,7 +156,7 @@ public class GroupMembershipService {
                 .toList();
         if (!misfits.isEmpty()) {
             throw GroupRuleRefused.naming(
-                    Refusal.GROUP_WRONG_USER_TYPE_ON_ADD,
+                    MemberRefusal.GROUP_WRONG_USER_TYPE_ON_ADD,
                     misfits.stream()
                             .map(m -> conflict(m.id(), List.of(group.name())))
                             .toList());
@@ -164,7 +165,7 @@ public class GroupMembershipService {
         Map<Integer, MemberGroup> movedFrom = siblingsOf(group, added);
         if (!movedFrom.isEmpty() && !move) {
             throw GroupRuleRefused.naming(
-                    Refusal.GROUP_SET_ALREADY_IN,
+                    MemberRefusal.GROUP_SET_ALREADY_IN,
                     movedFrom.entrySet().stream()
                             .map(entry -> conflict(
                                     entry.getKey(), List.of(entry.getValue().name())))
@@ -172,7 +173,7 @@ public class GroupMembershipService {
         }
 
         if (!added.isEmpty()) {
-            requireRightsFor(List.of(group), by.user(), Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD);
+            requireRightsFor(List.of(group), by.user(), MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD);
         }
         List<MemberGroup> touched = new ArrayList<>(movedFrom.values());
         if (!added.isEmpty() || !removed.isEmpty()) touched.add(group);
@@ -256,8 +257,8 @@ public class GroupMembershipService {
         var group = groupRepository
                 .findById(groupId)
                 .filter(candidate -> candidate.stationId() == stationId)
-                .orElseThrow(Refusal.INVITE_GROUP_NOT_HERE::raise);
-        requireRightsFor(List.of(group), by, Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE);
+                .orElseThrow(MemberRefusal.INVITE_GROUP_NOT_HERE::raise);
+        requireRightsFor(List.of(group), by, MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE);
     }
 
     /**
@@ -356,7 +357,7 @@ public class GroupMembershipService {
         }
         for (List<String> names : bySet.values()) {
             if (names.size() > 1) {
-                throw Refusal.GROUP_SET_TWO_CHOSEN.raise(String.join(", ", names));
+                throw MemberRefusal.GROUP_SET_TWO_CHOSEN.raise(String.join(", ", names));
             }
         }
     }

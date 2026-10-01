@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
 import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -90,7 +90,7 @@ public class FormResultGrouping {
      * @return the groups, in display order
      */
     public List<Bucket> split(int stationId, List<Respondent> respondents, ResultGrouping grouping) {
-        if (grouping == null || grouping.by() == null) throw Refusal.FORM_RESULTS_GROUPING_MISSING.raise();
+        if (grouping == null || grouping.by() == null) throw FormRefusal.FORM_RESULTS_GROUPING_MISSING.raise();
         var buckets =
                 switch (grouping.by()) {
                     case USER_TYPE ->
@@ -132,7 +132,7 @@ public class FormResultGrouping {
         var field = FormRespondents.groupableFields(profileFields.findByStation(stationId)).stream()
                 .filter(candidate -> fieldId != null && candidate.id() == fieldId)
                 .findFirst()
-                .orElseThrow(Refusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE::raise);
+                .orElseThrow(FormRefusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE::raise);
         Function<Respondent, String> answer =
                 respondent -> respondent.fieldValues().get(field.id());
         if (field.fieldType() == FieldType.NUMBER && FormResultQuery.notEmpty(grouping.bounds())) {

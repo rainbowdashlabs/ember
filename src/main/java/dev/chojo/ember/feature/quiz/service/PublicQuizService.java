@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -34,7 +34,7 @@ public class PublicQuizService {
     }
 
     private Station station(UUID stationUid) {
-        return stations.findByUid(stationUid).orElseThrow(Refusal.PUBLIC_QUIZ_STATION_NOT_HERE::raise);
+        return stations.findByUid(stationUid).orElseThrow(QuizRefusal.PUBLIC_QUIZ_STATION_NOT_HERE::raise);
     }
 
     /**
@@ -52,9 +52,9 @@ public class PublicQuizService {
      * @param catalogIds the catalogs to pick from; any that is not public is passed over
      */
     public PublicQuizQuestion randomQuestion(UUID stationUid, List<Integer> catalogIds) {
-        if (catalogIds.isEmpty()) throw Refusal.PUBLIC_QUIZ_CATALOGS_EMPTY.raise();
+        if (catalogIds.isEmpty()) throw QuizRefusal.PUBLIC_QUIZ_CATALOGS_EMPTY.raise();
         var picked = catalogs.findRandomPublicQuestion(station(stationUid).id(), catalogIds)
-                .orElseThrow(Refusal.PUBLIC_QUIZ_NO_QUESTION_HERE::raise);
+                .orElseThrow(QuizRefusal.PUBLIC_QUIZ_NO_QUESTION_HERE::raise);
         return new PublicQuizQuestion(
                 picked.id(),
                 picked.quizQuestionType(),

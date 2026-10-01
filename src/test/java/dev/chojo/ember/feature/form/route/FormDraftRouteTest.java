@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -164,7 +164,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
 
             var read = client.get(childsDraft(), harness.as(pollManager()));
 
-            assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf(read));
+            assertEquals(FormRefusal.FORM_DRAFT_NOT_YOURS, refusalOf(read));
         });
     }
 
@@ -176,7 +176,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
                     RouteHarness.PREFIX + "/forms/%d/respond/%d".formatted(formId, child.id()),
                     harness.as(pollManager()));
 
-            assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(read));
+            assertEquals(FormRefusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(read));
         });
     }
 
@@ -188,8 +188,8 @@ class FormDraftRouteTest extends RepositoryTestBase {
             var kept = client.put(childsDraft(), draft("fremd"), harness.as(pollManager()));
             var ended = client.delete(childsDraft(), null, harness.as(pollManager()));
 
-            assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf(kept));
-            assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf(ended));
+            assertEquals(FormRefusal.FORM_DRAFT_NOT_YOURS, refusalOf(kept));
+            assertEquals(FormRefusal.FORM_DRAFT_NOT_YOURS, refusalOf(ended));
         });
         assertEquals(
                 new FormAnswerValue.TextAnswer("privat"),
@@ -209,7 +209,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
             var kept = client.put(ownDraft(), draft("weiter"), harness.as(sessionOf(child)));
             var read = client.get(ownDraft(), harness.as(sessionOf(child)));
 
-            assertEquals(Refusal.FORM_TAKES_NO_DRAFTS, refusalOf(kept));
+            assertEquals(FormRefusal.FORM_TAKES_NO_DRAFTS, refusalOf(kept));
             assertNull(read(read, FormDraftResponse.class).draft());
         });
     }

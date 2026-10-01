@@ -6,9 +6,12 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentFilter;
@@ -184,14 +187,17 @@ public class KnowledgeBaseFederationService implements FederationServer {
 
     private void serveCommentDeletion(ServingPartner partner, int commentId, RemoteKbCommentDeleteRequest request) {
         var comment = requireRemoteCommentAuthor(
-                partner.row(), commentId, request.remoteMemberUid(), Refusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_DELETE);
+                partner.row(),
+                commentId,
+                request.remoteMemberUid(),
+                KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_DELETE);
         if (!commentService.delete(comment)) {
-            throw Refusal.REMOTE_KB_COMMENT_NOT_DELETED.raise();
+            throw KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_DELETED.raise();
         }
     }
 
     private static String requireText(String content) {
-        if (content == null || content.isBlank()) throw Refusal.REMOTE_KB_COMMENT_EMPTY.raise();
+        if (content == null || content.isBlank()) throw KnowledgeBaseRefusal.REMOTE_KB_COMMENT_EMPTY.raise();
         return content;
     }
 
@@ -376,14 +382,14 @@ public class KnowledgeBaseFederationService implements FederationServer {
         var folder = level.trail().stream()
                 .filter(step -> step.remoteId() == folderId)
                 .findFirst()
-                .orElseThrow(Refusal.PARTNER_KB_FOLDER_NOT_IN_ITS_TRAIL::raise);
+                .orElseThrow(KnowledgeBaseRefusal.PARTNER_KB_FOLDER_NOT_IN_ITS_TRAIL::raise);
         return new PartnerEntry(folder.title(), null, folder.stationName());
     }
 
     private String partnerName(int stationId, UUID partnerStationUid) {
         var partner = federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(Refusal.KB_FAVOURITE_PARTNER_NOT_HERE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_FAVOURITE_PARTNER_NOT_HERE::raise);
         return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
     }
 
@@ -409,7 +415,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
             throws IOException, InterruptedException {
         var file = getFederatedKbFile(localStationId, partnerStationUid, fileId);
         if (!KbPdfExportService.isExportable(file.fileType())) {
-            throw Refusal.PARTNER_KB_ONLY_WRITTEN_AS_PDF.raise();
+            throw KnowledgeBaseRefusal.PARTNER_KB_ONLY_WRITTEN_AS_PDF.raise();
         }
         String content = getFederatedKbFileContent(localStationId, partnerStationUid, fileId);
         var partner = federationRepository
@@ -513,12 +519,12 @@ public class KnowledgeBaseFederationService implements FederationServer {
         var reachable = inheritedAim(stationId, parentOf(fileId, folderId));
         if (reachable != null) {
             if (scope != ShareScope.SPECIFIC) {
-                throw Refusal.KB_SHARE_WIDER_THAN_ITS_FOLDER.raise();
+                throw KnowledgeBaseRefusal.KB_SHARE_WIDER_THAN_ITS_FOLDER.raise();
             }
             var widened =
                     partnerIds.stream().filter(id -> !reachable.contains(id)).toList();
             if (!widened.isEmpty()) {
-                throw Refusal.KB_SHARE_NAMES_STATIONS_ITS_FOLDER_DOES_NOT.raise();
+                throw KnowledgeBaseRefusal.KB_SHARE_NAMES_STATIONS_ITS_FOLDER_DOES_NOT.raise();
             }
         }
         return federationService.createKbShare(stationId, fileId, folderId, scope, partnerIds);
@@ -692,7 +698,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
             ShareScope scope,
             List<Integer> partnerIds) {
         if ((fileId == null) == (folderId == null)) {
-            throw Refusal.KB_AUDIENCE_NEEDS_ONE_ENTRY.raise();
+            throw KnowledgeBaseRefusal.KB_AUDIENCE_NEEDS_ONE_ENTRY.raise();
         }
         var existing = federationRepository.findKbShares(stationId).stream()
                 .filter(share -> fileId != null
@@ -823,9 +829,11 @@ public class KnowledgeBaseFederationService implements FederationServer {
 
     /** What is inside one shared folder of a serving station, refused unless a share reaching the reader covers it. */
     private RemoteKbBrowse folderLevel(int servingStationId, int folderId, Integer readingPartnerId) {
-        var folder = knowledgeBaseService.findFolder(folderId).orElseThrow(Refusal.REMOTE_KB_FOLDER_NOT_SHARED::raise);
+        var folder = knowledgeBaseService
+                .findFolder(folderId)
+                .orElseThrow(KnowledgeBaseRefusal.REMOTE_KB_FOLDER_NOT_SHARED::raise);
         if (folder.stationId() != servingStationId || !isFolderShared(servingStationId, folderId, readingPartnerId)) {
-            throw Refusal.REMOTE_KB_FOLDER_NOT_SHARED.raise();
+            throw KnowledgeBaseRefusal.REMOTE_KB_FOLDER_NOT_SHARED.raise();
         }
         return new RemoteKbBrowse(
                 knowledgeBaseService.findFolders(servingStationId, folderId).stream()
@@ -974,9 +982,11 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * shared folder, which is what the same-instance browse treats as shared too.
      */
     public KbFile fileForPartner(FederationPartner partner, int fileId) {
-        var file = knowledgeBaseService.findFile(fileId).orElseThrow(Refusal.REMOTE_KB_FILE_NOT_SHARED::raise);
+        var file = knowledgeBaseService
+                .findFile(fileId)
+                .orElseThrow(KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED::raise);
         if (file.stationId() != partner.stationId() || !isSharedWithPartner(partner, file)) {
-            throw Refusal.REMOTE_KB_FILE_NOT_SHARED.raise();
+            throw KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED.raise();
         }
         return file;
     }
@@ -1100,8 +1110,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
                     RemoteKnowledgeBaseRoutes.DELETE_COMMENT.at(commentId),
                     new RemoteKbCommentDeleteRequest(memberUid));
         } catch (RefusalResponse e) {
-            if (e.refusal() == Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER) {
-                throw Refusal.PARTNER_KB_COMMENT_NOT_DELETED.raise();
+            if (e.refusal() == FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER) {
+                throw KnowledgeBaseRefusal.PARTNER_KB_COMMENT_NOT_DELETED.raise();
             }
             throw e;
         }
@@ -1120,8 +1130,9 @@ public class KnowledgeBaseFederationService implements FederationServer {
             String displayName,
             @Nullable Integer parentId,
             String content) {
-        var target =
-                commentService.target(CommentEntityType.KB, fileId).orElseThrow(Refusal.NOT_HERE_OR_NOT_YOURS::raise);
+        var target = commentService
+                .target(CommentEntityType.KB, fileId)
+                .orElseThrow(GeneralRefusal.NOT_HERE_OR_NOT_YOURS::raise);
         var partnerStationUid = federationRepository
                 .findPartnerById(partnerId)
                 .map(FederationPartner::partnerStationId)
@@ -1142,10 +1153,10 @@ public class KnowledgeBaseFederationService implements FederationServer {
      */
     public Comment updateRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         var comment = requireRemoteCommentAuthor(
-                partner, commentId, remoteMemberUid, Refusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT);
+                partner, commentId, remoteMemberUid, KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT);
         var updated = commentService
                 .update(comment, new CommentWriter(comment.author(), "", CommentOrigin.PARTNER), content)
-                .orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         log.info("KB remote comment {} edited from partner {}", commentId, partner.id());
         return updated;
     }
@@ -1252,13 +1263,13 @@ public class KnowledgeBaseFederationService implements FederationServer {
     private FederationPartner resolvePartner(int stationId, UUID partnerStationUid) {
         return federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(Refusal.KB_COMMENT_PARTNER_NOT_HERE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_COMMENT_PARTNER_NOT_HERE::raise);
     }
 
     private Comment requireComment(int commentId) {
         return commentService
                 .findById(CommentEntityType.KB, commentId)
-                .orElseThrow(Refusal.REMOTE_KB_COMMENT_NOT_HERE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_HERE::raise);
     }
 
     private int partnerStationId(FederationPartner partner) {

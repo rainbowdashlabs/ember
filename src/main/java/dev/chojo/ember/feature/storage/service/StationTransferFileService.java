@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.image.VariantSet;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -87,7 +87,7 @@ public class StationTransferFileService {
     public StoredStream open(int stationId, StorageCategory category, String key) {
         var stream = storageService
                 .readRelative(scopeOf(stationId), category, key)
-                .orElseThrow(Refusal.TRANSFER_FILE_NOT_HERE::raise);
+                .orElseThrow(StorageRefusal.TRANSFER_FILE_NOT_HERE::raise);
         log.info(
                 "[export] streaming file: station {} category {} key '{}' ({} bytes)",
                 stationId,
@@ -99,7 +99,7 @@ public class StationTransferFileService {
 
     private StorageScope.Station scopeOf(int stationId) {
         Station station =
-                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_FOR_TRANSFER::raise);
+                stationRepository.findById(stationId).orElseThrow(StorageRefusal.STATION_NOT_HERE_FOR_TRANSFER::raise);
         return new StorageScope.Station(stationId, station.uid());
     }
 

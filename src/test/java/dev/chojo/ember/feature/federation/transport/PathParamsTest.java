@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.transport;
 
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;

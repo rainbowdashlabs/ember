@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.members.util;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.Permission;
 
 import java.util.Collection;
@@ -57,10 +57,10 @@ public final class PermissionValidation {
             Permission perm = allPermissions.stream()
                     .filter(p -> p.id() == permissionId)
                     .findFirst()
-                    .orElseThrow(() -> Refusal.MEMBER_PERMISSION_UNKNOWN.raise(String.valueOf(permissionId)));
+                    .orElseThrow(() -> MemberRefusal.MEMBER_PERMISSION_UNKNOWN.raise(String.valueOf(permissionId)));
 
             if (!currentIds.contains(permissionId) && !callerPermissions.contains(perm.permission())) {
-                throw Refusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT.raise();
+                throw MemberRefusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT.raise();
             }
         }
     }

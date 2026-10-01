@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
@@ -171,11 +171,11 @@ class QuizCatalogTransferServiceTest {
     @Test
     void refusesABodyThatIsNotACatalogFile() {
         assertEquals(
-                Refusal.QUIZ_CATALOG_FILE_NOT_RECOGNISED,
+                QuizRefusal.QUIZ_CATALOG_FILE_NOT_RECOGNISED,
                 assertThrows(RefusalResponse.class, () -> service.read(json("{\"something\": 1}")))
                         .refusal());
         assertEquals(
-                Refusal.QUIZ_CATALOG_FILE_NOT_AN_OBJECT,
+                QuizRefusal.QUIZ_CATALOG_FILE_NOT_AN_OBJECT,
                 assertThrows(RefusalResponse.class, () -> service.read(json("[]")))
                         .refusal());
     }

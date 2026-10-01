@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.content.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.PageRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -77,7 +77,7 @@ class ContentBlockServiceTest extends RepositoryTestBase {
             var refused = assertThrows(
                     RefusalResponse.class,
                     () -> blocks.save(container.id(), withheld, ContentBlockService.Scope.ARTICLE));
-            assertEquals(Refusal.CONTENT_BLOCK_ONLY_ON_PAGES, refused.refusal());
+            assertEquals(PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES, refused.refusal());
             assertDoesNotThrow(() -> blocks.save(container.id(), withheld, ContentBlockService.Scope.PAGE));
         } finally {
             blocks.delete(container.id());

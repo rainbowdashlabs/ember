@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.board.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
@@ -114,7 +114,7 @@ public class FederatedBoardDiscoveryService implements FederationServer {
      */
     public FederatedBoardDetail serveBoard(ServingPartner partner, PathParams params) {
         int boardId = guards.viewableBoardId(partner, params);
-        var board = boardService.findById(boardId).orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE_ON_READ::raise);
+        var board = boardService.findById(boardId).orElseThrow(BoardRefusal.REMOTE_BOARD_NOT_HERE_ON_READ::raise);
         String stationName =
                 stationRepository.findById(board.stationId()).map(Station::name).orElse("");
         return FederatedBoardDetail.of(board, shareMode(boardId, partner), stationName, stationRepository);
@@ -143,7 +143,7 @@ public class FederatedBoardDiscoveryService implements FederationServer {
     public List<MemberCompletion> serveMembers(ServingPartner partner, PathParams params) {
         var board = boardService
                 .findById(guards.viewableBoardId(partner, params))
-                .orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE_FOR_MEMBERS::raise);
+                .orElseThrow(BoardRefusal.REMOTE_BOARD_NOT_HERE_FOR_MEMBERS::raise);
         return memberIdentityFactory.enrichCompletions(memberService.findCompletions(board.stationId()));
     }
 

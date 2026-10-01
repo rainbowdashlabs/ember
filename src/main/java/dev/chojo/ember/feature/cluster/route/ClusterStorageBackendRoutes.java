@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -113,7 +113,7 @@ public class ClusterStorageBackendRoutes implements Routes {
     private void setPolicy(Context ctx) {
         Cluster cluster = requireActive(ctx);
         PolicyRequest request = ctx.bodyAsClass(PolicyRequest.class);
-        if (request.reach() == null) throw Refusal.CLUSTER_STORAGE_POLICY_NEEDS_A_REACH.raise();
+        if (request.reach() == null) throw ClusterRefusal.CLUSTER_STORAGE_POLICY_NEEDS_A_REACH.raise();
         backendService.setPolicy(cluster.id(), request.reach(), request.locked());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -127,7 +127,7 @@ public class ClusterStorageBackendRoutes implements Routes {
     private void probe(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var policy = backendService.findPolicy(cluster.id());
-        if (policy.current() == null) throw Refusal.CLUSTER_KEEPS_NO_STORAGE.raise();
+        if (policy.current() == null) throw ClusterRefusal.CLUSTER_KEEPS_NO_STORAGE.raise();
         ctx.json(probeService.probe(policy.current().config()));
     }
 
@@ -206,13 +206,15 @@ public class ClusterStorageBackendRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_STORAGE_BACKEND.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_STORAGE_BACKEND::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_STORAGE_BACKEND.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_STORAGE_BACKEND::raise);
     }
 
     private Actor actor(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.account() == null) throw Refusal.NO_ACCOUNT_IN_SESSION_FOR_STORAGE_MOVE.raise();
+        if (session.account() == null) throw ClusterRefusal.NO_ACCOUNT_IN_SESSION_FOR_STORAGE_MOVE.raise();
         Integer memberId = session.memberOpt().map(StationMember::id).orElse(null);
         return Actor.human(session.account().id(), memberId);
     }

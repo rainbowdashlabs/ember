@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
@@ -74,16 +74,16 @@ public class ClusterApplicationService {
         Cluster cluster = requireCluster(clusterId);
 
         if (!station.isOwnedBy(actorMemberId)) {
-            throw Refusal.CLUSTER_APPLICATION_NOT_BY_STATION_OWNER.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_NOT_BY_STATION_OWNER.raise();
         }
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            throw Refusal.CLUSTER_APPLICATION_FROM_CLUSTER_HOME.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_FROM_CLUSTER_HOME.raise();
         }
         if (station.clusterId() != null) {
-            throw Refusal.CLUSTER_APPLICATION_STATION_ALREADY_JOINED.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_STATION_ALREADY_JOINED.raise();
         }
         applicationRepository.findPendingForStation(stationId).ifPresent(pending -> {
-            throw Refusal.CLUSTER_APPLICATION_ALREADY_WAITING.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_ALREADY_WAITING.raise();
         });
 
         ClusterApplication application = applicationRepository.open(clusterId, stationId, actorMemberId);
@@ -104,7 +104,7 @@ public class ClusterApplicationService {
         Station station = requireStation(application.stationId());
 
         if (!station.isOwnedBy(actorMemberId)) {
-            throw Refusal.CLUSTER_APPLICATION_WITHDRAWN_NOT_BY_STATION_OWNER.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_WITHDRAWN_NOT_BY_STATION_OWNER.raise();
         }
         requireOpen(application);
 
@@ -129,7 +129,7 @@ public class ClusterApplicationService {
 
         Station station = requireStation(application.stationId());
         if (station.clusterId() != null) {
-            throw Refusal.CLUSTER_APPLICATION_STATION_JOINED_MEANWHILE.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_STATION_JOINED_MEANWHILE.raise();
         }
 
         applicationRepository.resolve(applicationId, ClusterApplicationStatus.APPROVED, null, resolvingMemberId);
@@ -175,25 +175,25 @@ public class ClusterApplicationService {
 
     private static void requireOpen(ClusterApplication application) {
         if (!application.status().open()) {
-            throw Refusal.CLUSTER_APPLICATION_ALREADY_DECIDED.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_ALREADY_DECIDED.raise();
         }
     }
 
     private static void requireSameCluster(ClusterApplication application, int clusterId) {
         if (application.clusterId() != clusterId) {
-            throw Refusal.CLUSTER_APPLICATION_NOT_HERE.raise();
+            throw ClusterRefusal.CLUSTER_APPLICATION_NOT_HERE.raise();
         }
     }
 
     private ClusterApplication requireApplication(int id) {
-        return applicationRepository.findById(id).orElseThrow(Refusal.CLUSTER_APPLICATION_NOT_HERE::raise);
+        return applicationRepository.findById(id).orElseThrow(ClusterRefusal.CLUSTER_APPLICATION_NOT_HERE::raise);
     }
 
     private Station requireStation(int id) {
-        return stationRepository.findById(id).orElseThrow(Refusal.CLUSTER_APPLICATION_STATION_NOT_HERE::raise);
+        return stationRepository.findById(id).orElseThrow(ClusterRefusal.CLUSTER_APPLICATION_STATION_NOT_HERE::raise);
     }
 
     private Cluster requireCluster(int id) {
-        return clusterRepository.findById(id).orElseThrow(Refusal.CLUSTER_APPLICATION_CLUSTER_NOT_HERE::raise);
+        return clusterRepository.findById(id).orElseThrow(ClusterRefusal.CLUSTER_APPLICATION_CLUSTER_NOT_HERE::raise);
     }
 }

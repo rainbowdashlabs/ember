@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
@@ -72,7 +72,7 @@ public class EventVisibility {
      */
     public StationEvent requireVisibleEvent(StationSession session, int eventId) {
         var event = requireOwnedEvent(crudService, eventId, session);
-        if (!canSee(session, event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
+        if (!canSee(session, event)) throw EventRefusal.EVENT_NOT_YOURS_TO_SEE.raise();
         return event;
     }
 

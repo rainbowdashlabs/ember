@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Failures;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -294,7 +294,7 @@ public class PublicFormRoutes implements Routes {
      */
     private void submit(Context ctx, Form form) {
         if (!formService.isAcceptingResponses(form)) {
-            throw Refusal.FORM_NOT_TAKING_ANSWERS.raise();
+            throw FormRefusal.FORM_NOT_TAKING_ANSWERS.raise();
         }
 
         InetAddress clientIp = ClientIp.resolve(ctx, network);
@@ -302,17 +302,17 @@ public class PublicFormRoutes implements Routes {
 
         var retryAfter = rateLimiter.tryAcquire(form.id(), submitterHash);
         if (retryAfter.isPresent()) {
-            ctx.status(Refusal.FORM_ANSWERED_TOO_OFTEN.status())
+            ctx.status(FormRefusal.FORM_ANSWERED_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))
                     .json(ErrorResponseWrapper.of(
-                            Refusal.FORM_ANSWERED_TOO_OFTEN,
-                            Refusal.FORM_ANSWERED_TOO_OFTEN.message(),
+                            FormRefusal.FORM_ANSWERED_TOO_OFTEN,
+                            FormRefusal.FORM_ANSWERED_TOO_OFTEN.message(),
                             retryAfter.get()));
             return;
         }
 
         if (form.purpose() == FormPurpose.POLL && formService.hasAnonymousResponded(form.id(), submitterHash)) {
-            throw Refusal.FORM_ALREADY_ANSWERED.raise();
+            throw FormRefusal.FORM_ALREADY_ANSWERED.raise();
         }
 
         var req = readAnswers(ctx);
@@ -322,7 +322,7 @@ public class PublicFormRoutes implements Routes {
             var response = formService.submitAnonymousResponse(form.id(), submitterHash, req.answers(), consent);
             ctx.status(HttpStatus.CREATED).json(new PublicFormSubmitResponse(response.id()));
         } catch (FormAnswersRefused refused) {
-            throw refused.as(Refusal.FORM_ANSWER_REFUSED);
+            throw refused.as(FormRefusal.FORM_ANSWER_REFUSED);
         }
     }
 
@@ -340,8 +340,8 @@ public class PublicFormRoutes implements Routes {
         } catch (JacksonException e) {
             log.warn("Unreadable answers sent to {}: {}", ctx.path(), e.getMessage());
             throw Failures.fieldPath(e.getPath())
-                    .map(Refusal.FORM_ANSWER_UNREADABLE::raise)
-                    .orElseGet(Refusal.FORM_ANSWER_UNREADABLE::raise);
+                    .map(FormRefusal.FORM_ANSWER_UNREADABLE::raise)
+                    .orElseGet(FormRefusal.FORM_ANSWER_UNREADABLE::raise);
         }
     }
 

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;

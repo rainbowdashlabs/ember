@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
@@ -150,10 +151,10 @@ public class SelfCheckReviewService {
         SelfCheckSettlement settlement = settlementOf(row);
         if (settlement == SelfCheckSettlement.NEEDS_RECORD_PUT_RIGHT
                 || settlement == SelfCheckSettlement.NEEDS_A_PIECE_NAMED) {
-            throw Refusal.SELF_CHECK_REVIEW_RECORD_NEEDS_PUTTING_RIGHT.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_RECORD_NEEDS_PUTTING_RIGHT.raise();
         }
         if (!repository.take(rowId, reviewerId)) {
-            throw Refusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_TAKING.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_TAKING.raise();
         }
         letGoOfWhatWaited(row, "settled without the record being put right");
         apply(row, settlement, reviewerId);
@@ -179,12 +180,12 @@ public class SelfCheckReviewService {
         SelfCheckSettlement settlement = settlementOf(row);
         if (settlement != SelfCheckSettlement.NEEDS_RECORD_PUT_RIGHT
                 && settlement != SelfCheckSettlement.NEEDS_A_PIECE_NAMED) {
-            throw Refusal.SELF_CHECK_REVIEW_NOTHING_TO_PUT_RIGHT.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_NOTHING_TO_PUT_RIGHT.raise();
         }
         InventoryItem replacement = checkService.correct(task.memberId(), withOldPieceOf(row, correction));
         repository.repointRow(rowId, replacement.id(), replacement.inventoryId());
         if (!repository.take(rowId, reviewerId)) {
-            throw Refusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_CORRECTING.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_CORRECTING.raise();
         }
         log.info(
                 "Self-check {} row {} corrected onto piece {} by member {}",
@@ -284,10 +285,10 @@ public class SelfCheckReviewService {
         requireArmsLength(task, row, reviewerId);
         String written = reason == null ? "" : reason.strip();
         if (written.isEmpty()) {
-            throw Refusal.SELF_CHECK_REVIEW_REASON_MISSING.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_REASON_MISSING.raise();
         }
         if (!repository.refuse(rowId, written, reviewerId)) {
-            throw Refusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_SENDING_BACK.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_SENDING_BACK.raise();
         }
         letGoOfWhatWaited(row, "sent back");
         tellTheMember(task, row, written);
@@ -407,7 +408,7 @@ public class SelfCheckReviewService {
      * size onto a record the member had already answered that question for.
      */
     private static ItemCorrection withOldPieceOf(SelfCheckRow row, ItemCorrection correction) {
-        if (correction == null) throw Refusal.SELF_CHECK_REVIEW_CORRECTION_MISSING.raise();
+        if (correction == null) throw InventoryRefusal.SELF_CHECK_REVIEW_CORRECTION_MISSING.raise();
         return new ItemCorrection(
                 correction.inventoryId(),
                 row.answer() == SelfCheckAnswer.WRONG_RECORD ? row.itemId() : null,
@@ -555,10 +556,10 @@ public class SelfCheckReviewService {
      * approve what they wrote.
      */
     private static @Nullable Refusal approvalRefusal(SelfCheck task, int reviewerId) {
-        if (task.memberId() == reviewerId) return Refusal.SELF_CHECK_REVIEW_OF_OWN_GEAR;
+        if (task.memberId() == reviewerId) return InventoryRefusal.SELF_CHECK_REVIEW_OF_OWN_GEAR;
         Integer submittedBy = task.submittedBy();
         if (submittedBy != null && submittedBy == reviewerId) {
-            return Refusal.SELF_CHECK_REVIEW_OF_OWN_SUBMISSION;
+            return InventoryRefusal.SELF_CHECK_REVIEW_OF_OWN_SUBMISSION;
         }
         return null;
     }
@@ -568,7 +569,7 @@ public class SelfCheckReviewService {
         if (refusal != null) throw refusal.raise();
         Integer answeredBy = row.answeredBy();
         if (answeredBy != null && answeredBy == reviewerId) {
-            throw Refusal.SELF_CHECK_REVIEW_OF_OWN_ANSWER.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_OF_OWN_ANSWER.raise();
         }
     }
 
@@ -580,19 +581,19 @@ public class SelfCheckReviewService {
         return repository
                 .findById(taskId)
                 .filter(task -> task.stationId() == stationId)
-                .orElseThrow(Refusal.SELF_CHECK_REVIEW_TASK_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.SELF_CHECK_REVIEW_TASK_NOT_HERE::raise);
     }
 
     private SelfCheckRow requireOutstanding(SelfCheck task, int rowId) {
         SelfCheckRow row = repository
                 .findRow(rowId)
                 .filter(candidate -> candidate.taskId() == task.id())
-                .orElseThrow(Refusal.SELF_CHECK_REVIEW_ANSWER_NOT_HERE::raise);
+                .orElseThrow(InventoryRefusal.SELF_CHECK_REVIEW_ANSWER_NOT_HERE::raise);
         if (task.state() != SelfCheckState.SUBMITTED) {
-            throw Refusal.SELF_CHECK_REVIEW_TASK_NOT_WAITING.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_TASK_NOT_WAITING.raise();
         }
         if (row.state() != SelfCheckRowState.OUTSTANDING) {
-            throw Refusal.SELF_CHECK_REVIEW_ANSWER_ALREADY_SETTLED.raise();
+            throw InventoryRefusal.SELF_CHECK_REVIEW_ANSWER_ALREADY_SETTLED.raise();
         }
         return row;
     }

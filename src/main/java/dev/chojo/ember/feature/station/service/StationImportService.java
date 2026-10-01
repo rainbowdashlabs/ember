@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -183,10 +183,10 @@ public class StationImportService {
     public void importStationInto(int targetStationId, Map<String, Object> bundle) {
         stationRepository.findById(targetStationId).ifPresent(station -> {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
-                throw Refusal.STATION_IMPORT_INTO_CLUSTER_HOME.raise();
+                throw StationRefusal.STATION_IMPORT_INTO_CLUSTER_HOME.raise();
             }
             if (station.clusterId() != null) {
-                throw Refusal.STATION_IMPORT_INTO_CLUSTER_MEMBER.raise();
+                throw StationRefusal.STATION_IMPORT_INTO_CLUSTER_MEMBER.raise();
             }
         });
         Map<String, Object> stationData = asMap(bundle.get("station"));
@@ -241,7 +241,7 @@ public class StationImportService {
         Map<String, Object> stationPage = fetchStationPage(client);
         Map<String, Object> stationData = asMap(stationPage.get("station"));
         if (stationData == null) {
-            throw Refusal.STATION_IMPORT_SOURCE_HAS_NO_STATION.raise();
+            throw StationRefusal.STATION_IMPORT_SOURCE_HAS_NO_STATION.raise();
         }
 
         String stationName = asString(stationData.get("name"), "Imported Station");
@@ -281,7 +281,7 @@ public class StationImportService {
         aiKeyTransfer.adopt(stationId, stationPage, token);
 
         Station target =
-                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_IMPORT_TARGET_NOT_HERE::raise);
+                stationRepository.findById(stationId).orElseThrow(StationRefusal.STATION_IMPORT_TARGET_NOT_HERE::raise);
         var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
         importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
@@ -299,10 +299,10 @@ public class StationImportService {
     public ImportResult retryFailedImport(UUID stationUid) {
         ImportProgress failed = getProgressByUid(stationUid);
         if (failed == null) {
-            throw Refusal.STATION_IMPORT_NOTHING_TO_RETRY.raise();
+            throw StationRefusal.STATION_IMPORT_NOTHING_TO_RETRY.raise();
         }
         if (failed.status() != ImportProgress.Status.FAILED) {
-            throw Refusal.STATION_IMPORT_NOT_FAILED.raise();
+            throw StationRefusal.STATION_IMPORT_NOT_FAILED.raise();
         }
         try {
             stationRepository.delete(failed.stationId());
@@ -322,7 +322,7 @@ public class StationImportService {
     private String normalizeSource(String sourceUrl) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
         if (!urlValidator.isAllowed(baseUrl)) {
-            throw Refusal.STATION_IMPORT_SOURCE_NOT_PUBLIC.raise();
+            throw StationRefusal.STATION_IMPORT_SOURCE_NOT_PUBLIC.raise();
         }
         return baseUrl;
     }
@@ -348,14 +348,14 @@ public class StationImportService {
             remoteHash = client.fetchSchemaHash();
         } catch (TransferSourceClient.TransferSourceException e) {
             log.warn("The import source at {} could not be read: {}", baseUrl, e.getMessage());
-            throw Refusal.STATION_IMPORT_SOURCE_NOT_READ.raise();
+            throw StationRefusal.STATION_IMPORT_SOURCE_NOT_READ.raise();
         }
         if (remoteHash == null || remoteHash.isBlank()) {
-            throw Refusal.STATION_IMPORT_SOURCE_TOO_OLD.raise();
+            throw StationRefusal.STATION_IMPORT_SOURCE_TOO_OLD.raise();
         }
         if (!remoteHash.equals(localHash)) {
             log.warn("Import source {} has schema {}, this instance {}", baseUrl, remoteHash, localHash);
-            throw Refusal.STATION_IMPORT_SCHEMA_DIFFERS.raise();
+            throw StationRefusal.STATION_IMPORT_SCHEMA_DIFFERS.raise();
         }
         log.info("schema hash verified against source at {}", baseUrl);
     }

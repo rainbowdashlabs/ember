@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
@@ -211,20 +211,20 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
     void anAddressThatBelongsToSomeoneElseIsRefused() {
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.setEmail(guardian.id(), child.id(), "stranger@test.com"));
-        assertEquals(Refusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE, refused.refusal());
+        assertEquals(MemberRefusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     @Test
     void nonsenseIsNotAnAddress() {
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.setEmail(guardian.id(), child.id(), "keine-adresse"));
-        assertEquals(Refusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE, refused.refusal());
+        assertEquals(MemberRefusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     @Test
     void signingInNeedsAnAddressOrANameFirst() {
         var refused = assertThrows(RefusalResponse.class, () -> service.setLogin(guardian.id(), child.id(), true));
-        assertEquals(Refusal.MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS, refused.refusal());
+        assertEquals(MemberRefusal.MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS, refused.refusal());
     }
 
     @Test
@@ -282,7 +282,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         service.setUsername(guardian.id(), child.id(), "lena.sommer");
 
         var refused = assertThrows(RefusalResponse.class, () -> service.setUsername(guardian.id(), child.id(), ""));
-        assertEquals(Refusal.USERNAME_IS_THE_ONLY_WAY_IN, refused.refusal());
+        assertEquals(MemberRefusal.USERNAME_IS_THE_ONLY_WAY_IN, refused.refusal());
     }
 
     @Test
@@ -310,7 +310,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.setPassword(guardian.id(), child.id(), "ein-gutes-passwort"));
-        assertEquals(Refusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD, refused.refusal());
+        assertEquals(MemberRefusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD, refused.refusal());
     }
 
     @Test
@@ -318,13 +318,13 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         when(authService.setPasswordFor(any(), eq("kurz"))).thenReturn(SetPasswordOutcome.PASSWORD_TOO_SHORT);
 
         var refused = assertThrows(RefusalResponse.class, () -> service.setPassword(guardian.id(), child.id(), "kurz"));
-        assertEquals(Refusal.MANAGED_PASSWORD_TOO_SHORT, refused.refusal());
+        assertEquals(MemberRefusal.MANAGED_PASSWORD_TOO_SHORT, refused.refusal());
     }
 
     @Test
     void anEmptyPasswordNeverReachesTheRules() {
         var refused = assertThrows(RefusalResponse.class, () -> service.setPassword(guardian.id(), child.id(), " "));
-        assertEquals(Refusal.MANAGED_PASSWORD_TOO_SHORT, refused.refusal());
+        assertEquals(MemberRefusal.MANAGED_PASSWORD_TOO_SHORT, refused.refusal());
         verify(authService, never()).setPasswordFor(any(), eq(" "));
     }
 
@@ -334,9 +334,9 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         var writing = assertThrows(
                 RefusalResponse.class, () -> service.setEmail(guardian.id(), stranger.id(), "neu@example.org"));
         var switching = assertThrows(RefusalResponse.class, () -> service.setLogin(guardian.id(), stranger.id(), true));
-        assertEquals(Refusal.MANAGED_MEMBER_NOT_YOURS, reading.refusal());
-        assertEquals(Refusal.MANAGED_MEMBER_NOT_YOURS, writing.refusal());
-        assertEquals(Refusal.MANAGED_MEMBER_NOT_YOURS, switching.refusal());
+        assertEquals(MemberRefusal.MANAGED_MEMBER_NOT_YOURS, reading.refusal());
+        assertEquals(MemberRefusal.MANAGED_MEMBER_NOT_YOURS, writing.refusal());
+        assertEquals(MemberRefusal.MANAGED_MEMBER_NOT_YOURS, switching.refusal());
     }
 
     @Test
@@ -344,7 +344,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         stationMemberRepo.setUserType(child.id(), StationUserType.TEAM);
         try {
             var refused = assertThrows(RefusalResponse.class, () -> service.setLogin(guardian.id(), child.id(), true));
-            assertEquals(Refusal.MANAGED_MEMBER_TYPE_NOT_MANAGED, refused.refusal());
+            assertEquals(MemberRefusal.MANAGED_MEMBER_TYPE_NOT_MANAGED, refused.refusal());
         } finally {
             stationMemberRepo.setUserType(child.id(), StationUserType.MEMBER);
         }
@@ -371,7 +371,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null));
         assertEquals(
-                Refusal.MANAGED_MEMBER_HAS_OWN_ADDRESS,
+                MemberRefusal.MANAGED_MEMBER_HAS_OWN_ADDRESS,
                 refused.refusal(),
                 "with an address of their own the mail path is theirs");
     }

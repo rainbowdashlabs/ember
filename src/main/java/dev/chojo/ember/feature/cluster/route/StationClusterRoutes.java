@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplication;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
@@ -110,7 +110,7 @@ public class StationClusterRoutes implements Routes {
         var request = ctx.bodyAsClass(ApplyRequest.class);
         Cluster cluster = clusterService
                 .findByUid(parseUid(request.clusterUid()))
-                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_APPLICATION::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_ON_APPLICATION::raise);
 
         ClusterApplication application = applicationService.apply(
                 cluster.id(), session.stationId(), session.member().id());
@@ -153,7 +153,7 @@ public class StationClusterRoutes implements Routes {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw Refusal.CLUSTER_NOT_AN_IDENTITY_ON_APPLICATION.raise(raw);
+            throw ClusterRefusal.CLUSTER_NOT_AN_IDENTITY_ON_APPLICATION.raise(raw);
         }
     }
 

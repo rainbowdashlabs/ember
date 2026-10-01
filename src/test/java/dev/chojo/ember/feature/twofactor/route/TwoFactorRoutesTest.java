@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.twofactor.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.auth.SessionCookies;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
@@ -87,12 +87,12 @@ class TwoFactorRoutesTest {
 
     @Test
     void aWrongCodeEarnsNoSession() {
-        doThrow(Refusal.TWO_FACTOR_CODE_WRONG.raise()).when(signIn).verify(eq(ACCOUNT), eq("pre-auth"), any());
+        doThrow(TwoFactorRefusal.TWO_FACTOR_CODE_WRONG.raise()).when(signIn).verify(eq(ACCOUNT), eq("pre-auth"), any());
 
         var response = harness.request(client -> client.post(PREFIX + "/auth/2fa", body("""
                 {"preAuthToken":"pre-auth","factor":"TOTP","proof":"000000"}""")));
 
-        assertEquals(Refusal.TWO_FACTOR_CODE_WRONG, refusalOf(response));
+        assertEquals(TwoFactorRefusal.TWO_FACTOR_CODE_WRONG, refusalOf(response));
         verify(auth, never()).createVerifiedSessionForAccount(anyInt(), any(), any(), any(), anyBoolean());
     }
 
@@ -109,12 +109,12 @@ class TwoFactorRoutesTest {
 
     @Test
     void aSecurityKeyForNoWaitingSignInIsRefused() {
-        when(signIn.waitingAccount("gone", Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY))
-                .thenThrow(Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise());
+        when(signIn.waitingAccount("gone", TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY))
+                .thenThrow(TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise());
 
         var response = harness.request(client -> client.post(PREFIX + "/auth/2fa/webauthn/begin", body("""
                 {"preAuthToken":"gone"}""")));
 
-        assertEquals(Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY, refusalOf(response));
+        assertEquals(TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY, refusalOf(response));
     }
 }

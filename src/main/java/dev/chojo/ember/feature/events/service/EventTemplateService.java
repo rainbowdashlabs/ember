@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
@@ -79,7 +79,7 @@ public class EventTemplateService {
         return repository
                 .findById(templateId)
                 .filter(template -> template.stationId() == stationId)
-                .orElseThrow(Refusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE::raise);
     }
 
     /**
@@ -163,7 +163,7 @@ public class EventTemplateService {
      */
     public void replaceFields(int templateId, List<AppointmentTemplateFieldDraft> fields) {
         if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
-            throw Refusal.TEMPLATE_FIELD_TYPE_NOT_OFFERED.raise();
+            throw EventRefusal.TEMPLATE_FIELD_TYPE_NOT_OFFERED.raise();
         }
         var keeping = NamedAlready.in(
                 repository.findFields(templateId).stream()
@@ -199,7 +199,7 @@ public class EventTemplateService {
                                 .map(field -> field.config().defaultValue())
                                 .toList(),
                         eligibility),
-                Refusal.EVENT_TEMPLATE_REGISTRATION_DEFAULT_NOT_ACCEPTED);
+                EventRefusal.EVENT_TEMPLATE_REGISTRATION_DEFAULT_NOT_ACCEPTED);
         repository.replaceRegistrationFields(templateId, fields);
         log.info("Event template {} now asks {} registration question(s)", templateId, fields.size());
     }
@@ -218,7 +218,7 @@ public class EventTemplateService {
      */
     private static void requireUsableDefault(Question question, MemberEligibility keeping) {
         QuestionCheck.defaultValue(question, keeping).ifPresent(problem -> {
-            throw Refusal.EVENT_TEMPLATE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+            throw EventRefusal.EVENT_TEMPLATE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
         });
     }
 

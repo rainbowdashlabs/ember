@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.protocol.service;
 
 import dev.chojo.ember.api.ApiServer;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import io.javalin.http.Context;
@@ -60,8 +62,8 @@ class TestProtocolGuardsTest {
         when(service.findRun(2)).thenReturn(Optional.of(foreignRun));
 
         assertSame(protocol, guards.requireProtocol(ctx, 1));
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireRun(ctx, 2)));
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireProtocol(ctx, 3)));
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireRun(ctx, 2)));
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, refusalOf(() -> guards.requireProtocol(ctx, 3)));
     }
 
     @Test
@@ -72,8 +74,8 @@ class TestProtocolGuardsTest {
 
         assertDoesNotThrow(() -> guards.requireSection(ctx, 1));
         assertDoesNotThrow(() -> guards.requireItem(ctx, 3));
-        assertEquals(Refusal.NOT_YOURS_TO_OPEN, refusalOf(() -> guards.requireSection(ctx, 2)));
-        assertEquals(Refusal.PROTOCOL_SECTION_NOT_HERE, refusalOf(() -> guards.requireSection(ctx, 5)));
-        assertEquals(Refusal.PROTOCOL_ITEM_NOT_HERE, refusalOf(() -> guards.requireItem(ctx, 5)));
+        assertEquals(GeneralRefusal.NOT_YOURS_TO_OPEN, refusalOf(() -> guards.requireSection(ctx, 2)));
+        assertEquals(TestProtocolRefusal.PROTOCOL_SECTION_NOT_HERE, refusalOf(() -> guards.requireSection(ctx, 5)));
+        assertEquals(TestProtocolRefusal.PROTOCOL_ITEM_NOT_HERE, refusalOf(() -> guards.requireItem(ctx, 5)));
     }
 }

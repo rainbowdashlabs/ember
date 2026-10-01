@@ -7,12 +7,12 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
@@ -215,7 +215,7 @@ public class MovementRoutes implements Routes {
     private void create(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateMovementRequest.class);
-        if (request.purpose() == null) throw Refusal.MOVEMENT_NEEDS_A_PURPOSE.raise();
+        if (request.purpose() == null) throw InventoryRefusal.MOVEMENT_NEEDS_A_PURPOSE.raise();
 
         Integer memberId = request.memberId();
         guards.requireMayStartFor(session.user(), memberId);
@@ -277,13 +277,13 @@ public class MovementRoutes implements Routes {
      */
     private InventoryItem recordArrival(ItemMovement movement, NewItemRequest request) {
         if (movement.inventoryId() == null) {
-            throw Refusal.ARRIVAL_HAS_NOWHERE_TO_GO.raise();
+            throw InventoryRefusal.ARRIVAL_HAS_NOWHERE_TO_GO.raise();
         }
         if (movementService.ownerAnswersHere(movement)) {
-            throw Refusal.ARRIVAL_NAMED_BY_THE_OWNER.raise();
+            throw InventoryRefusal.ARRIVAL_NAMED_BY_THE_OWNER.raise();
         }
         if (request.name() == null || request.name().isBlank()) {
-            throw Refusal.ARRIVAL_NEEDS_A_NAME.raise();
+            throw InventoryRefusal.ARRIVAL_NEEDS_A_NAME.raise();
         }
 
         ItemOwner owner = movementService.ownerOf(movement);
@@ -308,11 +308,11 @@ public class MovementRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ReturnEverythingRequest.class);
         Integer memberId = request.memberId();
-        if (memberId == null) throw Refusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER.raise();
+        if (memberId == null) throw InventoryRefusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER.raise();
         var member = memberService
                 .findById(memberId)
                 .filter(row -> row.stationId() == session.stationId())
-                .orElseThrow(Refusal.MEMBER_NOT_AT_THIS_STATION::raise);
+                .orElseThrow(InventoryRefusal.MEMBER_NOT_AT_THIS_STATION::raise);
 
         var started = movementService.requestEverythingBack(
                 session.stationId(), member.id(), names.called(member.id()), actorOf(session.user(), null));
@@ -335,11 +335,12 @@ public class MovementRoutes implements Routes {
     private void document(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
-        var document =
-                lossReportService.documentOf(movement.id()).orElseThrow(Refusal.MOVEMENT_DOCUMENT_NOT_HERE::raise);
+        var document = lossReportService
+                .documentOf(movement.id())
+                .orElseThrow(InventoryRefusal.MOVEMENT_DOCUMENT_NOT_HERE::raise);
         byte[] data = lossReportService
                 .read(movement.stationId(), document)
-                .orElseThrow(Refusal.MOVEMENT_DOCUMENT_NOT_READ::raise);
+                .orElseThrow(InventoryRefusal.MOVEMENT_DOCUMENT_NOT_READ::raise);
         ctx.contentType(document.mimeType());
         ctx.header(
                 "Content-Disposition",
@@ -389,7 +390,7 @@ public class MovementRoutes implements Routes {
                 request.extraFieldIds() != null ? request.extraFieldIds() : List.of(),
                 generatedBy);
         if (pdf.isEmpty()) {
-            throw Refusal.MOVEMENT_LIST_EMPTY.raise();
+            throw InventoryRefusal.MOVEMENT_LIST_EMPTY.raise();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", pdf.get().contentDisposition());
@@ -421,7 +422,7 @@ public class MovementRoutes implements Routes {
         var request = ctx.bodyAsClass(CorrectMovementRequest.class);
         if (request.outgoing() != null && !ItemMovementService.legalStepCustody(request.outgoing())
                 || request.incoming() != null && !ItemMovementService.legalStepCustody(request.incoming())) {
-            throw Refusal.CUSTODY_NOT_ONE_OF_THESE.raise();
+            throw InventoryRefusal.CUSTODY_NOT_ONE_OF_THESE.raise();
         }
         var correction = new ItemMovementService.Correction(
                 request.outgoing(), request.incoming(), request.detachArrival(), request.closeAs());
@@ -481,7 +482,9 @@ public class MovementRoutes implements Routes {
                 request == null ? null : request.stepIndex(),
                 session.memberOpt().map(StationMember::id).orElse(null));
         ctx.json(toDetail(
-                movementService.findById(movement.id()).orElseThrow(Refusal.MOVEMENT_NOT_HERE_AFTER_RECHAIN::raise),
+                movementService
+                        .findById(movement.id())
+                        .orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_AFTER_RECHAIN::raise),
                 session));
     }
 
@@ -535,7 +538,7 @@ public class MovementRoutes implements Routes {
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
-        if (!movementService.delete(movement.id())) throw Refusal.MOVEMENT_NOT_DELETED.raise();
+        if (!movementService.delete(movement.id())) throw InventoryRefusal.MOVEMENT_NOT_DELETED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

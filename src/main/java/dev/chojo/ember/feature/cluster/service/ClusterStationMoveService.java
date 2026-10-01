@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
@@ -49,7 +49,7 @@ public class ClusterStationMoveService {
     public MigrationResponse move(Actor actor, int clusterId, String stationUid) {
         int stationId = stationRepository
                 .findByUid(parseUid(stationUid))
-                .orElseThrow(Refusal.STATION_NOT_HERE_ON_CLUSTER_STORAGE_MOVE::raise)
+                .orElseThrow(ClusterRefusal.STATION_NOT_HERE_ON_CLUSTER_STORAGE_MOVE::raise)
                 .id();
         auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_STARTED, null, null, null);
         StorageMigrationService.MigrationResult result;
@@ -58,7 +58,7 @@ public class ClusterStationMoveService {
         } catch (MigrationException e) {
             auditService.recordMigration(
                     actor, stationId, StorageAuditAction.MIGRATION_FAILED, null, null, e.getMessage());
-            throw Refusal.CLUSTER_STORAGE_MOVE_FAILED.raise();
+            throw ClusterRefusal.CLUSTER_STORAGE_MOVE_FAILED.raise();
         }
         auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, null, null, null);
         return new MigrationResponse(
@@ -69,7 +69,7 @@ public class ClusterStationMoveService {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE.raise();
+            throw ClusterRefusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE.raise();
         }
     }
 }

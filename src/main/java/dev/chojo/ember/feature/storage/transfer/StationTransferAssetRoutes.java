@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.storage.transfer;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -84,10 +84,10 @@ public class StationTransferAssetRoutes implements Routes {
             })
     private void getBackendDescriptor(Context ctx) {
         String token = ctx.pathParam("token");
-        exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_BACKEND::raise);
+        exportService.validateToken(token).orElseThrow(StorageRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_BACKEND::raise);
         int stationId = exportService.claimBackendDescriptor(token).orElseThrow(() -> {
             log.info("[export] backend descriptor already claimed - responding 410");
-            return Refusal.TRANSFER_BACKEND_ALREADY_HANDED_OVER.raise();
+            return StorageRefusal.TRANSFER_BACKEND_ALREADY_HANDED_OVER.raise();
         });
         log.info("[export] serving backend descriptor for station {}", stationId);
         ctx.json(descriptorService.describe(stationId));
@@ -113,8 +113,9 @@ public class StationTransferAssetRoutes implements Routes {
             })
     private void listFiles(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId =
-                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_FILE_LIST::raise);
+        int stationId = exportService
+                .validateToken(token)
+                .orElseThrow(StorageRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_FILE_LIST::raise);
         StorageCategory category = parseStationFileCategory(ctx.pathParam("category"));
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(0);
         ctx.json(fileService.page(stationId, category, ctx.queryParam("after"), limit));
@@ -140,11 +141,12 @@ public class StationTransferAssetRoutes implements Routes {
             })
     private void streamFile(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_FILE::raise);
+        int stationId =
+                exportService.validateToken(token).orElseThrow(StorageRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_FILE::raise);
         StorageCategory category = parseStationFileCategory(ctx.pathParam("category"));
         String key = ctx.pathParam("key");
         if (key == null || key.isBlank()) {
-            throw Refusal.TRANSFER_FILE_KEY_MISSING.raise();
+            throw StorageRefusal.TRANSFER_FILE_KEY_MISSING.raise();
         }
 
         var stream = fileService.open(stationId, category, key);
@@ -182,9 +184,9 @@ public class StationTransferAssetRoutes implements Routes {
     @StationFree("the transfer token is the authorisation, and an account's avatar belongs to the account")
     private void streamAvatar(Context ctx) {
         String token = ctx.pathParam("token");
-        exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_AVATAR::raise);
+        exportService.validateToken(token).orElseThrow(StorageRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_AVATAR::raise);
         UUID accountUid = pathUuid(ctx, "accountUid");
-        var avatar = avatarService.read(accountUid, 0).orElseThrow(Refusal.TRANSFER_AVATAR_NOT_HERE::raise);
+        var avatar = avatarService.read(accountUid, 0).orElseThrow(StorageRefusal.TRANSFER_AVATAR_NOT_HERE::raise);
         log.info("[export] streaming avatar for account {} ({} bytes)", accountUid, avatar.data().length);
         ctx.contentType(avatar.contentType());
         ctx.result(avatar.data());
@@ -192,19 +194,19 @@ public class StationTransferAssetRoutes implements Routes {
 
     private StorageCategory parseStationFileCategory(String raw) {
         if (raw == null || raw.isBlank()) {
-            throw Refusal.TRANSFER_FILE_KIND_MISSING.raise();
+            throw StorageRefusal.TRANSFER_FILE_KIND_MISSING.raise();
         }
         StorageCategory category;
         try {
             category = StorageCategory.valueOf(raw.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw Refusal.TRANSFER_FILE_KIND_UNKNOWN.raise(raw);
+            throw StorageRefusal.TRANSFER_FILE_KIND_UNKNOWN.raise(raw);
         }
         if (category.scopeKind() != StorageScope.Kind.STATION) {
-            throw Refusal.TRANSFER_FILE_KIND_NOT_A_STATIONS.raise(raw);
+            throw StorageRefusal.TRANSFER_FILE_KIND_NOT_A_STATIONS.raise(raw);
         }
         if (!category.isMovable()) {
-            throw Refusal.TRANSFER_FILE_KIND_NOT_MOVABLE.raise(raw);
+            throw StorageRefusal.TRANSFER_FILE_KIND_NOT_MOVABLE.raise(raw);
         }
         return category;
     }

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
@@ -249,7 +249,7 @@ public class StorageService {
         if (stations == null) return;
         if (!(scope instanceof StorageScope.Station station)) return;
         if (stations.isReadOnlyForTransfer(station.stationId())) {
-            throw Refusal.STATION_READ_ONLY_FOR_FILE_WRITE.raise();
+            throw StorageRefusal.STATION_READ_ONLY_FOR_FILE_WRITE.raise();
         }
     }
 
@@ -258,7 +258,7 @@ public class StorageService {
         var readOnly = instanceReadOnly;
         if (readOnly == null) return;
         if (readOnly.isLocked()) {
-            throw Refusal.INSTANCE_STORAGE_MOVING.raise();
+            throw StorageRefusal.INSTANCE_STORAGE_MOVING.raise();
         }
     }
 }

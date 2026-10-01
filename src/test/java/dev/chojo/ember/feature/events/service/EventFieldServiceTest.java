@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
@@ -320,7 +320,7 @@ class EventFieldServiceTest extends RepositoryTestBase {
                         List.of(new EventFieldDraft(
                                 "Alter", FieldType.AGE, EventQuestionSettings.empty(), "", false, null, false))));
 
-        assertEquals(Refusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, refused.refusal());
         assertEquals(before, service.findByEvent(eventId), "nothing was written");
     }
 }

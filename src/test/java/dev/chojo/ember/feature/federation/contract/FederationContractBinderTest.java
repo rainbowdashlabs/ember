@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.federation.contract;
 
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
@@ -138,7 +138,7 @@ class FederationContractBinderTest {
         var unsigned = signedRequest(null);
         var refused =
                 assertThrows(RefusalResponse.class, () -> handlers.get(READ).handle(unsigned));
-        assertEquals(Refusal.FEDERATION_REQUEST_NOT_SIGNED, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_REQUEST_NOT_SIGNED, refused.refusal());
     }
 
     @Test

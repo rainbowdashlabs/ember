@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
@@ -127,7 +127,7 @@ public class FederatedTicketProxy implements FederationServer {
     public BoardTicket serveTicket(ServingPartner partner, PathParams params) {
         return enrichTicket(ticketService
                 .findById(guards.viewableTicketId(partner, params))
-                .orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_READ::raise));
+                .orElseThrow(BoardRefusal.REMOTE_TICKET_NOT_HERE_ON_READ::raise));
     }
 
     /**
@@ -230,7 +230,7 @@ public class FederatedTicketProxy implements FederationServer {
                 priorityOf(request.priority(), currentPriority),
                 dateOf(request.dueDate()),
                 guards.actor(partner, request.remoteMemberUid()));
-        return ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_AFTER_UPDATE::raise);
+        return ticketService.findById(ticketId).orElseThrow(BoardRefusal.REMOTE_TICKET_NOT_HERE_AFTER_UPDATE::raise);
     }
 
     /**
@@ -243,7 +243,7 @@ public class FederatedTicketProxy implements FederationServer {
      */
     public BoardTicket serveMove(ServingPartner partner, PathParams params, RemoteMoveTicketRequest request) {
         int ticketId = guards.writableTicketId(partner, params);
-        var ticket = ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_MOVE::raise);
+        var ticket = ticketService.findById(ticketId).orElseThrow(BoardRefusal.REMOTE_TICKET_NOT_HERE_ON_MOVE::raise);
         int toLaneId = guards.laneOnBoard(ticket.boardId(), request.toLaneId());
         guards.cacheName(partner, request.remoteMemberUid(), request.displayName());
         ticketService.moveTicket(
@@ -252,7 +252,7 @@ public class FederatedTicketProxy implements FederationServer {
                 toLaneId,
                 request.position(),
                 guards.actor(partner, request.remoteMemberUid()));
-        return ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_AFTER_MOVE::raise);
+        return ticketService.findById(ticketId).orElseThrow(BoardRefusal.REMOTE_TICKET_NOT_HERE_AFTER_MOVE::raise);
     }
 
     /**

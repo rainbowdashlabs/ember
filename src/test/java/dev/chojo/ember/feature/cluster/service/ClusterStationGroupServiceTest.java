@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.question.FieldType;
@@ -77,7 +77,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
         var group = clusterStationGroupService.create(clusterId, "Nordkreis " + NAMES.incrementAndGet());
 
         assertEquals(
-                Refusal.CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER,
+                ClusterRefusal.CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> clusterStationGroupService.setStations(
@@ -85,7 +85,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
                         .refusal(),
                 "one association cannot file another's stations");
         assertEquals(
-                Refusal.CLUSTER_STATION_GROUP_TAKES_NO_HOME_STATION,
+                ClusterRefusal.CLUSTER_STATION_GROUP_TAKES_NO_HOME_STATION,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> clusterStationGroupService.setStations(
@@ -93,7 +93,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
                         .refusal(),
                 "and its own store is not one of its stations");
         assertEquals(
-                Refusal.CLUSTER_STATION_GROUP_NOT_HERE,
+                ClusterRefusal.CLUSTER_STATION_GROUP_NOT_HERE,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> clusterStationGroupService.rename(otherId, group.id(), "Fremd"))
@@ -113,7 +113,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> clusterStationGroupService.create(clusterId, "nordkreis"));
-        assertEquals(Refusal.CLUSTER_STATION_GROUP_NAME_TAKEN, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN, refused.refusal());
 
         clusterService.delete(clusterId);
     }
@@ -140,7 +140,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertEquals(Refusal.CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS, refused.refusal());
 
         clusterProfileFieldService.delete(clusterId, field.id());
         clusterStationGroupService.delete(clusterId, group.id());
@@ -161,7 +161,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
 
         var refusedForTag =
                 assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertEquals(Refusal.CLUSTER_STATION_GROUP_STILL_RECOMMENDED_TAGS, refusedForTag.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_RECOMMENDED_TAGS, refusedForTag.refusal());
 
         clusterInventoryTagService.delete(clusterId, tag.id());
 
@@ -171,7 +171,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
 
         var refusedForRequirement =
                 assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertEquals(Refusal.CLUSTER_STATION_GROUP_STILL_COUNTS_REQUIREMENTS, refusedForRequirement.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_COUNTS_REQUIREMENTS, refusedForRequirement.refusal());
 
         inventoryRepo.deleteRequirement(requirement.id());
         clusterStationGroupService.delete(clusterId, group.id());

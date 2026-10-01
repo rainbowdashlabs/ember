@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.LanePreset;
@@ -134,7 +134,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                         TicketPriority.MEDIUM,
                         null,
                         identity(writer)));
-        assertEquals(Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
+        assertEquals(BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
     }
 
     @Test
@@ -149,14 +149,14 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                         TicketPriority.MEDIUM,
                         null,
                         identity(writer)));
-        assertEquals(Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
+        assertEquals(BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
     }
 
     @Test
     void handingATicketToSomebodyWhoMayNotWriteIsRefused() {
         var refused = assertThrows(
                 RefusalResponse.class, () -> ticketService.assignTicket(ticketId, identity(outsider), writer.id()));
-        assertEquals(Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
+        assertEquals(BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
 
         assertNull(ticketService.findById(ticketId).orElseThrow().assignee(), "the ticket stayed on nobody");
     }

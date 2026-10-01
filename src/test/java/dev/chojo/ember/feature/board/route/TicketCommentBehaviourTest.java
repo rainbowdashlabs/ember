@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.board.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
@@ -207,7 +208,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         var listed = json(harness.request(client -> client.get(comments(number), harness.as(as(reader)))));
 
         assertEquals(1, listed.size());
-        assertEquals(Refusal.BOARD_NOT_YOURS_TO_EDIT, refusalOf(post(reader, number, "{\"content\": \"x\"}")));
+        assertEquals(BoardRefusal.BOARD_NOT_YOURS_TO_EDIT, refusalOf(post(reader, number, "{\"content\": \"x\"}")));
     }
 
     @Test
@@ -215,7 +216,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         int number = ticket();
         int id = write(writer, number, "von Wanda");
 
-        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_CHANGE, refusalOf(change(other, number, id, "von Otto")));
+        assertEquals(CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE, refusalOf(change(other, number, id, "von Otto")));
         assertEquals(200, change(writer, number, id, "von Wanda umgeschrieben").code());
         assertEquals("von Wanda umgeschrieben", contentOfFirst(number));
     }
@@ -226,10 +227,10 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         int first = write(writer, number, "von Wanda");
         int second = write(writer, number, "auch von Wanda");
 
-        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), number, first)));
+        assertEquals(CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), number, first)));
         assertEquals(204, remove(asManager(other), number, first).code());
         assertEquals(204, remove(as(writer), number, second).code());
-        assertEquals(Refusal.BOARD_NOT_YOURS_TO_EDIT, refusalOf(remove(as(reader), number, second)));
+        assertEquals(BoardRefusal.BOARD_NOT_YOURS_TO_EDIT, refusalOf(remove(as(reader), number, second)));
         assertTrue(published().stream()
                 .anyMatch(event -> event instanceof CommentDeleted deleted
                         && deleted.commentId() == second
@@ -241,7 +242,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         int number = ticket();
         int id = write(writer, number, "alt");
 
-        assertEquals(Refusal.COMMENT_CHANGE_NEEDS_TEXT, refusalOf(change(writer, number, id, "")));
+        assertEquals(CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT, refusalOf(change(writer, number, id, "")));
         assertEquals("alt", contentOfFirst(number));
     }
 
@@ -251,7 +252,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         int second = ticket();
         int id = write(writer, first, "hier");
 
-        assertEquals(Refusal.TICKET_COMMENT_NOT_HERE, refusalOf(remove(as(writer), second, id)));
+        assertEquals(BoardRefusal.TICKET_COMMENT_NOT_HERE, refusalOf(remove(as(writer), second, id)));
     }
 
     @Test
@@ -260,7 +261,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
 
         var refused = post(other, ticket(), "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent));
 
-        assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refusalOf(refused));
+        assertEquals(CommentRefusal.COMMENT_PARENT_ELSEWHERE, refusalOf(refused));
     }
 
     @Test

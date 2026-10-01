@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.content.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -154,7 +154,7 @@ public class ContentBlockService {
 
     private void requireAllowed(CellContentType type, Scope scope) {
         if (scope == Scope.PAGE || type.availableInArticles()) return;
-        throw Refusal.CONTENT_BLOCK_ONLY_ON_PAGES.raise();
+        throw PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES.raise();
     }
 
     /**

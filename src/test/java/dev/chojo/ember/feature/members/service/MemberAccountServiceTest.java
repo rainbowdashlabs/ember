@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
@@ -15,6 +13,9 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
@@ -96,8 +97,8 @@ class MemberAccountServiceTest {
 
     @Test
     void anAccountOfAnotherStationIsNotThere() {
-        assertEquals(Refusal.MEMBER_NOT_HERE, refusalOf(() -> service.requireStationAccount(TARGET, STATION_ID)));
-        assertEquals(Refusal.MEMBER_NOT_HERE, refusalOf(() -> service.requireStationAccount(TARGET, null)));
+        assertEquals(MemberRefusal.MEMBER_NOT_HERE, refusalOf(() -> service.requireStationAccount(TARGET, STATION_ID)));
+        assertEquals(MemberRefusal.MEMBER_NOT_HERE, refusalOf(() -> service.requireStationAccount(TARGET, null)));
     }
 
     @Test
@@ -106,9 +107,9 @@ class MemberAccountServiceTest {
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.ADMINISTRATOR)));
 
         assertEquals(
-                Refusal.ACCOUNT_ABOVE_YOU,
-                refusalOf(() ->
-                        service.actionableAccount(TARGET, managerHere(), Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
+                MemberRefusal.ACCOUNT_ABOVE_YOU,
+                refusalOf(() -> service.actionableAccount(
+                        TARGET, managerHere(), MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
     }
 
     @Test
@@ -116,9 +117,9 @@ class MemberAccountServiceTest {
         targetIsAtTheStation();
 
         assertEquals(
-                Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET,
-                refusalOf(() ->
-                        service.actionableAccount(TARGET, managerHere(), Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
+                MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET,
+                refusalOf(() -> service.actionableAccount(
+                        TARGET, managerHere(), MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
     }
 
     @Test
@@ -126,7 +127,8 @@ class MemberAccountServiceTest {
         targetIsAtTheStation();
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
         assertEquals(
-                Refusal.MEMBER_HAS_OWN_ADDRESS, refusalOf(() -> service.addresslessAccount(TARGET, managerHere())));
+                MemberRefusal.MEMBER_HAS_OWN_ADDRESS,
+                refusalOf(() -> service.addresslessAccount(TARGET, managerHere())));
 
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@x.local", InstanceUserType.USER)));
         assertEquals(TARGET, service.addresslessAccount(TARGET, managerHere()).id());
@@ -137,7 +139,7 @@ class MemberAccountServiceTest {
         var plainMember = TestSessions.member(STATION_ID);
 
         assertEquals(
-                Refusal.ACCOUNT_NOT_YOURS_TO_CHANGE,
+                MemberRefusal.ACCOUNT_NOT_YOURS_TO_CHANGE,
                 refusalOf(() -> update(plainMember, TARGET, new UpdateAccountRequest(null, null, "A", "B"))));
     }
 
@@ -158,14 +160,14 @@ class MemberAccountServiceTest {
     @Test
     void anAccountThatIsGoneOrWasNotWrittenIsRefused() {
         assertEquals(
-                Refusal.ACCOUNT_NOT_HERE_ON_CHANGE,
+                MemberRefusal.ACCOUNT_NOT_HERE_ON_CHANGE,
                 refusalOf(() ->
                         update(TestSessions.administrator(), TARGET, new UpdateAccountRequest(null, null, "A", "B"))));
 
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
         when(accounts.update(anyInt(), any(), any(), any())).thenReturn(false);
         assertEquals(
-                Refusal.MEMBER_NOT_HERE_ON_CHANGE,
+                MemberRefusal.MEMBER_NOT_HERE_ON_CHANGE,
                 refusalOf(() ->
                         update(TestSessions.administrator(), TARGET, new UpdateAccountRequest(null, null, "A", "B"))));
     }
@@ -188,7 +190,7 @@ class MemberAccountServiceTest {
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.ADMINISTRATOR)));
 
         assertEquals(
-                Refusal.ACCOUNT_ABOVE_YOU,
+                MemberRefusal.ACCOUNT_ABOVE_YOU,
                 refusalOf(() -> update(manager(), TARGET, new UpdateAccountRequest("new@test.com", null, "A", "B"))));
         verify(emails, never()).setEmailFor(anyInt(), anyInt(), anyString());
     }
@@ -211,7 +213,7 @@ class MemberAccountServiceTest {
         when(auth.requestEmailChange(own, "taken@test.com")).thenReturn(EmailChangeResult.DUPLICATE);
 
         assertEquals(
-                Refusal.ACCOUNT_ADDRESS_TAKEN,
+                MemberRefusal.ACCOUNT_ADDRESS_TAKEN,
                 refusalOf(() -> update(manager(), own, new UpdateAccountRequest("taken@test.com", null, "A", "B"))));
     }
 }

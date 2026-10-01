@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
@@ -86,9 +86,10 @@ public class PublicEventRoutes implements Routes {
 
     private Station resolveStation(Context ctx) {
         UUID uid = pathUuid(ctx, "stationUid");
-        var station = stationService.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR::raise);
+        var station =
+                stationService.findByUid(uid).orElseThrow(EventRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR::raise);
         if (!station.publicCalendarEnabled()) {
-            throw Refusal.PUBLIC_CALENDAR_SWITCHED_OFF.raise();
+            throw EventRefusal.PUBLIC_CALENDAR_SWITCHED_OFF.raise();
         }
         return station;
     }
@@ -179,12 +180,12 @@ public class PublicEventRoutes implements Routes {
     private void getPublicEvent(Context ctx) {
         var station = resolveStation(ctx);
         int id = pathInt(ctx, "id");
-        var event = crudService.findById(id).orElseThrow(Refusal.PUBLIC_EVENT_NOT_HERE::raise);
-        if (event.stationId() != station.id()) throw Refusal.PUBLIC_EVENT_NOT_HERE.raise();
+        var event = crudService.findById(id).orElseThrow(EventRefusal.PUBLIC_EVENT_NOT_HERE::raise);
+        if (event.stationId() != station.id()) throw EventRefusal.PUBLIC_EVENT_NOT_HERE.raise();
 
         var categoryMap = categoryMap(station.id());
 
-        if (!isEventPublic(event, categoryMap)) throw Refusal.PUBLIC_EVENT_NOT_HERE.raise();
+        if (!isEventPublic(event, categoryMap)) throw EventRefusal.PUBLIC_EVENT_NOT_HERE.raise();
 
         var fields = eventFieldService
                 .findByEvent(id, occurrenceCalendar.dateInView(event).orElse(null))

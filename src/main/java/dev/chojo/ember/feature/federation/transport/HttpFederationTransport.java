@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.transport;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
@@ -23,7 +23,7 @@ import java.util.List;
  * The transport to a partner on another instance: a signed request as the asking station.
  *
  * <p>A station without a key cannot sign and is not sent anywhere. A single answer that does not
- * arrive, or arrives empty, is refused as {@link Refusal#FEDERATION_PARTNER_DID_NOT_ANSWER}; a list
+ * arrive, or arrives empty, is refused as {@link FederationRefusal#FEDERATION_PARTNER_DID_NOT_ANSWER}; a list
  * that does not arrive is empty, so a fan-out loses only that partner's entries. Pushes go through
  * {@link FederationWebhookService}, which retries them in the background.
  */
@@ -82,7 +82,7 @@ public class HttpFederationTransport implements FederationTransport {
     @Override
     public void deliver(FederationPartner partner, FederationRequest request, @Nullable Object body) {
         requireKey(partner);
-        if (!delivered(partner, request, body)) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
+        if (!delivered(partner, request, body)) throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
     }
 
     @Override
@@ -112,11 +112,11 @@ public class HttpFederationTransport implements FederationTransport {
     }
 
     private void requireKey(FederationPartner partner) {
-        if (!canSign(partner)) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
+        if (!canSign(partner)) throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
     }
 
     private static <T> T answered(@Nullable T answer) {
-        if (answer == null) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
+        if (answer == null) throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
         return answer;
     }
 }

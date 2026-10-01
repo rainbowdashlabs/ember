@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.insights.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InsightsRefusal;
 import dev.chojo.ember.feature.insights.service.PageInsightsService;
 import dev.chojo.ember.feature.insights.service.PageInsightsService.LeaderboardResponse;
 import dev.chojo.ember.feature.insights.service.PageInsightsService.PageDetailResponse;
@@ -50,10 +50,10 @@ class StationInsightsRoutesTest {
                     client.get(PREFIX + "/station/insights/pages/8" + SPAN, manager)
                             .code());
             assertEquals(
-                    Refusal.INSIGHTS_PAGE_NOT_A_NUMBER,
+                    InsightsRefusal.INSIGHTS_PAGE_NOT_A_NUMBER,
                     refusalOf(client.get(PREFIX + "/station/insights/pages/x" + SPAN, manager)));
             assertEquals(
-                    Refusal.INSIGHTS_PAGE_WINDOW_ENDS_BEFORE_IT_STARTS,
+                    InsightsRefusal.INSIGHTS_PAGE_WINDOW_ENDS_BEFORE_IT_STARTS,
                     refusalOf(client.get(
                             PREFIX + "/station/insights/pages/8?from=2026-09-02T00:00:00Z&to=2026-09-01T00:00:00Z",
                             manager)));

@@ -6,10 +6,14 @@
 package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.CommentRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -167,7 +171,7 @@ class CommentServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.requireReadable(stationSession(alice), CommentEntityType.EVENT, -1));
 
-        assertEquals(Refusal.EVENT_NOT_HERE, refused.refusal());
+        assertEquals(EventRefusal.EVENT_NOT_HERE, refused.refusal());
         assertEquals(
                 eventId,
                 service.requireReadable(stationSession(alice), CommentEntityType.EVENT, eventId)
@@ -248,7 +252,7 @@ class CommentServiceTest extends RepositoryTestBase {
 
         for (int parentId : List.of(elsewhereComment.id(), onNews.id(), -1)) {
             var refused = assertThrows(RefusalResponse.class, () -> write(bob, "Bob", parentId, "quer"));
-            assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refused.refusal());
+            assertEquals(CommentRefusal.COMMENT_PARENT_ELSEWHERE, refused.refusal());
         }
     }
 
@@ -343,7 +347,7 @@ class CommentServiceTest extends RepositoryTestBase {
         service.requireSameStation(stationSession(bob), comment);
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.requireSameStation(stationSession(carol), comment));
-        assertEquals(Refusal.NOT_YOURS_TO_OPEN, refused.refusal());
+        assertEquals(GeneralRefusal.NOT_YOURS_TO_OPEN, refused.refusal());
     }
 
     @Test
@@ -445,7 +449,7 @@ class CommentServiceTest extends RepositoryTestBase {
 
         @Override
         public Refusal missing() {
-            return Refusal.NEWS_NOT_HERE_OR_NOT_YOURS;
+            return NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS;
         }
 
         @Override

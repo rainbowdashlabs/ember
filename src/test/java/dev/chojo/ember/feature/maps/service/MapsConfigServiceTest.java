@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.maps.service;
 
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;

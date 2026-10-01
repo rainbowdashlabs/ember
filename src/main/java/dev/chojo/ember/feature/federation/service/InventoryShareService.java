@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -227,20 +227,20 @@ public class InventoryShareService {
         Inventory inventory = inventoryRepository.findByStation(stationId).stream()
                 .filter(inv -> inv.id() == inventoryId)
                 .findFirst()
-                .orElseThrow(Refusal.SHARE_INVENTORY_NOT_HERE::raise);
+                .orElseThrow(FederationRefusal.SHARE_INVENTORY_NOT_HERE::raise);
         if (inventory.inventoryType() == InventoryType.EXTERNAL) {
-            throw Refusal.SHARE_INVENTORY_NOT_THE_STATIONS.raise();
+            throw FederationRefusal.SHARE_INVENTORY_NOT_THE_STATIONS.raise();
         }
         return inventory;
     }
 
     private void requireOwnArt(int stationId, int artId) {
-        var art = artRepository.findById(artId).orElseThrow(Refusal.SHARE_ITEM_KIND_NOT_HERE::raise);
+        var art = artRepository.findById(artId).orElseThrow(FederationRefusal.SHARE_ITEM_KIND_NOT_HERE::raise);
         requireOwnInventory(stationId, art.inventoryId());
     }
 
     private void requireOwnItem(int stationId, int itemId) {
-        var item = inventoryRepository.findItemById(itemId).orElseThrow(Refusal.SHARE_ITEM_NOT_HERE::raise);
+        var item = inventoryRepository.findItemById(itemId).orElseThrow(FederationRefusal.SHARE_ITEM_NOT_HERE::raise);
         requireOwnInventory(stationId, item.inventoryId());
     }
 

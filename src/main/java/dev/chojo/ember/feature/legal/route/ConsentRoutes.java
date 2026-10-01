@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.legal.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.LegalRefusal;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.legal.service.ConsentStatusService;
 import dev.chojo.ember.feature.legal.service.ConsentStatusService.ConsentChangesResponse;
@@ -136,7 +136,7 @@ public class ConsentRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(RecordConsentRequest.class);
         if (request.consentVersion() == null || request.consentVersion().isBlank()) {
-            throw Refusal.CONSENT_VERSION_MISSING.raise();
+            throw LegalRefusal.CONSENT_VERSION_MISSING.raise();
         }
 
         String ipAddress = ctx.ip();

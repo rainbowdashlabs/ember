@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.DiscoveryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
@@ -130,8 +131,8 @@ class StationDiscoveryServiceTest {
         when(federation.generatePairingCode(OPEN)).thenReturn("CODE");
 
         assertEquals("CODE", service.inviteCode(false, OPEN));
-        assertEquals(Refusal.INVITE_NEEDS_A_STATION, refusalOf(() -> service.inviteCode(false, null)));
-        assertEquals(Refusal.STATION_NOT_OPEN_TO_INVITES, refusalOf(() -> service.inviteCode(true, OPEN)));
+        assertEquals(DiscoveryRefusal.INVITE_NEEDS_A_STATION, refusalOf(() -> service.inviteCode(false, null)));
+        assertEquals(DiscoveryRefusal.STATION_NOT_OPEN_TO_INVITES, refusalOf(() -> service.inviteCode(true, OPEN)));
     }
 
     @Test
@@ -143,11 +144,14 @@ class StationDiscoveryServiceTest {
         verify(federation).createPairRequest(3, 5);
 
         when(federation.findPendingRequests(5)).thenReturn(List.of(pending));
-        assertEquals(Refusal.FEDERATION_REQUEST_ALREADY_SENT, refusalOf(() -> service.requestFederation(3, OPEN)));
-        assertEquals(Refusal.ALREADY_FEDERATED, refusalOf(() -> service.requestFederation(3, PARTNER)));
         assertEquals(
-                Refusal.STATION_NOT_OPEN_TO_FEDERATION,
+                DiscoveryRefusal.FEDERATION_REQUEST_ALREADY_SENT, refusalOf(() -> service.requestFederation(3, OPEN)));
+        assertEquals(DiscoveryRefusal.ALREADY_FEDERATED, refusalOf(() -> service.requestFederation(3, PARTNER)));
+        assertEquals(
+                DiscoveryRefusal.STATION_NOT_OPEN_TO_FEDERATION,
                 refusalOf(() -> service.requestFederation(3, UUID.randomUUID())));
-        assertEquals(Refusal.FEDERATION_REQUEST_NEEDS_A_STATION, refusalOf(() -> service.requestFederation(3, null)));
+        assertEquals(
+                DiscoveryRefusal.FEDERATION_REQUEST_NEEDS_A_STATION,
+                refusalOf(() -> service.requestFederation(3, null)));
     }
 }

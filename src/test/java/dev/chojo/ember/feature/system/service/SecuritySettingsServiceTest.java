@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.UnwritableConf;
@@ -71,7 +72,7 @@ class SecuritySettingsServiceTest {
     void oneTokenSettingOutOfRangeChangesNoneOfThem() {
         var refusal = refusalOf(() -> service.updateTokens(new TokensConfigRequest(48, 12, 24, 14, 600, 1)));
 
-        assertEquals(Refusal.SETTING_OUT_OF_RANGE, refusal);
+        assertEquals(SystemRefusal.SETTING_OUT_OF_RANGE, refusal);
         assertEquals(32, conf.main().auth().tokenBytes());
     }
 
@@ -79,7 +80,7 @@ class SecuritySettingsServiceTest {
     void aSessionOnAnUnvouchedMachineMayNotOutlastOneOnAVouchedMachine() {
         var refusal = refusalOf(() -> service.updateTokens(new TokensConfigRequest(48, 12, 24, 14, 60, 120)));
 
-        assertEquals(Refusal.UNTRUSTED_SESSION_OUTLASTS_TRUSTED, refusal);
+        assertEquals(SystemRefusal.UNTRUSTED_SESSION_OUTLASTS_TRUSTED, refusal);
     }
 
     @Test
@@ -87,7 +88,7 @@ class SecuritySettingsServiceTest {
         assertTrue(service.generateTokenPepper().tokenPepperConfigured());
         String pepper = reread().auth().tokenPepper();
 
-        assertEquals(Refusal.TOKEN_PEPPER_ALREADY_SET, refusalOf(service::generateTokenPepper));
+        assertEquals(SystemRefusal.TOKEN_PEPPER_ALREADY_SET, refusalOf(service::generateTokenPepper));
         assertEquals(pepper, reread().auth().tokenPepper());
         assertTrue(service.tokens().tokenPepperConfigured());
     }
@@ -106,16 +107,16 @@ class SecuritySettingsServiceTest {
     @Test
     void theLeakCheckNeedsAnAddressAndSaneNumbers() {
         assertEquals(
-                Refusal.PASSWORD_LEAK_CHECK_NEEDS_AN_ADDRESS,
+                SystemRefusal.PASSWORD_LEAK_CHECK_NEEDS_AN_ADDRESS,
                 refusalOf(() -> service.updateHibp(new HibpConfigRequest(true, " ", 10, 3))));
         assertEquals(
-                Refusal.PASSWORD_LEAK_CHECK_NEEDS_AN_ADDRESS,
+                SystemRefusal.PASSWORD_LEAK_CHECK_NEEDS_AN_ADDRESS,
                 refusalOf(() -> service.updateHibp(new HibpConfigRequest(true, null, 10, 3))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateHibp(new HibpConfigRequest(true, "https://x/", 0, 3))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateHibp(new HibpConfigRequest(true, "https://x/", 10, 31))));
     }
 
@@ -133,13 +134,13 @@ class SecuritySettingsServiceTest {
     @Test
     void twoFactorNumbersOutOfRangeAreRefused() {
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateTwoFactorCore(new TwoFactorCoreConfigRequest(true, 30, 14, 3))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateTwoFactorCore(new TwoFactorCoreConfigRequest(true, 600, 31, 3))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateTwoFactorCore(new TwoFactorCoreConfigRequest(true, 600, 14, 8))));
     }
 
@@ -148,7 +149,7 @@ class SecuritySettingsServiceTest {
         assertTrue(service.generateTwoFactorSecretKey().secretKeyConfigured());
         String key = reread().auth().twoFactor().secretKey();
 
-        assertEquals(Refusal.TWO_FACTOR_SECRET_KEY_ALREADY_SET, refusalOf(service::generateTwoFactorSecretKey));
+        assertEquals(SystemRefusal.TWO_FACTOR_SECRET_KEY_ALREADY_SET, refusalOf(service::generateTwoFactorSecretKey));
         assertEquals(key, reread().auth().twoFactor().secretKey());
     }
 
@@ -169,25 +170,25 @@ class SecuritySettingsServiceTest {
     @Test
     void authenticatorSettingsNeedAnIssuerAndAKnownAlgorithm() {
         assertEquals(
-                Refusal.AUTHENTICATOR_NEEDS_AN_ISSUER,
+                SystemRefusal.AUTHENTICATOR_NEEDS_AN_ISSUER,
                 refusalOf(() -> service.updateTotp(new TotpConfig(6, 30, "SHA1", 1, null))));
         assertEquals(
-                Refusal.AUTHENTICATOR_NEEDS_AN_ISSUER,
+                SystemRefusal.AUTHENTICATOR_NEEDS_AN_ISSUER,
                 refusalOf(() -> service.updateTotp(new TotpConfig(6, 30, "SHA1", 1, ""))));
         assertEquals(
-                Refusal.AUTHENTICATOR_ALGORITHM_UNKNOWN,
+                SystemRefusal.AUTHENTICATOR_ALGORITHM_UNKNOWN,
                 refusalOf(() -> service.updateTotp(new TotpConfig(6, 30, "MD5", 1, "Ember"))));
         assertEquals(
-                Refusal.AUTHENTICATOR_ALGORITHM_UNKNOWN,
+                SystemRefusal.AUTHENTICATOR_ALGORITHM_UNKNOWN,
                 refusalOf(() -> service.updateTotp(new TotpConfig(6, 30, null, 1, "Ember"))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateTotp(new TotpConfig(3, 30, "SHA1", 1, "Ember"))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateTotp(new TotpConfig(6, 90, "SHA1", 1, "Ember"))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateTotp(new TotpConfig(6, 30, "SHA1", 4, "Ember"))));
     }
 
@@ -197,7 +198,8 @@ class SecuritySettingsServiceTest {
 
         assertEquals(12, reread().auth().twoFactor().backupCodes().count());
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE, refusalOf(() -> service.updateBackupCodes(new BackupCodesConfig(4))));
+                SystemRefusal.SETTING_OUT_OF_RANGE,
+                refusalOf(() -> service.updateBackupCodes(new BackupCodesConfig(4))));
         assertEquals(12, service.backupCodes().count());
     }
 
@@ -219,13 +221,13 @@ class SecuritySettingsServiceTest {
     @Test
     void securityKeySettingsNeedAKnownAttestation() {
         assertEquals(
-                Refusal.SECURITY_KEY_ATTESTATION_UNKNOWN,
+                SystemRefusal.SECURITY_KEY_ATTESTATION_UNKNOWN,
                 refusalOf(() -> service.updateWebAuthn(new WebAuthnConfig("", "", "enterprise", 60))));
         assertEquals(
-                Refusal.SECURITY_KEY_ATTESTATION_UNKNOWN,
+                SystemRefusal.SECURITY_KEY_ATTESTATION_UNKNOWN,
                 refusalOf(() -> service.updateWebAuthn(new WebAuthnConfig("", "", null, 60))));
         assertEquals(
-                Refusal.SETTING_OUT_OF_RANGE,
+                SystemRefusal.SETTING_OUT_OF_RANGE,
                 refusalOf(() -> service.updateWebAuthn(new WebAuthnConfig("", "", "none", 5))));
     }
 
@@ -239,21 +241,23 @@ class SecuritySettingsServiceTest {
         var failing = new SecuritySettingsService(unwritable, new ConfigChanges(unwritable));
         var before = failing.tokens();
 
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refusalOf(() -> failing.updateTokens(TOKENS)));
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refusalOf(failing::generateTokenPepper));
+        assertEquals(SystemRefusal.SETTINGS_NOT_SAVED, refusalOf(() -> failing.updateTokens(TOKENS)));
+        assertEquals(SystemRefusal.SETTINGS_NOT_SAVED, refusalOf(failing::generateTokenPepper));
         assertEquals(
-                Refusal.SETTINGS_NOT_SAVED,
+                SystemRefusal.SETTINGS_NOT_SAVED,
                 refusalOf(() -> failing.updateHibp(new HibpConfigRequest(false, "https://x/", 10, 3))));
         assertEquals(
-                Refusal.SETTINGS_NOT_SAVED,
+                SystemRefusal.SETTINGS_NOT_SAVED,
                 refusalOf(() -> failing.updateTwoFactorCore(new TwoFactorCoreConfigRequest(false, 600, 14, 3))));
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refusalOf(failing::generateTwoFactorSecretKey));
+        assertEquals(SystemRefusal.SETTINGS_NOT_SAVED, refusalOf(failing::generateTwoFactorSecretKey));
         assertEquals(
-                Refusal.SETTINGS_NOT_SAVED,
+                SystemRefusal.SETTINGS_NOT_SAVED,
                 refusalOf(() -> failing.updateTotp(new TotpConfig(8, 60, "SHA512", 2, "Wache"))));
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refusalOf(() -> failing.updateBackupCodes(new BackupCodesConfig(12))));
         assertEquals(
-                Refusal.SETTINGS_NOT_SAVED,
+                SystemRefusal.SETTINGS_NOT_SAVED,
+                refusalOf(() -> failing.updateBackupCodes(new BackupCodesConfig(12))));
+        assertEquals(
+                SystemRefusal.SETTINGS_NOT_SAVED,
                 refusalOf(() -> failing.updateWebAuthn(new WebAuthnConfig("x", "y", "direct", 120))));
 
         assertEquals(before, failing.tokens());

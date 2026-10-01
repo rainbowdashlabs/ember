@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -83,7 +84,7 @@ public class TwoFactorSignInService {
             if (attemptTracker.recordFailure(attemptKey) >= TwoFactorAttemptTracker.MAX_ATTEMPTS) {
                 accounts.deleteToken(preAuthToken);
             }
-            throw Refusal.TWO_FACTOR_CODE_WRONG.raise();
+            throw TwoFactorRefusal.TWO_FACTOR_CODE_WRONG.raise();
         }
         attemptTracker.reset(attemptKey);
         accounts.deleteToken(preAuthToken);

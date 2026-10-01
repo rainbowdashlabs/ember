@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.DiscoveryRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
@@ -107,12 +107,12 @@ public class StationDiscoveryService {
      * @param stationUid the station to be invited to
      */
     public String inviteCode(boolean signedIn, UUID stationUid) {
-        if (stationUid == null) throw Refusal.INVITE_NEEDS_A_STATION.raise();
+        if (stationUid == null) throw DiscoveryRefusal.INVITE_NEEDS_A_STATION.raise();
         var candidates = signedIn ? stationService.findDiscoverable(0) : stationService.findPubliclyDiscoverable(0);
         var target = candidates.stream()
                 .filter(s -> s.uid().equals(stationUid))
                 .findFirst()
-                .orElseThrow(Refusal.STATION_NOT_OPEN_TO_INVITES::raise);
+                .orElseThrow(DiscoveryRefusal.STATION_NOT_OPEN_TO_INVITES::raise);
         return federationService.generatePairingCode(target.uid());
     }
 
@@ -124,18 +124,18 @@ public class StationDiscoveryService {
      * @param stationUid the station asked
      */
     public void requestFederation(int stationId, UUID stationUid) {
-        if (stationUid == null) throw Refusal.FEDERATION_REQUEST_NEEDS_A_STATION.raise();
+        if (stationUid == null) throw DiscoveryRefusal.FEDERATION_REQUEST_NEEDS_A_STATION.raise();
         var target = stationService.findDiscoverable(stationId).stream()
                 .filter(s -> s.uid().equals(stationUid))
                 .findFirst()
-                .orElseThrow(Refusal.STATION_NOT_OPEN_TO_FEDERATION::raise);
+                .orElseThrow(DiscoveryRefusal.STATION_NOT_OPEN_TO_FEDERATION::raise);
         if (partnerUids(stationId).contains(target.uid())) {
-            throw Refusal.ALREADY_FEDERATED.raise();
+            throw DiscoveryRefusal.ALREADY_FEDERATED.raise();
         }
         boolean alreadyRequested =
                 federationService.findPendingRequests(target.id()).stream().anyMatch(p -> p.stationId() == stationId);
         if (alreadyRequested) {
-            throw Refusal.FEDERATION_REQUEST_ALREADY_SENT.raise();
+            throw DiscoveryRefusal.FEDERATION_REQUEST_ALREADY_SENT.raise();
         }
         federationService.createPairRequest(stationId, target.id());
     }

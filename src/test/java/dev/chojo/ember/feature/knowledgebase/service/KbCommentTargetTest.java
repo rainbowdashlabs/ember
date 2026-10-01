@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentOrigin;
 import dev.chojo.ember.feature.comment.entity.CreatedAudience;
@@ -61,7 +61,7 @@ class KbCommentTargetTest {
     void aFileIsFoundWithItsStationAndName() {
         assertEquals(Optional.of(TARGET), target.find(FILE));
         assertTrue(target.find(FILE + 1).isEmpty());
-        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, target.missing());
+        assertEquals(GeneralRefusal.NOT_HERE_OR_NOT_YOURS, target.missing());
     }
 
     @Test
@@ -72,11 +72,11 @@ class KbCommentTargetTest {
         assertDoesNotThrow(() -> target.requireReadable(own, TARGET));
         assertDoesNotThrow(() -> target.requireWritable(own, TARGET));
         assertEquals(
-                Refusal.NOT_HERE_OR_NOT_YOURS,
+                GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                 assertThrows(RefusalResponse.class, () -> target.requireReadable(foreign, TARGET))
                         .refusal());
         assertEquals(
-                Refusal.NOT_HERE_OR_NOT_YOURS,
+                GeneralRefusal.NOT_HERE_OR_NOT_YOURS,
                 assertThrows(RefusalResponse.class, () -> target.requireWritable(foreign, TARGET))
                         .refusal());
     }

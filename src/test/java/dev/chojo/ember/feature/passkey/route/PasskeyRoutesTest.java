@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.passkey.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.BodyRefusal;
+import dev.chojo.ember.api.refusal.PasskeyRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
@@ -84,7 +85,7 @@ class PasskeyRoutesTest {
                     "Tom Reader",
                     json(shown).get("candidates").get(0).get("name").asString());
             assertEquals(
-                    Refusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP,
+                    PasskeyRefusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP,
                     refusalOf(client.post(PREFIX + "/account/passkeys/device-lookup", body("""
                             {"code":"theirs"}"""), reader)));
         });
@@ -93,12 +94,13 @@ class PasskeyRoutesTest {
     @Test
     void aPasskeyForAGoneAccountIsRefused() {
         when(mode.effectiveMode()).thenReturn(PasskeySettings.Mode.PREFERRED);
-        when(accounts.account(TestSessions.ACCOUNT_ID)).thenThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION.raise());
+        when(accounts.account(TestSessions.ACCOUNT_ID))
+                .thenThrow(PasskeyRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION.raise());
         var reader = harness.as(TestSessions.member(3, StationPermission.LOGIN));
 
         var response = harness.request(client -> client.post(PREFIX + "/account/passkeys/begin", null, reader));
 
-        assertEquals(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION, refusalOf(response));
+        assertEquals(PasskeyRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION, refusalOf(response));
     }
 
     @Test
@@ -116,10 +118,10 @@ class PasskeyRoutesTest {
                             {"answer":"LATER"}"""), reader)
                             .code());
             assertEquals(
-                    Refusal.PASSKEY_OFFER_ANSWER_UNKNOWN,
+                    PasskeyRefusal.PASSKEY_OFFER_ANSWER_UNKNOWN,
                     refusalOf(client.post(PREFIX + "/account/passkeys/offer-answer", body("{}"), reader)));
             assertEquals(
-                    Refusal.BODY_DOES_NOT_MATCH,
+                    BodyRefusal.BODY_DOES_NOT_MATCH,
                     refusalOf(client.post(PREFIX + "/account/passkeys/offer-answer", body("""
                             {"answer":"NEVER"}"""), reader)));
         });

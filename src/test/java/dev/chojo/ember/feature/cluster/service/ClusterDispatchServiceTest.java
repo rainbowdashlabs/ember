@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -135,14 +135,14 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
                 () -> clusterDispatchService.dispatch(
                         cluster.id(), strangersStation.uid(), items, "Falsche Wache", owner()),
                 "a station that answers to somebody else is nobody to send to");
-        assertEquals(Refusal.CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER, wrongStation.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER, wrongStation.refusal());
 
         var elsewhere = stock(stranger, 1);
         var foreignGear = assertThrows(
                 RefusalResponse.class,
                 () -> clusterDispatchService.dispatch(cluster.id(), station.uid(), elsewhere, "Fremd", owner()),
                 "gear another body owns is not this one's to send");
-        assertEquals(Refusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE, foreignGear.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE, foreignGear.refusal());
 
         clusterService.releaseStation(stranger.id(), strangersStation.id());
         stationRepo.delete(strangersStation.id());
@@ -169,7 +169,7 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
                 () -> clusterDispatchService.dispatch(
                         cluster.id(), station.uid(), List.of(items.getFirst()), "Nochmal", owner()),
                 "and cannot be sent a second time");
-        assertEquals(Refusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE, again.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE, again.refusal());
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());
@@ -184,7 +184,8 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
         var thrown = assertThrows(
                 RefusalResponse.class,
                 () -> clusterDispatchService.dispatch(cluster.id(), station.uid(), items, "Ohne Ablauf", owner()));
-        assertEquals(Refusal.CLUSTER_DISPATCH_WITHOUT_CHAIN, thrown.refusal(), "the refusal names what is missing");
+        assertEquals(
+                ClusterRefusal.CLUSTER_DISPATCH_WITHOUT_CHAIN, thrown.refusal(), "the refusal names what is missing");
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());

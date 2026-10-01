@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
 import dev.chojo.ember.feature.members.service.SavedFilterService;
@@ -41,7 +41,9 @@ class SavedFilterRoutesTest {
         when(filters.list(account, FilterTableType.MEMBERS)).thenReturn(List.of());
         when(filters.create(account, request))
                 .thenReturn(new SavedFilter(1, account, FilterTableType.MEMBERS, "Jugend", "{}", 0));
-        doThrow(Refusal.SAVED_FILTER_NOT_HERE_ON_DELETE.raise()).when(filters).delete(account, 9);
+        doThrow(MemberRefusal.SAVED_FILTER_NOT_HERE_ON_DELETE.raise())
+                .when(filters)
+                .delete(account, 9);
 
         harness.run((server, client) -> {
             assertEquals(
@@ -58,7 +60,7 @@ class SavedFilterRoutesTest {
                     client.delete(PREFIX + "/saved-filters/1", null, harness.as(session))
                             .code());
             assertEquals(
-                    Refusal.SAVED_FILTER_NOT_HERE_ON_DELETE,
+                    MemberRefusal.SAVED_FILTER_NOT_HERE_ON_DELETE,
                     refusalOf(client.delete(PREFIX + "/saved-filters/9", null, harness.as(session))));
         });
 

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferCategory;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
@@ -51,7 +51,7 @@ public class QuizImportService {
      *
      * @param csvContent the decoded sheet
      * @param mappings   which column carries which field, plus the parsing separators
-     * @throws dev.chojo.ember.api.RefusalResponse when the sheet cannot be parsed, the question
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the sheet cannot be parsed, the question
      *                                             column is missing, or a row names a question type
      *                                             Ember does not know
      */
@@ -96,7 +96,7 @@ public class QuizImportService {
             return CsvParser.parse(csvContent, separator);
         } catch (IOException e) {
             log.warn("Failed to parse an uploaded sheet", e);
-            throw Refusal.QUIZ_IMPORT_SHEET_NOT_READ.raise();
+            throw QuizRefusal.QUIZ_IMPORT_SHEET_NOT_READ.raise();
         }
     }
 
@@ -141,7 +141,7 @@ public class QuizImportService {
             case "ORDERING", "REIHENFOLGE" -> QuizQuestionType.ORDERING;
             case "IMAGE_TEXT" -> QuizQuestionType.IMAGE_TEXT;
             case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuizQuestionType.ENUMERATION;
-            default -> throw Refusal.QUIZ_IMPORT_QUESTION_TYPE_UNKNOWN.raise(type);
+            default -> throw QuizRefusal.QUIZ_IMPORT_QUESTION_TYPE_UNKNOWN.raise(type);
         };
     }
 
@@ -276,7 +276,7 @@ public class QuizImportService {
 
         private static ColumnIndex resolve(List<String> headers, CsvMappings mappings) {
             int question = headers.indexOf(mappings.questionColumn());
-            if (question < 0) throw Refusal.QUIZ_IMPORT_QUESTION_COLUMN_MISSING.raise(mappings.questionColumn());
+            if (question < 0) throw QuizRefusal.QUIZ_IMPORT_QUESTION_COLUMN_MISSING.raise(mappings.questionColumn());
             return new ColumnIndex(
                     question,
                     headers.indexOf(mappings.answerColumn()),

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
@@ -121,7 +121,7 @@ class RegistrationCodeRoutesTest extends RepositoryTestBase {
     void aCodeOfAnotherStationIsNotRead() {
         harness.run((server, client) -> {
             var response = client.get("/api/v1/registration-codes/" + foreign.id(), harness.as(instanceAdmin()));
-            assertEquals(Refusal.REGISTRATION_CODE_NOT_HERE, refusalOf(response));
+            assertEquals(MemberRefusal.REGISTRATION_CODE_NOT_HERE, refusalOf(response));
         });
         foreignCodeIsUntouched();
     }
@@ -131,7 +131,7 @@ class RegistrationCodeRoutesTest extends RepositoryTestBase {
         harness.run((server, client) -> {
             var response =
                     client.get("/api/v1/registration-codes/" + foreign.id() + "/groups", harness.as(instanceAdmin()));
-            assertEquals(Refusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS, refusalOf(response));
+            assertEquals(MemberRefusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS, refusalOf(response));
         });
         foreignCodeIsUntouched();
     }
@@ -143,7 +143,7 @@ class RegistrationCodeRoutesTest extends RepositoryTestBase {
                     "/api/v1/registration-codes/" + foreign.id() + "/groups",
                     body("{\"groupIds\":[]}"),
                     harness.as(instanceAdmin()));
-            assertEquals(Refusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS, refusalOf(response));
+            assertEquals(MemberRefusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS, refusalOf(response));
         });
         foreignCodeIsUntouched();
     }
@@ -153,7 +153,7 @@ class RegistrationCodeRoutesTest extends RepositoryTestBase {
         harness.run((server, client) -> {
             var response =
                     client.delete("/api/v1/registration-codes/" + foreign.id(), null, harness.as(instanceAdmin()));
-            assertEquals(Refusal.REGISTRATION_CODE_NOT_DELETED, refusalOf(response));
+            assertEquals(MemberRefusal.REGISTRATION_CODE_NOT_DELETED, refusalOf(response));
         });
         foreignCodeIsUntouched();
     }

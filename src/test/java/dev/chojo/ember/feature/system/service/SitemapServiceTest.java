@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -107,11 +107,11 @@ class SitemapServiceTest {
         when(stations.findByUid(OPEN)).thenReturn(Optional.empty());
 
         assertEquals(
-                Refusal.SITEMAP_NOT_HERE,
+                SystemRefusal.SITEMAP_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.forStation(CLOSED))
                         .refusal());
         assertEquals(
-                Refusal.SITEMAP_NOT_HERE,
+                SystemRefusal.SITEMAP_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.forStation(OPEN))
                         .refusal());
     }

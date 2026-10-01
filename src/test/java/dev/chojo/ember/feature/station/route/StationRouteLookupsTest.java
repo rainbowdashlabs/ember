@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.station.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
 import dev.chojo.ember.feature.station.service.StationDiscoveryService;
@@ -79,7 +79,7 @@ class StationRouteLookupsTest {
                         body(
                                 "{\"firstName\": \"Mara\", \"lastName\": \"Nager\", \"email\": \"m@test\", \"stationName\": \"Nord\"}")));
 
-        assertEquals(Refusal.STATION_REGISTRATION_SWITCHED_OFF, refusalOf(refused));
+        assertEquals(StationRefusal.STATION_REGISTRATION_SWITCHED_OFF, refusalOf(refused));
     }
 
     @Test
@@ -97,7 +97,8 @@ class StationRouteLookupsTest {
                     204,
                     client.delete(PREFIX + "/stations/" + TARGET, null, admin).code());
             assertEquals(
-                    Refusal.STATION_NOT_DELETED, refusalOf(client.delete(PREFIX + "/stations/" + TARGET, null, admin)));
+                    StationRefusal.STATION_NOT_DELETED,
+                    refusalOf(client.delete(PREFIX + "/stations/" + TARGET, null, admin)));
         });
 
         verify(stations, times(2)).delete(5);

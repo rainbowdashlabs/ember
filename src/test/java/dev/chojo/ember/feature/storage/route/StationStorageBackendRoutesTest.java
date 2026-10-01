@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.storage.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService.BackendOverrideResponse;
@@ -72,11 +72,13 @@ class StationStorageBackendRoutesTest {
 
     @Test
     void aStationThatIsGoneIsRefusedOnEveryRoute() {
-        when(backend.requireStation(STATION)).thenThrow(Refusal.STORAGE_STATION_NOT_HERE.raise());
+        when(backend.requireStation(STATION)).thenThrow(StorageRefusal.STORAGE_STATION_NOT_HERE.raise());
 
         harness.run((server, client) -> {
-            assertEquals(Refusal.STORAGE_STATION_NOT_HERE, refusalOf(client.get(BASE + "/backend", administrator())));
-            assertEquals(Refusal.STORAGE_STATION_NOT_HERE, refusalOf(client.get(BASE + "/audit", administrator())));
+            assertEquals(
+                    StorageRefusal.STORAGE_STATION_NOT_HERE, refusalOf(client.get(BASE + "/backend", administrator())));
+            assertEquals(
+                    StorageRefusal.STORAGE_STATION_NOT_HERE, refusalOf(client.get(BASE + "/audit", administrator())));
         });
     }
 

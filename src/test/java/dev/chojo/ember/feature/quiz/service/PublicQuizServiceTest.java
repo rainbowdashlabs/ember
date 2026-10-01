@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
@@ -74,15 +74,15 @@ class PublicQuizServiceTest {
         when(catalogs.findRandomPublicQuestion(anyInt(), any())).thenReturn(Optional.empty());
 
         assertEquals(
-                Refusal.PUBLIC_QUIZ_CATALOGS_EMPTY,
+                QuizRefusal.PUBLIC_QUIZ_CATALOGS_EMPTY,
                 assertThrows(RefusalResponse.class, () -> service.randomQuestion(STATION, List.of()))
                         .refusal());
         assertEquals(
-                Refusal.PUBLIC_QUIZ_NO_QUESTION_HERE,
+                QuizRefusal.PUBLIC_QUIZ_NO_QUESTION_HERE,
                 assertThrows(RefusalResponse.class, () -> service.randomQuestion(STATION, List.of(1)))
                         .refusal());
         assertEquals(
-                Refusal.PUBLIC_QUIZ_STATION_NOT_HERE,
+                QuizRefusal.PUBLIC_QUIZ_STATION_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.catalogs(UUID.randomUUID()))
                         .refusal());
     }

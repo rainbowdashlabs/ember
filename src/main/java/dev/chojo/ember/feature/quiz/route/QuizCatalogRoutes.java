@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -159,7 +159,7 @@ public class QuizCatalogRoutes implements Routes {
                                     catalog.updatedAt()));
                         },
                         () -> {
-                            throw Refusal.QUIZ_CATALOG_NOT_HERE.raise();
+                            throw QuizRefusal.QUIZ_CATALOG_NOT_HERE.raise();
                         });
     }
 
@@ -171,7 +171,7 @@ public class QuizCatalogRoutes implements Routes {
     private void createCatalog(Context ctx) {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(QuizCatalogRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATALOG_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw QuizRefusal.QUIZ_CATALOG_NEEDS_A_NAME.raise();
         var catalog = catalogService.createCatalog(
                 session.stationId(),
                 req.name(),
@@ -196,10 +196,10 @@ public class QuizCatalogRoutes implements Routes {
                 Objects.requireNonNullElse(req.description(), ""),
                 Boolean.TRUE.equals(req.trainingEnabled()),
                 CatalogMetadata.orNone(req.metadata()))) {
-            throw Refusal.QUIZ_CATALOG_NOT_CHANGED.raise();
+            throw QuizRefusal.QUIZ_CATALOG_NOT_CHANGED.raise();
         }
         catalogService.findCatalog(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_CATALOG_NOT_HERE_AFTER_CHANGE.raise();
+            throw QuizRefusal.QUIZ_CATALOG_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -213,7 +213,7 @@ public class QuizCatalogRoutes implements Routes {
         if (catalogService.deleteCatalog(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.QUIZ_CATALOG_NOT_DELETED.raise();
+            throw QuizRefusal.QUIZ_CATALOG_NOT_DELETED.raise();
         }
     }
 
@@ -234,7 +234,7 @@ public class QuizCatalogRoutes implements Routes {
     private void createCategory(Context ctx) {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(QuizCategoryRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATEGORY_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw QuizRefusal.QUIZ_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(catalogService.createCategory(
                         session.stationId(),
@@ -257,7 +257,7 @@ public class QuizCatalogRoutes implements Routes {
                 req.name(),
                 Objects.requireNonNullElse(req.description(), ""),
                 Objects.requireNonNullElse(req.position(), 0))) {
-            throw Refusal.QUIZ_CATEGORY_NOT_CHANGED.raise();
+            throw QuizRefusal.QUIZ_CATEGORY_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.OK).json(new QuizSuccessResponse(true));
     }
@@ -272,7 +272,7 @@ public class QuizCatalogRoutes implements Routes {
         if (catalogService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.QUIZ_CATEGORY_NOT_DELETED.raise();
+            throw QuizRefusal.QUIZ_CATEGORY_NOT_DELETED.raise();
         }
     }
 
@@ -292,7 +292,7 @@ public class QuizCatalogRoutes implements Routes {
     private void getTrainingQuestions(Context ctx) {
         int catalogId = pathInt(ctx, "id");
         var catalog = guards.requireOwnedCatalog(ctx, catalogId);
-        if (!catalog.trainingEnabled()) throw Refusal.QUIZ_CATALOG_NOT_FOR_TRAINING.raise();
+        if (!catalog.trainingEnabled()) throw QuizRefusal.QUIZ_CATALOG_NOT_FOR_TRAINING.raise();
         ctx.json(questionService.findQuestions(catalogId));
     }
 
@@ -365,9 +365,9 @@ public class QuizCatalogRoutes implements Routes {
     private void draftFromCsv(Context ctx) {
         var request = ctx.bodyAsClass(CsvDraftRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.QUIZ_SHEET_EMPTY.raise();
+            throw QuizRefusal.QUIZ_SHEET_EMPTY.raise();
         }
-        if (request.mappings() == null) throw Refusal.QUIZ_SHEET_COLUMNS_NOT_MAPPED.raise();
+        if (request.mappings() == null) throw QuizRefusal.QUIZ_SHEET_COLUMNS_NOT_MAPPED.raise();
         ctx.json(importService.draft(request.content(), request.mappings()));
     }
 
@@ -383,7 +383,7 @@ public class QuizCatalogRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void downloadTemplate(Context ctx) {
         var template = QuizCatalogTemplate.byFormat(ctx.pathParam("format"));
-        if (template == null) throw Refusal.QUIZ_TEMPLATE_FORMAT_UNKNOWN.raise();
+        if (template == null) throw QuizRefusal.QUIZ_TEMPLATE_FORMAT_UNKNOWN.raise();
         ctx.contentType(template.contentType())
                 .header(
                         "Content-Disposition",

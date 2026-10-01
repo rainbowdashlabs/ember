@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
@@ -121,12 +122,13 @@ class InventoryLossServiceTest {
     void gearOfSomebodyElseOrOfNobodyIsNotTheirsToReport() {
         when(inventory.findItemById(ITEM)).thenReturn(Optional.of(heldBy(99)));
         assertEquals(
-                Refusal.LOSS_NOT_YOURS_TO_REPORT_FOR_THEM,
+                InventoryRefusal.LOSS_NOT_YOURS_TO_REPORT_FOR_THEM,
                 refusalOf(() -> service.markLost(memberAt(), ITEM, "weg", null)));
 
         when(inventory.findItemById(ITEM)).thenReturn(Optional.of(heldBy(null)));
         assertEquals(
-                Refusal.LOSS_NOT_YOURS_TO_REPORT, refusalOf(() -> service.markLost(memberAt(), ITEM, "weg", null)));
+                InventoryRefusal.LOSS_NOT_YOURS_TO_REPORT,
+                refusalOf(() -> service.markLost(memberAt(), ITEM, "weg", null)));
         verify(inventory, never()).markLost(anyInt(), any(), any());
     }
 
@@ -135,7 +137,8 @@ class InventoryLossServiceTest {
         when(inventory.findItemById(ITEM)).thenReturn(Optional.of(heldBy(MEMBER_ID)));
         noteRequired(true);
 
-        assertEquals(Refusal.LOSS_NEEDS_A_NOTE, refusalOf(() -> service.markLost(memberAt(), ITEM, "  ", null)));
+        assertEquals(
+                InventoryRefusal.LOSS_NEEDS_A_NOTE, refusalOf(() -> service.markLost(memberAt(), ITEM, "  ", null)));
     }
 
     @Test
@@ -161,11 +164,14 @@ class InventoryLossServiceTest {
     @Test
     void aPieceThatIsGoneOrCannotBeMarkedIsRefused() {
         when(inventory.findItemById(ITEM)).thenReturn(Optional.empty());
-        assertEquals(Refusal.ITEM_NOT_HERE_ON_LOSS, refusalOf(() -> service.markLost(memberAt(), ITEM, null, null)));
+        assertEquals(
+                InventoryRefusal.ITEM_NOT_HERE_ON_LOSS,
+                refusalOf(() -> service.markLost(memberAt(), ITEM, null, null)));
 
         when(inventory.findItemById(ITEM)).thenReturn(Optional.of(heldBy(MEMBER_ID)));
         when(inventory.markLost(anyInt(), isNull(), isNull())).thenReturn(Optional.empty());
-        assertEquals(Refusal.ITEM_NOT_MARKED_LOST, refusalOf(() -> service.markLost(memberAt(), ITEM, null, null)));
+        assertEquals(
+                InventoryRefusal.ITEM_NOT_MARKED_LOST, refusalOf(() -> service.markLost(memberAt(), ITEM, null, null)));
     }
 
     @Test

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.media.service.ImageVariants;
@@ -112,7 +112,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.deleteOwnAccount(admin.id()));
 
-        assertEquals(Refusal.ACCOUNT_STILL_ADMINISTERS_STATION, refused.refusal());
+        assertEquals(MemberRefusal.ACCOUNT_STILL_ADMINISTERS_STATION, refused.refusal());
         assertTrue(accountRepo.findById(admin.id()).isPresent());
     }
 

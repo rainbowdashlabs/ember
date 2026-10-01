@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.MonitoringCountService;
@@ -120,7 +120,8 @@ class SystemMonitoringRoutesTest {
             assertEquals(
                     "<urlset/>",
                     client.get("/sitemap-station-" + STATION + ".xml").body().string());
-            assertEquals(Refusal.ADDRESS_NOT_AN_IDENTIFIER, refusalOf(client.get("/sitemap-station-not-a-uid.xml")));
+            assertEquals(
+                    GeneralRefusal.ADDRESS_NOT_AN_IDENTIFIER, refusalOf(client.get("/sitemap-station-not-a-uid.xml")));
         });
     }
 }

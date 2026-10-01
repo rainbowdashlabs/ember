@@ -9,13 +9,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -119,14 +120,14 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void register(Context ctx) {
-        RateLimits.enforce(Refusal.REGISTERING_TOO_OFTEN, rateLimiter.tryRegister(ctx.ip()));
+        RateLimits.enforce(MemberRefusal.REGISTERING_TOO_OFTEN, rateLimiter.tryRegister(ctx.ip()));
         var request = ctx.bodyAsClass(RegisterRequest.class);
         boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
         if (isBlank(request.email())
                 || isBlank(request.firstName())
                 || isBlank(request.lastName())
                 || (!passwordless && isBlank(request.password()))) {
-            throw Refusal.REGISTRATION_DETAILS_MISSING.raise();
+            throw MemberRefusal.REGISTRATION_DETAILS_MISSING.raise();
         }
 
         var result = authService.registerSelf(
@@ -137,7 +138,7 @@ public class AuthRoutes implements Routes {
                 request.registrationCode());
         Account account = result.account();
         if (!result.success() || account == null) {
-            throw Refusal.REGISTRATION_REFUSED.raise();
+            throw MemberRefusal.REGISTRATION_REFUSED.raise();
         }
 
         ctx.status(HttpStatus.CREATED)
@@ -161,16 +162,16 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void verifyEmail(Context ctx) {
-        RateLimits.enforce(Refusal.EMAIL_VERIFYING_TOO_OFTEN, rateLimiter.tryVerifyEmail(ctx.ip()));
+        RateLimits.enforce(MemberRefusal.EMAIL_VERIFYING_TOO_OFTEN, rateLimiter.tryVerifyEmail(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
-            throw Refusal.EMAIL_VERIFICATION_TOKEN_MISSING.raise();
+            throw MemberRefusal.EMAIL_VERIFICATION_TOKEN_MISSING.raise();
         }
 
         if (authService.verifyEmail(request.token())) {
             ctx.status(HttpStatus.OK).json(new MessageResponse("Email verified"));
         } else {
-            throw Refusal.EMAIL_VERIFICATION_LINK_NOT_GOOD.raise();
+            throw MemberRefusal.EMAIL_VERIFICATION_LINK_NOT_GOOD.raise();
         }
     }
 
@@ -188,10 +189,11 @@ public class AuthRoutes implements Routes {
     private void resendVerification(Context ctx) {
         var request = ctx.bodyAsClass(EmailRequest.class);
         if (isBlank(request.email())) {
-            throw Refusal.RESEND_VERIFICATION_ADDRESS_MISSING.raise();
+            throw MemberRefusal.RESEND_VERIFICATION_ADDRESS_MISSING.raise();
         }
         RateLimits.enforce(
-                Refusal.VERIFICATION_MAIL_TOO_OFTEN, rateLimiter.tryResendVerification(ctx.ip(), request.email()));
+                MemberRefusal.VERIFICATION_MAIL_TOO_OFTEN,
+                rateLimiter.tryResendVerification(ctx.ip(), request.email()));
 
         authService.resendVerification(request.email());
         ctx.status(HttpStatus.OK)
@@ -212,21 +214,21 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setPassword(Context ctx) {
-        RateLimits.enforce(Refusal.PASSWORD_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
+        RateLimits.enforce(MemberRefusal.PASSWORD_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetPasswordRequest.class);
         if (isBlank(request.token()) || isBlank(request.password())) {
-            throw Refusal.PASSWORD_SETUP_DETAILS_MISSING.raise();
+            throw MemberRefusal.PASSWORD_SETUP_DETAILS_MISSING.raise();
         }
 
         var result = authService.setPasswordAndSignIn(
                 request.token(), request.password(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (result.outcome()) {
             case OK -> answerSignIn(ctx, result.login());
-            case PASSWORD_TOO_SHORT -> throw Refusal.NEW_PASSWORD_TOO_SHORT.raise();
-            case PASSWORD_BREACHED -> throw Refusal.NEW_PASSWORD_BREACHED.raise();
-            case TOKEN_INVALID -> throw Refusal.PASSWORD_SETUP_LINK_UNKNOWN.raise();
-            case TOKEN_EXPIRED -> throw Refusal.PASSWORD_SETUP_LINK_EXPIRED.raise();
-            case PASSWORDLESS_MODE -> throw Refusal.PASSWORDS_SWITCHED_OFF.raise();
+            case PASSWORD_TOO_SHORT -> throw MemberRefusal.NEW_PASSWORD_TOO_SHORT.raise();
+            case PASSWORD_BREACHED -> throw MemberRefusal.NEW_PASSWORD_BREACHED.raise();
+            case TOKEN_INVALID -> throw MemberRefusal.PASSWORD_SETUP_LINK_UNKNOWN.raise();
+            case TOKEN_EXPIRED -> throw MemberRefusal.PASSWORD_SETUP_LINK_EXPIRED.raise();
+            case PASSWORDLESS_MODE -> throw MemberRefusal.PASSWORDS_SWITCHED_OFF.raise();
             default -> throw new IllegalStateException("Unhandled set-password outcome: " + result.outcome());
         }
     }
@@ -244,10 +246,10 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setAddress(Context ctx) {
-        RateLimits.enforce(Refusal.ADDRESS_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
+        RateLimits.enforce(MemberRefusal.ADDRESS_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetAddressRequest.class);
         if (isBlank(request.token()) || isBlank(request.email())) {
-            throw Refusal.ADDRESS_SETUP_DETAILS_MISSING.raise();
+            throw MemberRefusal.ADDRESS_SETUP_DETAILS_MISSING.raise();
         }
 
         var result = authService.setRequiredAddress(
@@ -266,11 +268,11 @@ public class AuthRoutes implements Routes {
      */
     static Refusal addressSetupRefusal(AuthService.AddressOutcome outcome) {
         return switch (outcome) {
-            case TOKEN_INVALID -> Refusal.ADDRESS_SETUP_LINK_UNKNOWN;
-            case TOKEN_EXPIRED -> Refusal.ADDRESS_SETUP_LINK_EXPIRED;
-            case ADDRESS_MALFORMED -> Refusal.ADDRESS_MALFORMED;
-            case ADDRESS_UNREACHABLE -> Refusal.ADDRESS_UNREACHABLE;
-            case ADDRESS_TAKEN -> Refusal.ADDRESS_TAKEN_ON_SETUP;
+            case TOKEN_INVALID -> MemberRefusal.ADDRESS_SETUP_LINK_UNKNOWN;
+            case TOKEN_EXPIRED -> MemberRefusal.ADDRESS_SETUP_LINK_EXPIRED;
+            case ADDRESS_MALFORMED -> MemberRefusal.ADDRESS_MALFORMED;
+            case ADDRESS_UNREACHABLE -> MemberRefusal.ADDRESS_UNREACHABLE;
+            case ADDRESS_TAKEN -> MemberRefusal.ADDRESS_TAKEN_ON_SETUP;
             case OK -> throw new IllegalArgumentException("An address that was set needs no refusal");
         };
     }
@@ -286,7 +288,7 @@ public class AuthRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AuthService.TokenStatus.class)))
     private void passwordLinkStatus(Context ctx) {
-        RateLimits.enforce(Refusal.PASSWORD_LINK_CHECKED_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
+        RateLimits.enforce(MemberRefusal.PASSWORD_LINK_CHECKED_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         ctx.json(authService.checkPasswordToken(request.token()));
     }
@@ -306,9 +308,10 @@ public class AuthRoutes implements Routes {
     private void forgotPassword(Context ctx) {
         var request = ctx.bodyAsClass(EmailRequest.class);
         if (isBlank(request.email())) {
-            throw Refusal.FORGOTTEN_PASSWORD_ADDRESS_MISSING.raise();
+            throw MemberRefusal.FORGOTTEN_PASSWORD_ADDRESS_MISSING.raise();
         }
-        RateLimits.enforce(Refusal.PASSWORD_RESET_TOO_OFTEN, rateLimiter.tryForgotPassword(ctx.ip(), request.email()));
+        RateLimits.enforce(
+                MemberRefusal.PASSWORD_RESET_TOO_OFTEN, rateLimiter.tryForgotPassword(ctx.ip(), request.email()));
 
         authService.requestPasswordReset(request.email());
         ctx.status(HttpStatus.OK).json(new MessageResponse("If the email exists, a password reset link has been sent"));
@@ -329,9 +332,9 @@ public class AuthRoutes implements Routes {
     private void login(Context ctx) {
         var request = ctx.bodyAsClass(LoginRequest.class);
         if (isBlank(request.identifier()) || isBlank(request.password())) {
-            throw Refusal.SIGN_IN_DETAILS_MISSING.raise();
+            throw MemberRefusal.SIGN_IN_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(Refusal.SIGN_IN_TOO_OFTEN, rateLimiter.tryLogin(ctx.ip(), request.identifier()));
+        RateLimits.enforce(MemberRefusal.SIGN_IN_TOO_OFTEN, rateLimiter.tryLogin(ctx.ip(), request.identifier()));
 
         var result = authService.login(
                 request.identifier(),
@@ -341,7 +344,7 @@ public class AuthRoutes implements Routes {
                 ctx.cookie("ember_2fa_trust"),
                 request.trustedDevice());
         if (!result.success()) {
-            throw Refusal.SIGN_IN_REFUSED.raise();
+            throw MemberRefusal.SIGN_IN_REFUSED.raise();
         }
 
         answerSignIn(ctx, result);
@@ -362,11 +365,11 @@ public class AuthRoutes implements Routes {
     private void demoLogin(Context ctx) {
         var request = ctx.bodyAsClass(DemoLoginRequest.class);
         if (isBlank(request.email())) {
-            throw Refusal.DEMO_SIGN_IN_ADDRESS_MISSING.raise();
+            throw MemberRefusal.DEMO_SIGN_IN_ADDRESS_MISSING.raise();
         }
         var result = authService.loginAsDemo(request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (!result.success()) {
-            throw Refusal.DEMO_SIGN_IN_REFUSED.raise();
+            throw MemberRefusal.DEMO_SIGN_IN_REFUSED.raise();
         }
         answerSignIn(ctx, result);
     }
@@ -399,10 +402,10 @@ public class AuthRoutes implements Routes {
             })
     private void changePassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(Refusal.PASSWORD_CHANGE_TOO_OFTEN, rateLimiter.tryChangePassword(session.accountId()));
+        RateLimits.enforce(MemberRefusal.PASSWORD_CHANGE_TOO_OFTEN, rateLimiter.tryChangePassword(session.accountId()));
         var request = ctx.bodyAsClass(ChangePasswordRequest.class);
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
-            throw Refusal.PASSWORD_CHANGE_DETAILS_MISSING.raise();
+            throw MemberRefusal.PASSWORD_CHANGE_DETAILS_MISSING.raise();
         }
         String currentSessionToken = SessionCookies.token(ctx).orElse(null);
         var outcome = authService.changePassword(
@@ -414,10 +417,10 @@ public class AuthRoutes implements Routes {
                         authService.rotateSession(currentSessionToken, ctx.userAgent(), ctx.header("CF-IPCountry")));
                 ctx.json(new MessageResponse("Password changed"));
             }
-            case NEW_PASSWORD_TOO_SHORT -> throw Refusal.CHANGED_PASSWORD_TOO_SHORT.raise();
-            case NEW_PASSWORD_BREACHED -> throw Refusal.CHANGED_PASSWORD_BREACHED.raise();
-            case NO_PASSWORD_SET -> throw Refusal.ACCOUNT_HAS_NO_PASSWORD.raise();
-            case CURRENT_PASSWORD_WRONG -> throw Refusal.CURRENT_PASSWORD_WRONG.raise();
+            case NEW_PASSWORD_TOO_SHORT -> throw MemberRefusal.CHANGED_PASSWORD_TOO_SHORT.raise();
+            case NEW_PASSWORD_BREACHED -> throw MemberRefusal.CHANGED_PASSWORD_BREACHED.raise();
+            case NO_PASSWORD_SET -> throw MemberRefusal.ACCOUNT_HAS_NO_PASSWORD.raise();
+            case CURRENT_PASSWORD_WRONG -> throw MemberRefusal.CURRENT_PASSWORD_WRONG.raise();
             default -> throw new IllegalStateException("Unhandled change-password outcome: " + outcome);
         }
     }
@@ -433,9 +436,9 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400")
             })
     private void confirmEmailChange(Context ctx) {
-        RateLimits.enforce(Refusal.EMAIL_CHANGE_CONFIRMED_TOO_OFTEN, rateLimiter.tryConfirmEmailChange(ctx.ip()));
+        RateLimits.enforce(MemberRefusal.EMAIL_CHANGE_CONFIRMED_TOO_OFTEN, rateLimiter.tryConfirmEmailChange(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
-        if (isBlank(request.token())) throw Refusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
+        if (isBlank(request.token())) throw MemberRefusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
         var result = authService.confirmEmailChange(request.token());
         switch (result) {
             case COMMITTED -> ctx.json(new EmailChangeResponse(EmailChangeStatus.COMMITTED, "Email address updated"));
@@ -444,8 +447,8 @@ public class AuthRoutes implements Routes {
                         new EmailChangeResponse(
                                 EmailChangeStatus.WAITING,
                                 "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
-            case DUPLICATE -> throw Refusal.EMAIL_CHANGE_ADDRESS_TAKEN.raise();
-            case INVALID -> throw Refusal.EMAIL_CHANGE_LINK_NOT_GOOD.raise();
+            case DUPLICATE -> throw MemberRefusal.EMAIL_CHANGE_ADDRESS_TAKEN.raise();
+            case INVALID -> throw MemberRefusal.EMAIL_CHANGE_LINK_NOT_GOOD.raise();
             default -> throw new IllegalStateException("Unhandled email-change outcome: " + result);
         }
     }

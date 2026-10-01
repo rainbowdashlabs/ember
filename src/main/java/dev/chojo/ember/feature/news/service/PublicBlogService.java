@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.news.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -32,7 +33,8 @@ public class PublicBlogService {
      * @param closed   what to refuse with when the station keeps no public blog
      */
     public Station openBlog(String address, Refusal missing, Refusal closed) {
-        int stationId = stations.resolveAddressedId(address).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG::raise);
+        int stationId =
+                stations.resolveAddressedId(address).orElseThrow(NewsRefusal.STATION_NOT_HERE_BEHIND_BLOG::raise);
         var station = stations.findById(stationId).orElseThrow(missing::raise);
         if (!station.publicBlogEnabled()) throw closed.raise();
         return station;

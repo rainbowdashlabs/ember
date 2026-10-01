@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -126,7 +126,7 @@ public class TestProtocolService implements FederationServer {
         var protocol = findProtocol(protocolId)
                 .filter(found -> found.stationId() == partner.servingStationId())
                 .filter(found -> isShared(partner, protocolId))
-                .orElseThrow(Refusal.REMOTE_PROTOCOL_NOT_SHARED::raise);
+                .orElseThrow(TestProtocolRefusal.REMOTE_PROTOCOL_NOT_SHARED::raise);
         return new RemoteProtocolDetail(protocol, findSections(protocolId), findAllItemsByProtocol(protocolId));
     }
 

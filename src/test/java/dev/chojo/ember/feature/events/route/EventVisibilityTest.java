@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
@@ -83,7 +83,7 @@ class EventVisibilityTest {
         when(restrictionService.canViewAny(anyInt(), any(), any())).thenReturn(false);
 
         var refusal = assertThrows(RefusalResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID));
-        assertEquals(Refusal.EVENT_NOT_YOURS_TO_SEE, refusal.refusal());
+        assertEquals(EventRefusal.EVENT_NOT_YOURS_TO_SEE, refusal.refusal());
     }
 
     @Test
@@ -107,7 +107,7 @@ class EventVisibilityTest {
         var session = sessionWith(Set.of(StationPermission.USER), STATION_ID);
 
         var refusal = assertThrows(RefusalResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
-        assertEquals(Refusal.EVENT_NOT_HERE, refusal.refusal());
+        assertEquals(EventRefusal.EVENT_NOT_HERE, refusal.refusal());
     }
 
     private record Row(int eventId) {}

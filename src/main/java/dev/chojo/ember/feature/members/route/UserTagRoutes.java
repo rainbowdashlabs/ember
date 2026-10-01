@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -107,7 +107,7 @@ public class UserTagRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.TAG_NAME_MISSING_ON_CREATE.raise();
+            throw MemberRefusal.TAG_NAME_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED).json(tagService.create(session.stationId(), request.name()));
     }
@@ -129,10 +129,10 @@ public class UserTagRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.TAG_NAME_MISSING_ON_CHANGE.raise();
+            throw MemberRefusal.TAG_NAME_MISSING_ON_CHANGE.raise();
         }
         if (!tagService.update(id, request.name(), request.color(), request.visible(), request.position())) {
-            throw Refusal.MEMBER_TAG_NOT_HERE_ON_CHANGE.raise();
+            throw MemberRefusal.MEMBER_TAG_NOT_HERE_ON_CHANGE.raise();
         }
     }
 
@@ -152,7 +152,7 @@ public class UserTagRoutes implements Routes {
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.MEMBER_TAG_NOT_HERE_ON_DELETE.raise();
+            throw MemberRefusal.MEMBER_TAG_NOT_HERE_ON_DELETE.raise();
         }
     }
 

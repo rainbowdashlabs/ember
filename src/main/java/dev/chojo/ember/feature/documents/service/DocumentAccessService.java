@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.documents.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
@@ -57,7 +57,7 @@ public class DocumentAccessService {
      */
     public void requireMayList(StationSession session, int memberId) {
         if (readsEveryMember(session)) return;
-        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw Refusal.DOCUMENT_LIST_NOT_YOURS.raise();
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw DocumentRefusal.DOCUMENT_LIST_NOT_YOURS.raise();
     }
 
     /**
@@ -74,10 +74,10 @@ public class DocumentAccessService {
         boolean byPermission = documentService.mayRead(
                 document.id(), readsEveryMember(session), session.hasPermission(StationPermission.DOCUMENT_READ));
         if (byPermission) return;
-        if (document.hidden()) throw Refusal.DOCUMENT_HIDDEN_FROM_YOU.raise();
+        if (document.hidden()) throw DocumentRefusal.DOCUMENT_HIDDEN_FROM_YOU.raise();
         boolean aboutTheHousehold = guardianPolicy.household(session.user()).stream()
                 .anyMatch(member -> documentRepository.isBoundTo(document.id(), member));
-        if (!aboutTheHousehold) throw Refusal.DOCUMENT_NOT_YOURS_TO_READ.raise();
+        if (!aboutTheHousehold) throw DocumentRefusal.DOCUMENT_NOT_YOURS_TO_READ.raise();
     }
 
     /**
@@ -92,7 +92,7 @@ public class DocumentAccessService {
         var needed = documentRepository.hasNoMembers(documentId)
                 ? StationPermission.DOCUMENT_EDIT
                 : StationPermission.DOCUMENT_EDIT_MEMBER;
-        if (!session.hasPermission(needed)) throw Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE.raise();
+        if (!session.hasPermission(needed)) throw DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE.raise();
     }
 
     /**
@@ -120,7 +120,7 @@ public class DocumentAccessService {
         if (session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return;
         boolean self = session.member().id() == memberId;
         if (self && session.hasPermission(StationPermission.MEMBER_SELF_UPLOAD)) return;
-        throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
+        throw DocumentRefusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
     }
 
     /**
@@ -131,7 +131,7 @@ public class DocumentAccessService {
      */
     public void requireMayHide(StationSession session, boolean hidden) {
         if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw Refusal.DOCUMENT_HIDING_NOT_ALLOWED.raise();
+            throw DocumentRefusal.DOCUMENT_HIDING_NOT_ALLOWED.raise();
         }
     }
 }

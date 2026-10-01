@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -321,7 +321,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void handingOutNeedsSomebodyToAsk() {
         var empty = assertThrows(
                 RefusalResponse.class, () -> selfCheckService.handOut(station.id(), List.of(), null, guardian.id()));
-        assertEquals(Refusal.SELF_CHECK_NO_MEMBER_NAMED, empty.refusal());
+        assertEquals(InventoryRefusal.SELF_CHECK_NO_MEMBER_NAMED, empty.refusal());
         assertThrows(RefusalResponse.class, () -> selfCheckService.handOut(station.id(), null, null, guardian.id()));
     }
 
@@ -594,7 +594,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
 
         var again = assertThrows(
                 RefusalResponse.class, () -> selfCheckService.submit(taskId, station.id(), member.id(), false));
-        assertEquals(Refusal.SELF_CHECK_CLOSED, again.refusal());
+        assertEquals(InventoryRefusal.SELF_CHECK_CLOSED, again.refusal());
         assertThrows(
                 RefusalResponse.class,
                 () -> selfCheckService.answer(

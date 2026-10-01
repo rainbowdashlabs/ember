@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import org.junit.jupiter.api.Test;
 
 import java.util.Base64;
@@ -47,7 +47,7 @@ class ProblemReportScreenshotServiceTest {
     void whatIsNotBase64IsRefused() {
         var refused = assertThrows(RefusalResponse.class, () -> service.store("this is not a picture", null));
 
-        assertEquals(Refusal.PROBLEM_PICTURE_NOT_READABLE, refused.refusal());
+        assertEquals(SystemRefusal.PROBLEM_PICTURE_NOT_READABLE, refused.refusal());
     }
 
     /**
@@ -60,7 +60,7 @@ class ProblemReportScreenshotServiceTest {
         assertThrows(RefusalResponse.class, () -> service.store(encoded(0xFF, 0xD8, 0xFF), null));
         var refused = assertThrows(RefusalResponse.class, () -> service.store(encoded('<', 's', 'v', 'g'), null));
 
-        assertEquals(Refusal.PROBLEM_PICTURE_KIND_NOT_TAKEN, refused.refusal());
+        assertEquals(SystemRefusal.PROBLEM_PICTURE_KIND_NOT_TAKEN, refused.refusal());
     }
 
     /** A preamble with nothing behind it is a picture that was announced and never sent. */
@@ -68,7 +68,7 @@ class ProblemReportScreenshotServiceTest {
     void anEmptyPictureIsRefused() {
         var refused = assertThrows(RefusalResponse.class, () -> service.store("data:image/png;base64,", null));
 
-        assertEquals(Refusal.PROBLEM_PICTURE_EMPTY, refused.refusal());
+        assertEquals(SystemRefusal.PROBLEM_PICTURE_EMPTY, refused.refusal());
     }
 
     /** A browser writes the preamble in front of the bytes, and it is not part of them. */
@@ -78,6 +78,7 @@ class ProblemReportScreenshotServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.store(withPreamble, null));
 
-        assertEquals(Refusal.PROBLEM_PICTURE_KIND_NOT_TAKEN, refused.refusal(), "it got as far as reading the bytes");
+        assertEquals(
+                SystemRefusal.PROBLEM_PICTURE_KIND_NOT_TAKEN, refused.refusal(), "it got as far as reading the bytes");
     }
 }

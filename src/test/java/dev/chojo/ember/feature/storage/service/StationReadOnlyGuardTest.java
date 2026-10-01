@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ class StationReadOnlyGuardTest {
         var guard = new StationReadOnlyGuard(repo);
 
         var ex = assertThrows(RefusalResponse.class, () -> guard.requireWritable(7));
-        assertEquals(Refusal.STATION_READ_ONLY_FOR_BACKGROUND_WRITE, ex.refusal());
+        assertEquals(StorageRefusal.STATION_READ_ONLY_FOR_BACKGROUND_WRITE, ex.refusal());
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE.getCode(), ex.getStatus());
     }
 

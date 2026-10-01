@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -110,7 +110,7 @@ class FederatedEventRoutesTest {
                 body("{\"eventDate\": \"2026-05-01\"}"),
                 registrar()));
 
-        assertEquals(Refusal.PARTNER_NOT_HERE, refusalOf(answer));
+        assertEquals(EventRefusal.PARTNER_NOT_HERE, refusalOf(answer));
         verifyNoInteractions(events);
     }
 

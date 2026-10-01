@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.board.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.board.route.BoardRouteGuards;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -68,7 +69,7 @@ public class TicketCommentTarget implements CommentTarget {
 
     @Override
     public Refusal missing() {
-        return Refusal.BOARD_TICKET_NOT_HERE;
+        return BoardRefusal.BOARD_TICKET_NOT_HERE;
     }
 
     @Override
@@ -87,10 +88,10 @@ public class TicketCommentTarget implements CommentTarget {
      */
     private int boardOf(StationSession session, TargetInfo target) {
         if (!Objects.equals(target.stationId(), session.stationId())) {
-            throw Refusal.BOARD_NOT_HERE_OR_NOT_YOURS.raise();
+            throw BoardRefusal.BOARD_NOT_HERE_OR_NOT_YOURS.raise();
         }
         return tickets.findById(target.id())
-                .orElseThrow(Refusal.BOARD_TICKET_NOT_HERE::raise)
+                .orElseThrow(BoardRefusal.BOARD_TICKET_NOT_HERE::raise)
                 .boardId();
     }
 

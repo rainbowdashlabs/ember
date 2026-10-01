@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -83,7 +83,7 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.addByEmail(clusterId, "  ", ClusterUserType.CLUSTER_USER, "Erika", "Leer"));
-        assertEquals(Refusal.CLUSTER_MEMBER_ADDRESS_MISSING, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_ADDRESS_MISSING, refused.refusal());
     }
 
     @Test
@@ -218,7 +218,7 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
 
         var refused = assertThrows(RefusalResponse.class, () -> service.createGroup(clusterId, "  "));
-        assertEquals(Refusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE, refused.refusal());
     }
 
     @Test
@@ -282,7 +282,7 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         var group = service.createGroup(clusterId, "Vorher");
 
         var refused = assertThrows(RefusalResponse.class, () -> service.renameGroup(clusterId, group.id(), " "));
-        assertEquals(Refusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE, refused.refusal());
     }
 
     @Test

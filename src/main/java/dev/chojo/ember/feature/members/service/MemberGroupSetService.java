@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroupSet;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import jakarta.inject.Inject;
@@ -48,8 +48,9 @@ public class MemberGroupSetService {
      */
     public MemberGroupSet create(int stationId, String name) {
         String trimmed = name == null ? "" : name.trim();
-        if (trimmed.isEmpty()) throw Refusal.GROUP_SET_NAME_MISSING_ON_CREATE.raise();
-        if (setRepository.nameTaken(stationId, trimmed, null)) throw Refusal.GROUP_SET_NAME_TAKEN_ON_CREATE.raise();
+        if (trimmed.isEmpty()) throw MemberRefusal.GROUP_SET_NAME_MISSING_ON_CREATE.raise();
+        if (setRepository.nameTaken(stationId, trimmed, null))
+            throw MemberRefusal.GROUP_SET_NAME_TAKEN_ON_CREATE.raise();
         var set = setRepository.create(stationId, trimmed);
         log.info("Group set created: id={}, station={}", set.id(), stationId);
         return set;
@@ -65,9 +66,9 @@ public class MemberGroupSetService {
      */
     public MemberGroupSet rename(int stationId, int id, String name) {
         String trimmed = name == null ? "" : name.trim();
-        if (trimmed.isEmpty()) throw Refusal.GROUP_SET_NAME_MISSING_ON_CHANGE.raise();
-        if (setRepository.nameTaken(stationId, trimmed, id)) throw Refusal.GROUP_SET_NAME_TAKEN_ON_CHANGE.raise();
-        if (!setRepository.rename(id, stationId, trimmed)) throw Refusal.GROUP_SET_NOT_HERE_ON_CHANGE.raise();
+        if (trimmed.isEmpty()) throw MemberRefusal.GROUP_SET_NAME_MISSING_ON_CHANGE.raise();
+        if (setRepository.nameTaken(stationId, trimmed, id)) throw MemberRefusal.GROUP_SET_NAME_TAKEN_ON_CHANGE.raise();
+        if (!setRepository.rename(id, stationId, trimmed)) throw MemberRefusal.GROUP_SET_NOT_HERE_ON_CHANGE.raise();
         log.info("Group set renamed: id={}, station={}", id, stationId);
         return new MemberGroupSet(id, stationId, trimmed);
     }
@@ -79,7 +80,7 @@ public class MemberGroupSetService {
      * @param id        the set
      */
     public void delete(int stationId, int id) {
-        if (!setRepository.delete(id, stationId)) throw Refusal.GROUP_SET_NOT_HERE_ON_DELETE.raise();
+        if (!setRepository.delete(id, stationId)) throw MemberRefusal.GROUP_SET_NOT_HERE_ON_DELETE.raise();
         log.info("Group set deleted: id={}, station={}", id, stationId);
     }
 }

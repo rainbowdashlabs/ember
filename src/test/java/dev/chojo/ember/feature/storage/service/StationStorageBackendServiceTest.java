@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -101,7 +101,7 @@ class StationStorageBackendServiceTest {
     @Test
     void aSessionWithAStationThatIsGoneIsRefused() {
         assertEquals(
-                Refusal.STORAGE_STATION_NOT_HERE,
+                StorageRefusal.STORAGE_STATION_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.requireStation(STATION))
                         .refusal());
 
@@ -131,7 +131,7 @@ class StationStorageBackendServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new LocalRequest()));
 
-        assertEquals(Refusal.ASSOCIATION_DECIDES_WHERE_FILES_ARE_KEPT, refused.refusal());
+        assertEquals(StorageRefusal.ASSOCIATION_DECIDES_WHERE_FILES_ARE_KEPT, refused.refusal());
         verify(migration, never()).moveStation(anyInt(), any());
     }
 
@@ -140,7 +140,7 @@ class StationStorageBackendServiceTest {
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new ClusterStorageRequest()));
 
-        assertEquals(Refusal.STATION_ANSWERS_TO_NO_ASSOCIATION, refused.refusal());
+        assertEquals(StorageRefusal.STATION_ANSWERS_TO_NO_ASSOCIATION, refused.refusal());
     }
 
     @Test
@@ -150,7 +150,7 @@ class StationStorageBackendServiceTest {
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new ClusterStorageRequest()));
 
-        assertEquals(Refusal.ASSOCIATION_KEEPS_NO_STORAGE_FOR_STATIONS, refused.refusal());
+        assertEquals(StorageRefusal.ASSOCIATION_KEEPS_NO_STORAGE_FOR_STATIONS, refused.refusal());
     }
 
     @Test
@@ -174,7 +174,7 @@ class StationStorageBackendServiceTest {
 
         var refused = assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new LocalRequest()));
 
-        assertEquals(Refusal.STATION_STORAGE_MOVE_NOT_DONE, refused.refusal());
+        assertEquals(StorageRefusal.STATION_STORAGE_MOVE_NOT_DONE, refused.refusal());
         verify(audit)
                 .recordMigration(ACTOR, STATION, StorageAuditAction.MIGRATION_FAILED, null, null, "connection refused");
     }
@@ -200,7 +200,7 @@ class StationStorageBackendServiceTest {
     void aStationWithoutStorageOfItsOwnHasNothingToProbe() {
         var refused = assertThrows(RefusalResponse.class, () -> service.probe(ACTOR, STATION));
 
-        assertEquals(Refusal.STATION_KEEPS_NO_STORAGE_OF_ITS_OWN, refused.refusal());
+        assertEquals(StorageRefusal.STATION_KEEPS_NO_STORAGE_OF_ITS_OWN, refused.refusal());
         verify(audit, never()).recordProbe(any(), anyInt(), any(), isNull());
     }
 }

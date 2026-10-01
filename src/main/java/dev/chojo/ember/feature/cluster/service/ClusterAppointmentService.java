@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,9 +39,10 @@ public class ClusterAppointmentService {
      * @param accountUid the account to appoint
      */
     public void appointAdministrator(UUID clusterUid, UUID accountUid) {
-        var cluster = clusterService.findByUid(clusterUid).orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_APPOINTMENT::raise);
-        var account =
-                accounts.findByUid(accountUid).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_CLUSTER_APPOINTMENT::raise);
+        var cluster =
+                clusterService.findByUid(clusterUid).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_ON_APPOINTMENT::raise);
+        var account = accounts.findByUid(accountUid)
+                .orElseThrow(ClusterRefusal.ACCOUNT_NOT_HERE_ON_CLUSTER_APPOINTMENT::raise);
         clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
     }
 }

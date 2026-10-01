@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -99,7 +99,7 @@ public class StationStorageBackendService {
      * @return the station
      */
     public int requireStation(int stationId) {
-        if (stationRepository.findById(stationId).isEmpty()) throw Refusal.STORAGE_STATION_NOT_HERE.raise();
+        if (stationRepository.findById(stationId).isEmpty()) throw StorageRefusal.STORAGE_STATION_NOT_HERE.raise();
         return stationId;
     }
 
@@ -166,7 +166,7 @@ public class StationStorageBackendService {
             auditService.recordMigration(
                     actor, stationId, StorageAuditAction.MIGRATION_FAILED, existing, target, e.getMessage());
             log.warn("Storage move for station {} failed", stationId, e);
-            throw Refusal.STATION_STORAGE_MOVE_NOT_DONE.raise();
+            throw StorageRefusal.STATION_STORAGE_MOVE_NOT_DONE.raise();
         }
         auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, existing, target, null);
         return new MigrationResponse(
@@ -181,7 +181,7 @@ public class StationStorageBackendService {
      * @return the answer, with the reason of a failure kept in the log
      */
     public ProbeResult probe(Actor actor, int stationId) {
-        var row = repository.findOne(stationId).orElseThrow(Refusal.STATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
+        var row = repository.findOne(stationId).orElseThrow(StorageRefusal.STATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
         ProbeResult result = masked(stationId, probeService.probe(row.config()));
         auditService.recordProbe(
                 actor,
@@ -226,13 +226,13 @@ public class StationStorageBackendService {
     private StorageMigrationService.Destination clusterDestination(int stationId) {
         Cluster cluster = clusterRepository
                 .findByStation(stationId)
-                .orElseThrow(Refusal.STATION_ANSWERS_TO_NO_ASSOCIATION::raise);
+                .orElseThrow(StorageRefusal.STATION_ANSWERS_TO_NO_ASSOCIATION::raise);
         if (cluster.storageBackendReach() != ClusterBackendReach.EVERY_STATION) {
-            throw Refusal.ASSOCIATION_KEEPS_NO_STORAGE_FOR_STATIONS.raise();
+            throw StorageRefusal.ASSOCIATION_KEEPS_NO_STORAGE_FOR_STATIONS.raise();
         }
         var current = clusterConfigRepository
                 .findCurrent(cluster.id())
-                .orElseThrow(Refusal.ASSOCIATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
+                .orElseThrow(StorageRefusal.ASSOCIATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
         return new StorageMigrationService.Destination.Cluster(cluster.id(), current.id(), current.config());
     }
 
@@ -244,7 +244,7 @@ public class StationStorageBackendService {
                 .findByStation(stationId)
                 .map(Cluster::storageBackendLocked)
                 .orElse(false);
-        if (locked) throw Refusal.ASSOCIATION_DECIDES_WHERE_FILES_ARE_KEPT.raise();
+        if (locked) throw StorageRefusal.ASSOCIATION_DECIDES_WHERE_FILES_ARE_KEPT.raise();
     }
 
     /**

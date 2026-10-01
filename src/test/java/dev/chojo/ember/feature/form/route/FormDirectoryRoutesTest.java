@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
@@ -110,7 +110,7 @@ class FormDirectoryRoutesTest {
                     200,
                     client.get(PREFIX + "/forms/search?purpose=POLL&uid=abc", editor)
                             .code());
-            assertEquals(Refusal.FORM_KIND_NOT_NAMED, refusalOf(client.get(PREFIX + "/forms/search", editor)));
+            assertEquals(FormRefusal.FORM_KIND_NOT_NAMED, refusalOf(client.get(PREFIX + "/forms/search", editor)));
         });
 
         verify(directory).pickable(3, FormPurpose.POLL, null, "sommer", 5);
@@ -159,7 +159,7 @@ class FormDirectoryRoutesTest {
             assertTrue(header(exported, "Content-Type").startsWith("text/csv"));
             when(stations.findById(3)).thenReturn(Optional.empty());
             assertEquals(
-                    Refusal.STATION_NOT_HERE_FOR_FORM_EXPORT,
+                    FormRefusal.STATION_NOT_HERE_FOR_FORM_EXPORT,
                     refusalOf(client.get(PREFIX + "/forms/7/responses/export", viewer)));
         });
     }

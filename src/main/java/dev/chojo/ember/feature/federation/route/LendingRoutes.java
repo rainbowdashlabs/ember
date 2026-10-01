@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -142,10 +142,10 @@ public class LendingRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateLendingRequest.class);
         if (views.isOwnStation(session.stationId(), req.owningStationId())) {
-            throw Refusal.LENDING_FROM_OWN_STATION.raise();
+            throw FederationRefusal.LENDING_FROM_OWN_STATION.raise();
         }
         if (req.dateFrom() == null) {
-            throw Refusal.LENDING_FIRST_DAY_MISSING.raise();
+            throw FederationRefusal.LENDING_FIRST_DAY_MISSING.raise();
         }
 
         LocalDate dateTo = Objects.requireNonNullElse(req.dateTo(), req.dateFrom());
@@ -191,7 +191,7 @@ public class LendingRoutes implements Routes {
         views.requireOwner(id, session.stationId());
         service.approveRequest(id, session.stationId());
         ctx.json(views.describe(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL::raise),
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL::raise),
                 session.stationId()));
     }
 
@@ -208,7 +208,7 @@ public class LendingRoutes implements Routes {
         var body = ctx.bodyAsClass(DeclineBody.class);
         service.declineRequest(id, session.stationId(), body.reason());
         ctx.json(views.describe(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE::raise),
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE::raise),
                 session.stationId()));
     }
 
@@ -233,7 +233,7 @@ public class LendingRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var request = views.requireOwner(id, session.stationId());
         if (request.status() != LendingStatus.APPROVED) {
-            throw Refusal.LENDING_REQUEST_NOT_APPROVED.raise();
+            throw FederationRefusal.LENDING_REQUEST_NOT_APPROVED.raise();
         }
 
         var assignments = ctx.bodyAsClass(AssignItemsRequest.class);
@@ -256,7 +256,7 @@ public class LendingRoutes implements Routes {
         views.requireOwner(id, session.stationId());
         service.markLent(id, session.stationId());
         ctx.json(views.describe(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
                 session.stationId()));
     }
 
@@ -271,7 +271,7 @@ public class LendingRoutes implements Routes {
         views.requireParty(id, session.stationId());
         service.markReturned(id, session.stationId());
         ctx.json(views.describe(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN::raise),
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN::raise),
                 session.stationId()));
     }
 
@@ -286,7 +286,7 @@ public class LendingRoutes implements Routes {
         views.requireParty(id, session.stationId());
         service.closeRequest(id, session.stationId());
         ctx.json(views.describe(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING::raise),
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING::raise),
                 session.stationId()));
     }
 
@@ -314,7 +314,7 @@ public class LendingRoutes implements Routes {
         views.requireParty(id, session.stationId());
         var body = ctx.bodyAsClass(MessageBody.class);
         if (body.message() == null || body.message().isBlank()) {
-            throw Refusal.LENDING_MESSAGE_NEEDS_TEXT.raise();
+            throw FederationRefusal.LENDING_MESSAGE_NEEDS_TEXT.raise();
         }
         String senderName = NameParts.of(session.user().account()).called();
         var msg = service.sendMessage(id, session.stationId(), session.member().id(), senderName, body.message());
@@ -339,7 +339,7 @@ public class LendingRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateBlockRequest.class);
         if (req.blockFrom() == null || req.blockTo() == null) {
-            throw Refusal.LENDING_BLOCK_SPAN_MISSING.raise();
+            throw FederationRefusal.LENDING_BLOCK_SPAN_MISSING.raise();
         }
         var block = service.createBlock(
                 session.stationId(),

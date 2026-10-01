@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.route.SaveBlocksRequest;
@@ -160,8 +160,8 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     private static UploadedFile requireUpload(Context ctx) {
         var file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.KB_UPLOAD_MISSING_FILE.raise();
-        if (file.size() > MAX_UPLOAD_SIZE) throw Refusal.KB_UPLOAD_TOO_LARGE.raise();
+        if (file == null) throw KnowledgeBaseRefusal.KB_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > MAX_UPLOAD_SIZE) throw KnowledgeBaseRefusal.KB_UPLOAD_TOO_LARGE.raise();
         return file;
     }
 
@@ -279,7 +279,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void createFolder(Context ctx) {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(FolderRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.KB_FOLDER_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw KnowledgeBaseRefusal.KB_FOLDER_NEEDS_A_NAME.raise();
         requireWriteInFolder(ctx, req.parentId());
         ctx.json(service.createFolder(
                 session.stationId(),
@@ -316,10 +316,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.iconUrl(),
                 req.position() != null ? req.position() : 0)) {
-            throw Refusal.KB_FOLDER_NOT_CHANGED.raise();
+            throw KnowledgeBaseRefusal.KB_FOLDER_NOT_CHANGED.raise();
         }
         service.findFolder(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.KB_FOLDER_NOT_HERE_AFTER_CHANGE.raise();
+            throw KnowledgeBaseRefusal.KB_FOLDER_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -335,7 +335,8 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
-        if (!trashService.deleteFolder(id, session.member().id())) throw Refusal.KB_FOLDER_NOT_TRASHED.raise();
+        if (!trashService.deleteFolder(id, session.member().id()))
+            throw KnowledgeBaseRefusal.KB_FOLDER_NOT_TRASHED.raise();
         ctx.status(204);
     }
 
@@ -415,7 +416,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = StationSession.from(ctx);
         var problem =
                 moveService.checkTarget(KbGuards.accessOf(ctx, accessService), session.stationId(), targetFolderId);
-        if (problem != null) throw Refusal.KB_MOVE_TARGET_NOT_USABLE.raise();
+        if (problem != null) throw KnowledgeBaseRefusal.KB_MOVE_TARGET_NOT_USABLE.raise();
     }
 
     /**
@@ -432,7 +433,7 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer fileId = optionalFolderId(ctx, "fileId");
         if (folderId != null) requireOwnedFolder(ctx, service, folderId);
         else if (fileId != null) requireOwnedFile(ctx, service, fileId);
-        else throw Refusal.KB_MOVE_PREVIEW_NEEDS_AN_ENTRY.raise();
+        else throw KnowledgeBaseRefusal.KB_MOVE_PREVIEW_NEEDS_AN_ENTRY.raise();
         ctx.json(moveService.preview(session.stationId(), folderId, fileId, optionalFolderId(ctx, "targetFolderId")));
     }
 
@@ -543,7 +544,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void purgeFolder(Context ctx) {
         int id = trashedFolder(ctx);
-        if (!trashService.purgeFolder(id)) throw Refusal.KB_FOLDER_NOT_PURGED.raise();
+        if (!trashService.purgeFolder(id)) throw KnowledgeBaseRefusal.KB_FOLDER_NOT_PURGED.raise();
         ctx.status(204);
     }
 
@@ -553,7 +554,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void purgeFile(Context ctx) {
         int id = trashedFile(ctx);
-        if (!trashService.purgeFile(id)) throw Refusal.KB_ARTICLE_NOT_PURGED.raise();
+        if (!trashService.purgeFile(id)) throw KnowledgeBaseRefusal.KB_ARTICLE_NOT_PURGED.raise();
         ctx.status(204);
     }
 
@@ -671,10 +672,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.iconUrl(),
                 req.position() != null ? req.position() : 0)) {
-            throw Refusal.KB_ARTICLE_NOT_CHANGED.raise();
+            throw KnowledgeBaseRefusal.KB_ARTICLE_NOT_CHANGED.raise();
         }
         service.findFile(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.KB_ARTICLE_NOT_HERE_AFTER_CHANGE.raise();
+            throw KnowledgeBaseRefusal.KB_ARTICLE_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -687,7 +688,8 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
-        if (!trashService.deleteFile(id, session.member().id())) throw Refusal.KB_ARTICLE_NOT_TRASHED.raise();
+        if (!trashService.deleteFile(id, session.member().id()))
+            throw KnowledgeBaseRefusal.KB_ARTICLE_NOT_TRASHED.raise();
         ctx.status(204);
     }
 
@@ -700,7 +702,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(MarkdownFileRequest.class);
         requireWriteInFolder(ctx, req.folderId());
-        if (req.name() == null || req.name().isBlank()) throw Refusal.KB_ARTICLE_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw KnowledgeBaseRefusal.KB_ARTICLE_NEEDS_A_NAME.raise();
         ctx.json(service.createMarkdownFile(
                 session.stationId(),
                 req.folderId(),
@@ -719,8 +721,9 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(YoutubeFileRequest.class);
         requireWriteInFolder(ctx, req.folderId());
-        if (req.name() == null || req.name().isBlank()) throw Refusal.KB_VIDEO_NEEDS_A_NAME.raise();
-        if (req.youtubeUrl() == null || req.youtubeUrl().isBlank()) throw Refusal.KB_VIDEO_NEEDS_AN_ADDRESS.raise();
+        if (req.name() == null || req.name().isBlank()) throw KnowledgeBaseRefusal.KB_VIDEO_NEEDS_A_NAME.raise();
+        if (req.youtubeUrl() == null || req.youtubeUrl().isBlank())
+            throw KnowledgeBaseRefusal.KB_VIDEO_NEEDS_AN_ADDRESS.raise();
         ctx.json(service.createYoutubeFile(
                 session.stationId(),
                 req.folderId(),
@@ -739,7 +742,8 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(LinkFileRequest.class);
         requireWriteInFolder(ctx, req.folderId());
-        if (req.linkUrl() == null || req.linkUrl().isBlank()) throw Refusal.KB_LINK_NEEDS_AN_ADDRESS.raise();
+        if (req.linkUrl() == null || req.linkUrl().isBlank())
+            throw KnowledgeBaseRefusal.KB_LINK_NEEDS_AN_ADDRESS.raise();
         ctx.json(service.createLinkFile(
                 session.stationId(),
                 req.folderId(),
@@ -768,7 +772,7 @@ public class KnowledgeBaseRoutes implements Routes {
             data = content.readAllBytes();
         } catch (Exception e) {
             log.warn("Failed to read uploaded file for KB", e);
-            throw Refusal.KB_UPLOAD_NOT_READ.raise();
+            throw KnowledgeBaseRefusal.KB_UPLOAD_NOT_READ.raise();
         }
         var created = service.createUploadedFile(
                 session.stationId(),
@@ -804,7 +808,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
         String format = detectPandocFormat(file.filename(), file.contentType());
         if (format == null) {
-            throw Refusal.KB_IMPORT_KIND_UNKNOWN.raise();
+            throw KnowledgeBaseRefusal.KB_IMPORT_KIND_UNKNOWN.raise();
         }
 
         try (var content = file.content()) {
@@ -819,7 +823,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     session.member().id()));
         } catch (Exception e) {
             log.warn("Document conversion failed for KB import", e);
-            throw Refusal.KB_IMPORT_FAILED.raise();
+            throw KnowledgeBaseRefusal.KB_IMPORT_FAILED.raise();
         }
     }
 
@@ -835,13 +839,13 @@ public class KnowledgeBaseRoutes implements Routes {
         switch (file.fileType()) {
             case MARKDOWN, TEXT -> {
                 var text = contentService.getMarkdownContent(id);
-                if (text.isEmpty()) throw Refusal.KB_ARTICLE_TEXT_NOT_HERE.raise();
+                if (text.isEmpty()) throw KnowledgeBaseRefusal.KB_ARTICLE_TEXT_NOT_HERE.raise();
                 ctx.contentType(ContentType.TEXT_PLAIN);
                 ctx.result(text.get());
             }
             case PDF, IMAGE, OTHER -> {
                 var data = contentService.getFileContent(id);
-                if (data.isEmpty()) throw Refusal.KB_FILE_CONTENT_NOT_HERE.raise();
+                if (data.isEmpty()) throw KnowledgeBaseRefusal.KB_FILE_CONTENT_NOT_HERE.raise();
                 String mime = SafeInlineMime.safeContentType(file.mimeType());
                 var disposition = SafeInlineMime.isInlineSafe(file.mimeType())
                         ? SafeContentDisposition.Disposition.INLINE
@@ -852,7 +856,7 @@ public class KnowledgeBaseRoutes implements Routes {
             }
             case PRESENTATION -> {
                 var pdf = presentationService.getPresentationPdf(id);
-                if (pdf.isEmpty()) throw Refusal.KB_PRESENTATION_NOT_READY.raise();
+                if (pdf.isEmpty()) throw KnowledgeBaseRefusal.KB_PRESENTATION_NOT_READY.raise();
                 ctx.contentType("application/pdf");
                 ctx.header(
                         "Content-Disposition",
@@ -873,7 +877,7 @@ public class KnowledgeBaseRoutes implements Routes {
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         var text = contentService.getMarkdownContent(id);
-        if (text.isEmpty()) throw Refusal.KB_ARTICLE_TEXT_NOT_HERE_AS_PAGE.raise();
+        if (text.isEmpty()) throw KnowledgeBaseRefusal.KB_ARTICLE_TEXT_NOT_HERE_AS_PAGE.raise();
         String html = contentService.renderMarkdown(text.get());
         ctx.json(new MarkdownHtmlResponse(html, text.get()));
     }
@@ -927,7 +931,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var request = ctx.bodyAsClass(SaveBlocksRequest.class);
         var saved = contentService
                 .saveBlocks(id, request.toRowData(), session.member().id())
-                .orElseThrow(Refusal.KB_BLOCKS_NOT_SAVED::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_BLOCKS_NOT_SAVED::raise);
         ctx.json(blocksOf(saved));
     }
 
@@ -943,7 +947,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
-        var switched = contentService.switchToRich(id).orElseThrow(Refusal.KB_BLOCKS_NOT_ENABLED::raise);
+        var switched = contentService.switchToRich(id).orElseThrow(KnowledgeBaseRefusal.KB_BLOCKS_NOT_ENABLED::raise);
         ctx.json(blocksOf(switched));
     }
 
@@ -953,7 +957,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var file = requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         if (!KbPdfExportService.isExportable(file.fileType())) {
-            throw Refusal.KB_NOT_A_PDF_TO_MAKE.raise();
+            throw KnowledgeBaseRefusal.KB_NOT_A_PDF_TO_MAKE.raise();
         }
         var session = UserSession.from(ctx);
         try {
@@ -966,10 +970,10 @@ public class KnowledgeBaseRoutes implements Routes {
             ctx.result(pdf);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw Refusal.KB_PDF_STOPPED.raise();
+            throw KnowledgeBaseRefusal.KB_PDF_STOPPED.raise();
         } catch (Exception e) {
             log.warn("Failed to render text file {} as PDF", id, e);
-            throw Refusal.KB_PDF_NOT_MADE.raise();
+            throw KnowledgeBaseRefusal.KB_PDF_NOT_MADE.raise();
         }
     }
 
@@ -982,10 +986,10 @@ public class KnowledgeBaseRoutes implements Routes {
         var file = requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         if (file.fileType() != KbFileType.PRESENTATION) {
-            throw Refusal.KB_ORIGINAL_NOT_KEPT.raise();
+            throw KnowledgeBaseRefusal.KB_ORIGINAL_NOT_KEPT.raise();
         }
         var data = contentService.getFileContent(id);
-        if (data.isEmpty()) throw Refusal.KB_ORIGINAL_NOT_HERE.raise();
+        if (data.isEmpty()) throw KnowledgeBaseRefusal.KB_ORIGINAL_NOT_HERE.raise();
         ctx.contentType(SafeInlineMime.safeContentType(file.mimeType()));
         ctx.header(
                 "Content-Disposition",
@@ -1009,7 +1013,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var file = requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         if (file.fileType() != KbFileType.PRESENTATION) {
-            throw Refusal.KB_ORIGINAL_NOT_REPLACEABLE.raise();
+            throw KnowledgeBaseRefusal.KB_ORIGINAL_NOT_REPLACEABLE.raise();
         }
         var uploaded = requireUpload(ctx);
         try (var content = uploaded.content()) {
@@ -1017,9 +1021,9 @@ public class KnowledgeBaseRoutes implements Routes {
             presentationService.reuploadPresentation(id, data, uploaded.contentType(), uploaded.filename());
         } catch (Exception e) {
             log.warn("Failed to re-upload presentation file", e);
-            throw Refusal.KB_PRESENTATION_NOT_REPLACED.raise();
+            throw KnowledgeBaseRefusal.KB_PRESENTATION_NOT_REPLACED.raise();
         }
-        ctx.json(service.findFile(id).orElseThrow(Refusal.KB_FILE_NOT_HERE_AFTER_REUPLOAD::raise));
+        ctx.json(service.findFile(id).orElseThrow(KnowledgeBaseRefusal.KB_FILE_NOT_HERE_AFTER_REUPLOAD::raise));
     }
 
     @OpenApi(
@@ -1051,7 +1055,7 @@ public class KnowledgeBaseRoutes implements Routes {
         requireOwnedFile(ctx, service, fileId);
         requireLevel(ctx, accessService, null, fileId, KbAccessLevel.READ);
         contentService.findVersion(fileId, version).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.KB_VERSION_NOT_HERE.raise();
+            throw KnowledgeBaseRefusal.KB_VERSION_NOT_HERE.raise();
         });
     }
 
@@ -1206,7 +1210,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
         var picture = pictureService
                 .read(file.stationId(), id, file.mimeType(), size)
-                .orElseThrow(Refusal.KB_ARTICLE_PICTURE_NOT_HERE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.KB_ARTICLE_PICTURE_NOT_HERE::raise);
         ctx.contentType(picture.contentType());
         ctx.header("Cache-Control", "private, max-age=300");
         ctx.result(picture.data());
@@ -1241,10 +1245,10 @@ public class KnowledgeBaseRoutes implements Routes {
         var folder = requireOwnedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("icon");
-        if (file == null) throw Refusal.KB_FOLDER_ICON_MISSING.raise();
+        if (file == null) throw KnowledgeBaseRefusal.KB_FOLDER_ICON_MISSING.raise();
         String contentType = file.contentType();
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-            throw Refusal.KB_FOLDER_ICON_KIND_NOT_TAKEN.raise();
+            throw KnowledgeBaseRefusal.KB_FOLDER_ICON_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -1253,10 +1257,10 @@ public class KnowledgeBaseRoutes implements Routes {
             ctx.json(new MessageResponse("Icon updated"));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing folder icon for folder {}", id, e);
-            throw Refusal.KB_FOLDER_ICON_NOT_SAVED.raise();
+            throw KnowledgeBaseRefusal.KB_FOLDER_ICON_NOT_SAVED.raise();
         } catch (IOException e) {
             log.error("Failed to process image", e);
-            throw Refusal.KB_FOLDER_ICON_NOT_PROCESSED.raise();
+            throw KnowledgeBaseRefusal.KB_FOLDER_ICON_NOT_PROCESSED.raise();
         }
     }
 
@@ -1270,10 +1274,10 @@ public class KnowledgeBaseRoutes implements Routes {
         requireOwnedFile(ctx, service, fileId);
         requireLevel(ctx, accessService, null, fileId, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("image");
-        if (file == null) throw Refusal.KB_ARTICLE_IMAGE_MISSING.raise();
+        if (file == null) throw KnowledgeBaseRefusal.KB_ARTICLE_IMAGE_MISSING.raise();
         String contentType = file.contentType();
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-            throw Refusal.KB_ARTICLE_IMAGE_KIND_NOT_TAKEN.raise();
+            throw KnowledgeBaseRefusal.KB_ARTICLE_IMAGE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -1282,10 +1286,10 @@ public class KnowledgeBaseRoutes implements Routes {
             ctx.json(new ImageUploadResponse(imageId));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing KB image for file {}", fileId, e);
-            throw Refusal.KB_ARTICLE_IMAGE_NOT_SAVED.raise();
+            throw KnowledgeBaseRefusal.KB_ARTICLE_IMAGE_NOT_SAVED.raise();
         } catch (IOException e) {
             log.error("Failed to process image", e);
-            throw Refusal.KB_ARTICLE_IMAGE_NOT_PROCESSED.raise();
+            throw KnowledgeBaseRefusal.KB_ARTICLE_IMAGE_NOT_PROCESSED.raise();
         }
     }
 

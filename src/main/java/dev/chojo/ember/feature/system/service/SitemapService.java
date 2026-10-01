@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
@@ -92,8 +92,8 @@ public class SitemapService {
      * and the two are not told apart.
      */
     public String forStation(UUID stationUid) {
-        var station = stations.findByUid(stationUid).orElseThrow(Refusal.SITEMAP_NOT_HERE::raise);
-        if (!hasPublicContent(station)) throw Refusal.SITEMAP_NOT_HERE.raise();
+        var station = stations.findByUid(stationUid).orElseThrow(SystemRefusal.SITEMAP_NOT_HERE::raise);
+        if (!hasPublicContent(station)) throw SystemRefusal.SITEMAP_NOT_HERE.raise();
         return cache.get(stationUid.toString(), _ -> stationXml(station));
     }
 

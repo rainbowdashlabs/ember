@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -211,7 +211,7 @@ public class QuizTestRoutes implements Routes {
     private void createTest(Context ctx) {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(QuizTestRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw Refusal.QUIZ_TEST_NEEDS_A_TITLE.raise();
+        if (req.title() == null || req.title().isBlank()) throw QuizRefusal.QUIZ_TEST_NEEDS_A_TITLE.raise();
         var test = testService.createTest(
                 session.stationId(),
                 req.title(),
@@ -241,10 +241,10 @@ public class QuizTestRoutes implements Routes {
                 Boolean.TRUE.equals(req.forced()),
                 req.startAt(),
                 req.endAt())) {
-            throw Refusal.QUIZ_TEST_NOT_CHANGED.raise();
+            throw QuizRefusal.QUIZ_TEST_NOT_CHANGED.raise();
         }
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_TEST_NOT_HERE_AFTER_CHANGE.raise();
+            throw QuizRefusal.QUIZ_TEST_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -258,7 +258,7 @@ public class QuizTestRoutes implements Routes {
         if (testService.deleteTest(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.QUIZ_TEST_NOT_DELETED.raise();
+            throw QuizRefusal.QUIZ_TEST_NOT_DELETED.raise();
         }
     }
 
@@ -269,10 +269,10 @@ public class QuizTestRoutes implements Routes {
     private void activateTest(Context ctx) {
         int id = pathInt(ctx, "id");
         var test = guards.requireOwnedTest(ctx, id);
-        if (test.status() != TestStatus.DRAFT) throw Refusal.QUIZ_TEST_NOT_A_DRAFT.raise();
+        if (test.status() != TestStatus.DRAFT) throw QuizRefusal.QUIZ_TEST_NOT_A_DRAFT.raise();
         testService.activateTest(id);
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_TEST_NOT_HERE_AFTER_ACTIVATION.raise();
+            throw QuizRefusal.QUIZ_TEST_NOT_HERE_AFTER_ACTIVATION.raise();
         });
     }
 
@@ -283,9 +283,9 @@ public class QuizTestRoutes implements Routes {
     private void closeTest(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
-        if (!testService.closeTest(id)) throw Refusal.QUIZ_TEST_NOT_CLOSED.raise();
+        if (!testService.closeTest(id)) throw QuizRefusal.QUIZ_TEST_NOT_CLOSED.raise();
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_TEST_NOT_HERE_AFTER_CLOSING.raise();
+            throw QuizRefusal.QUIZ_TEST_NOT_HERE_AFTER_CLOSING.raise();
         });
     }
 
@@ -297,7 +297,7 @@ public class QuizTestRoutes implements Routes {
     private void generateFrozenQuestions(Context ctx) {
         int testId = pathInt(ctx, "id");
         var test = guards.requireOwnedTest(ctx, testId);
-        if (test.status() == TestStatus.ACTIVE) throw Refusal.QUIZ_TEST_RUNNING_CANNOT_REDRAW.raise();
+        if (test.status() == TestStatus.ACTIVE) throw QuizRefusal.QUIZ_TEST_RUNNING_CANNOT_REDRAW.raise();
         testService.generateFrozenQuestions(testId);
         ctx.json(buildFrozenQuestionResponse(testId));
     }
@@ -433,7 +433,7 @@ public class QuizTestRoutes implements Routes {
         int testId = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, testId);
         var req = ctx.bodyAsClass(QuizAccessRequest.class);
-        if (req.memberId() == null) throw Refusal.QUIZ_TEST_ACCESS_NEEDS_A_MEMBER.raise();
+        if (req.memberId() == null) throw QuizRefusal.QUIZ_TEST_ACCESS_NEEDS_A_MEMBER.raise();
         accessService.grantMemberAccess(testId, req.memberId(), req.closesAt());
         ctx.json(new QuizSuccessResponse(true));
     }
@@ -464,7 +464,7 @@ public class QuizTestRoutes implements Routes {
             ctx.result(pdf.bytes());
         } catch (Exception e) {
             log.error("PDF export failed for test {}", id, e);
-            throw Refusal.QUIZ_TEST_PDF_NOT_MADE.raise();
+            throw QuizRefusal.QUIZ_TEST_PDF_NOT_MADE.raise();
         }
     }
 
@@ -482,7 +482,7 @@ public class QuizTestRoutes implements Routes {
             ctx.result(pdf.bytes());
         } catch (Exception e) {
             log.error("PDF solution export failed for test {}", id, e);
-            throw Refusal.QUIZ_TEST_SOLUTION_PDF_NOT_MADE.raise();
+            throw QuizRefusal.QUIZ_TEST_SOLUTION_PDF_NOT_MADE.raise();
         }
     }
 

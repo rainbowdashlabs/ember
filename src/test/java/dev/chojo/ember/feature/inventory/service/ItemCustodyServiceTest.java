@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -171,7 +171,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
 
         var thrown = assertThrows(
                 RefusalResponse.class, () -> itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody"));
-        assertEquals(Refusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE, thrown.refusal());
+        assertEquals(InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE, thrown.refusal());
     }
 
     @Test

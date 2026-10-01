@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
@@ -263,7 +264,7 @@ public class EventCrudService {
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays) {
-        requireUsableSpan(startTime, endTime, Refusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CREATE);
+        requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CREATE);
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -320,7 +321,7 @@ public class EventCrudService {
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays) {
-        requireUsableSpan(startTime, endTime, Refusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
+        requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
         var before = eventRepository.findById(id).orElse(null);
         if (eventRepository.update(
                 id,
@@ -389,18 +390,18 @@ public class EventCrudService {
             return Optional.empty();
         }
         if (until != null && count != null) {
-            throw Refusal.EVENT_SERIES_END_GIVEN_TWICE.raise();
+            throw EventRefusal.EVENT_SERIES_END_GIVEN_TWICE.raise();
         }
         if ((until != null || count != null) && !event.isRecurring()) {
-            throw Refusal.EVENT_SERIES_END_ON_ONE_OFF.raise();
+            throw EventRefusal.EVENT_SERIES_END_ON_ONE_OFF.raise();
         }
         if (count != null && count < 1) {
-            throw Refusal.EVENT_SERIES_COUNT_BELOW_ONE.raise();
+            throw EventRefusal.EVENT_SERIES_COUNT_BELOW_ONE.raise();
         }
         if (until != null
                 && event.startTime() != null
                 && until.isBefore(event.startTime().atZone(ZoneOffset.UTC).toLocalDate())) {
-            throw Refusal.EVENT_SERIES_ENDS_BEFORE_IT_STARTS.raise();
+            throw EventRefusal.EVENT_SERIES_ENDS_BEFORE_IT_STARTS.raise();
         }
 
         eventRepository.updateRepeatEnd(id, until, count);

@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
@@ -38,8 +39,9 @@ public class PublicWaitingListService {
      * @return the station's id
      */
     public int stationIdFor(String address) {
-        var station = stations.findByAddress(address).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST::raise);
-        if (!station.publicWaitlistEnabled()) throw Refusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF.raise();
+        var station = stations.findByAddress(address)
+                .orElseThrow(WaitingListRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST::raise);
+        if (!station.publicWaitlistEnabled()) throw WaitingListRefusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF.raise();
         return station.id();
     }
 
@@ -59,7 +61,8 @@ public class PublicWaitingListService {
      * The appointment an invitation is for, written exactly as the mail wrote it.
      */
     public WaitlistInvitationDetails invitationDetails(int stationId, WaitingListInvitation invitation) {
-        var station = stations.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_INVITATION::raise);
+        var station =
+                stations.findById(stationId).orElseThrow(WaitingListRefusal.STATION_NOT_HERE_BEHIND_INVITATION::raise);
         return invitationMessage.describe(station, invitation);
     }
 }

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.conf;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ocular.exceptions.ConfigurationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -45,7 +45,7 @@ class ConfigChangesTest {
         var refused = assertThrows(RefusalResponse.class, () -> new ConfigChanges(conf)
                 .apply(() -> steps.add("change"), () -> steps.add("restore")));
 
-        assertEquals(Refusal.SETTINGS_NOT_SAVED, refused.refusal());
+        assertEquals(SystemRefusal.SETTINGS_NOT_SAVED, refused.refusal());
         assertEquals(List.of("change", "restore"), steps);
     }
 

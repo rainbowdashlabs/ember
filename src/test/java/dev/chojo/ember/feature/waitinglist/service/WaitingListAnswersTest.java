@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;

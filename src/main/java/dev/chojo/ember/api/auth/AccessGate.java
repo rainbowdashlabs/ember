@@ -8,9 +8,9 @@ package dev.chojo.ember.api.auth;
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -97,7 +97,7 @@ public class AccessGate implements Handler {
 
         String token = SessionCookies.token(ctx).orElse(null);
         if (token == null) {
-            throw Refusal.ROUTE_NEEDS_SIGN_IN.raise();
+            throw GeneralRefusal.ROUTE_NEEDS_SIGN_IN.raise();
         }
 
         Station station = requestedStation(ctx);
@@ -105,7 +105,7 @@ public class AccessGate implements Handler {
 
         Optional<UserSession> sessionOpt = sessionGate.admit(ctx, token, station, cluster);
         if (sessionOpt.isEmpty()) {
-            throw Refusal.SIGN_IN_SESSION_NOT_VALID.raise();
+            throw GeneralRefusal.SIGN_IN_SESSION_NOT_VALID.raise();
         }
 
         UserSession session = sessionOpt.get();
@@ -147,12 +147,12 @@ public class AccessGate implements Handler {
             var uid = UUID.fromString(stationIdHeader);
             Station station = stationRepository.findByUid(uid).orElse(null);
             if (station == null) {
-                throw Refusal.REQUESTED_STATION_NOT_HERE.raise();
+                throw GeneralRefusal.REQUESTED_STATION_NOT_HERE.raise();
             }
             return station;
         } catch (IllegalArgumentException e) {
             log.warn("Invalid X-Station-Id header value", e);
-            throw Refusal.REQUESTED_STATION_NOT_AN_IDENTITY.raise();
+            throw GeneralRefusal.REQUESTED_STATION_NOT_AN_IDENTITY.raise();
         }
     }
 
@@ -167,10 +167,10 @@ public class AccessGate implements Handler {
         try {
             return clusterRepository
                     .findByUid(UUID.fromString(clusterIdHeader))
-                    .orElseThrow(Refusal.REQUESTED_CLUSTER_NOT_HERE::raise);
+                    .orElseThrow(GeneralRefusal.REQUESTED_CLUSTER_NOT_HERE::raise);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid X-Cluster-Id header value", e);
-            throw Refusal.REQUESTED_CLUSTER_NOT_AN_IDENTITY.raise();
+            throw GeneralRefusal.REQUESTED_CLUSTER_NOT_AN_IDENTITY.raise();
         }
     }
 
@@ -209,7 +209,7 @@ public class AccessGate implements Handler {
                     : session.permissions();
             ctx.header("X-Required-Permissions", routeRoles.toString());
             ctx.header("X-User-Permissions", held.toString());
-            throw Refusal.ROUTE_PERMISSION_MISSING.raise();
+            throw GeneralRefusal.ROUTE_PERMISSION_MISSING.raise();
         }
 
         if (stepUpCategory != null) {

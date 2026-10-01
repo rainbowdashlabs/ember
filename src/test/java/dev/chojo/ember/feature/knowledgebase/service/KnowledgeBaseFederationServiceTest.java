@@ -6,9 +6,10 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
@@ -331,8 +332,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var widening = assertThrows(
                 RefusalResponse.class,
                 () -> service.shareEntry(stationB.id(), inside.id(), null, ShareScope.ALL_PARTNERS, List.of()));
-        assertEquals(Refusal.KB_SHARE_NAMES_STATIONS_ITS_FOLDER_DOES_NOT, naming.refusal());
-        assertEquals(Refusal.KB_SHARE_WIDER_THAN_ITS_FOLDER, widening.refusal());
+        assertEquals(KnowledgeBaseRefusal.KB_SHARE_NAMES_STATIONS_ITS_FOLDER_DOES_NOT, naming.refusal());
+        assertEquals(KnowledgeBaseRefusal.KB_SHARE_WIDER_THAN_ITS_FOLDER, widening.refusal());
 
         var narrowed = service.shareEntry(stationB.id(), inside.id(), null, ShareScope.SPECIFIC, List.of());
 
@@ -399,7 +400,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.setAudience(stationB.id(), file.id(), 1, ShareScope.ALL_PARTNERS, List.of()));
-        assertEquals(Refusal.KB_AUDIENCE_NEEDS_ONE_ENTRY, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.KB_AUDIENCE_NEEDS_ONE_ENTRY, refused.refusal());
 
         knowledgeBaseRepo.purgeFile(file.id());
     }
@@ -618,7 +619,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.getFederatedKbFileContent(station.id(), stationC.uid(), 56));
-        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -785,7 +786,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void fileForPartnerRejectsForeignStation() {
         var file = createFile(stationB.id(), "ForeignFile");
         var refused = assertThrows(RefusalResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
-        assertEquals(Refusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -800,7 +801,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = createFile(station.id(), "UnsharedFile");
 
         var refused = assertThrows(RefusalResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
-        assertEquals(Refusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
 
         var share = federationRepo.createKbShare(station.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         assertEquals(
@@ -844,7 +845,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(44)
     void fileForPartnerAnswersNotFoundForUnknownFile() {
         var refused = assertThrows(RefusalResponse.class, () -> service.fileForPartner(requestingPartner, 999999));
-        assertEquals(Refusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
     }
 
     @Test
@@ -932,7 +933,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.updateRemoteComment(requestingPartner, comment.id(), stranger, "Fremd"));
-        assertEquals(Refusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
 
         commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
@@ -945,8 +946,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.requireRemoteCommentAuthor(
-                        requestingPartner, 999999, stranger, Refusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_DELETE));
-        assertEquals(Refusal.REMOTE_KB_COMMENT_NOT_HERE, refused.refusal());
+                        requestingPartner,
+                        999999,
+                        stranger,
+                        KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_DELETE));
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -1028,7 +1032,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.updateFederatedComment(station.id(), stationB.uid(), created.id(), stranger, "Fremd"));
-        assertEquals(Refusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
 
         commentRepo.delete(CommentEntityType.KB, created.id());
         knowledgeBaseRepo.purgeFile(file.id());
@@ -1054,7 +1058,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var unknown = UUID.randomUUID();
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.listFederatedComments(station.id(), unknown, 1));
-        assertEquals(Refusal.KB_COMMENT_PARTNER_NOT_HERE, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.KB_COMMENT_PARTNER_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -1150,7 +1154,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.deleteFederatedComment(station.id(), stationC.uid(), 9, memberUid));
-        assertEquals(Refusal.PARTNER_KB_COMMENT_NOT_DELETED, refused.refusal());
+        assertEquals(KnowledgeBaseRefusal.PARTNER_KB_COMMENT_NOT_DELETED, refused.refusal());
     }
 
     /** A file of station B shared with every partner. */

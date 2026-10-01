@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.onboarding.service;
 
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
