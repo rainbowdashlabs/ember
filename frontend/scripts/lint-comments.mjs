@@ -90,6 +90,10 @@ function commentStart(line) {
             else if (c === quote) quote = null
             continue
         }
+        if (c === '\\') {
+            i++
+            continue
+        }
         if (c === '"' || c === "'" || c === '`') {
             quote = c
             continue
@@ -110,6 +114,7 @@ function check(file) {
     let inBlock = false
     let inTemplateComment = false
     let inTextBlock = false
+    let inCode = !markup
 
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i]
@@ -134,7 +139,16 @@ function check(file) {
             continue
         }
 
-        if (markup && TEMPLATE_COMMENT.test(line)) {
+        if (markup && /^\s*<(script|style)\b/.test(line)) {
+            inCode = true
+            continue
+        }
+        if (markup && /^\s*<\/(script|style)>/.test(line)) {
+            inCode = false
+            continue
+        }
+
+        if (markup && !inCode && TEMPLATE_COMMENT.test(line)) {
             inTemplateComment = !line.slice(line.indexOf('<!--')).includes('-->')
             found.push({line: i + 1, message: 'Template comment. Name the block with a component or a class instead.'})
             continue
@@ -144,6 +158,8 @@ function check(file) {
             if (line.includes('*/')) inBlock = false
             continue
         }
+
+        if (!inCode) continue
 
         if (TODO.test(line)) continue
 
