@@ -48,7 +48,7 @@ public class StorageAuditLogService {
      * @param limit      how many entries at most, held between 1 and 200
      * @return the entries
      */
-    public List<AuditEntryResponse> list(String before, String stationUid, int limit) {
+    public List<AuditEntryResponse> list(@Nullable String before, @Nullable String stationUid, int limit) {
         Optional<Integer> stationId = stationUid == null
                 ? Optional.empty()
                 : stationRepository.resolveId(StorageQuotaAdminService.parseUid(stationUid));
@@ -65,13 +65,13 @@ public class StorageAuditLogService {
      * @param limit     how many entries at most, held between 1 and 200
      * @return the entries
      */
-    public List<AuditEntryResponse> listForStation(int stationId, String before, int limit) {
+    public List<AuditEntryResponse> listForStation(int stationId, @Nullable String before, int limit) {
         return repository.findByStation(stationId, pointBefore(before), clamp(limit)).stream()
                 .map(StorageAuditLogService::toResponse)
                 .toList();
     }
 
-    private static Optional<Instant> pointBefore(String raw) {
+    private static Optional<Instant> pointBefore(@Nullable String raw) {
         if (raw == null) return Optional.empty();
         try {
             return Optional.of(Instant.parse(raw));

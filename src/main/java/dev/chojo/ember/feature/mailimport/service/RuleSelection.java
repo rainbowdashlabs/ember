@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mailimport.service;
 
 import dev.chojo.ember.feature.mailimport.entity.MailRule;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
@@ -42,7 +43,7 @@ public final class RuleSelection {
      * @return the rule that takes it
      */
     public static Optional<MailRule> firstMatch(
-            List<MailRule> rules, String sender, String subject, List<String> attachmentNames) {
+            List<MailRule> rules, @Nullable String sender, @Nullable String subject, List<String> attachmentNames) {
         if (rules == null) return Optional.empty();
         return rules.stream()
                 .filter(MailRule::enabled)
@@ -63,19 +64,20 @@ public final class RuleSelection {
      * @param attachmentNames the names of the files hanging off it
      * @return whether it takes it
      */
-    public static boolean takes(MailRule rule, String sender, String subject, List<String> attachmentNames) {
+    public static boolean takes(
+            MailRule rule, @Nullable String sender, @Nullable String subject, List<String> attachmentNames) {
         if (!SenderPatterns.accepts(rule.senderPatterns(), sender)) return false;
         if (!contains(subject, rule.subjectFilter())) return false;
         return anyNameFits(attachmentNames, rule.attachmentNameFilter());
     }
 
-    private static boolean anyNameFits(List<String> attachmentNames, String filter) {
+    private static boolean anyNameFits(List<String> attachmentNames, @Nullable String filter) {
         if (filter == null || filter.isBlank()) return true;
         if (attachmentNames == null || attachmentNames.isEmpty()) return false;
         return attachmentNames.stream().anyMatch(name -> contains(name, filter));
     }
 
-    private static boolean contains(String text, String needle) {
+    private static boolean contains(@Nullable String text, @Nullable String needle) {
         if (needle == null || needle.isBlank()) return true;
         if (text == null) return false;
         return text.toLowerCase(Locale.ROOT).contains(needle.trim().toLowerCase(Locale.ROOT));

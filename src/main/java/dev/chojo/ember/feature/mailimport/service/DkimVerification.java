@@ -11,6 +11,7 @@ import jakarta.inject.Singleton;
 import org.apache.james.jdkim.DKIMVerifier;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.TempFailException;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
@@ -72,13 +73,13 @@ public class DkimVerification {
      * What is wrong with this message's signature, or nothing where nothing is.
      *
      * @param source the message exactly as the server handed it back
-     * @param sender the bare address it claims to come from
+     * @param sender the bare address it claims to come from, or null where it claims none
      * @return why it is refused, or empty where it carries an aligned signature that verifies
      * @throws TempFailException where the key could not be looked up this time, which leaves the message
      *                           where it is so that the next visit can try again. A name server that is
      *                           briefly unreachable is not a reason to refuse somebody's post for good
      */
-    public Optional<Refusal> objection(byte[] source, String sender) throws TempFailException {
+    public Optional<Refusal> objection(byte[] source, @Nullable String sender) throws TempFailException {
         String claimed = domainOf(sender);
         if (claimed == null) {
             return Optional.of(new Refusal(
@@ -132,7 +133,7 @@ public class DkimVerification {
                 .orElse("nobody");
     }
 
-    private static String domainOf(String sender) {
+    private static @Nullable String domainOf(@Nullable String sender) {
         if (sender == null) return null;
         int at = sender.lastIndexOf('@');
         if (at < 0 || at == sender.length() - 1) return null;

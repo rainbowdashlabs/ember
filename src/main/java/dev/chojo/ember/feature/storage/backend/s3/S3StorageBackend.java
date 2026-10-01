@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -269,7 +270,7 @@ public class S3StorageBackend implements StorageBackend {
         return basePath.isEmpty() ? fullKey : basePath + "/" + fullKey;
     }
 
-    private String stripBase(String objectKey) {
+    private @Nullable String stripBase(String objectKey) {
         if (basePath.isEmpty()) return objectKey;
         String prefix = basePath + "/";
         if (objectKey.equals(basePath)) return null;

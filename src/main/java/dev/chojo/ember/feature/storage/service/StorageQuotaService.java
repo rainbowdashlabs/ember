@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -182,17 +183,17 @@ public class StorageQuotaService {
     }
 
     /**
-     * Updates a station's individual quota overrides.
+     * Updates a station's individual quota overrides. A null dimension clears its override.
      */
     public void updateStationQuotas(
             int stationId,
-            Long totalBytes,
-            Long kbBytes,
-            Long boardBytes,
-            Long imagesBytes,
-            Long pagesBytes,
-            Long perFileBytes,
-            Long perImageBytes) {
+            @Nullable Long totalBytes,
+            @Nullable Long kbBytes,
+            @Nullable Long boardBytes,
+            @Nullable Long imagesBytes,
+            @Nullable Long pagesBytes,
+            @Nullable Long perFileBytes,
+            @Nullable Long perImageBytes) {
         query("""
                 UPDATE station SET
                     storage_quota_bytes = :total,
@@ -330,9 +331,9 @@ public class StorageQuotaService {
     private static ResolvedQuota resolve(
             QuotaAuthority authority,
             boolean underCluster,
-            Long granted,
-            Long clusterDefault,
-            Long override,
+            @Nullable Long granted,
+            @Nullable Long clusterDefault,
+            @Nullable Long override,
             long instanceDefault) {
         if (authority == QuotaAuthority.NOBODY) return ResolvedQuota.unlimited();
         if (granted != null) return new ResolvedQuota(granted, QuotaOrigin.CLUSTER_GRANT);

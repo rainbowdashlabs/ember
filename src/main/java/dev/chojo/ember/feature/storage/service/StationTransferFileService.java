@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +56,7 @@ public class StationTransferFileService {
      * @param limit     how many keys at most, zero or less for the default; held at 2000 at most
      * @return the page, with the cursor for the next one
      */
-    public ListKeysResponse page(int stationId, StorageCategory category, String after, int limit) {
+    public ListKeysResponse page(int stationId, StorageCategory category, @Nullable String after, int limit) {
         int size = limit <= 0 ? DEFAULT_LIST_LIMIT : Math.min(limit, MAX_LIST_LIMIT);
         List<String> sorted =
                 new ArrayList<>(originalsOnly(category, storageService.listKeys(scopeOf(stationId), category, "")));
@@ -102,7 +103,7 @@ public class StationTransferFileService {
         return new StorageScope.Station(stationId, station.uid());
     }
 
-    private static int startAfter(List<String> sorted, String after) {
+    private static int startAfter(List<String> sorted, @Nullable String after) {
         if (after == null || after.isBlank()) return 0;
         int index = Collections.binarySearch(sorted, after);
         return index >= 0 ? index + 1 : -index - 1;
@@ -140,5 +141,6 @@ public class StationTransferFileService {
      * for the whole category, repeated identically on every page so the destination can pin its
      * progress denominator on the first response and never see it grow as later pages arrive.
      */
-    public record ListKeysResponse(List<String> keys, String next, int total) {}
+    public record ListKeysResponse(
+            List<String> keys, @Nullable String next, int total) {}
 }

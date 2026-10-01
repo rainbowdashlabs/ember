@@ -98,7 +98,7 @@ public class StationStorageBackendService {
      * @param stationId the session's station, or null
      * @return the station
      */
-    public int requireStation(Integer stationId) {
+    public int requireStation(@Nullable Integer stationId) {
         if (stationId == null) throw Refusal.NO_STATION_CHOSEN_FOR_STORAGE.raise();
         if (stationRepository.findById(stationId).isEmpty()) throw Refusal.STORAGE_STATION_NOT_HERE.raise();
         return stationId;

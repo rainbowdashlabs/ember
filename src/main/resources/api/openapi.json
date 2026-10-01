@@ -54399,7 +54399,7 @@
             }
           },
           "next" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "total" : {
             "type" : "integer",
@@ -65521,10 +65521,10 @@
             "type" : "string"
           },
           "password" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "privateKey" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "type", "host", "port", "username", "knownHostsFingerprint", "basePath", "password", "privateKey" ]

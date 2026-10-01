@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.storage.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Everything Ember stores, with its scope kind, quota behaviour, accepted MIME types and flags. A
@@ -13,25 +16,64 @@ import java.util.List;
  * stays on the local backend.
  */
 public enum StorageCategory {
-    MEDIA_FILES("media/files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, null),
+    MEDIA_FILES(
+            "media/files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, Optional.empty()),
     /**
      * The library the instance holds, which every station is served from. Untracked because a
      * quota is a limit on what one station may keep, and this belongs to the instance running them.
      */
     INSTANCE_MEDIA_FILES(
-            "media/files", StorageScope.Kind.INSTANCE, true, QuotaMode.UNTRACKED, MimeLists.ANY, false, null),
-    MEDIA_IMAGES("media/images", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.IMAGES, false, null),
-    KB_FILES("kb-files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, null),
+            "media/files",
+            StorageScope.Kind.INSTANCE,
+            true,
+            QuotaMode.UNTRACKED,
+            MimeLists.ANY,
+            false,
+            Optional.empty()),
+    MEDIA_IMAGES(
+            "media/images",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
+    KB_FILES("kb-files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, Optional.empty()),
     MEMBER_DOCUMENTS(
-            "member-documents", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, null),
+            "member-documents",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.ANY,
+            false,
+            Optional.empty()),
     /**
      * Evidence attached to one movement, kept by the station that raised it and read by the owner it went to.
      */
     MOVEMENT_DOCUMENTS(
-            "movement-documents", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, null),
+            "movement-documents",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.ANY,
+            false,
+            Optional.empty()),
     BOARD_ATTACHMENTS(
-            "attachments/board", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, null),
-    IMAGE_AVATAR("images/avatars", StorageScope.Kind.ACCOUNT, true, QuotaMode.TRACKED, MimeLists.IMAGES, false, null),
+            "attachments/board",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.ANY,
+            false,
+            Optional.empty()),
+    IMAGE_AVATAR(
+            "images/avatars",
+            StorageScope.Kind.ACCOUNT,
+            true,
+            QuotaMode.TRACKED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
     IMAGE_LOST_AND_FOUND(
             "images/lost-and-found",
             StorageScope.Kind.STATION,
@@ -39,7 +81,7 @@ public enum StorageCategory {
             QuotaMode.ENFORCED,
             MimeLists.IMAGES,
             false,
-            null),
+            Optional.empty()),
     IMAGE_LOGO_FRAGMENT(
             "images/logo-fragments",
             StorageScope.Kind.INSTANCE,
@@ -47,9 +89,15 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             MimeLists.IMAGES,
             false,
-            null),
+            Optional.empty()),
     IMAGE_STATION_LOGO(
-            "images/logos", StorageScope.Kind.STATION, true, QuotaMode.UNTRACKED, MimeLists.IMAGES, false, null),
+            "images/logos",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.UNTRACKED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
     IMAGE_QUIZ_QUESTION(
             "images/quiz-questions",
             StorageScope.Kind.STATION,
@@ -57,11 +105,23 @@ public enum StorageCategory {
             QuotaMode.ENFORCED,
             MimeLists.IMAGES,
             false,
-            null),
+            Optional.empty()),
     IMAGE_KB_ICON(
-            "images/kb-icons", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.IMAGES, false, null),
+            "images/kb-icons",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
     IMAGE_KB_IMAGE(
-            "images/kb-images", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.IMAGES, false, null),
+            "images/kb-images",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
     /**
      * The picture of a wiki file: the image scaled down, or a document's first page. Derived from
      * the file and made again whenever it is missing, so it is not charged to the station, which
@@ -74,9 +134,15 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             MimeLists.IMAGES,
             false,
-            null),
+            Optional.empty()),
     DOCUMENT(
-            "documents", StorageScope.Kind.INSTANCE, false, QuotaMode.UNTRACKED, List.of("text/markdown"), false, null),
+            "documents",
+            StorageScope.Kind.INSTANCE,
+            false,
+            QuotaMode.UNTRACKED,
+            List.of("text/markdown"),
+            false,
+            Optional.empty()),
     DISCOVERY_KEY(
             "discovery",
             StorageScope.Kind.INSTANCE,
@@ -84,7 +150,7 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             List.of("application/octet-stream"),
             false,
-            "0600"),
+            Optional.of("0600")),
     MAP_TILE_CACHE(
             "maps/tile-cache",
             StorageScope.Kind.INSTANCE,
@@ -92,7 +158,7 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             List.of("image/png", "image/jpeg"),
             true,
-            null),
+            Optional.empty()),
     DEMO_AVATAR(
             "demo-avatars",
             StorageScope.Kind.INSTANCE,
@@ -100,7 +166,7 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             List.of("image/png", "image/svg+xml"),
             false,
-            null);
+            Optional.empty());
 
     /** Stands in for the MIME list of a category that accepts any type. */
     public static final List<String> MIME_ANY = MimeLists.ANY;
@@ -111,7 +177,7 @@ public enum StorageCategory {
     private final QuotaMode quotaMode;
     private final List<String> acceptedMimeTypes;
     private final boolean accessTimeLru;
-    private final String posixMode;
+    private final Optional<String> posixMode;
 
     StorageCategory(
             String prefix,
@@ -120,7 +186,7 @@ public enum StorageCategory {
             QuotaMode quotaMode,
             List<String> acceptedMimeTypes,
             boolean accessTimeLru,
-            String posixMode) {
+            Optional<String> posixMode) {
         this.prefix = prefix;
         this.scopeKind = scopeKind;
         this.movable = movable;
@@ -164,7 +230,7 @@ public enum StorageCategory {
     }
 
     /** Whether a MIME type is accepted, compared without case; any is for {@link #MIME_ANY}. */
-    public boolean acceptsMimeType(String mimeType) {
+    public boolean acceptsMimeType(@Nullable String mimeType) {
         if (acceptedMimeTypes == MIME_ANY) return true;
         if (mimeType == null) return false;
         String normalized = mimeType.toLowerCase().trim();
@@ -180,10 +246,10 @@ public enum StorageCategory {
     }
 
     /**
-     * The octal POSIX mode such as {@code "0600"} the local backend applies after a write; null keeps
+     * The octal POSIX mode such as {@code "0600"} the local backend applies after a write; empty keeps
      * the process umask. Only local-pinned categories carry one.
      */
-    public String posixMode() {
+    public Optional<String> posixMode() {
         return posixMode;
     }
 

@@ -58712,7 +58712,7 @@ export interface components {
         LinkType: "RELATES_TO" | "BLOCKS" | "BLOCKED_BY" | "CAUSES" | "CAUSED_BY";
         ListKeysResponse: {
             keys: string[];
-            next: string;
+            next: string | null;
             /** Format: int32 */
             total: number;
         };
@@ -62485,10 +62485,10 @@ export interface components {
             basePath: string;
             host: string;
             knownHostsFingerprint: string;
-            password: string;
+            password: string | null;
             /** Format: int32 */
             port: number;
-            privateKey: string;
+            privateKey: string | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}

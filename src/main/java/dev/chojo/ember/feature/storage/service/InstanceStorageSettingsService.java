@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -327,7 +328,7 @@ public class InstanceStorageSettingsService {
             this.to = to;
         }
 
-        private void record(StorageAuditAction action, String errorOrNull) {
+        private void record(StorageAuditAction action, @Nullable String errorOrNull) {
             auditService.recordInstanceMigration(actor, action, from, to, errorOrNull);
         }
     }

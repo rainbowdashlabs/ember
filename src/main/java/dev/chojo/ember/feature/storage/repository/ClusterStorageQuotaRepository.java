@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.storage.entity.ClusterStationQuota;
 import dev.chojo.ember.feature.storage.entity.ClusterStorageQuotaPreset;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -303,5 +304,10 @@ public class ClusterStorageQuotaRepository {
      * @param quotaBytes the total granted, or {@code null} when the cluster granted the station nothing
      * @param presetId   the tier it was put on, or {@code null} when its numbers were set by hand
      */
-    public record GrantedStation(int stationId, UUID uid, String name, Long quotaBytes, Integer presetId) {}
+    public record GrantedStation(
+            int stationId,
+            UUID uid,
+            String name,
+            @Nullable Long quotaBytes,
+            @Nullable Integer presetId) {}
 }

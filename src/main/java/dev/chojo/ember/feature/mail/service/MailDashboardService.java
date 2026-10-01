@@ -138,7 +138,7 @@ public class MailDashboardService {
      *
      * @param stationId the station whose post is meant, or null for the instance's
      */
-    public MailDashboard forOwner(Integer stationId) {
+    public MailDashboard forOwner(@Nullable Integer stationId) {
         var summary = queueRepository.summary(stationId);
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         var waiting = queueRepository.pendingByProvider(stationId);
@@ -213,7 +213,7 @@ public class MailDashboardService {
      * @param stationId the station whose post is meant, or null for the instance's
      * @param id        the one mail meant, or null for every stuck one
      */
-    public RequeuedMails requeueStuck(Integer stationId, Integer id) {
+    public RequeuedMails requeueStuck(@Nullable Integer stationId, @Nullable Integer id) {
         return new RequeuedMails(queueRepository.requeueStuck(stationId, id));
     }
 
@@ -223,9 +223,10 @@ public class MailDashboardService {
      *
      * @param stationId the station whose post is meant, or null for the instance's
      * @param provider  the provider the block was put on
-     * @param domain    the recipient domain it was put on
+     * @param domain    the recipient domain it was put on, or null when none was named, which lifts nothing
      */
-    public void liftBlock(Integer stationId, MailProviderType provider, String domain) {
+    public void liftBlock(@Nullable Integer stationId, MailProviderType provider, @Nullable String domain) {
+        if (domain == null) return;
         blockRepository.lift(stationId, provider, domain);
     }
 

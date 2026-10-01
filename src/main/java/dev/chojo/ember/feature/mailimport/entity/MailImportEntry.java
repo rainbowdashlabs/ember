@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mailimport.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -34,16 +35,16 @@ public record MailImportEntry(
         int id,
         int mailboxId,
         int stationId,
-        Integer ruleId,
-        String ruleName,
-        String messageId,
-        String sender,
-        String subject,
-        String attachmentName,
-        String contentHash,
+        @Nullable Integer ruleId,
+        @Nullable String ruleName,
+        @Nullable String messageId,
+        @Nullable String sender,
+        @Nullable String subject,
+        @Nullable String attachmentName,
+        @Nullable String contentHash,
         MailImportOutcome outcome,
-        String reason,
-        Integer documentId,
+        @Nullable String reason,
+        @Nullable Integer documentId,
         boolean pruned,
         Instant createdAt) {
 

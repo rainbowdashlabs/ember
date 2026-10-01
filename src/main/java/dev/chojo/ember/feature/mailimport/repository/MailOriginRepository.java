@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.mailimport.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.mailimport.entity.MailOrigin;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +27,8 @@ public class MailOriginRepository {
     private static final String COLUMNS = "document_id, mailbox_id, sender, subject, received_at";
 
     /** Writes the provenance of a document as it is filed. */
-    public MailOrigin create(int documentId, Integer mailboxId, String sender, String subject, Instant receivedAt) {
+    public MailOrigin create(
+            int documentId, int mailboxId, String sender, @Nullable String subject, Instant receivedAt) {
         return query("""
                         INSERT INTO member_document_mail_origin(document_id, mailbox_id, sender, subject, received_at)
                         VALUES (:document_id, :mailbox_id, :sender, :subject, :received_at)

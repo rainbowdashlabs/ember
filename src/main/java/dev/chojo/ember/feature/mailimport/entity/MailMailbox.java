@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mailimport.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -51,8 +52,8 @@ public record MailMailbox(
         boolean enabled,
         int intervalMinutes,
         Instant importFrom,
-        Instant lastCheckAt,
-        String lastError,
+        @Nullable Instant lastCheckAt,
+        @Nullable String lastError,
         int failureCount,
         boolean suspended,
         Instant createdAt) {

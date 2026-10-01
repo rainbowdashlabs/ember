@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -98,8 +99,8 @@ public class TransferBackendImporter {
     private StationStorageBackendConfig.SftpVariant toSftpVariant(TransferBackendDescriptor.Sftp v) {
         var credentials = credentialCipher.encrypt(new StoredCredentials.Sftp(
                         v.username(),
-                        v.password() == null ? "" : v.password(),
-                        v.privateKey() == null ? "" : v.privateKey())
+                        Objects.requireNonNullElse(v.password(), ""),
+                        Objects.requireNonNullElse(v.privateKey(), ""))
                 .toJson());
         return new StationStorageBackendConfig.SftpVariant(
                 v.host(), v.port(), v.username(), v.knownHostsFingerprint(), v.basePath(), credentials);

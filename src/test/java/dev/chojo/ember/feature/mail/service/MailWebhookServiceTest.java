@@ -67,6 +67,7 @@ class MailWebhookServiceTest {
     void setup() {
         deliveries = mock(MailDeliveryService.class);
         chains = mock(MailChainService.class);
+        when(chains.sweegoSecret(3)).thenReturn("");
         var keys = mock(WebhookKeyService.class);
         when(keys.resolve("station")).thenReturn(Optional.of(new WebhookScope(3)));
         service = new MailWebhookService(deliveries, keys, chains, Clock.fixed(NOW, ZoneOffset.UTC));

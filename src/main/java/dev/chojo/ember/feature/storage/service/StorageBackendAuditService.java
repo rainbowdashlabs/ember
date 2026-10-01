@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,7 @@ public class StorageBackendAuditService {
                 Optional.of(error));
     }
 
-    public void recordProbe(Actor actor, int stationId, StorageAuditOutcome outcome, String errorOrNull) {
+    public void recordProbe(Actor actor, int stationId, StorageAuditOutcome outcome, @Nullable String errorOrNull) {
         StorageAuditAction action =
                 outcome == StorageAuditOutcome.OK ? StorageAuditAction.PROBE_OK : StorageAuditAction.PROBE_FAILED;
         Instant cutoff = Instant.now().minus(Duration.ofSeconds(PROBE_DEDUPE_SECONDS));
@@ -90,9 +91,9 @@ public class StorageBackendAuditService {
             Actor actor,
             int stationId,
             StorageAuditAction action,
-            StationStorageBackendConfig oldConfig,
-            StationStorageBackendConfig newConfig,
-            String errorOrNull) {
+            @Nullable StationStorageBackendConfig oldConfig,
+            @Nullable StationStorageBackendConfig newConfig,
+            @Nullable String errorOrNull) {
         insert(
                 actor,
                 Optional.of(stationId),
@@ -104,7 +105,8 @@ public class StorageBackendAuditService {
     }
 
     /** Takes JSON the caller redacted, since the route owns the shape of the instance settings. */
-    public void recordInstanceConfigUpdate(Actor actor, String oldRedactedJson, String newRedactedJson) {
+    public void recordInstanceConfigUpdate(
+            Actor actor, @Nullable String oldRedactedJson, @Nullable String newRedactedJson) {
         insert(
                 actor,
                 Optional.empty(),
@@ -118,9 +120,9 @@ public class StorageBackendAuditService {
     public void recordInstanceMigration(
             Actor actor,
             StorageAuditAction action,
-            String oldRedactedJson,
-            String newRedactedJson,
-            String errorOrNull) {
+            @Nullable String oldRedactedJson,
+            @Nullable String newRedactedJson,
+            @Nullable String errorOrNull) {
         insert(
                 actor,
                 Optional.empty(),
@@ -133,7 +135,7 @@ public class StorageBackendAuditService {
                 Optional.ofNullable(errorOrNull));
     }
 
-    private static Optional<String> redacted(StationStorageBackendConfig config) {
+    private static Optional<String> redacted(@Nullable StationStorageBackendConfig config) {
         return Optional.ofNullable(config).map(RedactedStationConfig::toJson);
     }
 
@@ -173,7 +175,7 @@ public class StorageBackendAuditService {
      */
     public record Actor(Optional<Integer> accountId, Optional<Integer> memberId, Optional<String> systemActor) {
 
-        public static Actor human(int accountId, Integer memberId) {
+        public static Actor human(int accountId, @Nullable Integer memberId) {
             return new Actor(Optional.of(accountId), Optional.ofNullable(memberId), Optional.empty());
         }
 

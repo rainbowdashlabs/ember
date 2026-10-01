@@ -18,11 +18,13 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Turning one attachment into a document, or saying why it did not become one.
@@ -84,7 +86,8 @@ public class MailFilingService {
     public MailImportOutcome file(
             MailMailbox mailbox, MailRule rule, Envelope envelope, Attachment attachment, String messageId) {
         var recorded = new Recorded(mailbox, rule, envelope, messageId);
-        if (attachment.data() == null) {
+        byte[] data = attachment.data();
+        if (data == null) {
             return record(
                     recorded,
                     attachment,
@@ -94,7 +97,7 @@ public class MailFilingService {
                     null);
         }
 
-        long size = attachment.data().length;
+        long size = data.length;
         long ceiling = quotaService.perFileLimitBytes(mailbox.stationId());
         if (size > ceiling) {
             return record(
@@ -115,7 +118,7 @@ public class MailFilingService {
                     null);
         }
 
-        String sniffed = ContentSniffer.sniff(attachment.data());
+        String sniffed = ContentSniffer.sniff(data);
         if (sniffed == null) {
             return record(
                     recorded,
@@ -144,7 +147,7 @@ public class MailFilingService {
                     null);
         }
 
-        String hash = MessageIdentity.hashOf(attachment.data());
+        String hash = MessageIdentity.hashOf(data);
         if (logRepository.hasImportedContent(mailbox.stationId(), hash)) {
             return record(
                     recorded,
@@ -173,13 +176,13 @@ public class MailFilingService {
                 titleFor(rule, envelope, attachment),
                 fileNameFor(attachment, sniffed),
                 sniffed,
-                attachment.data(),
+                data,
                 rule.hidden(),
                 rule.keepOnArchive(),
                 null,
                 rule.tags());
-        originRepository.create(
-                document.id(), mailbox.id(), envelope.sender(), envelope.subject(), envelope.receivedAt());
+        String sender = Objects.requireNonNull(envelope.sender(), "a rule only takes mail whose sender it trusts");
+        originRepository.create(document.id(), mailbox.id(), sender, envelope.subject(), envelope.receivedAt());
         log.info(
                 "Filed a document from mail: station={} mailbox={} rule={} document={}",
                 mailbox.stationId(),
@@ -196,7 +199,7 @@ public class MailFilingService {
      */
     public void recordRefusal(
             MailMailbox mailbox,
-            MailRule rule,
+            @Nullable MailRule rule,
             Envelope envelope,
             String messageId,
             MailImportOutcome outcome,
@@ -232,12 +235,13 @@ public class MailFilingService {
     }
 
     private static String titleFor(MailRule rule, Envelope envelope, Attachment attachment) {
-        if (rule.titleSource() == MailTitleSource.SUBJECT && envelope.subject() != null) {
-            return envelope.subject();
+        String subject = envelope.subject();
+        if (rule.titleSource() == MailTitleSource.SUBJECT && subject != null) {
+            return subject;
         }
         String name = attachment.fileName();
         if (name == null || name.isBlank()) {
-            return envelope.subject() != null ? envelope.subject() : "Ohne Titel";
+            return Objects.requireNonNullElse(subject, "Ohne Titel");
         }
         int dot = name.lastIndexOf('.');
         return dot > 0 ? name.substring(0, dot) : name;
@@ -250,8 +254,9 @@ public class MailFilingService {
      * third file is called nothing is not usable, so one is made from what the bytes turned out to be.
      */
     private static String fileNameFor(Attachment attachment, String sniffed) {
-        if (attachment.fileName() != null && !attachment.fileName().isBlank()) {
-            return attachment.fileName().trim();
+        String name = attachment.fileName();
+        if (name != null && !name.isBlank()) {
+            return name.trim();
         }
         return "anhang" + extensionFor(sniffed);
     }
@@ -274,10 +279,10 @@ public class MailFilingService {
     private MailImportOutcome record(
             Recorded recorded,
             Attachment attachment,
-            String hash,
+            @Nullable String hash,
             MailImportOutcome outcome,
-            String reason,
-            Integer documentId) {
+            @Nullable String reason,
+            @Nullable Integer documentId) {
         logRepository.record(
                 recorded.mailbox().id(),
                 recorded.mailbox().stationId(),

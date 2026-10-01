@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.backend.tree;
 
 import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,7 +176,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     }
 
     /** An idle tree, or null when the caller may open one; waits while neither is to be had. */
-    private T idleOrSlot(long deadline, boolean probe) {
+    private @Nullable T idleOrSlot(long deadline, boolean probe) {
         lock.lock();
         try {
             while (true) {

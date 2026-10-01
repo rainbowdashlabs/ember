@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.storage.entity.StoredObject;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -38,8 +40,8 @@ public class StorageService {
     private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
     private final StorageBackendResolver resolver;
-    private final StationRepository stationRepository;
-    private final InstanceStorageReadOnlyState instanceReadOnly;
+    private final @Nullable StationRepository stationRepository;
+    private final @Nullable InstanceStorageReadOnlyState instanceReadOnly;
 
     @Inject
     public StorageService(
@@ -47,17 +49,24 @@ public class StorageService {
             LocalStorageBackend localBackend,
             StationRepository stationRepository,
             InstanceStorageReadOnlyState instanceReadOnly) {
+        this(resolver, stationRepository, instanceReadOnly);
+    }
+
+    /** A service without the read-only gates, for tests. */
+    public StorageService(StorageBackendResolver resolver, LocalStorageBackend localBackend) {
+        this(resolver, null, null);
+    }
+
+    private StorageService(
+            StorageBackendResolver resolver,
+            @Nullable StationRepository stationRepository,
+            @Nullable InstanceStorageReadOnlyState instanceReadOnly) {
         this.resolver = resolver;
         this.stationRepository = stationRepository;
         this.instanceReadOnly = instanceReadOnly;
     }
 
-    /** A service without the read-only gates, for tests. */
-    public StorageService(StorageBackendResolver resolver, LocalStorageBackend localBackend) {
-        this(resolver, localBackend, null, null);
-    }
-
-    private static void validateMime(StorageCategory category, String mimeHint) {
+    private static void validateMime(StorageCategory category, @Nullable String mimeHint) {
         if (category.acceptedMimeTypes() == StorageCategory.MIME_ANY) return;
         if (mimeHint == null) {
             throw new IllegalArgumentException("Category " + category + " requires a MIME hint");
@@ -75,16 +84,16 @@ public class StorageService {
             Variant variant,
             InputStream body,
             long contentLength,
-            String mimeHint) {
+            @Nullable String mimeHint) {
         validateMime(category, mimeHint);
         guardInstanceReadOnly();
         guardReadOnlyForTransfer(scope);
         StorageBackend backend = resolver.forScope(scope, category);
         String fullKey = fullKey(scope, category, key, variant);
-        ObjectMetadata initial = ObjectMetadata.of(mimeHint == null ? "application/octet-stream" : mimeHint);
+        ObjectMetadata initial = ObjectMetadata.of(Objects.requireNonNullElse(mimeHint, "application/octet-stream"));
         ObjectMetadata sealed = backend.storeSealed(fullKey, body, contentLength, initial);
-        if (category.posixMode() != null && backend instanceof LocalStorageBackend local) {
-            local.applyPosixMode(fullKey, category.posixMode());
+        if (backend instanceof LocalStorageBackend local) {
+            category.posixMode().ifPresent(mode -> local.applyPosixMode(fullKey, mode));
         }
         log.info(
                 "Stored file scope={} category={} key={} variant={} size={}",
@@ -102,16 +111,22 @@ public class StorageService {
             String key,
             InputStream body,
             long contentLength,
-            String mimeHint) {
+            @Nullable String mimeHint) {
         store(scope, category, key, Variant.ORIGINAL, body, contentLength, mimeHint);
     }
 
-    public StoredObject store(StorageScope scope, StorageCategory category, String key, byte[] bytes, String mimeHint) {
+    public StoredObject store(
+            StorageScope scope, StorageCategory category, String key, byte[] bytes, @Nullable String mimeHint) {
         return store(scope, category, key, Variant.ORIGINAL, new ByteArrayInputStream(bytes), bytes.length, mimeHint);
     }
 
     public void store(
-            StorageScope scope, StorageCategory category, String key, Variant variant, byte[] bytes, String mimeHint) {
+            StorageScope scope,
+            StorageCategory category,
+            String key,
+            Variant variant,
+            byte[] bytes,
+            @Nullable String mimeHint) {
         store(scope, category, key, variant, new ByteArrayInputStream(bytes), bytes.length, mimeHint);
     }
 
@@ -222,24 +237,26 @@ public class StorageService {
         return variant != null && !variant.isOriginal() ? fullKey + "/" + variant.name() : fullKey;
     }
 
-    private static String prefixed(StorageScope scope, StorageCategory category, String key) {
+    private static String prefixed(StorageScope scope, StorageCategory category, @Nullable String key) {
         String categoryPrefix = scope.prefix() + "/" + category.prefix();
         return key == null || key.isEmpty() ? categoryPrefix : categoryPrefix + "/" + key;
     }
 
     /** Refuses writes to a station flagged read-only for a transfer. */
     private void guardReadOnlyForTransfer(StorageScope scope) {
-        if (stationRepository == null) return;
+        var stations = stationRepository;
+        if (stations == null) return;
         if (!(scope instanceof StorageScope.Station station)) return;
-        if (stationRepository.isReadOnlyForTransfer(station.stationId())) {
+        if (stations.isReadOnlyForTransfer(station.stationId())) {
             throw new StationReadOnlyForTransferException(station.stationId());
         }
     }
 
     /** Refuses every write while an instance-wide migration copies the bytes. */
     private void guardInstanceReadOnly() {
-        if (instanceReadOnly == null) return;
-        if (instanceReadOnly.isLocked()) {
+        var readOnly = instanceReadOnly;
+        if (readOnly == null) return;
+        if (readOnly.isLocked()) {
             throw new InstanceReadOnlyForMigrationException();
         }
     }

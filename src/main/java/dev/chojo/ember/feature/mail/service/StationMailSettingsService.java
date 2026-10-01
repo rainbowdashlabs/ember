@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +114,7 @@ public class StationMailSettingsService {
                                 entry.dailySendLimit(),
                                 entry.providerName(),
                                 entry.providerUrl(),
-                                null)
+                                "")
                         .masked()
                         .withWebhookUrl(webhookKeys.webhookUrl(
                                 api.baseUrl(), stationId, entry.provider().webhookPath())))
@@ -143,7 +144,7 @@ public class StationMailSettingsService {
         return providers(stationId);
     }
 
-    private static MailChainEntry entryOf(int position, MailFallbackPayload entry, MailChainEntry previous) {
+    private static MailChainEntry entryOf(int position, MailFallbackPayload entry, @Nullable MailChainEntry previous) {
         return new MailChainEntry(
                 position,
                 entry.provider(),

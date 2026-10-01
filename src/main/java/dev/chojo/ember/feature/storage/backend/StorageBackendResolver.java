@@ -9,6 +9,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -16,6 +17,7 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +41,7 @@ public class StorageBackendResolver {
     private static final Logger log = LoggerFactory.getLogger(StorageBackendResolver.class);
 
     private final StorageBackendFactory factory;
-    private final StationStorageConfigRepository overrideRepository;
-    private final ClusterStationStorageRepository placementRepository;
+    private final @Nullable StationPlacements placements;
     private final Cache<Integer, Optional<BackendKey>> stationKeys =
             Caffeine.newBuilder().maximumSize(MAX_CACHED).build();
     private final Set<StorageBackend> handedOver =
@@ -58,14 +59,21 @@ public class StorageBackendResolver {
             StorageBackendFactory factory,
             StationStorageConfigRepository overrideRepository,
             ClusterStationStorageRepository placementRepository) {
-        this.placementRepository = placementRepository;
-        this.factory = factory;
-        this.overrideRepository = overrideRepository;
+        this(factory, new StationPlacements(overrideRepository, placementRepository));
     }
 
     /** A resolver that pins every category to one local backend, for tests. */
     public StorageBackendResolver(LocalStorageBackend localBackend) {
-        this(new StorageBackendFactory(new Storage(), localBackend, null), null, null);
+        this(new StorageBackendFactory(new Storage(), localBackend, new CredentialCipher("")), null);
+    }
+
+    /**
+     * @param placements where a station's own bytes are kept, or null for a resolver that sends every
+     *                   station to the instance default
+     */
+    private StorageBackendResolver(StorageBackendFactory factory, @Nullable StationPlacements placements) {
+        this.factory = factory;
+        this.placements = placements;
     }
 
     private static void closeQuietly(StorageBackend backend) {
@@ -89,8 +97,9 @@ public class StorageBackendResolver {
         if (category.isLocalPinned()) {
             return factory.localBackend();
         }
-        if (scope instanceof StorageScope.Station station && overrideRepository != null) {
-            Optional<StorageBackend> override = stationBackend(station.stationId());
+        var stationPlacements = placements;
+        if (scope instanceof StorageScope.Station station && stationPlacements != null) {
+            Optional<StorageBackend> override = stationBackend(stationPlacements, station.stationId());
             if (override.isPresent()) return override.get();
         }
         return factory.instanceDefault();
@@ -156,24 +165,33 @@ public class StorageBackendResolver {
      * What a station's bytes go to, read from where they are and never from what a cluster decided: a
      * decision takes effect when it is written, and the copy of the bytes only later.
      */
-    private Optional<StorageBackend> stationBackend(int stationId) {
-        Optional<BackendKey> key = stationKeys.get(stationId, this::keyOf);
-        return key.map(found -> backends.get(found, unused -> factory.buildForStation(configOf(stationId))));
+    private Optional<StorageBackend> stationBackend(StationPlacements stationPlacements, int stationId) {
+        Optional<BackendKey> key = stationKeys.get(stationId, stationPlacements::keyOf);
+        return key.map(
+                found -> backends.get(found, unused -> factory.buildForStation(stationPlacements.configOf(stationId))));
     }
 
-    private Optional<BackendKey> keyOf(int stationId) {
-        if (overrideRepository.findOne(stationId).isPresent()) return Optional.of(new BackendKey.Own(stationId));
-        return placementRepository
-                .findByStation(stationId)
-                .map(placement -> new BackendKey.Cluster(placement.configId()));
-    }
+    /**
+     * Where a station's own bytes are kept: an override of its own, else the cluster storage they were
+     * carried to.
+     */
+    private record StationPlacements(
+            StationStorageConfigRepository overrideRepository, ClusterStationStorageRepository placementRepository) {
 
-    private StationStorageBackendConfig configOf(int stationId) {
-        return overrideRepository
-                .findOne(stationId)
-                .map(StationStorageConfigRepository.Row::config)
-                .or(() -> placementRepository.findConfigForStation(stationId))
-                .orElseThrow(() -> new StorageException("Station " + stationId + " stands on no storage any more"));
+        Optional<BackendKey> keyOf(int stationId) {
+            if (overrideRepository.findOne(stationId).isPresent()) return Optional.of(new BackendKey.Own(stationId));
+            return placementRepository
+                    .findByStation(stationId)
+                    .map(placement -> new BackendKey.Cluster(placement.configId()));
+        }
+
+        StationStorageBackendConfig configOf(int stationId) {
+            return overrideRepository
+                    .findOne(stationId)
+                    .map(StationStorageConfigRepository.Row::config)
+                    .or(() -> placementRepository.findConfigForStation(stationId))
+                    .orElseThrow(() -> new StorageException("Station " + stationId + " stands on no storage any more"));
+        }
     }
 
     /** The configuration a backend was built from. */

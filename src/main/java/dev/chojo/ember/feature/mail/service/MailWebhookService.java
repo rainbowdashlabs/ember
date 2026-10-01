@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -81,7 +82,7 @@ public class MailWebhookService {
     public void sweego(String key, SignedCall call) {
         var scope = authorise(key);
         String secret = chainService.sweegoSecret(scope.stationId());
-        if (secret != null && !secret.isBlank()) {
+        if (!secret.isBlank()) {
             var verdict = SweegoSignature.verify(
                     call.id(), call.timestamp(), call.signature(), call.rawBody(), secret, clock.instant());
             if (verdict != SweegoSignature.Verdict.VALID) {
@@ -156,7 +157,7 @@ public class MailWebhookService {
      * {@code email_sent} means Sweego took the message, which is what our own send already told us,
      * and says nothing about arrival.
      */
-    private static MailDeliveryStatus sweegoStatus(String event) {
+    private static @Nullable MailDeliveryStatus sweegoStatus(@Nullable String event) {
         if (event == null) return null;
         return switch (event.toLowerCase(Locale.ROOT).replace("-", "").replace("_", "")) {
             case "delivered" -> MailDeliveryStatus.DELIVERED;
@@ -174,7 +175,7 @@ public class MailWebhookService {
      * compared without case. Anything about how a reader behaved, opening, clicking, unsubscribing,
      * is not a delivery outcome and maps to null.
      */
-    private static MailDeliveryStatus brevoStatus(String event) {
+    private static @Nullable MailDeliveryStatus brevoStatus(@Nullable String event) {
         if (event == null) return null;
         return switch (event.toLowerCase(Locale.ROOT).replace("_", "")) {
             case "delivered" -> MailDeliveryStatus.DELIVERED;
@@ -195,7 +196,7 @@ public class MailWebhookService {
      * its {@code blocked} is the temporary refusal, while {@code dropped} means SendGrid itself
      * refused to send at all.
      */
-    private static MailDeliveryStatus sendGridStatus(String event) {
+    private static @Nullable MailDeliveryStatus sendGridStatus(@Nullable String event) {
         if (event == null) return null;
         return switch (event.toLowerCase(Locale.ROOT)) {
             case "delivered" -> MailDeliveryStatus.DELIVERED;
@@ -208,7 +209,7 @@ public class MailWebhookService {
         };
     }
 
-    private static String text(JsonNode node, String field) {
+    private static @Nullable String text(JsonNode node, String field) {
         var value = node.path(field);
         return value.isString() ? value.asString() : null;
     }
@@ -216,11 +217,16 @@ public class MailWebhookService {
     /**
      * A signed call as it arrived.
      *
-     * @param id        the {@code webhook-id} header
-     * @param timestamp the {@code webhook-timestamp} header
-     * @param signature the {@code webhook-signature} header
+     * @param id        the {@code webhook-id} header, or null when it is missing
+     * @param timestamp the {@code webhook-timestamp} header, or null when it is missing
+     * @param signature the {@code webhook-signature} header, or null when it is missing
      * @param rawBody   the body exactly as sent, which is what was signed
      * @param body      the same body, read
      */
-    public record SignedCall(String id, String timestamp, String signature, String rawBody, JsonNode body) {}
+    public record SignedCall(
+            @Nullable String id,
+            @Nullable String timestamp,
+            @Nullable String signature,
+            String rawBody,
+            JsonNode body) {}
 }

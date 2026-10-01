@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.mailimport.entity.MailRule;
 import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;
 import dev.chojo.ember.feature.mailimport.entity.MailTitleSource;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,8 +42,8 @@ public class MailRuleRepository {
             int mailboxId,
             String name,
             int position,
-            String subjectFilter,
-            String attachmentNameFilter,
+            @Nullable String subjectFilter,
+            @Nullable String attachmentNameFilter,
             List<String> acceptedTypes,
             long minSizeBytes,
             boolean includeInline,
@@ -51,7 +52,7 @@ public class MailRuleRepository {
             boolean keepOnArchive,
             boolean readSubjectForMember,
             MailRuleAction action,
-            String moveToFolder,
+            @Nullable String moveToFolder,
             List<String> senderPatterns,
             List<String> tags) {
         var rule = query("""
@@ -108,8 +109,8 @@ public class MailRuleRepository {
             String name,
             int position,
             boolean enabled,
-            String subjectFilter,
-            String attachmentNameFilter,
+            @Nullable String subjectFilter,
+            @Nullable String attachmentNameFilter,
             List<String> acceptedTypes,
             long minSizeBytes,
             boolean includeInline,
@@ -118,7 +119,7 @@ public class MailRuleRepository {
             boolean keepOnArchive,
             boolean readSubjectForMember,
             MailRuleAction action,
-            String moveToFolder,
+            @Nullable String moveToFolder,
             List<String> senderPatterns,
             List<String> tags) {
         boolean changed = query("""

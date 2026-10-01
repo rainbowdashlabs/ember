@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -40,7 +41,7 @@ public class StationMemberNaming implements MailFilingService.MemberNaming {
                 .toList();
     }
 
-    private String nameOf(Integer accountId) {
+    private String nameOf(@Nullable Integer accountId) {
         if (accountId == null) return "";
         return accountRepository
                 .findById(accountId)

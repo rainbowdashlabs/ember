@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,16 +70,21 @@ public final class SweegoSignature {
     /**
      * Checks one call against the secret.
      *
-     * @param webhookId the {@code webhook-id} header
-     * @param timestamp the {@code webhook-timestamp} header, Unix seconds
-     * @param signature the {@code webhook-signature} header
+     * @param webhookId the {@code webhook-id} header, or null when it is missing
+     * @param timestamp the {@code webhook-timestamp} header, Unix seconds, or null when it is missing
+     * @param signature the {@code webhook-signature} header, or null when it is missing
      * @param rawBody   the body exactly as it arrived
      * @param secret    the webhook secret from Sweego, base64 with an optional {@code whsec_} prefix
      * @param now       the receiving clock
      * @return what the check found; only {@link Verdict#VALID} means the call may be trusted
      */
     public static Verdict verify(
-            String webhookId, String timestamp, String signature, String rawBody, String secret, Instant now) {
+            @Nullable String webhookId,
+            @Nullable String timestamp,
+            @Nullable String signature,
+            String rawBody,
+            String secret,
+            Instant now) {
         if (webhookId == null || timestamp == null || signature == null || rawBody == null) return Verdict.UNSIGNED;
         if (!withinTolerance(timestamp, now)) return Verdict.STALE;
         byte[] key = decodeSecret(secret);
@@ -100,7 +106,7 @@ public final class SweegoSignature {
         }
     }
 
-    private static byte[] decodeSecret(String secret) {
+    private static byte @Nullable [] decodeSecret(String secret) {
         if (secret == null || secret.isBlank()) return null;
         String encoded = secret.startsWith(SECRET_PREFIX) ? secret.substring(SECRET_PREFIX.length()) : secret;
         try {
@@ -112,7 +118,7 @@ public final class SweegoSignature {
         }
     }
 
-    private static byte[] decodeEntry(String entry) {
+    private static byte @Nullable [] decodeEntry(String entry) {
         String encoded;
         if (entry.startsWith(VERSION_PREFIX)) {
             encoded = entry.substring(VERSION_PREFIX.length());

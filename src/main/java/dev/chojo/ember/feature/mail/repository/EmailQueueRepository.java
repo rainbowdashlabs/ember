@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -68,7 +69,7 @@ public class EmailQueueRepository {
      * @param body      the HTML email body
      * @param stationId the station ID (null for system emails)
      */
-    public void enqueue(String recipient, String subject, String body, Integer stationId) {
+    public void enqueue(String recipient, String subject, String body, @Nullable Integer stationId) {
         query(
                         "INSERT INTO email_queue(recipient, subject, body, station_id) VALUES(:recipient, :subject, :body, :station_id);")
                 .single(call().bind("recipient", recipient)
@@ -115,7 +116,7 @@ public class EmailQueueRepository {
      * @param detail    the reason the provider gave, or null
      * @param messageId the message id the provider assigned, or null when it named none
      */
-    public void recordDelivery(int id, MailDeliveryStatus status, String detail, String messageId) {
+    public void recordDelivery(int id, MailDeliveryStatus status, @Nullable String detail, @Nullable String messageId) {
         query("""
                 UPDATE email_queue
                 SET
@@ -157,7 +158,8 @@ public class EmailQueueRepository {
      * @param stationId the station the report is limited to, or null for no limit
      * @return the most recently queued match
      */
-    public Optional<QueuedEmail> findLatestFor(String recipient, String subject, Integer stationId) {
+    public Optional<QueuedEmail> findLatestFor(
+            String recipient, @Nullable String subject, @Nullable Integer stationId) {
         var where = WhereBuilder.create()
                 .add("AND subject = :subject", "subject", subject)
                 .add("AND station_id = :station_id", "station_id", stationId);
@@ -230,7 +232,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose chain is meant, or null for the instance chain
      * @param position  which provider of that chain
      */
-    public int getProviderDailyCount(LocalDate day, Integer stationId, int position) {
+    public int getProviderDailyCount(LocalDate day, @Nullable Integer stationId, int position) {
         return count(
                 """
                         SELECT
@@ -363,7 +365,7 @@ public class EmailQueueRepository {
             String recipient,
             String subject,
             String body,
-            Integer stationId,
+            @Nullable Integer stationId,
             int attempts,
             int providerPosition,
             Instant createdAt) {}
@@ -379,7 +381,13 @@ public class EmailQueueRepository {
      *                 holding them: they are counted separately because nothing retries them
      * @param oldestPendingAt when the longest-waiting mail was written, or null when none waits
      */
-    public record QueueSummary(int pending, int sending, int sent, int failed, int stuck, Instant oldestPendingAt) {}
+    public record QueueSummary(
+            int pending,
+            int sending,
+            int sent,
+            int failed,
+            int stuck,
+            @Nullable Instant oldestPendingAt) {}
 
     /**
      * One mail as the dashboard shows it. The body is deliberately absent: this is a list of what
@@ -390,10 +398,10 @@ public class EmailQueueRepository {
             String recipient,
             String subject,
             Instant createdAt,
-            Instant sentAt,
+            @Nullable Instant sentAt,
             EmailQueueStatus status,
             MailDeliveryStatus deliveryStatus,
-            String deliveryDetail,
+            @Nullable String deliveryDetail,
             int attempts,
             int providerPosition) {}
 
@@ -414,7 +422,7 @@ public class EmailQueueRepository {
      *
      * @param stationId the station whose post is meant, or null for the instance's
      */
-    public QueueSummary summary(Integer stationId) {
+    public QueueSummary summary(@Nullable Integer stationId) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         return query("""
@@ -451,7 +459,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose post is meant, or null for the instance's
      * @return position to number of mails waiting there
      */
-    public Map<Integer, Integer> pendingByProvider(Integer stationId) {
+    public Map<Integer, Integer> pendingByProvider(@Nullable Integer stationId) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         Map<Integer, Integer> counts = new LinkedHashMap<>();
@@ -483,7 +491,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose post is meant, or null for the instance's
      * @param limit     how many to return
      */
-    public List<QueueEntry> stuck(Integer stationId, int limit) {
+    public List<QueueEntry> stuck(@Nullable Integer stationId, int limit) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         return query("""
@@ -516,7 +524,7 @@ public class EmailQueueRepository {
      * @param id        the one mail meant, or null for every stuck one
      * @return how many mails were put back
      */
-    public int requeueStuck(Integer stationId, Integer id) {
+    public int requeueStuck(@Nullable Integer stationId, @Nullable Integer id) {
         var where = WhereBuilder.create()
                 .add("AND station_id = :station_id", "station_id", stationId)
                 .add("AND id = :id", "id", id);
@@ -543,7 +551,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose post is meant, or null for the instance's
      * @param limit     how many to return
      */
-    public List<QueueEntry> recent(Integer stationId, int limit) {
+    public List<QueueEntry> recent(@Nullable Integer stationId, int limit) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         return query("""

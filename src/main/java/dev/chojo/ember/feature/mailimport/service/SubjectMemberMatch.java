@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.mailimport.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -68,7 +70,7 @@ public final class SubjectMemberMatch {
      * @param candidates the station's members
      * @return the member the subject names
      */
-    public static Optional<Candidate> soleMatch(String subject, List<Candidate> candidates) {
+    public static Optional<Candidate> soleMatch(@Nullable String subject, List<Candidate> candidates) {
         if (candidates == null || candidates.isEmpty()) return Optional.empty();
         Set<String> spoken = tokens(subject, SUBJECT_SEPARATOR);
         if (spoken.isEmpty()) return Optional.empty();
@@ -113,7 +115,7 @@ public final class SubjectMemberMatch {
         return Optional.of(new Named(candidate, hits, name.size() - hits));
     }
 
-    private static Set<String> tokens(String text, Pattern separator) {
+    private static Set<String> tokens(@Nullable String text, Pattern separator) {
         if (text == null || text.isBlank()) return Set.of();
         return separator
                 .splitAsStream(folded(text))

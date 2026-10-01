@@ -44,7 +44,8 @@ public class MailRetryService {
      * @return the step taken
      */
     public MailRetryPolicy.Step afterTransientFailure(EmailQueueRepository.QueuedEmail email) {
-        var chain = email.stationId() == null ? chainService.forInstance() : chainService.forStation(email.stationId());
+        Integer stationId = email.stationId();
+        var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         int allowed = chainService
                 .at(chain, email.providerPosition())
                 .map(MailChainEntry::attempts)

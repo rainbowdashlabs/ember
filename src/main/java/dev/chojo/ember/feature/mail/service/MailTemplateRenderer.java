@@ -10,6 +10,7 @@ import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -49,7 +50,7 @@ public class MailTemplateRenderer {
      * {@code subject} section, substituting {@code placeholders}. Falls back to the {@code en}
      * bundle when the requested locale lacks the key.
      */
-    public String subject(String key, String locale, Map<String, String> placeholders) {
+    public String subject(String key, String locale, @Nullable Map<String, String> placeholders) {
         String template = lookupSubject(locale, key);
         if (template == null) template = lookupSubject(FALLBACK_LOCALE, key);
         if (template == null) {
@@ -68,14 +69,14 @@ public class MailTemplateRenderer {
      * Resolves a body string from {@code i18n/mail_<locale>.json}'s {@code body} section,
      * falling back to {@code en}. Returns {@code null} when neither locale carries the key.
      */
-    public String body(String key, String locale) {
+    public @Nullable String body(String key, String locale) {
         String value = LOCALIZER.get("mail", locale, "body").get(key);
         if (value == null)
             value = LOCALIZER.get("mail", FALLBACK_LOCALE, "body").get(key);
         return value;
     }
 
-    private String lookupSubject(String locale, String key) {
+    private @Nullable String lookupSubject(String locale, String key) {
         if (locale == null || locale.isBlank()) return null;
         return LOCALIZER.get("mail", locale, "subject").get(key);
     }

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.webhook.repository.WebhookKeyRepository;
 import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,7 @@ public class WebhookKeyService {
      *
      * @param stationId the station, or null when the key is the instance's own
      */
-    public record WebhookScope(Integer stationId) {
+    public record WebhookScope(@Nullable Integer stationId) {
 
         /**
          * Whether this scope covers the whole instance rather than a single station.
@@ -91,7 +92,7 @@ public class WebhookKeyService {
      * @param stationId the station whose key to replace, or null for the instance key
      * @return the new key
      */
-    public String regenerate(Integer stationId) {
+    public String regenerate(@Nullable Integer stationId) {
         String generated = generate();
         if (stationId == null) {
             conf.main().mailing().webhookSecret(generated);
@@ -133,7 +134,7 @@ public class WebhookKeyService {
      * @param stationId the station the address should speak for, or null for the instance
      * @param path      what is being reported, e.g. {@code mail/brevo}
      */
-    public String webhookUrl(String baseUrl, Integer stationId, String path) {
+    public String webhookUrl(String baseUrl, @Nullable Integer stationId, String path) {
         String base = baseUrl == null ? "" : baseUrl.replaceAll("/+$", "");
         String key = stationId == null ? instanceKey() : stationKey(stationId);
         return base + "/api/v1/public/webhooks/" + key + "/" + path;

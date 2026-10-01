@@ -343,11 +343,11 @@ public class ClusterStorageQuotaService {
             List<StorageUsage> usage = usageRepository.findByStation(row.stationId());
             long used = usageRepository.totalEnforcedBytes(row.stationId());
             String presetName = presets.stream()
-                    .filter(preset -> row.presetId() != null && preset.id() == row.presetId())
+                    .filter(preset -> Objects.equals(row.presetId(), preset.id()))
                     .map(ClusterStorageQuotaPreset::name)
                     .findFirst()
                     .orElse(null);
-            if (row.quotaBytes() != null) handedOut += row.quotaBytes();
+            handedOut += Objects.requireNonNullElse(row.quotaBytes(), 0L);
             stations.add(new StationRoom(
                     row.uid(),
                     row.name(),

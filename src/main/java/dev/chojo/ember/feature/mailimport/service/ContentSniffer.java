@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.mailimport.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -41,7 +43,7 @@ public final class ContentSniffer {
      * @param data the file as it arrived
      * @return the content type, or null where the bytes say nothing this knows
      */
-    public static String sniff(byte[] data) {
+    public static @Nullable String sniff(byte[] data) {
         if (data == null) return null;
         if (startsWith(data, PDF_MAGIC)) return PDF;
         if (startsWith(data, PNG_MAGIC)) return PNG;
@@ -62,7 +64,7 @@ public final class ContentSniffer {
      * @param sniffed  what the bytes turned out to be
      * @return whether the two agree
      */
-    public static boolean nameAgrees(String fileName, String sniffed) {
+    public static boolean nameAgrees(@Nullable String fileName, String sniffed) {
         if (sniffed == null) return false;
         if (fileName == null || fileName.isBlank()) return true;
         int dot = fileName.lastIndexOf('.');

@@ -26,6 +26,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -334,8 +335,9 @@ public class MailImportService {
                 case MARK_SEEN -> reader.markSeen(message);
                 case FLAG -> reader.flag(message);
                 case MOVE -> {
-                    if (rule.moveToFolder() != null && !rule.moveToFolder().isBlank()) {
-                        reader.moveTo(message, rule.moveToFolder());
+                    String folder = rule.moveToFolder();
+                    if (folder != null && !folder.isBlank()) {
+                        reader.moveTo(message, folder);
                     }
                 }
                 case NOTHING -> {
@@ -359,13 +361,13 @@ public class MailImportService {
      * <p>What a mailbox can demand instead is a signature, checked here rather than read off a header,
      * which is what {@link DkimVerification} is for.
      */
-    private static boolean failedItsOwnChecks(String authResult) {
+    private static boolean failedItsOwnChecks(@Nullable String authResult) {
         if (authResult == null) return false;
         String lower = authResult.toLowerCase(Locale.ROOT);
         return lower.contains(AUTH_FAILURE) || lower.contains(SPF_FAILURE);
     }
 
-    private static boolean nameFits(String fileName, String filter) {
+    private static boolean nameFits(@Nullable String fileName, @Nullable String filter) {
         if (filter == null || filter.isBlank()) return true;
         if (fileName == null) return false;
         return fileName.toLowerCase(Locale.ROOT).contains(filter.trim().toLowerCase(Locale.ROOT));

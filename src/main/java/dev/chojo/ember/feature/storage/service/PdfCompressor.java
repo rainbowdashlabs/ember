@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.storage.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +92,7 @@ public class PdfCompressor {
      * config toggle is on, and {@code qpdf} is available. The toggle-on-but-no-binary case
      * returns {@code false} so callers fall back to storing the original without an exception.
      */
-    public boolean shouldCompress(String mimeType, long fileSize) {
+    public boolean shouldCompress(@Nullable String mimeType, long fileSize) {
         return storageConfig.compressPdfs()
                 && "application/pdf".equalsIgnoreCase(mimeType)
                 && fileSize > storageConfig.compressThresholdBytes()

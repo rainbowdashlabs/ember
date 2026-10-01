@@ -61,7 +61,8 @@ public class MailProviderBlockRepository {
      *
      * @param stationId the station whose list this concerns, or null for the instance list
      */
-    public void block(Integer stationId, MailProviderType provider, String recipientDomain, String reason) {
+    public void block(
+            @Nullable Integer stationId, MailProviderType provider, String recipientDomain, @Nullable String reason) {
         String domain = domainOf(recipientDomain);
         if (domain == null) return;
         query("""
@@ -86,7 +87,7 @@ public class MailProviderBlockRepository {
     /**
      * The providers this domain currently refuses, for one owner.
      */
-    public Set<MailProviderType> blockedFor(Integer stationId, String recipient) {
+    public Set<MailProviderType> blockedFor(@Nullable Integer stationId, String recipient) {
         String domain = domainOf(recipient);
         if (domain == null) return Set.of();
         return query("""
@@ -108,7 +109,7 @@ public class MailProviderBlockRepository {
     /**
      * Every block still standing for one owner, newest refusal first.
      */
-    public List<ProviderBlock> list(Integer stationId) {
+    public List<ProviderBlock> list(@Nullable Integer stationId) {
         return query("""
                         SELECT
                             provider, recipient_domain, reason, first_blocked_at, last_blocked_at, expires_at
@@ -127,7 +128,7 @@ public class MailProviderBlockRepository {
     /**
      * Lifts a block by hand, for when an operator knows it has been sorted out.
      */
-    public void lift(Integer stationId, MailProviderType provider, String recipientDomain) {
+    public void lift(@Nullable Integer stationId, MailProviderType provider, String recipientDomain) {
         query("""
                         DELETE FROM
                             mail_provider_block
@@ -154,8 +155,7 @@ public class MailProviderBlockRepository {
     /**
      * The part of an address a block is kept against. Null when there is nothing usable.
      */
-    public static String domainOf(String value) {
-        if (value == null) return null;
+    public static @Nullable String domainOf(String value) {
         int at = value.lastIndexOf('@');
         String domain = (at < 0 ? value : value.substring(at + 1)).trim().toLowerCase(Locale.ROOT);
         return domain.isBlank() ? null : domain;

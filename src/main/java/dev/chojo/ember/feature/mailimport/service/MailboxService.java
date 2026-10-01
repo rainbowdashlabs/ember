@@ -114,7 +114,7 @@ public class MailboxService {
             int port,
             MailSecurity security,
             String username,
-            String password,
+            @Nullable String password,
             String folder,
             boolean verifyDkim,
             int intervalMinutes,
@@ -351,7 +351,7 @@ public class MailboxService {
         return Math.max(intervalMinutes, settings.minimumIntervalMinutes());
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 }

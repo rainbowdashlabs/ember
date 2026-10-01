@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -112,7 +113,7 @@ public class InstanceMailSettingsService {
         return new WebhookUrlResponse(webhookKeys.webhookUrl(conf.main().api().baseUrl(), null, "mail/brevo"));
     }
 
-    private static MailProviderEntry entryOf(MailFallbackPayload entry, MailProviderEntry previous) {
+    private static MailProviderEntry entryOf(MailFallbackPayload entry, @Nullable MailProviderEntry previous) {
         return new MailProviderEntry(
                 entry.provider(),
                 entry.smtpHost(),
@@ -142,7 +143,7 @@ public class InstanceMailSettingsService {
                         entry.dailySendLimit(),
                         "",
                         "",
-                        null)
+                        "")
                 .masked()
                 .withWebhookUrl(webhookKeys.webhookUrl(
                         conf.main().api().baseUrl(), null, entry.provider().webhookPath()));

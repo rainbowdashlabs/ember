@@ -22,6 +22,7 @@ import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,15 +129,16 @@ public class EmailService implements TaskSource {
      * @param stationId the station ID to resolve a provider for
      * @return the configured mail provider, or empty if not configured
      */
-    public Optional<MailProvider> resolveStationProvider(Integer stationId) {
+    public Optional<MailProvider> resolveStationProvider(@Nullable Integer stationId) {
         if (stationId == null) return Optional.empty();
         return chainService.firstForStation(stationId).map(EmailService::buildProvider);
     }
 
     /**
-     * Builds a {@link MailProvider} from one entry of a list, without persisting anything.
+     * Builds a {@link MailProvider} from one entry of a list, without persisting anything. Returns
+     * {@code null} when the entry's provider is {@link MailProviderType#NONE}.
      */
-    private static MailProvider buildProvider(MailChainEntry entry) {
+    private static @Nullable MailProvider buildProvider(MailChainEntry entry) {
         return buildProvider(
                 entry.provider(),
                 entry.smtpHost(),
@@ -155,7 +157,7 @@ public class EmailService implements TaskSource {
      * address all require STARTTLS; only a plain server and Sweego, whose address is configured, take
      * the encryption from the configuration.
      */
-    private static MailProvider buildProvider(
+    private static @Nullable MailProvider buildProvider(
             MailProviderType provider,
             String smtpHost,
             int smtpPort,
@@ -217,7 +219,7 @@ public class EmailService implements TaskSource {
      *
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testMailConnection(
+    public @Nullable String testMailConnection(
             MailProviderType provider,
             String smtpHost,
             int smtpPort,
@@ -259,7 +261,7 @@ public class EmailService implements TaskSource {
      * @param stationId the station ID, may be {@code null}
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testStationMailConnection(Integer stationId) {
+    public @Nullable String testStationMailConnection(@Nullable Integer stationId) {
         return testStationMailConnection(stationId, 0);
     }
 
@@ -274,7 +276,7 @@ public class EmailService implements TaskSource {
      * @param position  which provider of its list
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testStationMailConnection(Integer stationId, int position) {
+    public @Nullable String testStationMailConnection(@Nullable Integer stationId, int position) {
         if (stationId == null) return "No mail provider configured";
         var chain = chainService.forStation(stationId);
         var entry = chainService.at(chain, position);
@@ -287,7 +289,7 @@ public class EmailService implements TaskSource {
      *
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testMailConnection(MailChainEntry config) {
+    public @Nullable String testMailConnection(MailChainEntry config) {
         return testMailConnection(
                 config.provider(),
                 config.smtpHost(),
@@ -424,7 +426,8 @@ public class EmailService implements TaskSource {
      * @param to        where the mail goes, which need not be the address of whoever asked
      * @return {@code null} when the provider accepted it, or the reason it did not
      */
-    public String sendTestMailThrough(Integer stationId, int position, String to, String name, String locale) {
+    public @Nullable String sendTestMailThrough(
+            @Nullable Integer stationId, int position, String to, String name, String locale) {
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         var entry = chainService.at(chain, position);
         if (entry.isEmpty()) return "No mail provider configured";
@@ -437,7 +440,7 @@ public class EmailService implements TaskSource {
         return result == MailProvider.SendResult.SENT ? null : "The provider refused the message";
     }
 
-    public void sendTestEmail(String to, String name, String locale, Integer stationId) {
+    public void sendTestEmail(String to, String name, String locale, @Nullable Integer stationId) {
         var vars = baseVars(name, stationId);
         String subjectLine = subject("test-mail", locale, null);
         String body = loadTemplate("test-mail.html", locale, vars);
@@ -529,7 +532,8 @@ public class EmailService implements TaskSource {
                 loadTemplate("passkey-code-issued.html", locale, vars));
     }
 
-    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt, String locale) {
+    public void sendTwoFactorResetNotice(
+            String email, String name, @Nullable String actorLabel, Instant resetAt, String locale) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
         String defaultActor = templateRenderer.body("twoFactorReset.defaultActor", locale);
@@ -636,7 +640,7 @@ public class EmailService implements TaskSource {
     }
 
     public void sendApplicationVerifyEmail(
-            String email, String name, String stationName, String token, String locale, Integer stationId) {
+            String email, String name, String stationName, String token, String locale, @Nullable Integer stationId) {
         String url = api.baseUrl() + "/apply/verify?token=" + token;
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
@@ -648,7 +652,7 @@ public class EmailService implements TaskSource {
     }
 
     public void sendApplicationAcceptedEmail(
-            String email, String name, String stationName, String token, String locale, Integer stationId) {
+            String email, String name, String stationName, String token, String locale, @Nullable Integer stationId) {
         String url = api.baseUrl() + "/set-password?token=" + token;
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
@@ -663,7 +667,7 @@ public class EmailService implements TaskSource {
     }
 
     public void sendApplicationDeniedEmail(
-            String email, String name, String stationName, String reason, String locale, Integer stationId) {
+            String email, String name, String stationName, String reason, String locale, @Nullable Integer stationId) {
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
         vars.put("reason", reason != null ? reason : "");
@@ -674,7 +678,7 @@ public class EmailService implements TaskSource {
     }
 
     public void sendApplicationReceivedEmail(
-            String email, String name, String stationName, String locale, Integer stationId) {
+            String email, String name, String stationName, String locale, @Nullable Integer stationId) {
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
         enqueueGlobal(
@@ -689,7 +693,12 @@ public class EmailService implements TaskSource {
      * because it is mandatory transactional mail, not aggregate notification traffic.
      */
     public void sendWaitlistRegistrationEmail(
-            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -717,7 +726,7 @@ public class EmailService implements TaskSource {
             String accessToken,
             String stationName,
             String locale,
-            Integer stationId,
+            @Nullable Integer stationId,
             WaitlistInvitationDetails details) {
         var vars = baseVars(name, stationId);
         vars.put("url", api.baseUrl() + "/waiting-list/status?token=" + accessToken);
@@ -741,7 +750,12 @@ public class EmailService implements TaskSource {
      * through the instance-wide mail relay because it is mandatory transactional mail.
      */
     public void sendWaitlistConfirmReminderEmail(
-            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -760,7 +774,12 @@ public class EmailService implements TaskSource {
      * Routed through the instance-wide mail relay because it is mandatory transactional mail.
      */
     public void sendWaitlistRemovalWarningEmail(
-            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -779,7 +798,7 @@ public class EmailService implements TaskSource {
      * Routed through the instance-wide mail relay because it is mandatory transactional mail.
      */
     public void sendWaitlistVerifyEmail(
-            String email, String name, String stationName, String token, String locale, Integer stationId) {
+            String email, String name, String stationName, String token, String locale, @Nullable Integer stationId) {
         String url = api.baseUrl() + "/public/waitlist/verify/" + token;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -797,7 +816,7 @@ public class EmailService implements TaskSource {
         return templateRenderer.render(name, locale, variables);
     }
 
-    private String subject(String key, String locale, Map<String, String> placeholders) {
+    private String subject(String key, String locale, @Nullable Map<String, String> placeholders) {
         return templateRenderer.subject(key, locale, placeholders);
     }
 
@@ -808,7 +827,7 @@ public class EmailService implements TaskSource {
      * fields are empty on an instance that has saved its list, so asking them said no provider was
      * configured while three were, and the queue then never fetched an instance mail at all.
      */
-    private MailProvider currentGlobalProvider() {
+    private @Nullable MailProvider currentGlobalProvider() {
         return chainService.forInstance().stream()
                 .findFirst()
                 .map(EmailService::buildProvider)
@@ -817,7 +836,7 @@ public class EmailService implements TaskSource {
 
     // -- Queue --
 
-    private String resolveProviderSenderName(Integer stationId) {
+    private String resolveProviderSenderName(@Nullable Integer stationId) {
         var provider = resolveStationProvider(stationId);
         if (provider.isPresent() && provider.get() instanceof SmtpMailProvider smtp) {
             return smtp.senderName();
@@ -911,7 +930,7 @@ public class EmailService implements TaskSource {
      * <p>What the overview needs to say that a message is not merely waiting but stuck: every
      * provider either refused by the receiving domain or out of allowance.
      */
-    public boolean canReach(Integer stationId, String recipient) {
+    public boolean canReach(@Nullable Integer stationId, String recipient) {
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         if (chain.isEmpty()) return false;
         var blocked = blockRepository.blockedFor(stationId, recipient);
@@ -937,28 +956,26 @@ public class EmailService implements TaskSource {
             int requeued = 0;
             for (var email : batch) {
                 MailProvider provider;
-                if (email.stationId() != null) {
-                    if (!readOnlyGuard.isWritable(email.stationId())) {
-                        log.debug("Email {} requeued: station {} is read-only", email.id(), email.stationId());
+                Integer stationId = email.stationId();
+                if (stationId != null) {
+                    if (!readOnlyGuard.isWritable(stationId)) {
+                        log.debug("Email {} requeued: station {} is read-only", email.id(), stationId);
                         queueRepository.requeue(email.id());
                         requeued++;
                         continue;
                     }
-                    if (!canStationSend(email.stationId())) {
+                    if (!canStationSend(stationId)) {
                         log.warn(
                                 "Email {} failed: station {} has reached its daily or monthly send limit",
                                 email.id(),
-                                email.stationId());
+                                stationId);
                         queueRepository.markFailed(email.id());
                         failed++;
                         continue;
                     }
-                    var inTurn = providerInTurn(chainService.forStation(email.stationId()), email);
+                    var inTurn = providerInTurn(chainService.forStation(stationId), email);
                     if (inTurn.isEmpty()) {
-                        log.warn(
-                                "Email {} failed: station {} has no provider left to try",
-                                email.id(),
-                                email.stationId());
+                        log.warn("Email {} failed: station {} has no provider left to try", email.id(), stationId);
                         queueRepository.markFailed(email.id());
                         failed++;
                         continue;
@@ -1018,7 +1035,7 @@ public class EmailService implements TaskSource {
         }
     }
 
-    private Map<String, String> baseVars(String name, Integer stationId) {
+    private Map<String, String> baseVars(String name, @Nullable Integer stationId) {
         var vars = new HashMap<String, String>();
         vars.put("name", name);
         vars.put("baseUrl", api.baseUrl());

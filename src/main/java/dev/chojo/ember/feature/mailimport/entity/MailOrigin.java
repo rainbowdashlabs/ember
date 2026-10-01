@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mailimport.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -28,7 +29,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param subject    what the message was called
  * @param receivedAt when the mail arrived
  */
-public record MailOrigin(int documentId, Integer mailboxId, String sender, String subject, Instant receivedAt) {
+public record MailOrigin(
+        int documentId,
+        @Nullable Integer mailboxId,
+        String sender,
+        @Nullable String subject,
+        Instant receivedAt) {
 
     public static RowMapping<MailOrigin> map() {
         return row -> new MailOrigin(

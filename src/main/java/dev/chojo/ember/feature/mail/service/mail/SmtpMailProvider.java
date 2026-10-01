@@ -17,6 +17,7 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class SmtpMailProvider implements MailProvider {
     private final String password;
     private final String senderAddress;
     private final String senderName;
-    private final String correlationHeader;
+    private final @Nullable String correlationHeader;
     private final String correlationFormat;
 
     /**
@@ -89,8 +90,8 @@ public class SmtpMailProvider implements MailProvider {
             String password,
             String senderAddress,
             String senderName,
-            String correlationHeader,
-            String correlationFormat) {
+            @Nullable String correlationHeader,
+            @Nullable String correlationFormat) {
         this.host = host;
         this.port = port;
         this.encryption = encryption;
@@ -103,7 +104,7 @@ public class SmtpMailProvider implements MailProvider {
     }
 
     @Override
-    public SendResult send(String to, String subject, String htmlBody, String correlationId) {
+    public SendResult send(String to, String subject, String htmlBody, @Nullable String correlationId) {
         Session session = createSession();
         try {
             MimeMessage message = new MimeMessage(session);

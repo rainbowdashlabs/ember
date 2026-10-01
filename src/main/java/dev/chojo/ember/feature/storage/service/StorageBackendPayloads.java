@@ -102,7 +102,7 @@ public class StorageBackendPayloads {
         };
     }
 
-    private static String hostOf(String endpoint) {
+    private static @Nullable String hostOf(String endpoint) {
         if (endpoint == null || endpoint.isBlank()) {
             return null;
         }
@@ -114,8 +114,8 @@ public class StorageBackendPayloads {
         }
     }
 
-    private void requireAllowedHost(String host) {
-        if (!urlValidator.isHostAllowed(host)) {
+    private void requireAllowedHost(@Nullable String host) {
+        if (host == null || !urlValidator.isHostAllowed(host)) {
             throw Refusal.STORAGE_ADDRESS_NOT_ALLOWED.raise();
         }
     }
