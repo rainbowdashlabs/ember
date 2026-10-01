@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.station.service.StationExportService;
@@ -100,7 +100,7 @@ public class TransferRoutes implements Routes {
             tags = {"Transfer"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
     private void createToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         log.info("create token for station {}", session.stationId());
         String token = exportService.createTransferToken(session.stationId());
         ctx.json(new TokenResponse(token, exportService.getAppVersion()));
@@ -113,7 +113,7 @@ public class TransferRoutes implements Routes {
             tags = {"Transfer"},
             responses = @OpenApiResponse(status = "204"))
     private void abortTransfer(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         log.info("abort transfer for station {}", session.stationId());
         exportService.abortTransfer(session.stationId());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -127,7 +127,7 @@ public class TransferRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = TransferStatusResponse.class)))
     private void transferStatus(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(transferService.status(session.stationId()));
     }
 

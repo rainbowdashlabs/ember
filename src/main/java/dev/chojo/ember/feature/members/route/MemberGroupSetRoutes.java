@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.MemberGroupSet;
 import dev.chojo.ember.feature.members.service.MemberGroupSetService;
@@ -53,7 +53,7 @@ public class MemberGroupSetRoutes implements Routes {
             tags = {"Member Groups"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroupSet[].class)))
     private void list(Context ctx) {
-        ctx.json(setService.findByStation(UserSession.from(ctx).stationId()));
+        ctx.json(setService.findByStation(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -70,7 +70,7 @@ public class MemberGroupSetRoutes implements Routes {
     private void create(Context ctx) {
         var request = ctx.bodyAsClass(GroupSetRequest.class);
         ctx.status(HttpStatus.CREATED)
-                .json(setService.create(UserSession.from(ctx).stationId(), request.name()));
+                .json(setService.create(StationSession.from(ctx).stationId(), request.name()));
     }
 
     @OpenApi(
@@ -87,7 +87,7 @@ public class MemberGroupSetRoutes implements Routes {
             })
     private void rename(Context ctx) {
         var request = ctx.bodyAsClass(GroupSetRequest.class);
-        ctx.json(setService.rename(UserSession.from(ctx).stationId(), pathInt(ctx, "id"), request.name()));
+        ctx.json(setService.rename(StationSession.from(ctx).stationId(), pathInt(ctx, "id"), request.name()));
     }
 
     @OpenApi(
@@ -101,7 +101,7 @@ public class MemberGroupSetRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        setService.delete(UserSession.from(ctx).stationId(), pathInt(ctx, "id"));
+        setService.delete(StationSession.from(ctx).stationId(), pathInt(ctx, "id"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

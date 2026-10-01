@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -91,7 +91,7 @@ public class UserTagRoutes implements Routes {
             tags = {"User Tags"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserTag[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(tagService.findByStation(session.stationId()));
     }
 
@@ -106,7 +106,7 @@ public class UserTagRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
             throw Refusal.TAG_NAME_MISSING_ON_CREATE.raise();

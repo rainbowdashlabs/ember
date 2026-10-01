@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.route;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.entity.InviteCodeResponse;
@@ -80,7 +81,7 @@ public class DiscoveryRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederationRequestBody.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void requestFederation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         discovery.requestFederation(
                 session.stationId(),
                 ctx.bodyAsClass(FederationRequestBody.class).stationUid());

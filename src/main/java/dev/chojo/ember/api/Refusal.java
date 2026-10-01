@@ -3476,9 +3476,6 @@ public enum Refusal {
     /** An account the password reset mail could not be sent for. */
     ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL(Area.MEMBERS, 14, HttpStatus.NOT_FOUND, Sentences.ACCOUNT_NOT_HERE),
 
-    /** Profile questions of a station, asked for by somebody who has not said which station. */
-    NO_STATION_CHOSEN_FOR_PROFILE_QUESTIONS(Area.MEMBERS, 15, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
-
     /** A profile question that went before the change to it could be written. */
     PROFILE_FIELD_NOT_HERE_ON_CHANGE(Area.MEMBERS, 16, HttpStatus.NOT_FOUND, Sentences.PROFILE_FIELD_NOT_HERE),
 
@@ -3625,20 +3622,11 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "That confirmation link is no longer good, so the address was not changed"),
 
-    /**
-     * A member asked about by a session that stands at no station. Answered as a missing member
-     * rather than as a missing station, which is what the ownership check right behind it answers.
-     */
-    MEMBER_NOT_HERE_WITHOUT_STATION(Area.MEMBERS, 51, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
-
     /** A member named by the identifier a member menu hands over, who is gone or has left. */
     MEMBER_NOT_HERE_BY_UID(Area.MEMBERS, 52, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A membership being made without saying whose account it is for. */
     MEMBER_ACCOUNT_NOT_NAMED(Area.MEMBERS, 53, HttpStatus.BAD_REQUEST, "Name the account to add as a member"),
-
-    /** A membership being made by somebody who has not said which station. */
-    NO_STATION_CHOSEN_FOR_NEW_MEMBER(Area.MEMBERS, 54, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
 
     /** A member who cannot yet be written off the register. */
     MEMBER_NOT_MARKED_FORMER(
@@ -4743,9 +4731,6 @@ public enum Refusal {
     PASSKEY_STEP_UP_REFUSED(
             Area.TWO_FACTOR, 32, HttpStatus.UNAUTHORIZED, "That passkey did not confirm it, so nothing was confirmed"),
 
-    /** Managing a station's second-factor rules without a station chosen. */
-    NO_STATION_CHOSEN_ON_POLICY(Area.TWO_FACTOR, 34, HttpStatus.FORBIDDEN, Sentences.NO_STATION_CHOSEN),
-
     /** An instance-wide rule that was already gone when its removal was asked for. */
     POLICY_NOT_HERE(Area.TWO_FACTOR, 35, HttpStatus.BAD_REQUEST, Sentences.POLICY_NOT_HERE),
 
@@ -4758,9 +4743,6 @@ public enum Refusal {
 
     /** A second factor an operator asked to clear that could not be cleared. */
     SECOND_FACTOR_NOT_RESET(Area.TWO_FACTOR, 37, HttpStatus.NOT_FOUND, Sentences.SECOND_FACTOR_NOT_RESET),
-
-    /** Clearing a member's second factor without a station chosen. */
-    NO_STATION_CHOSEN_ON_RESET(Area.TWO_FACTOR, 38, HttpStatus.FORBIDDEN, Sentences.NO_STATION_CHOSEN),
 
     /**
      * Somebody whose second factor a station administrator cannot clear. One code and one sentence
@@ -5197,9 +5179,6 @@ public enum Refusal {
             22,
             HttpStatus.BAD_REQUEST,
             "This station has not been moved to another instance, so nothing was deleted"),
-
-    /** A station handed over by a session that stands for no member of it. */
-    NOT_A_MEMBER_ON_HANDOVER(Area.STATIONS, 23, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
 
     /** A station handed over by somebody who does not own it. */
     ONLY_THE_OWNER_HANDS_OVER(

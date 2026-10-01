@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -61,23 +61,12 @@ public class ProfileFieldRoutes implements Routes {
     }
 
     /**
-     * Returns the caller's station id, rejecting sessions without a resolved station.
-     */
-    private static int requireStation(UserSession session) {
-        Integer stationId = session.stationId();
-        if (stationId == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_PROFILE_QUESTIONS.raise();
-        }
-        return stationId;
-    }
-
-    /**
      * Loads a profile field definition and asserts it belongs to the caller's station.
      * Answers with 404 (rather than 403) when the field is absent or owned by another
      * station, so foreign field ids cannot be probed for existence.
      */
     private ProfileField requireOwnedField(Context ctx, int fieldId) {
-        requireStation(UserSession.from(ctx));
+        StationSession.from(ctx);
         return requireOwnedOrNotFound(ctx, fieldId, profileFieldService::findById, ProfileField::stationId);
     }
 
@@ -86,7 +75,7 @@ public class ProfileFieldRoutes implements Routes {
      * Answers with 404 when the member is absent or owned by another station.
      */
     private StationMember requireOwnedMember(Context ctx, int memberId) {
-        requireStation(UserSession.from(ctx));
+        StationSession.from(ctx);
         return requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
@@ -120,7 +109,7 @@ public class ProfileFieldRoutes implements Routes {
             tags = {"Profile Fields"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(profileFieldService.findByStation(session.stationId()));
     }
 
@@ -135,7 +124,7 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         // A spacer may arrive without a name: it is a gap, and the service numbers it instead.
         if (request.fieldType() == null || isBlank(request.name()) && request.fieldType() != ProfileFieldType.SPACER) {
@@ -160,7 +149,7 @@ public class ProfileFieldRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldAssignment[].class)))
     private void listAssignments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(profileFieldService.findAssignmentsByStation(session.stationId()));
     }
 
@@ -300,7 +289,7 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reorder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(FieldOrderRequest.class);
         if (req.role() == null) throw Refusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
         profileFieldService.reorder(
@@ -373,7 +362,7 @@ public class ProfileFieldRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = ProfileFieldService.MergedValue[].class)))
     private void setValues(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetValuesRequest.class);

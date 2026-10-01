@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
@@ -91,7 +91,7 @@ public class ManagedMemberRoutes implements Routes {
     }
 
     private static int guardianId(Context ctx) {
-        return UserSession.from(ctx).member().id();
+        return StationSession.from(ctx).member().id();
     }
 
     @OpenApi(
@@ -141,7 +141,7 @@ public class ManagedMemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void getAccess(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(accessService.get(session.member().id(), pathInt(ctx, "memberId")));
     }
 
@@ -156,7 +156,7 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEmailRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setEmail(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetEmailRequest.class);
         ctx.json(accessService.setEmail(session.member().id(), pathInt(ctx, "memberId"), request.email()));
     }
@@ -172,7 +172,7 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetUsernameRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setUsername(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetUsernameRequest.class);
         ctx.json(accessService.setUsername(session.member().id(), pathInt(ctx, "memberId"), request.username()));
     }
@@ -189,7 +189,7 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetManagedPasswordRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setPassword(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetManagedPasswordRequest.class);
         ctx.json(accessService.setPassword(session.member().id(), pathInt(ctx, "memberId"), request.password()));
     }
@@ -207,7 +207,7 @@ public class ManagedMemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeyCodeResponse.class)))
     private void issuePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var issued = accessService.issuePasskeyCode(
                 session.member().id(),
                 pathInt(ctx, "memberId"),
@@ -225,7 +225,7 @@ public class ManagedMemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void revokePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         accessService.revokePasskeyCode(session.member().id(), pathInt(ctx, "memberId"));
         ctx.json(new MessageResponse("Code revoked"));
     }
@@ -241,7 +241,7 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetLoginRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setLogin(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetLoginRequest.class);
         ctx.json(accessService.setLogin(session.member().id(), pathInt(ctx, "memberId"), request.enabled()));
     }

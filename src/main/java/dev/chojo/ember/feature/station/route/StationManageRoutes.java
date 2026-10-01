@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -190,7 +190,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LocationView.class)))
     private void getLocation(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(locationService.find(session.stationId()));
     }
 
@@ -202,7 +202,7 @@ public class StationManageRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocationUpdate.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LocationView.class)))
     private void updateLocation(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(LocationUpdate.class);
         locationService.update(session.stationId(), body);
         ctx.json(locationService.find(session.stationId()));
@@ -215,7 +215,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "204"))
     private void clearLocation(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         locationService.clear(session.stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -230,7 +230,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         stationService
                 .findById(session.stationId())
                 .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
@@ -238,11 +238,10 @@ public class StationManageRoutes implements Routes {
                 });
     }
 
-    private StationInfo buildStationInfo(Station station, UserSession session) {
+    private StationInfo buildStationInfo(Station station, StationSession session) {
         boolean hasLogo = logoService.exists(station.id());
         var locks = stationService.lookAndFeelLocks(station.id());
-        var member = session.member();
-        boolean isOwner = member != null && station.isOwnedBy(member.id());
+        boolean isOwner = station.isOwnedBy(session.member().id());
         return new StationInfo(
                 station.uid().toString(),
                 station.name(),
@@ -286,7 +285,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var station = settingsService.update(session.stationId(), ctx.bodyAsClass(UpdateStationRequest.class));
         ctx.json(buildStationInfo(station, session));
     }
@@ -301,7 +300,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void uploadLogo(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         if (stationService.lookAndFeelLocks(session.stationId()).logo()) {
             throw Refusal.LOGO_SET_BY_CLUSTER.raise();
         }
@@ -337,7 +336,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "204")
             })
     private void getLogo(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         serveLogo(ctx, session.stationId(), size);
     }
@@ -393,7 +392,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = {@OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class))})
     private void deleteLogo(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         logoService.delete(session.stationId());
         ctx.json(new MessageResponse("Logo deleted"));
     }
@@ -411,7 +410,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebhookUrl.class)))
     private void getMailWebhook(Context ctx) {
-        ctx.json(mailSettings.webhook(UserSession.from(ctx).stationId()));
+        ctx.json(mailSettings.webhook(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -423,7 +422,7 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebhookUrl.class)))
     private void updateSigningSecret(Context ctx) {
         var request = ctx.bodyAsClass(SigningSecretRequest.class);
-        ctx.json(mailSettings.updateSigningSecret(UserSession.from(ctx).stationId(), request.secret()));
+        ctx.json(mailSettings.updateSigningSecret(StationSession.from(ctx).stationId(), request.secret()));
     }
 
     /**
@@ -441,7 +440,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebhookUrl.class)))
     private void regenerateMailWebhook(Context ctx) {
-        ctx.json(mailSettings.regenerateWebhook(UserSession.from(ctx).stationId()));
+        ctx.json(mailSettings.regenerateWebhook(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -454,7 +453,7 @@ public class StationManageRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = NotificationSchedulePayload.class)))
     private void getNotificationSchedule(Context ctx) {
-        ctx.json(notificationTimes.times(UserSession.from(ctx).stationId()));
+        ctx.json(notificationTimes.times(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -466,7 +465,7 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void updateNotificationSchedule(Context ctx) {
         var request = ctx.bodyAsClass(NotificationSchedulePayload.class);
-        notificationTimes.update(UserSession.from(ctx).stationId(), request.sendTimes());
+        notificationTimes.update(StationSession.from(ctx).stationId(), request.sendTimes());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -477,7 +476,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailFallbackPayload[].class)))
     private void getMailFallbacks(Context ctx) {
-        ctx.json(mailSettings.providers(UserSession.from(ctx).stationId()));
+        ctx.json(mailSettings.providers(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -489,7 +488,7 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailFallbackPayload[].class)))
     private void updateMailFallbacks(Context ctx) {
         var incoming = List.of(ctx.bodyAsClass(MailFallbackPayload[].class));
-        ctx.json(mailSettings.updateProviders(UserSession.from(ctx).stationId(), incoming));
+        ctx.json(mailSettings.updateProviders(StationSession.from(ctx).stationId(), incoming));
     }
 
     /**
@@ -504,7 +503,7 @@ public class StationManageRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProviderTestRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailTestResponse.class)))
     private void testMailProvider(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int position;
         try {
             position = Integer.parseInt(ctx.pathParam("position"));
@@ -518,7 +517,7 @@ public class StationManageRoutes implements Routes {
             ctx.json(new MailTestResponse(error == null, error));
             return;
         }
-        var account = session.account();
+        var account = session.user().account();
         String error = emailService.sendTestMailThrough(
                 session.stationId(),
                 position,
@@ -535,7 +534,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "204"))
     private void clearMailConfig(Context ctx) {
-        mailSettings.clear(UserSession.from(ctx).stationId());
+        mailSettings.clear(StationSession.from(ctx).stationId());
         throw new NoContentResponse();
     }
 
@@ -546,7 +545,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailTestResponse.class)))
     private void testMailConfig(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String error = emailService.testStationMailConnection(session.stationId());
         ctx.json(new MailTestResponse(error == null, error));
     }
@@ -561,9 +560,9 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "400")
             })
     private void sendTestMail(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         mailSettings.requireProvider(session.stationId());
-        var account = session.account();
+        var account = session.user().account();
         emailService.sendTestEmail(
                 account.email(), account.firstName(), mailLocaleService.forAccount(account.id()), session.stationId());
         ctx.json(new MessageResponse("Test email queued"));
@@ -576,7 +575,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModulesResponse.class)))
     private void getDisabledModules(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(new ModulesResponse(
                 stationService.findDisabledModules(session.stationId()),
                 stationService.findClusterDeniedModules(session.stationId()),
@@ -594,7 +593,7 @@ public class StationManageRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ModulesResponse.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModulesResponse.class)))
     private void setDisabledModules(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(ModulesResponse.class);
         stationService.setDisabledModules(session.stationId(), body.disabledModules());
         ctx.json(new ModulesResponse(
@@ -615,7 +614,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeleteRequestResponse.class)))
     private void requestDelete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var deleteNow = authService.requestStationDeletion(session.accountId(), session.stationId());
         if (deleteNow.isPresent()) {
             stationService.delete(deleteNow.get());
@@ -638,7 +637,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "409")
             })
     private void deleteMoved(Context ctx) {
-        stationService.deleteMoved(UserSession.from(ctx).stationId());
+        stationService.deleteMoved(StationSession.from(ctx).stationId());
         ctx.json(new MessageResponse("Station deleted"));
     }
 
@@ -654,8 +653,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "403")
             })
     private void transferOwnership(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_HANDOVER.raise();
+        StationSession session = StationSession.from(ctx);
         if (!stationService.isOwner(session.stationId(), session.member().id())) {
             throw Refusal.ONLY_THE_OWNER_HANDS_OVER.raise();
         }
@@ -680,7 +678,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "400")
             })
     private void importInto(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(StationImportRequest.class);
         if (req.token() == null || req.token().isBlank()) {
             throw Refusal.IMPORT_NEEDS_A_TRANSFER_CODE.raise();
@@ -707,7 +705,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void importProgress(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var progress = importService.getProgress(session.stationId());
         if (progress == null) {
             throw Refusal.NO_IMPORT_RUNNING.raise();
@@ -809,7 +807,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailDashboard.class)))
     private void mailDashboard(Context ctx) {
-        ctx.json(dashboardService.forOwner(UserSession.from(ctx).stationId()));
+        ctx.json(dashboardService.forOwner(StationSession.from(ctx).stationId()));
     }
 
     /**
@@ -828,7 +826,7 @@ public class StationManageRoutes implements Routes {
         Integer id = ctx.queryParam("id") == null
                 ? null
                 : ctx.queryParamAsClass("id", Integer.class).get();
-        ctx.json(dashboardService.requeueStuck(UserSession.from(ctx).stationId(), id));
+        ctx.json(dashboardService.requeueStuck(StationSession.from(ctx).stationId(), id));
     }
 
     /**
@@ -848,7 +846,7 @@ public class StationManageRoutes implements Routes {
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
                 .orElseThrow(Refusal.MAIL_PROVIDER_NOT_KNOWN::raise);
-        dashboardService.liftBlock(UserSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
+        dashboardService.liftBlock(StationSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
         throw new NoContentResponse();
     }
 

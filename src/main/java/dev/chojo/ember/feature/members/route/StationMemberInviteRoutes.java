@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.service.SetupMail;
@@ -61,7 +61,7 @@ public class StationMemberInviteRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateInvitesRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CreateInvitesResponse.class)))
     private void createInvites(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateInvitesRequest.class);
         if (request.invites() == null || request.invites().isEmpty()) {
             throw Refusal.INVITES_MISSING.raise();
@@ -70,7 +70,7 @@ public class StationMemberInviteRoutes implements Routes {
                 .map(StationMemberInviteRoutes::toServiceRequest)
                 .toList();
         BatchResult result = service.createBatch(
-                session.stationId(), serviceRequests, SetupMail.of(request.sendSetupMail()), session);
+                session.stationId(), serviceRequests, SetupMail.of(request.sendSetupMail()), session.user());
         ctx.status(HttpStatus.CREATED)
                 .json(new CreateInvitesResponse(
                         result.provisioned().stream()

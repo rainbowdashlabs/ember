@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
@@ -80,10 +81,10 @@ public class MemberAccountService {
      * @param missing   the refusal for an account that is gone
      * @return the account
      */
-    public Account actionableAccount(int accountId, UserSession session, Refusal missing) {
+    public Account actionableAccount(int accountId, StationSession session, Refusal missing) {
         requireStationAccount(accountId, session.stationId());
         Account target = accountRepository.findById(accountId).orElseThrow(missing::raise);
-        requireNotAboveActor(target, session);
+        requireNotAboveActor(target, session.user());
         return target;
     }
 
@@ -96,7 +97,7 @@ public class MemberAccountService {
      * @param session   who is asking
      * @return the account
      */
-    public Account addresslessAccount(int accountId, UserSession session) {
+    public Account addresslessAccount(int accountId, StationSession session) {
         Account target = actionableAccount(accountId, session, Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE);
         if (target.hasRealEmail()) {
             throw Refusal.MEMBER_HAS_OWN_ADDRESS.raise();

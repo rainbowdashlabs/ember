@@ -9,7 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
@@ -92,7 +92,7 @@ public class ProfileFieldChangeRoutes implements Routes {
      *
      * @return the members the caller is limited to, or empty when they are not limited at all
      */
-    private Optional<List<Integer>> visibleMembers(UserSession session) {
+    private Optional<List<Integer>> visibleMembers(StationSession session) {
         if (session.hasPermission(StationPermission.MEMBER_CHANGES)) return Optional.empty();
         return Optional.of(memberService.findManaged(session.member().id()).stream()
                 .map(StationMember::id)
@@ -106,11 +106,11 @@ public class ProfileFieldChangeRoutes implements Routes {
      * that station, and a member id names a row on the whole instance. Answering 404 there rather
      * than 403 keeps a member of another station indistinguishable from one that does not exist.
      */
-    private void assertVisible(UserSession session, int memberId) {
+    private void assertVisible(StationSession session, int memberId) {
         var visible = visibleMembers(session);
         if (visible.isEmpty()) {
             var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_ON_CHANGE_HISTORY::raise);
-            RouteSupport.requireSameStation(session, member.stationId());
+            RouteSupport.requireSameStation(session.user(), member.stationId());
             return;
         }
         if (!visible.get().contains(memberId)) {
@@ -129,7 +129,7 @@ public class ProfileFieldChangeRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PagedChangesResponse.class)))
     private void getAllChanges(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         var visible = visibleMembers(session);
@@ -153,7 +153,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = EnrichedMemberChangeSummary[].class)))
     private void getPendingSummary(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var visible = visibleMembers(session);
         var summaries =
                 profileFieldService
@@ -184,7 +184,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = EnrichedProfileFieldChange[].class)))
     private void getChanges(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         assertVisible(session, memberId);
         var identity = memberIdentityFactory.local(session.stationId(), memberId);
@@ -205,7 +205,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = ProfileFieldChangeAcknowledgement.class)))
     private void acknowledge(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int changeId = pathInt(ctx, "changeId");
         assertVisible(
                 session,
@@ -228,7 +228,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = ProfileFieldChangeAcknowledgement[].class)))
     private void acknowledgeAll(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         assertVisible(session, memberId);
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);

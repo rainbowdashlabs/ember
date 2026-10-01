@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -132,7 +133,7 @@ public class MemberGroupRoutes implements Routes {
             tags = {"Member Groups"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(groupService.findByStation(session.stationId()));
     }
 
@@ -147,13 +148,13 @@ public class MemberGroupRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
             throw Refusal.GROUP_NAME_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED)
-                .json(groupRules.create(session.stationId(), request.name(), request.groupRules(), session));
+                .json(groupRules.create(session.stationId(), request.name(), request.groupRules(), session.user()));
     }
 
     @OpenApi(
@@ -270,7 +271,7 @@ public class MemberGroupRoutes implements Routes {
             })
     private void setMembers(Context ctx) {
         int groupId = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var group = requireOwnedOrNotFound(ctx, groupId, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
@@ -312,7 +313,7 @@ public class MemberGroupRoutes implements Routes {
         var member = requireOwnedMember(ctx, pathInt(ctx, "memberId"));
         var request = ctx.bodyAsClass(MemberGroupsRequest.class);
         List<Integer> groupIds = request.groupIds() != null ? request.groupIds() : List.of();
-        ctx.json(groupMemberships.replaceGroupsOfMember(member, groupIds, UserSession.from(ctx)));
+        ctx.json(groupMemberships.replaceGroupsOfMember(member, groupIds, StationSession.from(ctx)));
     }
 
     @OpenApi(

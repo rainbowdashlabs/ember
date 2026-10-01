@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
@@ -55,7 +55,7 @@ public class UserSettingsRoutes implements Routes {
             tags = {"User Settings"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
     private void getSettings(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = session.member().id();
         var userSettings = settingsService.getSettings(memberId);
         var notifSettings = settingsService.getNotificationSettings(memberId);
@@ -76,7 +76,7 @@ public class UserSettingsRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SettingsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
     private void updateSettings(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = session.member().id();
         var request = ctx.bodyAsClass(SettingsRequest.class);
 

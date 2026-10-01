@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.MemberImportService;
@@ -90,7 +90,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void preview(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.json(importService.preview(
@@ -110,7 +110,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void importMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.status(HttpStatus.CREATED)
@@ -136,7 +136,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void previewTeam(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.json(importService.preview(
@@ -156,7 +156,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void importTeamMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.status(HttpStatus.CREATED)

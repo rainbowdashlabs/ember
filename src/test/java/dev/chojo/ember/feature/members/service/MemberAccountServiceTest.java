@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstanceUserType;
@@ -65,6 +66,10 @@ class MemberAccountServiceTest {
         return TestSessions.member(STATION_ID, StationPermission.MEMBER_EDIT);
     }
 
+    private static StationSession managerHere() {
+        return StationSession.of(manager());
+    }
+
     private MemberAccountService.UpdateAccountResponse update(
             UserSession session, int accountId, UpdateAccountRequest request) {
         return service.update(session, session.stationId(), accountId, request);
@@ -103,7 +108,7 @@ class MemberAccountServiceTest {
         assertEquals(
                 Refusal.ACCOUNT_ABOVE_YOU,
                 refusalOf(() ->
-                        service.actionableAccount(TARGET, manager(), Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
+                        service.actionableAccount(TARGET, managerHere(), Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
     }
 
     @Test
@@ -113,17 +118,18 @@ class MemberAccountServiceTest {
         assertEquals(
                 Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET,
                 refusalOf(() ->
-                        service.actionableAccount(TARGET, manager(), Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
+                        service.actionableAccount(TARGET, managerHere(), Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
     }
 
     @Test
     void aPasskeyCodeIsOnlyForSomebodyWithoutAnAddress() {
         targetIsAtTheStation();
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
-        assertEquals(Refusal.MEMBER_HAS_OWN_ADDRESS, refusalOf(() -> service.addresslessAccount(TARGET, manager())));
+        assertEquals(
+                Refusal.MEMBER_HAS_OWN_ADDRESS, refusalOf(() -> service.addresslessAccount(TARGET, managerHere())));
 
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@x.local", InstanceUserType.USER)));
-        assertEquals(TARGET, service.addresslessAccount(TARGET, manager()).id());
+        assertEquals(TARGET, service.addresslessAccount(TARGET, managerHere()).id());
     }
 
     @Test

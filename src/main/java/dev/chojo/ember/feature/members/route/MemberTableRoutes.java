@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.MemberTable;
@@ -90,8 +91,9 @@ public class MemberTableRoutes implements Routes {
             tags = {"Member Table"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTableHeader[].class)))
     private void offerableColumns(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(tableService.offerableColumns(session.stationId(), session.permissions()));
+        var session = StationSession.from(ctx);
+        ctx.json(tableService.offerableColumns(
+                session.stationId(), session.user().permissions()));
     }
 
     @OpenApi(
@@ -101,7 +103,7 @@ public class MemberTableRoutes implements Routes {
             tags = {"Member Table"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTablePreset[].class)))
     private void listPresets(Context ctx) {
-        ctx.json(presets.list(UserSession.from(ctx).stationId()));
+        ctx.json(presets.list(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -112,7 +114,7 @@ public class MemberTableRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SavePresetRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTablePreset.class)))
     private void savePreset(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(SavePresetRequest.class);
         ctx.json(presets.save(session.stationId(), req.name(), req.columns()));
     }
@@ -127,7 +129,7 @@ public class MemberTableRoutes implements Routes {
     private void deletePreset(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, presets::findById, MemberTablePreset::stationId);
-        presets.delete(id, UserSession.from(ctx).stationId());
+        presets.delete(id, StationSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -207,7 +209,7 @@ public class MemberTableRoutes implements Routes {
 
     private Station stationOf(Context ctx) {
         return stationService
-                .findById(UserSession.from(ctx).stationId())
+                .findById(StationSession.from(ctx).stationId())
                 .orElseThrow(Refusal.STATION_NOT_HERE_FOR_MEMBER_TABLE::raise);
     }
 

@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.StepUpRequiredException;
-import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
@@ -69,8 +69,8 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         return stationMemberRepo.findById(created.id()).orElseThrow();
     }
 
-    private UserSession managerHolding(StationPermission... permissions) {
-        return signedIn(manager, permissions);
+    private StationSession managerHolding(StationPermission... permissions) {
+        return stationSession(manager, permissions);
     }
 
     private MemberGroup group(String name, Integer setId, StationUserType... types) {
@@ -282,14 +282,15 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
         var elsewhere = stationRepo.create("Elsewhere " + System.nanoTime());
         var foreign = memberGroupRepo.create(elsewhere.id(), "Fremd");
 
-        service.requireInvitableInto(station.id(), null, managerHolding());
-        service.requireInvitableInto(station.id(), admins.id(), managerHolding(StationPermission.MEMBER_MANAGE_GROUP));
+        service.requireInvitableInto(station.id(), null, signedIn(manager));
+        service.requireInvitableInto(
+                station.id(), admins.id(), signedIn(manager, StationPermission.MEMBER_MANAGE_GROUP));
         assertEquals(
                 Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE,
-                refusalOf(() -> service.requireInvitableInto(station.id(), admins.id(), managerHolding())));
+                refusalOf(() -> service.requireInvitableInto(station.id(), admins.id(), signedIn(manager))));
         assertEquals(
                 Refusal.INVITE_GROUP_NOT_HERE,
-                refusalOf(() -> service.requireInvitableInto(station.id(), foreign.id(), managerHolding())));
+                refusalOf(() -> service.requireInvitableInto(station.id(), foreign.id(), signedIn(manager))));
         stationRepo.delete(elsewhere.id());
     }
 

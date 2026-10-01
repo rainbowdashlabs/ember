@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -102,7 +103,7 @@ public class MemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void onboardAgain(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
         Integer accountId = request.accountId();
         if (accountId == null) {
@@ -130,7 +131,7 @@ public class MemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void issuePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
         if (request.accountId() == null) {
             throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE.raise();
@@ -156,7 +157,7 @@ public class MemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void revokePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
         memberAccounts.requireStationAccount(accountId, session.stationId());
         enrollmentService.revokeCode(accountId);
@@ -208,7 +209,7 @@ public class MemberRoutes implements Routes {
             throw Refusal.INVITE_NAME_MISSING.raise();
         }
 
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         try {
             var provisioned = inviteService.provision(
                     session.stationId(),
@@ -242,7 +243,7 @@ public class MemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void resetPassword(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ResetPasswordRequest.class);
         if (request.accountId() == null) {
             throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET.raise();

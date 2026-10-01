@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.twofactor.route;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -63,11 +64,6 @@ public class TwoFactorAdminRoutes implements Routes {
         if (v < 0) v = 0;
         if (v > 7) v = 7;
         return (short) v;
-    }
-
-    private static int requireStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        return session.stationIdOpt().orElseThrow(Refusal.NO_STATION_CHOSEN_ON_POLICY::raise);
     }
 
     // -- Station scope --
@@ -175,7 +171,7 @@ public class TwoFactorAdminRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PoliciesResponse.class)))
     private void listStationPolicies(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         var policies = policyService.listStationPolicies(stationId);
         ctx.json(new PoliciesResponse(
                 policies.stream().map(TwoFactorAdminRoutes::toEntry).toList()));
@@ -187,14 +183,14 @@ public class TwoFactorAdminRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpsertPolicyRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TwoFactorPolicyEntry.class)))
     private void upsertStationPolicy(Context ctx) {
-        int stationId = requireStation(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(UpsertPolicyRequest.class);
         TwoFactorPolicy saved = policyService.setStationPolicy(
-                stationId,
+                session.stationId(),
                 request.userType(),
                 request.required(),
                 clampGraceDays(request.graceDays()),
-                actorMemberId(ctx));
+                session.member().id());
         ctx.json(toEntry(saved));
     }
 
@@ -210,7 +206,7 @@ public class TwoFactorAdminRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void deleteStationPolicy(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         int id = pathInt(ctx, "id");
         var policies = policyService.listStationPolicies(stationId);
         if (policies.stream().noneMatch(p -> p.id() == id)) {
@@ -227,7 +223,7 @@ public class TwoFactorAdminRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberStatusResponse.class)))
     private void listMemberStatus(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         ctx.json(new MemberStatusResponse(policyService.listStationMemberStatus(stationId)));
     }
 
@@ -262,10 +258,9 @@ public class TwoFactorAdminRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void resetByStationAdmin(Context ctx) {
         int targetId = pathInt(ctx, "id");
-        UserSession actor = UserSession.from(ctx);
-        int stationId = actor.stationIdOpt().orElseThrow(Refusal.NO_STATION_CHOSEN_ON_RESET::raise);
+        StationSession actor = StationSession.from(ctx);
         adminService.resetForStation(
-                stationId, targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+                actor.stationId(), targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new MessageResponse("2FA reset"));
     }
 

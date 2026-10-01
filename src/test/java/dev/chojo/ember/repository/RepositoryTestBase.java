@@ -910,7 +910,7 @@ public abstract class RepositoryTestBase {
                         null),
                 1,
                 member.stationId(),
-                null,
+                stationRepo.requireUid(member.stationId()),
                 member,
                 Set.of(permissions),
                 Set.of(),

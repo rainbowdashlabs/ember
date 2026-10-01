@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -88,7 +89,8 @@ public class GroupMembershipService {
      * @param by       who is asking
      * @return the groups they are in afterwards
      */
-    public List<MemberGroup> replaceGroupsOfMember(StationMember member, Collection<Integer> groupIds, UserSession by) {
+    public List<MemberGroup> replaceGroupsOfMember(
+            StationMember member, Collection<Integer> groupIds, StationSession by) {
         Map<Integer, MemberGroup> stationGroups = byId(groupRepository.findByStation(member.stationId()));
         Set<Integer> wanted = new LinkedHashSet<>(groupIds);
         if (!stationGroups.keySet().containsAll(wanted)) {
@@ -104,8 +106,8 @@ public class GroupMembershipService {
             }
         }
         requireOneGroupPerSet(pick(stationGroups, wanted, _ -> true));
-        requireRightsFor(added, by, Refusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER);
-        requirePresenceFor(concat(added, removed), by);
+        requireRightsFor(added, by.user(), Refusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER);
+        requirePresenceFor(concat(added, removed), by.user());
 
         Transactions.run(() -> {
             removed.forEach(group -> groupRepository.removeMember(group.id(), member.id()));
@@ -132,7 +134,7 @@ public class GroupMembershipService {
      * @return the group's members afterwards
      */
     public List<StationMember> setMembers(
-            MemberGroup group, Collection<Integer> memberIds, boolean move, UserSession by) {
+            MemberGroup group, Collection<Integer> memberIds, boolean move, StationSession by) {
         Map<Integer, StationMember> stationMembers = memberRepository.findByStation(group.stationId(), true).stream()
                 .collect(Collectors.toMap(StationMember::id, Function.identity()));
         Set<Integer> wanted = new LinkedHashSet<>(memberIds);
@@ -170,11 +172,11 @@ public class GroupMembershipService {
         }
 
         if (!added.isEmpty()) {
-            requireRightsFor(List.of(group), by, Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD);
+            requireRightsFor(List.of(group), by.user(), Refusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD);
         }
         List<MemberGroup> touched = new ArrayList<>(movedFrom.values());
         if (!added.isEmpty() || !removed.isEmpty()) touched.add(group);
-        requirePresenceFor(touched, by);
+        requirePresenceFor(touched, by.user());
 
         Transactions.run(() -> {
             removed.forEach(memberId -> groupRepository.removeMember(group.id(), memberId));
