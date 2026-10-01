@@ -241,14 +241,12 @@ class EventFieldServiceTest extends RepositoryTestBase {
         var names = service.findDistinctFieldNames(station.id());
         assertTrue(names.contains("Location"));
         assertTrue(names.contains("Topic"));
-        // Location appears in both events but should only appear once
         assertEquals(1, names.stream().filter(n -> n.equals("Location")).count());
     }
 
     @Test
     @Order(5)
     void findOverviewFieldsByEvents() {
-        // Set event1 with overview field, event2 without
         service.replaceFields(
                 eventId,
                 List.of(
@@ -264,7 +262,6 @@ class EventFieldServiceTest extends RepositoryTestBase {
         var map = service.findOverviewFieldsByEvents(List.of(eventId, event2Id));
         assertTrue(map.containsKey(eventId));
         assertTrue(map.containsKey(event2Id));
-        // Only overview=true fields are included
         assertEquals(1, map.get(eventId).size());
         assertEquals("Loc", map.get(eventId).getFirst().name());
         assertEquals(1, map.get(event2Id).size());

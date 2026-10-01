@@ -200,12 +200,10 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var member = stationMemberRepo.create(station1.id(), account.id());
         memberId = member.id();
 
-        // Create a board on station2 (the partner station)
         var board = boardService.createWithPreset(station2.id(), "Shared Board", "Desc", "SHR", LanePreset.SIMPLE);
         boardId = board.id();
         boardUid = board.uid();
 
-        // Create a federation partner via direct SQL
         partnerId = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::UUID, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
@@ -265,8 +263,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         stationRepo.delete(station2.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Discovery --
 
     @Test
     @Order(1)
@@ -345,8 +341,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertTrue(discovered.isEmpty());
     }
 
-    // -- Effective share mode --
-
     @Test
     @Order(10)
     void getEffectiveShareModeReadOnly() {
@@ -371,8 +365,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var mode = accessService.getEffectiveShareMode(partnerId, 999999);
         assertTrue(mode.isEmpty());
     }
-
-    // -- Local view overrides --
 
     @Test
     @Order(20)
@@ -428,8 +420,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         reset(memberService, groupService, tagService);
     }
 
-    // -- Local edit overrides --
-
     @Test
     @Order(30)
     void passesLocalEditOverrideWhenNoOverride() {
@@ -465,8 +455,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         reset(memberService, groupService, tagService);
     }
 
-    // -- canView / canWrite --
-
     @Test
     @Order(40)
     void canViewWhenShared() {
@@ -479,10 +467,10 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertFalse(accessService.canView(partnerId, UUID.randomUUID(), 999999, memberId));
     }
 
+    /** Relies on the board having been shared in full mode by an earlier test. */
     @Test
     @Order(42)
     void canWriteWhenFullMode() {
-        // Board is currently FULL from test order 11
         assertTrue(accessService.canWrite(partnerId, boardUid, boardId, memberId));
     }
 
@@ -503,10 +491,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void cannotWriteWhenViewOverrideFails() {
-        // Set back to FULL
         federatedBoardService.shareBoard(
                 boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
-        // Set view override that member won't pass
         accessService.setLocalViewOverride(
                 partnerId, boardUid, new AccessData(List.of(StationUserType.MANAGER), List.of(), List.of()));
         when(memberService.findById(memberId))
@@ -515,7 +501,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(accessService.canWrite(partnerId, boardUid, boardId, memberId));
-        // Cleanup
         accessService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
@@ -531,12 +516,9 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(accessService.canWrite(partnerId, boardUid, boardId, memberId));
-        // Cleanup
         accessService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
-
-    // -- Get overrides --
 
     @Test
     @Order(50)
@@ -550,7 +532,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertTrue(access.userTypes().containsAll(List.of(StationUserType.MEMBER, StationUserType.GUARDIAN)));
         assertEquals(List.of(3), access.groupIds());
         assertEquals(List.of(4), access.tagIds());
-        // Cleanup
         accessService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
     }
 
@@ -563,11 +544,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertEquals(List.of(StationUserType.TEAM), access.userTypes());
         assertEquals(List.of(6, 7), access.groupIds());
         assertTrue(access.tagIds().isEmpty());
-        // Cleanup
         accessService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
     }
-
-    // -- Bookmarks --
 
     @Test
     @Order(60)
@@ -603,14 +581,11 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Test
     @Order(63)
     void deleteBookmarkByBoard() {
-        // Recreate a bookmark, then delete by board
         federatedBoardService.createBookmark(memberId, partnerId, boardUid, "Shared Board", "SHR", BoardShareMode.FULL);
         federatedBoardService.deleteBookmarkByBoard(memberId, partnerId, boardUid);
         var bookmarks = federatedBoardService.findBookmarks(memberId);
         assertTrue(bookmarks.isEmpty());
     }
-
-    // -- Webhook handlers --
 
     @Test
     @Order(70)
@@ -639,8 +614,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertTrue(bookmarks.isEmpty());
     }
 
-    // -- Edit override with group/tag --
-
     @Test
     @Order(73)
     void passesLocalEditOverrideWithMatchingGroup() {
@@ -663,8 +636,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         accessService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
-
-    // -- HTTP discovery --
 
     @Test
     @Order(75)
@@ -703,6 +674,10 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertEquals(BoardShareMode.FULL, discovered.getFirst().shareMode());
     }
 
+    /**
+     * Resets the HTTP client afterwards: the catch-all failure stub would otherwise fire inside every later
+     * {@code when(...)} call on it.
+     */
     @Test
     @Order(76)
     void discoverBoardsViaHttpError() {
@@ -729,13 +704,9 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var discovered = discoveryService.discoverBoards(station1.id());
         assertTrue(discovered.isEmpty());
 
-        // Reset httpClient to clear the catch-all thenThrow stub - otherwise it poisons
-        // subsequent when().thenReturn() calls (the when() invocation triggers the stub)
         reset(httpClient);
         when(httpClient.canSign(anyInt())).thenReturn(true);
     }
-
-    // -- DiscoveredBoard record --
 
     @Test
     @Order(80)
@@ -760,8 +731,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertEquals(BoardShareMode.FULL, db.shareMode());
         assertEquals("Partner Station", db.partnerStationName());
     }
-
-    // -- Helper to create a local partner mock --
 
     private static FederationPartner localPartner() {
         return new FederationPartner(
@@ -795,8 +764,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null);
     }
 
-    // -- Local proxy read tests --
-
     @Test
     @Order(100)
     void proxyGetBoardLocal() {
@@ -818,7 +785,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var lanes = structureProxy.proxyGetLanes(partnerId, BOARD_KEY);
         assertNotNull(lanes);
         assertFalse(lanes.isEmpty());
-        // Store a lane ID for ticket creation
         laneId = lanes.getFirst().id();
     }
 
@@ -829,7 +795,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         var labels = structureProxy.proxyGetLabels(partnerId, BOARD_KEY);
         assertNotNull(labels);
-        // Board was just created, may have no labels yet - just verify it returns
     }
 
     @Test
@@ -848,14 +813,15 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         var tickets = ticketProxy.proxyListTickets(partnerId, BOARD_KEY);
         assertNotNull(tickets);
-        // May be empty if no tickets yet
     }
 
+    /**
+     * Created through the ticket service with a real member, because the proxy creates with author 0, which
+     * the database's foreign key refuses.
+     */
     @Test
     @Order(105)
     void createTicketForLocalProxyTests() {
-        // Create a ticket directly via ticketService (with a valid memberId)
-        // since proxyCreateTicket passes createdBy=0 which violates the FK constraint
         var ticket = ticketService.createTicket(
                 boardId,
                 laneId,
@@ -971,14 +937,12 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertNotNull(watcherData.federated());
     }
 
-    // -- Local proxy write tests --
-
+    /** Updates with the same values, so no history is written for the proxy's actor 0, which has no row. */
     @Test
     @Order(120)
     void proxyUpdateTicketLocalNoFieldChange() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
-        // Update with same values so that logHistory is not triggered (avoids actor FK=0 issue)
         var current = ticketService.findById(ticketId).orElseThrow();
         var updated = ticketProxy.proxyUpdateTicket(
                 partnerId,
@@ -1040,7 +1004,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     void proxyAddTicketLabelLocal() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
-        // First get the label we created
         var labels = boardService.findLabels(boardId);
         assertFalse(labels.isEmpty());
         int labelId = labels.getFirst().id();
@@ -1056,9 +1019,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     void proxyReorderTicketsLocal() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
-        // Just reorder with the single ticket
         ticketProxy.proxyReorderTickets(partnerId, BOARD_KEY, laneId, List.of(ticketId));
-        // No exception means success
     }
 
     @Test
@@ -1077,7 +1038,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         var results = ticketProxy.proxySearchTickets(partnerId, BOARD_KEY, "");
         assertNotNull(results);
-        // Blank query returns all tickets
         assertFalse(results.isEmpty());
     }
 
@@ -1087,7 +1047,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
         ticketDetailProxy.proxyWatchTicket(partnerId, BOARD_KEY, ticketNumber, REMOTE_MEMBER_1);
-        // Verify watcher was added
         var watcherData = ticketDetailProxy.proxyGetWatchers(partnerId, BOARD_KEY, ticketNumber);
         assertNotNull(watcherData);
     }
@@ -1098,7 +1057,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
         ticketDetailProxy.proxyUnwatchTicket(partnerId, BOARD_KEY, ticketNumber, REMOTE_MEMBER_1);
-        // No exception means success
     }
 
     @Test
@@ -1106,14 +1064,12 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     void proxyUpdateChecklistItemLocal() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
-        // Get the checklist item we created
         var items = ticketService.findChecklistItems(ticketId);
         assertFalse(items.isEmpty());
         int itemId = items.getFirst().id();
 
         ticketDetailProxy.proxyUpdateChecklistItem(
                 partnerId, BOARD_KEY, ticketNumber, itemId, "Updated Checklist", true, null, null);
-        // No exception means success
     }
 
     @Test
@@ -1162,7 +1118,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         var results = ticketProxy.proxySearchTickets(partnerId, BOARD_KEY, null);
         assertNotNull(results);
-        // Null query returns all tickets
         assertFalse(results.isEmpty());
     }
 
@@ -1176,10 +1131,13 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertTrue(result.isEmpty());
     }
 
+    /**
+     * The board is on station 1 and the partner on station 2, so the service looks up station 1's partner
+     * record that points at station 2.
+     */
     @Test
     @Order(141)
     void getEffectiveShareModeReverseLookup() {
-        // Create a board on station1 and share it with the existing partner (partnerId on station1)
         var reverseBoard =
                 boardService.createWithPreset(station1.id(), "Reverse Board", "Desc", "REV", LanePreset.SIMPLE);
         federatedBoardService.shareBoard(
@@ -1188,7 +1146,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         int partner2Id = servingId;
 
-        // partner2 is on station2, looking at station1
         var partner2 = new FederationPartner(
                 partner2Id,
                 station2.id(),
@@ -1203,10 +1160,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null);
         when(federationRepository.findPartnerById(partner2Id)).thenReturn(Optional.of(partner2));
-        // Reverse lookup: board is on station1, partner2 is on station2.
-        // Service resolves ourStationUid = station2.uid(), then calls
-        // findPartnerByStationAndRemoteUid(station1.id(), station2.uid()) to find
-        // station1's partner record that points to station2.
         when(federationRepository.findPartnerByStationAndRemoteUid(eq(station1.id()), eq(station2.uid())))
                 .thenReturn(Optional.of(localPartner()));
 
@@ -1224,8 +1177,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var mode = accessService.getEffectiveShareMode(999, 999999);
         assertTrue(mode.isEmpty());
     }
-
-    // -- Remote proxy tests (mocked HTTP) --
 
     @Test
     @Order(200)

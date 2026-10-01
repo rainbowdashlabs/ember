@@ -93,7 +93,6 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
         var movement =
                 clusterDispatchService.dispatch(cluster.id(), station.uid(), items, "Für die neue Gruppe", owner());
 
-        // Everything is in the post, not just the piece the movement names
         for (int id : items) {
             assertEquals(
                     ItemCustody.IN_TRANSIT,
@@ -104,7 +103,6 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
                 2,
                 itemMovementService.carried(movement.id(), StepSubject.INCOMING).size());
 
-        // The station confirms one arrival for the lot
         var steps = itemMovementService.stepsOf(movement);
         var arrival = steps.stream()
                 .filter(s -> movement.currentStepId() != null && s.id() == movement.currentStepId())

@@ -386,6 +386,11 @@ public abstract class RepositoryTestBase {
     protected static DataSource dataSource;
     protected static String schemaName;
 
+    /**
+     * Builds every repository and service the tests share. Order matters in two places: the cluster storage
+     * quota service comes after the storage usage repository it reads, and the cluster inventory service
+     * after the member name resolver it reads holders' names through.
+     */
     @BeforeAll
     static void setupDatabase() throws Exception {
         TestContainers.startExclusively(PG);
@@ -612,7 +617,6 @@ public abstract class RepositoryTestBase {
         storageUsageRepo = new StorageUsageRepository();
         storagePresetRepo = new StorageQuotaPresetRepository();
         storageBackendAuditRepo = new StorageBackendAuditRepository();
-        // After the usage repository, because it reads what every station is keeping
         clusterStorageQuotaService = new ClusterStorageQuotaService(
                 clusterRepo,
                 stationRepo,
@@ -644,8 +648,6 @@ public abstract class RepositoryTestBase {
                 occurrenceCalendar,
                 new DomainEventBus(Set.of()),
                 memberNameResolver);
-        // Built here rather than with the other services: it reads a holder's name, which needs the
-        // resolver that is only ready at this point.
         clusterInventoryService = new ClusterInventoryService(
                 clusterRepo,
                 inventoryRepo,

@@ -58,8 +58,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    // -- Templates --
-
     @Test
     @Order(1)
     void createTemplate() {
@@ -90,8 +88,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
                 attendanceRepo.findTemplateById(templateId).orElseThrow().name());
     }
 
-    // -- Template Fields --
-
     @Test
     @Order(10)
     void createTemplateField() {
@@ -118,8 +114,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertTrue(attendanceRepo.deleteTemplateField(fieldId));
         assertTrue(attendanceRepo.findTemplateFields(templateId).isEmpty());
     }
-
-    // -- Sessions --
 
     @Test
     @Order(20)
@@ -218,12 +212,9 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertNotNull(recent);
     }
 
-    // -- Session Fields --
-
     @Test
     @Order(25)
     void setAndFindSessionField() {
-        // Re-create a template field for this test
         attendanceRepo.createTemplateField(
                 templateId, "Location", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int fId = attendanceRepo.findTemplateFields(templateId).getFirst().id();
@@ -233,7 +224,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertEquals(1, fields.size());
         assertEquals("\"Room A\"", fields.getFirst().value());
 
-        // Upsert
         attendanceRepo.setSessionField(sessionId, fId, "\"Room B\"");
         assertEquals(
                 "\"Room B\"",
@@ -242,8 +232,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         attendanceRepo.deleteSessionField(sessionId, fId);
         assertTrue(attendanceRepo.findSessionFields(sessionId).isEmpty());
     }
-
-    // -- Entries --
 
     @Test
     @Order(30)
@@ -288,7 +276,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void resetTimes() {
-        // entry already has check-in/check-out from previous test; reset them
         assertTrue(attendanceRepo.resetTimes(entryId));
         AttendanceEntry entry = attendanceRepo.findEntry(sessionId, member.id()).orElseThrow();
         assertNull(entry.checkIn());
@@ -302,8 +289,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertTrue(attendanceRepo.findEntries(sessionId).isEmpty());
     }
 
-    // -- Update Entry Status --
-
     @Test
     @Order(35)
     void updateEntryStatus() {
@@ -316,8 +301,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
                 attendanceRepo.findEntry(sessionId, member.id()).orElseThrow().status());
         attendanceRepo.deleteEntry(entry.id());
     }
-
-    // -- Template Groups --
 
     @Test
     @Order(40)
@@ -335,11 +318,9 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertEquals(group2.id(), groups.get(1).groupId());
         assertEquals(2, groups.get(1).position());
 
-        // Replace with only one group
         attendanceRepo.setTemplateGroups(templateId, List.of(new TemplateGroup(group2.id(), 1)));
         assertEquals(1, attendanceRepo.findTemplateGroups(templateId).size());
 
-        // Clear all
         attendanceRepo.setTemplateGroups(templateId, List.of());
         assertTrue(attendanceRepo.findTemplateGroups(templateId).isEmpty());
 
@@ -409,8 +390,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.delete(second.id());
     }
 
-    // -- Member IDs by user type / group --
-
     @Test
     @Order(41)
     void findMemberIdsByUserType() {
@@ -426,8 +405,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertNotNull(ids);
         memberGroupRepo.delete(group.id());
     }
-
-    // -- Report Presets --
 
     private static int presetId;
     private static MemberGroup presetGroupA;
@@ -492,8 +469,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertTrue(attendanceRepo.deletePreset(presetId));
         assertTrue(attendanceRepo.findPresets(station.id()).stream().noneMatch(p -> p.id() == presetId));
     }
-
-    // -- Absences --
 
     private static int absenceId;
 
@@ -566,8 +541,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         attendanceRepo.deleteAbsencesByMember(member.id());
         assertFalse(attendanceRepo.isAbsent(member.id()));
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(90)

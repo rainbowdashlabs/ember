@@ -58,8 +58,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    // -- Board CRUD --
-
     @Test
     @Order(1)
     void createBoard() {
@@ -96,8 +94,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals(14, board.hideDoneAfterDays());
     }
 
-    // -- Lanes --
-
     @Test
     @Order(10)
     void createLanes() {
@@ -126,8 +122,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals("To Do", lanes.getFirst().name());
     }
 
-    // -- Fields --
-
     @Test
     @Order(15)
     void createAndFindFields() {
@@ -137,8 +131,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals("Component", fields.getFirst().name());
     }
 
-    // -- Ticket counter --
-
     @Test
     @Order(20)
     void nextTicketNumber() {
@@ -147,8 +139,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals(1, n1);
         assertEquals(2, n2);
     }
-
-    // -- Tickets --
 
     @Test
     @Order(30)
@@ -242,8 +232,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals(laneId2, transitions.getFirst().toLaneId());
     }
 
-    // -- Links --
-
     @Test
     @Order(40)
     void createAndFindLinks() {
@@ -252,7 +240,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals(1, links1.size());
         assertEquals(LinkType.BLOCKS, links1.getFirst().linkType());
 
-        // Reverse side should show BLOCKED_BY
         var links2 = boardTicketRepo.findLinks(ticketId2);
         assertEquals(1, links2.size());
         assertEquals(LinkType.BLOCKED_BY, links2.getFirst().linkType());
@@ -264,8 +251,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(boardTicketRepo.deleteLink(ticketId1, ticketId2));
         assertTrue(boardTicketRepo.findLinks(ticketId1).isEmpty());
     }
-
-    // -- Checklist --
 
     @Test
     @Order(50)
@@ -300,8 +285,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         var items = boardTicketRepo.findChecklistItems(ticketId1);
         assertEquals(1, items.size());
     }
-
-    // -- Access restrictions --
 
     @Test
     @Order(70)
@@ -355,8 +338,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertFalse(boardRepo.hasEditRestrictions(boardId));
     }
 
-    // -- Ticket findByBoardAndNumber --
-
     @Test
     @Order(76)
     void findByBoardAndNumber() {
@@ -365,19 +346,14 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals("First ticket updated", ticket.get().title());
     }
 
-    // -- Ticket reorder --
-
+    /** Only proves the reorder runs: one of the two tickets has already moved to the other lane. */
     @Test
     @Order(77)
     void reorderTickets() {
         boardTicketRepo.reorderTickets(laneId1, List.of(ticketId2, ticketId1));
         var tickets = boardTicketRepo.findByBoardAndLane(boardId, laneId1);
-        // ticketId2 is in laneId1 with position 0, but ticketId1 was moved to laneId2
-        // so this just validates the method doesn't throw
         assertNotNull(tickets);
     }
-
-    // -- Checklist reorder --
 
     @Test
     @Order(78)
@@ -391,16 +367,12 @@ class BoardRepositoryTest extends RepositoryTestBase {
         }
     }
 
-    // -- Field delete all --
-
     @Test
     @Order(79)
     void deleteAllFields() {
         boardRepo.deleteAllFields(boardId);
         assertTrue(boardRepo.findFields(boardId).isEmpty());
     }
-
-    // -- Watchers --
 
     @Test
     @Order(80)
@@ -421,8 +393,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertFalse(boardTicketRepo.isWatching(ticketId1, identity));
     }
 
-    // -- Activity feed --
-
     @Test
     @Order(82)
     void findActivity() {
@@ -430,8 +400,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertFalse(activity.isEmpty());
         assertTrue(activity.stream().anyMatch(a -> BoardActivityType.TRANSITION.equals(a.type())));
     }
-
-    // -- Weblinks --
 
     @Test
     @Order(83)
@@ -442,8 +410,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals(1, weblinks.size());
         assertTrue(boardTicketRepo.deleteWeblink(wl.id()));
     }
-
-    // -- Attachments --
 
     @Test
     @Order(84)
@@ -460,8 +426,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(boardTicketRepo.deleteAttachment(att.id()));
     }
 
-    // -- Field values --
-
     @Test
     @Order(84)
     void setAndFindFieldValues() {
@@ -476,16 +440,12 @@ class BoardRepositoryTest extends RepositoryTestBase {
         boardRepo.deleteAllFields(boardId);
     }
 
-    // -- Search --
-
     @Test
     @Order(84)
     void searchTickets() {
         var results = boardTicketRepo.search(boardId, "First");
         assertFalse(results.isEmpty());
     }
-
-    // -- Assign --
 
     @Test
     @Order(84)
@@ -496,8 +456,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         boardTicketRepo.assignTicket(ticketId1, null);
     }
 
-    // -- Lane entered at --
-
     @Test
     @Order(84)
     void setLaneEnteredAt() {
@@ -505,8 +463,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         var ticket = boardTicketRepo.findById(ticketId1).orElseThrow();
         assertNotNull(ticket.laneEnteredAt());
     }
-
-    // -- Labels --
 
     @Test
     @Order(84)
@@ -529,8 +485,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(boardRepo.deleteLabel(label.id()));
     }
 
-    // -- Backlog --
-
     @Test
     @Order(84)
     void enableAndDisableBacklog() {
@@ -547,8 +501,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertNull(boardAfter.backlogLaneId());
     }
 
-    // -- Lane update with color --
-
     @Test
     @Order(84)
     void updateLaneWithColor() {
@@ -557,8 +509,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(lanes.stream().anyMatch(l -> "Updated Lane".equals(l.name())));
         boardRepo.updateLane(laneId1, "Open", null, 0);
     }
-
-    // -- Delete all lanes --
 
     @Test
     @Order(84)
@@ -571,8 +521,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(boardRepo.findLanes(tempBoardId).isEmpty());
         boardRepo.delete(tempBoardId);
     }
-
-    // -- History --
 
     @Test
     @Order(84)
@@ -587,16 +535,12 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertEquals(BoardTicketHistoryAction.TITLE_CHANGED, history.getLast().action());
     }
 
-    // -- Ticket deletion --
-
     @Test
     @Order(85)
     void deleteTicket() {
         assertTrue(boardTicketRepo.deleteTicket(ticketId2));
         assertFalse(boardTicketRepo.findById(ticketId2).isPresent());
     }
-
-    // -- Board deletion --
 
     @Test
     @Order(90)

@@ -176,30 +176,29 @@ class ChecklistServiceTest extends RepositoryTestBase {
                 new ChecklistService.OccurrenceSpec(event.id(), date),
                 managerMember.id());
 
-        // Only the one date counts: the accepted sign-up on the other Tuesday is somebody else's.
         assertEquals(
                 List.of(managerMember.id()),
                 service.findEntries(checklist.id(), false).stream()
                         .map(ChecklistEntry::memberId)
-                        .toList());
+                        .toList(),
+                "only the one date counts, not the sign-up for the other Tuesday");
         assertTrue(service.findFilterRows(checklist.id()).isEmpty());
         assertTrue(service.findById(checklist.id()).orElseThrow().followsEvent());
 
-        // A late sign-up arrives, and only a refresh brings it in.
         eventRegistrationRepo.create(event.id(), late.id(), date, RegistrationStatus.ACCEPTED, null);
         var refreshed = service.refresh(checklist.id());
-        assertEquals(1, refreshed.added());
+        assertEquals(1, refreshed.added(), "a late sign-up comes in with a refresh");
         assertEquals(1, refreshed.alreadyPresent());
 
-        // Somebody cancels: their row stays and the list knows they no longer match.
         eventRegistrationRepo.create(event.id(), late.id(), date, RegistrationStatus.DECLINED, null);
         var afterCancel =
                 service.resolveMembership(service.findById(checklist.id()).orElseThrow());
         assertTrue(afterCancel.following());
-        assertFalse(afterCancel.memberIds().contains(late.id()));
-        assertTrue(service.findEntries(checklist.id(), false).stream().anyMatch(e -> e.memberId() == late.id()));
+        assertFalse(afterCancel.memberIds().contains(late.id()), "a cancelled member no longer matches");
+        assertTrue(
+                service.findEntries(checklist.id(), false).stream().anyMatch(e -> e.memberId() == late.id()),
+                "but their row stays");
 
-        // A row taken off by hand stays off, however often refresh runs.
         var managerEntry = service.findEntries(checklist.id(), false).stream()
                 .filter(e -> e.memberId() == managerMember.id())
                 .findFirst()
@@ -208,15 +207,15 @@ class ChecklistServiceTest extends RepositoryTestBase {
         var afterRemoval = service.refresh(checklist.id());
         assertEquals(0, afterRemoval.added());
         assertTrue(
-                service.findEntries(checklist.id(), false).stream().noneMatch(e -> e.memberId() == managerMember.id()));
+                service.findEntries(checklist.id(), false).stream().noneMatch(e -> e.memberId() == managerMember.id()),
+                "a row taken off by hand stays off after a refresh");
 
-        // The appointment goes away: the reference is cleared, the rows are not.
         int rowsBefore = service.findEntries(checklist.id(), true).size();
         assertTrue(eventRepo.delete(event.id()));
         var orphaned = service.findById(checklist.id()).orElseThrow();
         assertFalse(orphaned.followsEvent());
         assertNull(orphaned.sourceEventId());
-        assertEquals(rowsBefore, service.findEntries(checklist.id(), true).size());
+        assertEquals(rowsBefore, service.findEntries(checklist.id(), true).size(), "the rows outlive the appointment");
         var stopped = service.resolveMembership(orphaned);
         assertFalse(stopped.following());
 

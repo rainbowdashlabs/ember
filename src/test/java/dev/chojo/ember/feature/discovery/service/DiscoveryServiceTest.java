@@ -39,11 +39,9 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         stationB = stationRepo.create("DiscTestStationB");
         stationC = stationRepo.create("DiscTestStationC");
 
-        // Set visibility
         stationRepo.updateDiscoverySettings(stationA.id(), DiscoveryVisibility.PUBLIC, "Station A description", true);
         stationRepo.updateDiscoverySettings(
                 stationB.id(), DiscoveryVisibility.INSTANCE, "Station B description", false);
-        // stationC stays NONE (default)
     }
 
     @AfterAll
@@ -116,7 +114,6 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         var code = federationService.generateStationInvite(stationB.id(), stationB.uid());
         var parts = federationService.parsePairingCode(code).orElseThrow();
         assertTrue(federationService.consumeInviteToken(stationB.id(), parts.token()));
-        // Second consume should fail (token already used)
         assertFalse(federationService.consumeInviteToken(stationB.id(), parts.token()));
     }
 
@@ -158,7 +155,6 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         var result = federationService.acceptPairRequest(request.id());
         assertNotNull(result);
 
-        // Both sides should have ACTIVE partners
         var partnersA = federationService.findPartners(stationA.id());
         assertTrue(partnersA.stream()
                 .anyMatch(p -> p.partnerStationId().equals(stationB.uid())

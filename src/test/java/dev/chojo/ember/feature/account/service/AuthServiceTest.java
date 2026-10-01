@@ -149,13 +149,15 @@ class AuthServiceTest extends RepositoryTestBase {
         service.logout(result.token());
     }
 
+    /**
+     * Also anchors the account in a station that outlives this class, so deleting the test station does
+     * not sweep the account away as an orphan.
+     */
     @Test
     @Order(7)
     void loginWithLoginRole() {
-        // Grant LOGIN role and try again
         var loginRole = stationMemberRepo.findPermissionByName(StationPermission.LOGIN);
         if (loginRole.isPresent()) {
-            // Create a station and membership
             var station = stationRepo.create("AuthSvc Station");
             var member = stationMemberRepo.create(station.id(), accountId);
             stationMemberRepo.grantPermission(member.id(), loginRole.get().id());
@@ -165,9 +167,6 @@ class AuthServiceTest extends RepositoryTestBase {
             assertNotNull(result.token());
             sessionToken = result.token();
 
-            // Anchor accountId in a separate station that survives the rest of the class so the
-            // orphan-account sweep on station-delete (StationRepository.delete) does not destroy
-            // it when the test station below gets removed.
             var keepalive = stationRepo.create("AuthSvc Keepalive");
             stationMemberRepo.create(keepalive.id(), accountId);
 
@@ -198,7 +197,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(13)
     void verifyEmailExpiredToken() {
-        // Create an expired token
         var account2 = accountRepo.create("verify-expired@test.com", "V", "User");
         accountRepo.createToken(
                 account2.id(),
@@ -223,11 +221,10 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.delete(account2.id());
     }
 
+    /** The password passes the policy, so the refusal can only be the token's. */
     @Test
     @Order(15)
     void setPasswordInvalidToken() {
-        // Password is long enough so the failure is unambiguously a token problem rather than a
-        // password-policy rejection.
         assertEquals(
                 AuthService.SetPasswordOutcome.TOKEN_INVALID,
                 service.setPassword("nonexistent-token", "LongEnoughPassword!"));
@@ -290,9 +287,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(18)
     void requestPasswordReset() {
-        // Silent no-op for non-existent email
         assertDoesNotThrow(() -> service.requestPasswordReset("nonexistent@test.com"));
-        // Should call email service for existing email
         assertDoesNotThrow(() -> service.requestPasswordReset(EMAIL));
     }
 
@@ -465,10 +460,10 @@ class AuthServiceTest extends RepositoryTestBase {
         assertTrue(service.adminResetPassword(accountId, true));
     }
 
+    /** Relies on the address having been verified by an earlier test. */
     @Test
     @Order(22)
     void resendVerificationAlreadyVerified() {
-        // EMAIL was verified in order 5
         assertFalse(service.resendVerification(EMAIL));
     }
 
@@ -489,7 +484,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(25)
     void changePasswordWrongCurrent() {
-        // Set a known password first
         var account2 = accountRepo.create("changepw@test.com", "CP", "User");
         accountRepo.createCredential(account2.id(), new PasswordHasher().hash("correct-password"));
         assertEquals(
@@ -597,7 +591,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void invalidateAllSessions() {
-        // Should return false if no sessions
         assertDoesNotThrow(() -> service.invalidateAllSessions(accountId));
     }
 
@@ -652,7 +645,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(38)
     void rotateSessionExpired() {
-        // Create a session that has already expired
         var account2 = accountRepo.create("refresh-expired@test.com", "Refresh", "Expired");
         var expiredTime = Instant.now().minus(1, ChronoUnit.HOURS);
         accountRepo.createSession(account2.id(), "expired-session-token", expiredTime, "agent", "DE");
@@ -666,12 +658,10 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(39)
     void rotateSessionSuccess() {
-        // Create a valid session
         var account2 = accountRepo.create("refresh-ok@test.com", "Refresh", "Ok");
         var expiresAt = Instant.now().plus(60, ChronoUnit.MINUTES);
         accountRepo.createSession(account2.id(), "valid-session-for-refresh", expiresAt, "agent", "DE");
 
-        // Grant LOGIN role so the refreshed session works
         var station2 = stationRepo.create("Refresh Station");
         var member2 = stationMemberRepo.create(station2.id(), account2.id());
         stationMemberRepo
@@ -798,14 +788,12 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void loginWithForcePasswordChange() {
-        // Create account with credentials and force_password_change flag
         var account2 = accountRepo.create("force-pw@test.com", "Force", "Pw");
         accountRepo.setEmailVerified(account2.id());
         var hasher = new PasswordHasher();
         accountRepo.createCredential(account2.id(), hasher.hash("TestPass123!"));
         accountRepo.setForcePasswordChange(account2.id(), true);
 
-        // Grant LOGIN role
         var station2 = stationRepo.create("Force PW Station");
         var member2 = stationMemberRepo.create(station2.id(), account2.id());
         stationMemberRepo
@@ -828,7 +816,6 @@ class AuthServiceTest extends RepositoryTestBase {
         var result = service.registerSelf("regcode@test.com", "Reg", "Code", "PassWord123!", "TEST-CODE-123");
         assertTrue(result.success());
 
-        // Cleanup
         accountRepo.findByEmail("regcode@test.com").ifPresent(a -> accountRepo.delete(a.id()));
         stationRepo.delete(station2.id());
     }
@@ -857,7 +844,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(49)
     void loginNoCredential() {
-        // Account exists but has no credential - should fail
         var account2 = accountRepo.create("nocred@test.com", "NoCred", "User");
         accountRepo.setEmailVerified(account2.id());
         var result = service.login("nocred@test.com", "anypass", "agent", "DE");
@@ -947,6 +933,7 @@ class AuthServiceTest extends RepositoryTestBase {
         stationRepo.delete(fixture.stationId());
     }
 
+    /** The session is seeded well short of the configured length, so the refreshed expiry is visibly later. */
     @Test
     @Order(84)
     void rotateSessionKeepsTwoFactorVerification() {
@@ -954,7 +941,6 @@ class AuthServiceTest extends RepositoryTestBase {
         var device = trustedDeviceService.issue(fixture.accountId(), 7, "agent");
         var verifiedAt = Instant.now().minus(30, ChronoUnit.SECONDS);
         String token = "refresh-keeps-stepup-" + UUID.randomUUID();
-        // Seeded well short of the configured session length, so the refreshed expiry is visibly later.
         accountRepo.createSession(
                 fixture.accountId(),
                 token,
@@ -1008,7 +994,6 @@ class AuthServiceTest extends RepositoryTestBase {
     private AuthService demoModeService() {
         var demo = mock(Demo.class);
         when(demo.enabled()).thenReturn(true);
-        // The address as the token is what a demo instance does, and what the stories about it read.
         when(demo.stableSessionTokens()).thenReturn(true);
         var hibpClient = mock(HibpClient.class);
         when(hibpClient.isPwned(anyString())).thenReturn(false);
@@ -1067,8 +1052,7 @@ class AuthServiceTest extends RepositoryTestBase {
 
         var result = demoService.loginAsDemo(fixture.email(), "agent", "DE");
         assertTrue(result.success(), result.message());
-        // The address is the session token in demo mode, so a restart does not sign everybody out again
-        assertEquals(fixture.email(), result.token());
+        assertEquals(fixture.email(), result.token(), "the address is the token, so a restart signs nobody out");
         assertTrue(accountRepo.findSession(fixture.email()).isPresent(), "the session has to be there to use");
 
         var unknown = demoService.loginAsDemo("nobody-" + UUID.randomUUID() + "@test.com", "agent", "DE");
@@ -1453,7 +1437,6 @@ class AuthServiceTest extends RepositoryTestBase {
     void passwordlessModeRefusesToMintButStillRotates() throws Exception {
         var service = passwordlessService();
 
-        // A legacy member who still holds a password recovers as they always did.
         String legacyEmail = "pwless-legacy-" + java.util.UUID.randomUUID() + "@test.com";
         var legacy = accountRepo.create(legacyEmail, "Leg", "Acy", true);
         accountRepo.createCredential(legacy.id(), new PasswordHasher().hash("OldPassword1!"));
@@ -1467,7 +1450,6 @@ class AuthServiceTest extends RepositoryTestBase {
                 service.setPassword("pwless-rotate-token", "ANewPassword1!"),
                 "rotating what already exists stays open until that password is retired");
 
-        // An account that never had one is told to be onboarded again instead.
         String freshEmail = "pwless-fresh-" + java.util.UUID.randomUUID() + "@test.com";
         var fresh = accountRepo.create(freshEmail, "Fre", "Sh", true);
         accountRepo.createToken(
@@ -1481,10 +1463,10 @@ class AuthServiceTest extends RepositoryTestBase {
                 "no reachable path mints a password on a passwordless instance");
         assertTrue(accountRepo.findCredential(fresh.id()).isEmpty());
 
-        // The guardian's door refuses the same way.
         assertEquals(
                 AuthService.SetPasswordOutcome.PASSWORDLESS_MODE,
-                service.setPasswordFor(accountRepo.findById(fresh.id()).orElseThrow(), "ANewPassword1!"));
+                service.setPasswordFor(accountRepo.findById(fresh.id()).orElseThrow(), "ANewPassword1!"),
+                "the guardian's path refuses the same way");
 
         accountRepo.delete(legacy.id());
         accountRepo.delete(fresh.id());

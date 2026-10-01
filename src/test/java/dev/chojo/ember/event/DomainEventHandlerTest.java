@@ -156,8 +156,6 @@ class DomainEventHandlerTest {
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(stationEvent(eventId, "Event " + eventId)));
     }
 
-    // -- EventCreatedHandler --
-
     @Test
     void eventCreatedNotifiesStation() {
         var handler = new EventCreatedHandler(notifier, restrictionService);
@@ -289,8 +287,6 @@ class DomainEventHandlerTest {
         verifyTold(StationAudience.members(Set.of(30)), NotificationType.NEW_EVENT, Delivery.EVERY_TIME);
     }
 
-    // -- EventDeletedHandler --
-
     @Test
     void eventDeletedCleansUpNotifications() {
         var handler = new EventDeletedHandler(notifier);
@@ -301,8 +297,6 @@ class DomainEventHandlerTest {
         verify(notifier).withdrawAll(NotificationLinks.event(42));
         verify(notifier).withdrawAll(NotificationLinks.eventDates(42));
     }
-
-    // -- EventsBatchCreatedHandler --
 
     @Test
     void eventsBatchCreatedEmitsSingleAggregateNotification() {
@@ -421,8 +415,6 @@ class DomainEventHandlerTest {
                 null);
     }
 
-    // -- EventRegistrationStatusHandler --
-
     @Test
     void eventRegistrationStatusNotifiesMemberAndManagers() {
         var handler = new EventRegistrationStatusHandler(notifier);
@@ -439,8 +431,6 @@ class DomainEventHandlerTest {
                 Delivery.ONCE_WHILE_UNREAD);
     }
 
-    // -- NewsCreatedHandler --
-
     @Test
     void newsCreatedNotifiesStation() {
         var handler = new NewsCreatedHandler(notifier, restrictionService);
@@ -453,8 +443,6 @@ class DomainEventHandlerTest {
         verifyTold(StationAudience.wholeStation(STATION_ID), NotificationType.NEW_NEWS, Delivery.EVERY_TIME);
     }
 
-    // -- NewsDeletedHandler --
-
     @Test
     void newsDeletedCleansUpNewsAndCommentNotifications() {
         var handler = new NewsDeletedHandler(notifier);
@@ -464,8 +452,6 @@ class DomainEventHandlerTest {
 
         verify(notifier).withdrawAll(NotificationLinks.news(5));
     }
-
-    // -- FormPublishedHandler --
 
     @Test
     void formPublishedNotifiesStation() {
@@ -479,8 +465,6 @@ class DomainEventHandlerTest {
         verifyTold(StationAudience.wholeStation(STATION_ID), NotificationType.NEW_FORM, Delivery.EVERY_TIME);
     }
 
-    // -- FormDeletedHandler --
-
     @Test
     void formDeletedCleansUpNotifications() {
         var handler = new FormDeletedHandler(notifier);
@@ -490,8 +474,6 @@ class DomainEventHandlerTest {
 
         verify(notifier).withdrawAll(NotificationLinks.form(7));
     }
-
-    // -- CommentCreatedHandler --
 
     @Test
     void commentCreatedNotifiesParentAuthorOnReply() {
@@ -589,8 +571,6 @@ class DomainEventHandlerTest {
                 Delivery.ONCE_WHILE_UNREAD);
     }
 
-    // -- CommentDeletedHandler --
-
     @Test
     void commentDeletedWithdrawsWhatNamesThatComment() {
         var handler = new CommentDeletedHandler(notifier);
@@ -600,8 +580,6 @@ class DomainEventHandlerTest {
 
         verify(notifier).withdrawAll(new NotificationLink("news-detail", Map.of(), Map.of("comment", 100)));
     }
-
-    // -- MentionedInCommentHandler --
 
     @Test
     void mentionedInCommentNotifiesMentionedMember() {
@@ -668,8 +646,6 @@ class DomainEventHandlerTest {
                                 && Map.of("comment", 70).equals(data.link().query())),
                         eq(Delivery.ONCE_WHILE_UNREAD));
     }
-
-    // -- BulkMentionedInCommentHandler --
 
     private BulkMentionedInCommentHandler bulkHandler() {
         return new BulkMentionedInCommentHandler(
@@ -996,8 +972,6 @@ class DomainEventHandlerTest {
                         eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
-    // -- MovementStartedHandler --
-
     @Test
     void movementStartedTellsWhoeverTheChainWaitsOn() {
         var handler = new MovementStartedHandler(notifier);
@@ -1012,8 +986,6 @@ class DomainEventHandlerTest {
                 NotificationType.MOVEMENT_RAISED,
                 Delivery.ONCE_WHILE_UNREAD);
     }
-
-    // -- MovementAdvancedHandler --
 
     @Test
     void movementAdvancedTellsTheStationWhenItsStepIsNext() {
@@ -1160,8 +1132,6 @@ class DomainEventHandlerTest {
                 false);
     }
 
-    // -- ClusterItemIssuedHandler --
-
     /**
      * Being told that something is coming is a different sentence from being asked to acknowledge a step,
      * so it reaches the station as its own message and lands on the movement carrying it.
@@ -1181,8 +1151,6 @@ class DomainEventHandlerTest {
                                 "inventory-movement-detail".equals(data.link().route())),
                         eq(Delivery.ONCE_WHILE_UNREAD));
     }
-
-    // -- ClusterItemLostHandler --
 
     @Test
     void clusterItemLostTellsTheClusterAndNamesTheStation() {
@@ -1218,8 +1186,6 @@ class DomainEventHandlerTest {
                 Delivery.ONCE_WHILE_UNREAD);
     }
 
-    // -- MovementDeclinedHandler --
-
     @Test
     void movementDeclinedTellsBothEnds() {
         var handler = new MovementDeclinedHandler(notifier);
@@ -1235,8 +1201,6 @@ class DomainEventHandlerTest {
                 Delivery.ONCE_WHILE_UNREAD);
     }
 
-    // -- ProcurementCreatedHandler --
-
     @Test
     void procurementCreatedNotifiesMember() {
         var handler = new ProcurementCreatedHandler(notifier);
@@ -1246,8 +1210,6 @@ class DomainEventHandlerTest {
 
         verifyTold(StationAudience.member(MEMBER_ID), NotificationType.PROCUREMENT_REQUESTED, Delivery.EVERY_TIME);
     }
-
-    // -- ProcurementFulfilledHandler --
 
     @Test
     void procurementFulfilledNotifiesMember() {
@@ -1259,8 +1221,6 @@ class DomainEventHandlerTest {
         verifyTold(StationAudience.member(MEMBER_ID), NotificationType.PROCUREMENT_FULFILLED, Delivery.EVERY_TIME);
     }
 
-    // -- MembersAddedToGroupHandler --
-
     @Test
     void membersAddedToGroupNotifiesAllMembers() {
         var handler = new MembersAddedToGroupHandler(notifier, memberRepository);
@@ -1271,8 +1231,6 @@ class DomainEventHandlerTest {
 
         verifyTold(StationAudience.members(memberIds), NotificationType.MEMBER_ADDED_TO_GROUP, Delivery.EVERY_TIME);
     }
-
-    // -- LendingRequestedHandler --
 
     @Test
     void lendingRequestedNotifiesOwningStationManagers() {
@@ -1287,8 +1245,6 @@ class DomainEventHandlerTest {
                 NotificationType.LENDING_NEW_REQUEST,
                 Delivery.EVERY_TIME);
     }
-
-    // -- LendingStatusChangedHandler --
 
     @Test
     void lendingStatusChangedNotifiesTargetStation() {
@@ -1310,8 +1266,6 @@ class DomainEventHandlerTest {
                 Delivery.EVERY_TIME);
     }
 
-    // -- LendingMessageSentHandler --
-
     @Test
     void lendingMessageSentNotifiesTargetStation() {
         var handler = new LendingMessageSentHandler(notifier);
@@ -1326,8 +1280,6 @@ class DomainEventHandlerTest {
                 Delivery.EVERY_TIME);
     }
 
-    // -- RegistrationDeadlineExpiredHandler --
-
     @Test
     void registrationDeadlineExpiredNotifiesEventManagers() {
         var handler = new RegistrationDeadlineExpiredHandler(notifier);
@@ -1340,8 +1292,6 @@ class DomainEventHandlerTest {
                 NotificationType.REGISTRATION_DEADLINE_EXPIRED,
                 Delivery.EVERY_TIME);
     }
-
-    // -- BoardTicketChangedHandler --
 
     @Test
     void boardTicketChangedNotifiesWatchers() {

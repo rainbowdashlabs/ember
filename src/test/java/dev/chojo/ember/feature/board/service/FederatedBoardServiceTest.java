@@ -106,14 +106,12 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         account = accountRepo.create("fed-board@test.com", "Fed", "Board");
         member = stationMemberRepo.create(station.id(), account.id());
 
-        // Create a board with a lane
         var board = boardRepo.create(station.id(), "Fed Test Board", "Desc", "FTB");
         boardId = board.id();
         boardUid = board.uid();
         var lane = boardRepo.createLane(boardId, "Open", null, 0);
         laneId = lane.id();
 
-        // Create a ticket
         BoardTicket ticket = ticketService.createTicket(
                 boardId,
                 laneId,
@@ -125,7 +123,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 memberIdentityFactory.local(station.id(), member.id()));
         ticketId = ticket.id();
 
-        // Create a comment
         var comment = commentRepo.create(
                 CommentEntityType.BOARD_TICKET,
                 ticketId,
@@ -135,7 +132,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 "Fed comment");
         int commentId = comment.id();
 
-        // Create federation partners via direct SQL
         partnerId = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
@@ -145,7 +141,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 .first()
                 .orElseThrow();
 
-        // Create second partner station and partner for multi-partner tests
         var partnerStation2 = stationRepo.create("FedBoardPartner2");
         partner2Id = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
@@ -164,8 +159,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         stationRepo.delete(partnerStation.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Sharing --
 
     @Test
     @Order(1)
@@ -228,8 +221,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertTrue(targets.isEmpty());
     }
 
-    // -- Access Control --
-
     @Test
     @Order(10)
     void canFederatedView() {
@@ -240,14 +231,12 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void canFederatedWriteFullMode() {
-        // partner2 is FULL
         assertTrue(service.canFederatedWrite(boardId, partner2Id));
     }
 
     @Test
     @Order(12)
     void canFederatedWriteReadOnlyMode() {
-        // partnerId is READ_ONLY
         assertFalse(service.canFederatedWrite(boardId, partnerId));
     }
 
@@ -260,7 +249,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(14)
     void canFederatedEditNoUserTypesRestriction() {
-        // partner2 is FULL, no edit user types set => any user type can edit
         assertTrue(service.canFederatedEdit(
                 boardId, partner2Id, List.of(StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM)));
     }
@@ -269,16 +257,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(15)
     void canFederatedEditWithUserTypesRestriction() {
         service.setFederatedEditUserTypes(boardId, List.of(StationUserType.TEAM, StationUserType.MANAGER));
-        // partner2 has FULL mode, user type TEAM is allowed
         assertTrue(service.canFederatedEdit(boardId, partner2Id, List.of(StationUserType.TEAM)));
-        // user type MEMBER is not allowed
         assertFalse(service.canFederatedEdit(boardId, partner2Id, List.of(StationUserType.MEMBER)));
     }
 
     @Test
     @Order(16)
     void canFederatedEditReadOnlyDenied() {
-        // partnerId is READ_ONLY, should be denied even with matching user types
         assertFalse(service.canFederatedEdit(boardId, partnerId, List.of(StationUserType.TEAM)));
     }
 
@@ -298,10 +283,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         var userTypes = service.findFederatedEditUserTypes(boardId);
         assertTrue(userTypes.isEmpty());
     }
-
-    // Satellite table tests removed - identity is now inline in board_ticket columns
-
-    // -- Bookmarks --
 
     @Test
     @Order(60)
@@ -337,7 +318,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(63)
     void deleteBookmarkByBoard() {
-        // Create another bookmark first
         service.createBookmark(member.id(), partnerId, REMOTE_BOARD_UID_2, "Another Board", "AB", BoardShareMode.FULL);
         service.deleteBookmarkByBoard(member.id(), partnerId, REMOTE_BOARD_UID_2);
         var bookmarks = service.findBookmarks(member.id());
@@ -355,13 +335,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(65)
     void deleteBookmarksByBoard() {
-        // Create bookmarks, then delete by board
         service.createBookmark(member.id(), partnerId, REMOTE_BOARD_UID_3, "Board 300", "B3", BoardShareMode.FULL);
         service.deleteBookmarksByBoard(partnerId, REMOTE_BOARD_UID_3);
         assertTrue(service.findBookmarks(member.id()).isEmpty());
     }
-
-    // -- Local Overrides --
 
     @Test
     @Order(70)
@@ -427,8 +404,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertEquals(List.of(77), result.tagIds());
     }
 
-    // -- Unshare --
-
     @Test
     @Order(80)
     void unshareBoardRemovesEverything() {
@@ -437,8 +412,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertTrue(service.findShareTargets(boardId).isEmpty());
         assertFalse(service.isSharedWith(boardId, partnerId));
     }
-
-    // -- PartnerShareConfig record --
 
     @Test
     @Order(90)
@@ -452,21 +425,15 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertEquals(StationUserType.MANAGER, configWithType.requiredUserType());
     }
 
-    // ============================================================
-    // FederatedBoardNotificationService tests
-    // ============================================================
-
     @Test
     @Order(100)
     void notifyFederatedWatchersNoWatchers() {
-        // Re-share the board for later tests
         service.shareBoard(
                 boardId,
                 List.of(
                         new PartnerShareConfig(partnerId, BoardShareMode.FULL),
                         new PartnerShareConfig(partner2Id, BoardShareMode.READ_ONLY)));
 
-        // Create a second ticket with no watchers
         var ticket2 = ticketService.createTicket(
                 boardId,
                 laneId,

@@ -59,6 +59,7 @@ class DocumentServiceTest extends RepositoryTestBase {
         memberId = stationMemberRepo.create(station.id(), account.id()).id();
     }
 
+    /** A file left behind in the storage root is ignored: it is not worth failing a test over. */
     @AfterAll
     static void cleanup() throws IOException {
         stationRepo.delete(station.id());
@@ -69,7 +70,6 @@ class DocumentServiceTest extends RepositoryTestBase {
                     try {
                         Files.deleteIfExists(path);
                     } catch (IOException ignored) {
-                        // A leftover temporary file is not worth failing a test over.
                     }
                 });
             }

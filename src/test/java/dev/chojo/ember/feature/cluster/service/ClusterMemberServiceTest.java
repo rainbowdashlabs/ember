@@ -144,11 +144,12 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         assertTrue(detail.resolved().contains(ClusterPermission.CLUSTER_INVENTORY_EDIT));
         assertEquals(1, detail.groups().size());
 
-        // And taking them out of the group takes it away again
         service.setGroupMembers(clusterId, group.id(), Set.of());
-        assertFalse(service.findMemberDetail(clusterId, member.id())
-                .resolved()
-                .contains(ClusterPermission.CLUSTER_INVENTORY_EDIT));
+        assertFalse(
+                service.findMemberDetail(clusterId, member.id())
+                        .resolved()
+                        .contains(ClusterPermission.CLUSTER_INVENTORY_EDIT),
+                "leaving the group takes it away again");
     }
 
     /**
@@ -177,7 +178,6 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
                 service.findGroupDetail(clusterId, gear.id()).memberIds().contains(member.id()),
                 "and the group says so as well");
 
-        // Narrowing to one takes the other away, and setting the same set again changes nothing
         service.setMemberGroups(clusterId, member.id(), Set.of(gear.id()));
         service.setMemberGroups(clusterId, member.id(), Set.of(gear.id()));
 

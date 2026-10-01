@@ -50,6 +50,10 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
     private static CredentialCipher cipher;
     private static ClusterStorageBackendService service;
 
+    /**
+     * Every backend the factory hands back is on disk, so a move is a real copy between two directories
+     * rather than a connection to somewhere that does not exist.
+     */
     @BeforeAll
     static void setup() throws IOException {
         configRepository = new ClusterStorageConfigRepository();
@@ -57,8 +61,6 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
         stationConfigRepository = new StationStorageConfigRepository();
         cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
 
-        // A factory that hands back an on-disk backend for anything, so a move is a real copy between two
-        // directories rather than a connection to somewhere that does not exist
         var local = new LocalStorageBackend(Files.createTempDirectory("cluster-storage-instance"));
         var target = new LocalStorageBackend(Files.createTempDirectory("cluster-storage-target"));
         var factory = new LocalEverywhereFactory(new Storage(), local, target);
@@ -156,10 +158,12 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
         placements.place(station.id(), cluster.id(), version.id());
         assertTrue(rowFor(cluster.id(), station.id()).inPlace(), "and carrying it there does");
 
-        // A station that brought its own is opting out, which it may do while the association allows it
         stationConfigRepository.upsert(station.id(), backend("eigen"));
         placements.remove(station.id());
-        assertEquals(Expected.ITS_OWN, rowFor(cluster.id(), station.id()).expected());
+        assertEquals(
+                Expected.ITS_OWN,
+                rowFor(cluster.id(), station.id()).expected(),
+                "a station that brought its own opts out while the association allows it");
         assertTrue(rowFor(cluster.id(), station.id()).inPlace());
 
         service.setPolicy(cluster.id(), ClusterBackendReach.EVERY_STATION, true);
@@ -270,10 +274,11 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
         assertTrue(
                 placements.findByStation(station.id()).isEmpty(), "and the files come home before the membership goes");
 
-        // Neither of them does anything to a station the association is not reaching for
         service.setPolicy(cluster.id(), ClusterBackendReach.NONE, false);
         service.takeOverOnJoin(cluster.id(), station.id());
-        assertTrue(placements.findByStation(station.id()).isEmpty());
+        assertTrue(
+                placements.findByStation(station.id()).isEmpty(),
+                "nothing happens to a station the association is not reaching for");
         service.handBackOnRelease(cluster.id(), station.id());
 
         stationRepo.delete(station.id());

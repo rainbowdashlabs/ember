@@ -66,11 +66,12 @@ class BoardServiceTest extends RepositoryTestBase {
     private static MemberGroupService groupService;
     private static UserTagService tagService;
 
+    /**
+     * The member service is a spy rather than a mock: the access tests stub what they need, and everything
+     * else, above all who may be handed a ticket, keeps answering truthfully, also after a reset.
+     */
     @BeforeAll
     static void setup() {
-        // A spy rather than a mock: the access tests stub what they need, and everything else -
-        // above all who the station's members are, which decides who a ticket may be handed to -
-        // has to keep answering truthfully, including after the reset further down.
         memberService = spy(newStationMemberService(null, null));
         groupService = mock(MemberGroupService.class);
         tagService = mock(UserTagService.class);
@@ -100,8 +101,6 @@ class BoardServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Board with preset --
 
     @Test
     @Order(1)
@@ -141,8 +140,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertEquals("Sprint Board v2", board.name());
         assertEquals(3, board.hideDoneAfterDays());
     }
-
-    // -- Tickets via service --
 
     @Test
     @Order(10)
@@ -208,8 +205,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertEquals(TicketPriority.HIGHEST, t.priority());
     }
 
-    // -- Links with types --
-
     @Test
     @Order(20)
     void linkTicketsWithType() {
@@ -231,8 +226,6 @@ class BoardServiceTest extends RepositoryTestBase {
                 ticketId1, ticketId2, memberIdentityFactory.local(station.id(), member.id())));
         assertTrue(ticketService.findLinks(ticketId1).isEmpty());
     }
-
-    // -- Checklist --
 
     @Test
     @Order(30)
@@ -266,15 +259,12 @@ class BoardServiceTest extends RepositoryTestBase {
         assertEquals(1, ticketService.findChecklistItems(ticketId1).size());
     }
 
-    // -- Watchers --
-
     @Test
     @Order(42)
     void watchTicketAndTriggerNotification() {
         ticketService.watchTicket(ticketId1, member.id());
         assertTrue(ticketService.isWatching(ticketId1, member.id()));
 
-        // Updating a ticket with watchers should not throw (event bus has no handlers in test)
         ticketService.updateTicket(
                 ticketId1,
                 "Watched update",
@@ -286,7 +276,6 @@ class BoardServiceTest extends RepositoryTestBase {
         var t = ticketService.findById(ticketId1).orElseThrow();
         assertEquals("Watched update", t.title());
 
-        // Move ticket with watchers
         var lanes = boardService.findLanes(boardId);
         int workLaneId = lanes.get(1).id();
         ticketService.moveTicket(
@@ -294,12 +283,9 @@ class BoardServiceTest extends RepositoryTestBase {
         var moved = ticketService.findById(ticketId1).orElseThrow();
         assertEquals(workLaneId, moved.laneId());
 
-        // Cleanup
         assertTrue(ticketService.unwatchTicket(ticketId1, member.id()));
         assertFalse(ticketService.isWatching(ticketId1, member.id()));
     }
-
-    // -- Activity feed --
 
     @Test
     @Order(43)
@@ -308,16 +294,12 @@ class BoardServiceTest extends RepositoryTestBase {
         assertFalse(activity.isEmpty());
     }
 
-    // -- Find by number --
-
     @Test
     @Order(45)
     void findByBoardAndNumber() {
         var ticket = ticketService.findByBoardAndNumber(boardId, 1);
         assertTrue(ticket.isPresent());
     }
-
-    // -- Find by assignee --
 
     @Test
     @Order(46)
@@ -327,16 +309,12 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(tickets.stream().anyMatch(t -> t.title().equals("Write tests")));
     }
 
-    // -- Find by lane --
-
     @Test
     @Order(47)
     void findByBoardAndLane() {
         var tickets = ticketService.findByBoardAndLane(boardId, laneId);
         assertFalse(tickets.isEmpty());
     }
-
-    // -- Delete ticket --
 
     @Test
     @Order(48)
@@ -345,16 +323,11 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(ticketService.findById(ticketId2).isEmpty());
     }
 
-    // -- Reorder --
-
     @Test
     @Order(49)
     void reorderTicketsInLane() {
         ticketService.reorderTickets(laneId, List.of(ticketId1));
-        // no exception = success
     }
-
-    // -- Checklist reorder --
 
     @Test
     @Order(50)
@@ -363,8 +336,6 @@ class BoardServiceTest extends RepositoryTestBase {
         ticketService.reorderChecklistItems(
                 ticketId1, items.stream().map(BoardChecklistItem::id).toList());
     }
-
-    // -- Access control --
 
     @Test
     @Order(60)
@@ -500,8 +471,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(boardService.canEdit(boardId, member.id()));
     }
 
-    // -- Board fields --
-
     @Test
     @Order(70)
     void replaceFields() {
@@ -516,8 +485,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertEquals(2, fields.size());
         assertEquals("Component", fields.getFirst().name());
     }
-
-    // -- Replace lanes on fresh board --
 
     @Test
     @Order(75)
@@ -537,8 +504,6 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.delete(freshBoard.id());
     }
 
-    // -- Access data --
-
     @Test
     @Order(79)
     void getAccessData() {
@@ -551,8 +516,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertNotNull(ea);
         boardService.setViewAccess(boardId, List.of(), List.of(), List.of());
     }
-
-    // -- Labels --
 
     @Test
     @Order(80)
@@ -569,8 +532,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(boardService.deleteLabel(label.id()));
     }
 
-    // -- Backlog --
-
     @Test
     @Order(81)
     void backlogEnableDisable() {
@@ -578,8 +539,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertNotNull(lane);
         boardService.disableBacklog(boardId);
     }
-
-    // -- Ticket service: field values + attachments + weblinks --
 
     @Test
     @Order(82)
@@ -755,8 +714,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(ticketService.unwatchTicket(ticketId1, member.id()));
     }
 
-    // -- History --
-
     @Test
     @Order(890)
     void ticketHistoryLogging() {
@@ -770,18 +727,13 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(history.stream().anyMatch(h -> h.action() == BoardTicketHistoryAction.TITLE_CHANGED));
     }
 
-    // -- KB Links --
-
+    /** Only the delegation: a real link needs a knowledge base file, which this class does not set up. */
     @Test
     @Order(891)
     void kbLinksCrud() {
-        // KB links depend on a kb_file existing - skip if no KB infrastructure
-        // Test the service delegation at minimum
         var links = ticketService.findKbLinks(ticketId1);
         assertNotNull(links);
     }
-
-    // -- Attachment path --
 
     @Test
     @Order(892)
@@ -799,14 +751,11 @@ class BoardServiceTest extends RepositoryTestBase {
         ticketService.deleteAttachment(station.id(), att.id());
     }
 
-    // -- Move with lane_assignee field --
-
     @Test
     @Order(893)
     void moveTicketWithLaneAssigneeField() {
         var lanes = boardService.findLanes(boardId);
         if (lanes.size() >= 2) {
-            // Create a lane_assignee field pointing to lanes[1]
             boardService.replaceFields(
                     boardId,
                     List.of(new BoardFieldDefinition(
@@ -819,9 +768,7 @@ class BoardServiceTest extends RepositoryTestBase {
                             0)));
             var fields = boardService.findFields(boardId);
             int fieldId = fields.getFirst().id();
-            // Set field value to member id
             ticketService.setFieldValue(ticketId1, fieldId, new BoardFieldValue.LaneAssigneeValue(member.id()));
-            // Move ticket to lane[1]
             ticketService.moveTicket(
                     ticketId1,
                     lanes.get(0).id(),
@@ -830,7 +777,6 @@ class BoardServiceTest extends RepositoryTestBase {
                     memberIdentityFactory.local(station.id(), member.id()));
             var tk = ticketService.findById(ticketId1).orElseThrow();
             assertNotNull(tk.assignee());
-            // Move back
             ticketService.moveTicket(
                     ticketId1,
                     lanes.get(1).id(),
@@ -840,8 +786,6 @@ class BoardServiceTest extends RepositoryTestBase {
             ticketService.deleteFieldValue(ticketId1, fieldId);
         }
     }
-
-    // -- Comment with mentions --
 
     @Test
     @Order(893)
@@ -855,7 +799,6 @@ class BoardServiceTest extends RepositoryTestBase {
                 TicketPriority.MEDIUM,
                 null,
                 memberIdentityFactory.local(station.id(), member.id()));
-        // Update with due date
         assertTrue(ticketService.updateTicket(
                 tk.id(),
                 "DueDate Ticket",
@@ -864,7 +807,6 @@ class BoardServiceTest extends RepositoryTestBase {
                 TicketPriority.MEDIUM,
                 LocalDate.of(2026, 12, 1),
                 memberIdentityFactory.local(station.id(), member.id())));
-        // Now change the due date
         assertTrue(ticketService.updateTicket(
                 tk.id(),
                 "DueDate Ticket",
@@ -873,7 +815,6 @@ class BoardServiceTest extends RepositoryTestBase {
                 TicketPriority.MEDIUM,
                 LocalDate.of(2026, 12, 15),
                 memberIdentityFactory.local(station.id(), member.id())));
-        // Remove due date
         assertTrue(ticketService.updateTicket(
                 tk.id(),
                 "DueDate Ticket",
@@ -897,16 +838,13 @@ class BoardServiceTest extends RepositoryTestBase {
                 TicketPriority.LOW,
                 null,
                 memberIdentityFactory.local(station.id(), member.id()));
-        // Assign
         ticketService.watchTicket(tk.id(), member.id());
         assertTrue(ticketService.assignTicket(
                 tk.id(), memberIdentityFactory.local(station.id(), member.id()), member.id()));
-        // Reassign to someone else (create second member)
         var account2 = accountRepo.create("board-assign@test.com", "Assign", "User");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
         assertTrue(ticketService.assignTicket(
                 tk.id(), memberIdentityFactory.local(station.id(), member2.id()), member.id()));
-        // Unassign
         assertTrue(ticketService.assignTicket(tk.id(), null, member.id()));
         ticketService.unwatchTicket(tk.id(), member.id());
         ticketService.deleteTicket(tk.id());
@@ -930,10 +868,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(893)
     void linkTicketToSelf() {
-        // Linking a ticket to itself should be a no-op
         ticketService.linkTickets(
                 ticketId1, ticketId1, LinkType.RELATES_TO, memberIdentityFactory.local(station.id(), member.id()));
-        // Should have no self-links
         var links = ticketService.findLinks(ticketId1);
         assertTrue(links.stream().noneMatch(l -> l.linkedTicketId() == ticketId1));
     }
@@ -947,8 +883,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(ticketService.removeWatcher(ticketId1, identity));
         assertFalse(ticketService.isWatching(ticketId1, member.id()));
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(999)

@@ -29,7 +29,6 @@ class DiscoveryPeerRepositoryTest extends RepositoryTestBase {
         assertTrue(peer.reachable());
         assertFalse(peer.blocked());
 
-        // Second upsert refreshes baseUrl + last_seen_at, keeps source.
         var refreshed = discoveryPeerRepo.upsert("k-upsert", "https://a2.example", "fp-a", PeerSource.GOSSIP, "intro");
         assertEquals("https://a2.example", refreshed.baseUrl());
     }
@@ -68,15 +67,15 @@ class DiscoveryPeerRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 -10, discoveryPeerRepo.findByPublicKey("k-rep").orElseThrow().reputation());
 
-        // Decay should pull -10 toward 0 by 5.
         int decayed = discoveryPeerRepo.decayReputation(5);
         assertTrue(decayed >= 1);
         assertEquals(
-                -5, discoveryPeerRepo.findByPublicKey("k-rep").orElseThrow().reputation());
+                -5,
+                discoveryPeerRepo.findByPublicKey("k-rep").orElseThrow().reputation(),
+                "decay pulls toward zero by the step");
 
-        // Reputation is capped at 0 by decay.
         discoveryPeerRepo.decayReputation(20);
-        assertEquals(0, discoveryPeerRepo.findByPublicKey("k-rep").orElseThrow().reputation());
+        assertEquals(0, discoveryPeerRepo.findByPublicKey("k-rep").orElseThrow().reputation(), "decay stops at zero");
     }
 
     @Test

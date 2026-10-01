@@ -183,12 +183,10 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
 
         assertTrue(namesSwap(exchange.id()), "the member is still wearing the old piece");
 
-        // Taken in at the station, and then posted to the body above: the two steps the member is not part of.
         var walked = walkOnce(exchange, null);
         walked = walkOnce(walked, null);
         assertFalse(namesSwap(exchange.id()), "the piece is between the station and the association");
 
-        // Received by the body, which then sends the replacement, and the station takes it in.
         walked = walkOnce(walked, null);
         walked = walkOnce(walked, replacement.id());
         walkOnce(walked, null);
@@ -278,7 +276,6 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         var replacement = inventoryRepo.createItem(inventory.id(), "ST-2", "Stiefel", null, null);
         var exchange = swapOf(item.id(), inventory.id(), "Zu klein");
 
-        // The station takes the old pair in, then puts the replacement aside.
         var walked = walkOnce(exchange, null);
         walked = walkOnce(walked, replacement.id());
 

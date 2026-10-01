@@ -108,9 +108,10 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
                 clusterGovernanceService.findDeniedModules(clusterId, null).isEmpty(),
                 "and nothing was denied of everybody");
 
-        // Taking the station out of the group gives it back, without anybody touching the denial
         clusterStationGroupService.setStations(clusterId, group.id(), List.of());
-        assertFalse(clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.QUIZ));
+        assertFalse(
+                clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.QUIZ),
+                "leaving the group gives the module back without touching the denial");
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of(inside.uid()));
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), EnumSet.noneOf(StationModule.class));
@@ -139,9 +140,11 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
                 clusterRepo.findDeniedModulesForStation(inside.id()),
                 "the station is told both, from wherever they were written");
 
-        // And saving one tab leaves the other exactly as it was
         clusterGovernanceService.setDeniedModules(clusterId, null, EnumSet.noneOf(StationModule.class));
-        assertEquals(Set.of(StationModule.QUIZ), clusterGovernanceService.findDeniedModules(clusterId, group.id()));
+        assertEquals(
+                Set.of(StationModule.QUIZ),
+                clusterGovernanceService.findDeniedModules(clusterId, group.id()),
+                "saving one tab leaves the other as it was");
 
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), EnumSet.noneOf(StationModule.class));
         clusterStationGroupService.delete(clusterId, group.id());

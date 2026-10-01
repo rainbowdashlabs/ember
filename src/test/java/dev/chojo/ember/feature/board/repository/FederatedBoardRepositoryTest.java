@@ -105,8 +105,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    // -- Share CRUD --
-
     @Test
     @Order(1)
     void createShare() {
@@ -131,8 +129,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         var share = federatedBoardRepo.findShare(-999);
         assertFalse(share.isPresent());
     }
-
-    // -- Share Targets --
 
     @Test
     @Order(10)
@@ -201,8 +197,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertFalse(share.isPresent());
     }
 
-    // -- Federated Edit Roles --
-
     @Test
     @Order(20)
     void setFederatedEditUserTypes() {
@@ -242,10 +236,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     void hasFederatedEditUserTypesWhenNone() {
         assertFalse(federatedBoardRepo.hasFederatedEditUserTypes(-999));
     }
-
-    // Satellite table tests removed - identity is now inline in board_ticket columns
-
-    // -- Bookmarks --
 
     @Test
     @Order(70)
@@ -332,8 +322,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertTrue(bookmarks.isEmpty());
     }
 
-    // -- Local View Overrides --
-
     @Test
     @Order(80)
     void setLocalViewOverride() {
@@ -378,8 +366,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertFalse(
                 federatedBoardRepo.hasLocalViewOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999")));
     }
-
-    // -- Local Edit Overrides --
 
     @Test
     @Order(85)

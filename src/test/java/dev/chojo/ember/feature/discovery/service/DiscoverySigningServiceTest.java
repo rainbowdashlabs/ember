@@ -28,7 +28,6 @@ class DiscoverySigningServiceTest {
 
     @BeforeAll
     static void init() throws Exception {
-        // Tell the key service to read/write inside a temp dir by symlinking data/discovery.
         Path data = Path.of("data", "discovery");
         if (!Files.exists(data)) {
             Files.createDirectories(data);
@@ -56,12 +55,8 @@ class DiscoverySigningServiceTest {
         String body = "test";
         String sig = signingService.sign(body);
 
-        // Generate a different, unrelated Ed25519 public key.
         var gen = KeyPairGenerator.getInstance("Ed25519");
         KeyPair other = gen.generateKeyPair();
-        // We need a base64 raw 32-byte representation; reuse the key service's static helper
-        // by writing a temp file and decoding through the public path. Simpler: just attempt
-        // verification with the other key directly.
         assertFalse(signingService.verify(body, sig, other.getPublic()));
     }
 

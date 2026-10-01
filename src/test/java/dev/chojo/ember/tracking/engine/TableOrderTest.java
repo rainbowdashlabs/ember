@@ -33,27 +33,22 @@ class TableOrderTest {
 
     @Test
     void stationComesBeforeStationMember() {
-        // station_member has FK station_id → station.id
         assertTrue(order.indexOf("station") < order.indexOf("station_member"));
     }
 
+    /** The account is scoped through the station member, yet the member's foreign key still orders it first. */
     @Test
     void accountComesBeforeStationMember() {
-        // station_member has FK account_id → account.id; account is reached via customScope
-        // through station_member, but the topological order still places it before station_member
-        // because of the FK declaration.
         assertTrue(order.indexOf("account") < order.indexOf("station_member"));
     }
 
     @Test
     void memberGroupComesBeforeMemberGroupEntry() {
-        // member_group_entry has FK group_id → member_group.id
         assertTrue(order.indexOf("member_group") < order.indexOf("member_group_entry"));
     }
 
     @Test
     void boardLaneComesBeforeBoardTicket() {
-        // board_ticket has FK lane_id → board_lane.id
         assertTrue(order.indexOf("board_lane") < order.indexOf("board_ticket"));
     }
 }

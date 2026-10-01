@@ -185,12 +185,13 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
                 () -> inventoryService.updateItem(itemId, "HK-neu", "Anderer Helm", null, null, null));
         assertThrows(ForbiddenResponse.class, () -> inventoryService.deleteItem(itemId, null));
 
-        // What it does own it may still change
         var own = inventoryRepo.create(station.id(), "Eigenes", InventoryType.INTERNAL, false);
         var ownItem = inventoryRepo.createItem(own.id(), "EG-1", "Eigener Helm", null, null);
-        assertTrue(inventoryService
-                .updateItem(ownItem.id(), "EG-1", "Umbenannt", null, null, null)
-                .isPresent());
+        assertTrue(
+                inventoryService
+                        .updateItem(ownItem.id(), "EG-1", "Umbenannt", null, null, null)
+                        .isPresent(),
+                "what the station owns it may still change");
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());
@@ -206,11 +207,11 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         assertTrue(renamed.isPresent());
         assertEquals("Anderer Helm", renamed.get().name());
 
-        // Another association is still a stranger to it
         var other = freshCluster();
         assertThrows(
                 ForbiddenResponse.class,
-                () -> inventoryService.updateItem(itemId, "HK-fremd", "Fremder Helm", null, null, other.id()));
+                () -> inventoryService.updateItem(itemId, "HK-fremd", "Fremder Helm", null, null, other.id()),
+                "another association is still a stranger to it");
 
         assertTrue(inventoryService.deleteItem(itemId, cluster.id()));
 
@@ -306,7 +307,6 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         var issueFlow = clusterInventoryService.createFlow(cluster.id(), "Verbandsausgabe", MovementPurpose.ISSUE);
         var exchangeFlow = clusterInventoryService.createFlow(cluster.id(), "Verbandstausch", MovementPurpose.EXCHANGE);
 
-        // The cluster is here but does not keep its gear here, so its stations behave as if it were not
         assertNotEquals(
                 issueFlow.id(),
                 movementFlowService.resolveFlow(
@@ -351,11 +351,12 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         clusterInventoryService.createFlow(cluster.id(), "Verbandstausch", MovementPurpose.EXCHANGE);
         clusterInventoryService.setUsesInventory(cluster.id(), true);
 
-        // Station-owned gear is the station's business whatever the cluster keeps
         int flow = movementFlowService.resolveFlow(
                 station.id(), null, ItemOwner.STATION, cluster.id(), MovementPurpose.EXCHANGE, MovementParty.MEMBER);
         assertNotEquals(
-                clusterInventoryService.findFlows(cluster.id()).getFirst().id(), flow);
+                clusterInventoryService.findFlows(cluster.id()).getFirst().id(),
+                flow,
+                "station-owned gear is the station's business whatever the cluster keeps");
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());
@@ -369,7 +370,6 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         int memberId = memberAt(station);
         assertTrue(clusterInventoryService.findQueue(cluster.id()).isEmpty(), "nothing waits before anything starts");
 
-        // A chain whose second step only the owner can press
         var flow = clusterInventoryService.createFlow(cluster.id(), "Rückgabe", MovementPurpose.RETURN);
         movementFlowService.addStep(
                 flow.id(), "Wache schickt", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT, false);
@@ -396,8 +396,8 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         assertEquals(station.name(), queue.getFirst().stationName());
         assertEquals("Helm", queue.getFirst().itemName());
 
-        // And another cluster sees nothing of it
-        assertTrue(clusterInventoryService.findQueue(freshCluster().id()).isEmpty());
+        assertTrue(
+                clusterInventoryService.findQueue(freshCluster().id()).isEmpty(), "another cluster sees nothing of it");
     }
 
     @Test
@@ -405,7 +405,6 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         int n = NAMES.incrementAndGet();
         var standalone = stationRepo.create("Wache ohne Verband " + n);
         var inventory = inventoryRepo.create(standalone.id(), "Einsatzkleidung " + n, InventoryType.EXTERNAL, false);
-        // Recorded as the body above the station owning it, with no body anybody could ask
         int adopted = inventoryRepo
                 .createItem(inventory.id(), "ADOPT-" + n, "Helm", null, null, ItemOwner.CLUSTER, null)
                 .id();
@@ -443,11 +442,13 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
                         inventory.id(), "STRANGE-" + n, "Helm", null, null, ItemOwner.CLUSTER, stranger.id()),
                 "A station answers to one body, so naming another one is a mistake rather than a choice");
 
-        // Its own is fine, and so is an owner that does not run here at all
-        assertNotNull(inventoryService.createItem(
-                inventory.id(), "MINE-" + n, "Helm", null, null, ItemOwner.CLUSTER, cluster.id()));
         assertNotNull(
-                inventoryService.createItem(inventory.id(), "OFF-" + n, "Helm", null, null, ItemOwner.CLUSTER, null));
+                inventoryService.createItem(
+                        inventory.id(), "MINE-" + n, "Helm", null, null, ItemOwner.CLUSTER, cluster.id()),
+                "its own body is fine");
+        assertNotNull(
+                inventoryService.createItem(inventory.id(), "OFF-" + n, "Helm", null, null, ItemOwner.CLUSTER, null),
+                "and so is an owner that does not run here at all");
     }
 
     /** A member at the station, so a movement has somebody to have been started by. */

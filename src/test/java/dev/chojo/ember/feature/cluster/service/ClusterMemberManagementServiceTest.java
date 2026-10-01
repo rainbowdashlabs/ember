@@ -218,6 +218,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         assertTrue(memberGroupRepo.findMembers(children.id()).isEmpty());
     }
 
+    /** The missing ceiling is deliberate: it reaches up to and including the top of the station's own ladder. */
     @Test
     void anybodyElseCanBeEditedWithNoCeiling() {
         int clusterId = freshCluster();
@@ -229,7 +230,6 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 StationUserType.MANAGER,
                 stationMemberRepo.findById(peopled.member().id()).orElseThrow().userType());
 
-        // Up to and including the top of the station's own ladder, which is deliberate
         service.setPermissions(
                 clusterId, peopled.member().id(), Set.of(StationPermission.STATION_ADMINISTRATOR), strangerAccountId);
 

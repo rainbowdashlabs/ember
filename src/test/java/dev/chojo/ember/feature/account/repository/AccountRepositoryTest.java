@@ -137,7 +137,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertEquals("updated@example.com", updated.email());
         assertEquals("Updated", updated.firstName());
         assertEquals("Name", updated.lastName());
-        // restore
         accountRepo.update(accountId, "test@example.com", "Test", "User");
     }
 
@@ -147,8 +146,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.setEmailVerified(accountId));
         assertTrue(accountRepo.findById(accountId).orElseThrow().emailVerified());
     }
-
-    // -- Instance User Type --
 
     @Test
     @Order(10)
@@ -169,15 +166,12 @@ class AccountRepositoryTest extends RepositoryTestBase {
                 accountRepo.findById(accountId).orElseThrow().instanceUserType());
     }
 
+    /** Only proves the query runs: accounts of other test classes may still be administrators. */
     @Test
     @Order(12)
     void anyAdministratorExistsCallable() {
-        // After resetting to USER - the method should still be callable.
-        // Other test class accounts may still have ADMINISTRATOR, so just verify it runs.
         var result = accountRepo.anyAdministratorExists();
     }
-
-    // -- Credentials --
 
     @Test
     @Order(20)
@@ -233,8 +227,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findCredential(accountId).isEmpty());
     }
 
-    // -- Tokens --
-
     @Test
     @Order(40)
     void createAndFindToken() {
@@ -286,8 +278,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.deleteExpiredTokens());
         assertTrue(accountRepo.findToken("expired-tok").isEmpty());
     }
-
-    // -- Sessions --
 
     @Test
     @Order(50)
@@ -477,8 +467,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findSession("expired-s").isEmpty());
     }
 
-    // -- GDPR Consent --
-
     @Test
     @Order(70)
     void findLatestConsentEmpty() {
@@ -493,8 +481,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 "1.1", accountRepo.findLatestConsent(accountId).orElseThrow().consentVersion());
     }
-
-    // -- Delete account --
 
     @Test
     @Order(99)

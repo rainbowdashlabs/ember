@@ -52,7 +52,6 @@ class ClusterServiceTest extends RepositoryTestBase {
         assertNull(home.clusterId(), "the home station is owned by the cluster, not a member of it");
         assertNotNull(cluster.uid());
 
-        // Only the four things a cluster owns are left switched on
         var disabled = stationRepo.findDisabledModules(home.id());
         assertFalse(disabled.contains(StationModule.INVENTORY));
         assertFalse(disabled.contains(StationModule.KNOWLEDGE_BASE));
@@ -104,9 +103,8 @@ class ClusterServiceTest extends RepositoryTestBase {
                 clusterService.findByStation(station.id()).orElseThrow().id());
         assertTrue(clusterService.findStationIds(clusterId).contains(station.id()));
 
-        // Released, it answers to nobody again
         stationRepo.setCluster(station.id(), null);
-        assertTrue(clusterService.findByStation(station.id()).isEmpty());
+        assertTrue(clusterService.findByStation(station.id()).isEmpty(), "released, it answers to nobody again");
         stationRepo.delete(station.id());
     }
 
@@ -190,13 +188,15 @@ class ClusterServiceTest extends RepositoryTestBase {
         clusterService.removeMember(admin.id());
     }
 
+    /**
+     * Membership alone opens the cluster's own pages and nothing else, the way belonging to a station opens
+     * that station's. Everything past that is granted.
+     */
     @Test
     void aPlainMemberHoldsNothingUntilSomethingIsGranted() {
         int clusterId = freshCluster();
         var member = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
 
-        // Being a member is itself worth something: it opens the cluster's own pages and nothing else,
-        // the way belonging to a station opens that station's. Everything past that is granted.
         assertEquals(
                 Set.of(ClusterPermission.LOGIN, ClusterPermission.USER),
                 clusterService.resolvePermissions(member),

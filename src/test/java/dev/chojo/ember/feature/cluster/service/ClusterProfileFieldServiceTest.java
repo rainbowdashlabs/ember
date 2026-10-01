@@ -48,7 +48,10 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         return stationMemberRepo.create(station.id(), account.id()).id();
     }
 
-    /** Twenty questions moved by one drag is one write, not twenty. */
+    /**
+     * Twenty questions moved by one drag is one write, not twenty. The order is read from the assignment,
+     * since the question list is by name. An empty order is not an error and writes nothing.
+     */
     @Test
     void anOrderIsWrittenInOneGo() {
         int clusterId = freshCluster();
@@ -61,8 +64,6 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
 
         clusterProfileFieldService.reorder(clusterId, ProfileFieldScope.MEMBER, List.of(second.id(), first.id()));
 
-        // The order is the audience's, so it is read from the assignment rather than from the
-        // question: the list of questions itself is by name and says nothing about any one form.
         assertEquals(
                 1,
                 clusterProfileFieldService
@@ -77,7 +78,6 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         .getFirst()
                         .position());
 
-        // Nothing to move is not an error, and writes nothing
         clusterProfileFieldService.reorder(clusterId, ProfileFieldScope.MEMBER, List.of());
         assertEquals(
                 1,
@@ -150,10 +150,12 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         assertEquals("Führerscheinklasse", reaching.getFirst().field().name());
         assertTrue(reaching.getFirst().field().stationReadonly());
 
-        // And they appear in the station's own profile beside its own fields, marked as somebody else's
         var merged = profileFieldService.findMergedFields(station.id(), ProfileFieldScope.MEMBER);
-        assertTrue(merged.stream()
-                .anyMatch(f -> f.origin() == FieldOrigin.CLUSTER && f.name().equals("Führerscheinklasse")));
+        assertTrue(
+                merged.stream()
+                        .anyMatch(f ->
+                                f.origin() == FieldOrigin.CLUSTER && f.name().equals("Führerscheinklasse")),
+                "they appear in the station's own profile, marked as the cluster's");
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
@@ -169,9 +171,6 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
 
         stationRepo.delete(station.id());
     }
-
-    // A cluster asking a group-scoped question used to be refused at runtime. A group is no longer a
-    // kind of member, so there is no such value to pass and nothing left to refuse.
 
     /**
      * A question pointed at a group reaches the stations filed under it and nobody else, which is the whole

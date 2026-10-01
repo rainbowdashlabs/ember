@@ -115,7 +115,6 @@ class DataTrackingTest extends RepositoryTestBase {
 
     @Test
     void topLevelSchemaHashIsCurrent() {
-        // Recompute from the tracking file's current tableHashes; should match stored top-level hash
         var sorted = new TreeMap<>(tracking.tables());
         String recomputed = HashComputer.schemaHash(sorted);
         assertEquals(

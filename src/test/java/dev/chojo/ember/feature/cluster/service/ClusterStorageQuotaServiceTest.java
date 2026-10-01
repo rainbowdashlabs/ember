@@ -39,8 +39,6 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         return new Dimensions(bytes, null, null, null, null, null, null);
     }
 
-    // -- The pool --
-
     @Test
     void aClusterCannotHandOutMoreRoomThanItHas() {
         int clusterId = freshCluster();
@@ -53,7 +51,6 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
                 BadRequestResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, second.id(), 300L));
         assertTrue(refused.getMessage().contains("more than the cluster has left"));
 
-        // What fits is allowed
         clusterStorageQuotaService.setTotal(clusterId, second.id(), 200L);
         var overview = clusterStorageQuotaService.findOverview(clusterId);
         assertEquals(1_000L, overview.poolBytes());
@@ -101,8 +98,6 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
     }
-
-    // -- Grants --
 
     @Test
     void handingTheRoomBackIsAlwaysAllowed() {
@@ -204,8 +199,6 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    // -- Defaults --
-
     @Test
     void theDefaultsAreWrittenReadBackAndNotWeighedAgainstThePool() {
         int clusterId = freshCluster();
@@ -220,8 +213,6 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         assertNull(defaults.quotaBoardBytes());
         assertEquals(0L, clusterStorageQuotaService.findOverview(clusterId).handedOut());
     }
-
-    // -- Tiers --
 
     @Test
     void aTierIsAddedRenamedAndRemovedWithoutMovingAnybody() {
@@ -323,8 +314,6 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
     }
-
-    // -- The whole picture --
 
     @Test
     void theOverviewSaysWhatWasGrantedWhatThatMeansAndWhatIsUsed() {

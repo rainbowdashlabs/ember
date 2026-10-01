@@ -44,7 +44,6 @@ class StationScopeResolverTest {
 
     @Test
     void resolvesOneHopFkChain() {
-        // member_group_entry has a FK to member_group, which has station_id
         var path = resolver.resolve("member_group_entry").orElseThrow();
         assertEquals("member_group", path.terminalTable());
         assertEquals(1, path.joins().size());
@@ -57,7 +56,6 @@ class StationScopeResolverTest {
 
     @Test
     void resolvesMultiHopFkChain() {
-        // attendance_session_field -> attendance_session -> attendance_template -> station_id
         var path = resolver.resolve("attendance_session_field").orElseThrow();
         assertEquals("attendance_template", path.terminalTable());
         assertEquals(2, path.joins().size());

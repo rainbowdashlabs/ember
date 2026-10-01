@@ -61,9 +61,7 @@ class GenericTableExporterTest extends RepositoryTestBase {
         var first = rows.getFirst();
         assertTrue(first.containsKey("id"));
         assertTrue(first.containsKey("name"));
-        // After transfer-metadata backfill, station_id is in ignoredColumns: the import side
-        // already knows the target station, so the source id is intentionally omitted.
-        assertFalse(first.containsKey("station_id"));
+        assertFalse(first.containsKey("station_id"), "the importing side already knows its own station");
     }
 
     @Test
@@ -83,7 +81,6 @@ class GenericTableExporterTest extends RepositoryTestBase {
 
     @Test
     void honoursIgnoredColumnsFromTransferContext() {
-        // Build a synthetic tracking that ignores 'station_id' on member_group.
         var original = tracking.tables().get("member_group");
         var tweaked = new TableEntry(
                 original.feature(),
@@ -112,7 +109,6 @@ class GenericTableExporterTest extends RepositoryTestBase {
 
     @Test
     void honoursLookupFromFkMetadata() {
-        // user_tag has a station_id FK; flatten station.name as 'station_name' via lookup.
         var original = tracking.tables().get("user_tag");
         var tweaked = new TableEntry(
                 original.feature(),

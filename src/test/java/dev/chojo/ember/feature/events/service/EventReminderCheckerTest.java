@@ -337,18 +337,7 @@ class EventReminderCheckerTest {
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
         when(registrationRepository.findNotAttendingMemberIds(42, eventDate)).thenReturn(List.of());
 
-        createCheckerWithoutScheduler();
-
-        // The check runs after 5 minutes delay via scheduler, so we invoke it indirectly via constructor.
-        // Instead, we test the logic by calling the method reflectively.
-        try {
-            var method = EventReminderChecker.class.getDeclaredMethod("check");
-            method.setAccessible(true);
-            var checker = createCheckerWithoutScheduler();
-            method.invoke(checker);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        invokeCheck();
 
         verifyReminded(10, 11);
         verify(reminderRepository).markSent(42, eventDate, 3);
@@ -569,14 +558,13 @@ class EventReminderCheckerTest {
     @Test
     void checkHandlesMonthlyFirstEvent() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        // Find a date within the first 7 days of this month matching today's DOW
         LocalDate firstOfMonth = today.withDayOfMonth(1);
         LocalDate target = firstOfMonth;
         while (target.getDayOfWeek().getValue() != today.getDayOfWeek().getValue()) {
             target = target.plusDays(1);
         }
-        // Only test if that target matches today (within first 7 days)
-        if (target.equals(today) && today.getDayOfMonth() <= 7) {
+        boolean todayIsTheFirstOfItsWeekdayThisMonth = target.equals(today) && today.getDayOfMonth() <= 7;
+        if (todayIsTheFirstOfItsWeekdayThisMonth) {
             var event = monthlyFirstEvent(60, today.getDayOfWeek().getValue());
             when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
             when(reminderRepository.findDays(60)).thenReturn(List.of(0));
@@ -610,6 +598,7 @@ class EventReminderCheckerTest {
         }
     }
 
+    /** Calls the check directly, since the scheduler only runs it after a five minute delay. */
     private void invokeCheck() {
         try {
             var checker = createCheckerWithoutScheduler();
