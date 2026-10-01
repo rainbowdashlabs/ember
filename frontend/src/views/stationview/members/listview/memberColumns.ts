@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes, parseFieldConfig} from '@/api/profileFields'
+import {parseFieldConfig} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {ProfileField, StationUserType as StationUserTypeName} from '@/api/generated/schema'
 import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {

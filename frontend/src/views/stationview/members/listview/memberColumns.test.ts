@@ -21,7 +21,7 @@ const sources = {
 
 describe('memberColumns', () => {
     it('makes a column of every question that takes an answer and none of headings or spacers', () => {
-        const keys = memberColumns([field(1, 'STRING'), field(2, 'SECTION'), field(3, 'SPACER'), field(4, 'AGE')], sources)
+        const keys = memberColumns([field(1, 'TEXT'), field(2, 'SECTION'), field(3, 'SPACER'), field(4, 'AGE')], sources)
             .map(column => column.key)
 
         expect(keys).toEqual(['name', 'userType', 'email', '1', '4'])
