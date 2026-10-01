@@ -13,6 +13,7 @@ import com.google.inject.spi.Element;
 import com.google.inject.spi.Elements;
 import com.google.inject.spi.LinkedKeyBinding;
 import dev.chojo.ember.EmberModule;
+import dev.chojo.ember.TemporaryDataModule;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
@@ -57,7 +58,8 @@ import static org.mockito.Mockito.mock;
  * each registers itself on a real Javalin router exactly as {@code ApiServer} has it do. Nothing is
  * read from source: a route is what the router holds, with the roles it declares, in the order it
  * answers. The injector is configured as a development instance, which is the configuration that
- * registers every route there is.
+ * registers every route there is. What the application keeps under {@code data/} goes to a temporary
+ * directory beside that configuration, so building it writes nothing into the working directory.
  *
  * <p>The router cannot say which method answers a route, because it holds a method reference and
  * a method reference does not name its target. Each route group is therefore built a second time
@@ -149,7 +151,9 @@ public final class RegisteredRoutes {
     }
 
     private static RegisteredRoutes build() {
-        Injector injector = Guice.createInjector(new EmberModule(new Conf(developmentConfig())));
+        Path directory = developmentConfig();
+        Injector injector =
+                Guice.createInjector(TemporaryDataModule.application(new Conf(directory), directory.resolve("data")));
         Set<Routes> bound = injector.getInstance(Key.get(new TypeLiteral<Set<Routes>>() {}));
         List<Class<? extends Routes>> order = new ArrayList<>();
         List<Route> routes = new ArrayList<>();
