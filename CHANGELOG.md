@@ -39,6 +39,7 @@
 - **Groups could take members of another station.** A group's member list accepted people of other stations when they were sent to the server directly. Such members are now refused.
 - **Registration codes of another station could be reached.** An instance administrator working in one station could open, change the groups of and delete another station's registration codes by their number. A code is now reached only from its own station.
 - **Unpublished instance news reached station news managers.** A station's news managers saw the instance's draft news entries in their news list before they were published. Instance drafts now stay with the instance administrators until they are published.
+- **A station application could be confirmed without the confirmation mail.** Applying for a new station answered with the code that confirms the applicant's address, so the address could be confirmed without ever receiving the mail. The code now reaches the applicant only in that mail.
 
 ### Changes
 

@@ -63148,9 +63148,6 @@
           "introduction" : {
             "type" : "string"
           },
-          "verificationToken" : {
-            "type" : [ "string", "null" ]
-          },
           "status" : {
             "$ref" : "#/components/schemas/ApplicationStatus"
           },
@@ -63168,7 +63165,7 @@
             } ]
           }
         },
-        "required" : [ "id", "firstName", "lastName", "email", "stationName", "introduction", "verificationToken", "status", "denyReason", "createdAt", "resolvedAt" ]
+        "required" : [ "id", "firstName", "lastName", "email", "stationName", "introduction", "status", "denyReason", "createdAt", "resolvedAt" ]
       },
       "StationClusterResponse" : {
         "type" : "object",

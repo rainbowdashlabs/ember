@@ -59308,7 +59308,6 @@ export interface components {
             resolvedAt: components["schemas"]["Instant"] | null;
             stationName: string;
             status: components["schemas"]["ApplicationStatus"];
-            verificationToken: string | null;
         };
         StationClusterResponse: {
             applications: components["schemas"]["ClusterApplicationView"][];
