@@ -374,7 +374,7 @@ public enum Refusal {
             Area.BEACON, 26, HttpStatus.FORBIDDEN, "That delivery was addressed to another beacon"),
 
     /** A signed delivery that has already arrived once. */
-    BEACON_DELIVERY_ALREADY_TAKEN(Area.BEACON, 27, HttpStatus.FORBIDDEN, "That delivery has already arrived once"),
+    BEACON_DELIVERY_ALREADY_TAKEN(Area.BEACON, 27, HttpStatus.CONFLICT, "That delivery has already arrived once"),
 
     /** A fault delivered without the fingerprint it is filed under. */
     BEACON_FAULT_FINGERPRINT_MISSING(Area.BEACON, 28, HttpStatus.BAD_REQUEST, "A fault has to carry its fingerprint"),
@@ -1049,7 +1049,7 @@ public enum Refusal {
             "An article can only show a news entry every member may read, so nothing was saved"),
 
     /** A file hung on a news entry that is not in the media library. */
-    NEWS_ATTACHMENT_FILE_NOT_HERE(Area.NEWS, 58, HttpStatus.BAD_REQUEST, Sentences.FILE_NOT_HERE),
+    NEWS_ATTACHMENT_FILE_NOT_HERE(Area.NEWS, 58, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
 
     /** A file hung on a news entry that belongs to another station's media library. */
     NEWS_ATTACHMENT_FILE_ELSEWHERE(
@@ -1593,10 +1593,12 @@ public enum Refusal {
     MAILBOX_RULE_NOT_HERE(Area.MAIL_IMPORT, 3, HttpStatus.NOT_FOUND, Sentences.MAILBOX_RULE_NOT_HERE),
 
     /** A mailbox, gone between being saved and being read back. */
-    MAILBOX_NOT_HERE_AFTER_SAVE(Area.MAIL_IMPORT, 4, HttpStatus.NOT_FOUND, Sentences.MAILBOX_NOT_HERE),
+    MAILBOX_NOT_HERE_AFTER_SAVE(
+            Area.MAIL_IMPORT, 4, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /** A mailbox rule, gone between being saved and being read back. */
-    MAILBOX_RULE_NOT_HERE_AFTER_SAVE(Area.MAIL_IMPORT, 5, HttpStatus.NOT_FOUND, Sentences.MAILBOX_RULE_NOT_HERE),
+    MAILBOX_RULE_NOT_HERE_AFTER_SAVE(
+            Area.MAIL_IMPORT, 5, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /** A mailbox set up without a password. */
     MAILBOX_PASSWORD_MISSING(
@@ -2135,7 +2137,7 @@ public enum Refusal {
             "Correcting a movement needs a reason saying why, so nothing was changed"),
 
     /** A correction to a movement that is not here. */
-    MOVEMENT_NOT_HERE_TO_CORRECT(Area.INVENTORY, 117, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_NOT_HERE),
+    MOVEMENT_NOT_HERE_TO_CORRECT(Area.INVENTORY, 117, HttpStatus.NOT_FOUND, Sentences.MOVEMENT_NOT_HERE),
 
     /** A correction to a movement whose chain of steps has since been removed. */
     MOVEMENT_FLOW_GONE_BEFORE_CORRECTION(Area.INVENTORY, 118, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_FLOW_GONE),
@@ -2183,7 +2185,7 @@ public enum Refusal {
             "The movement is not standing on that step any more, so nothing was changed"),
 
     /** The step a movement stands on, gone from its chain before it could be walked. */
-    MOVEMENT_STEP_GONE(Area.INVENTORY, 125, HttpStatus.BAD_REQUEST, Sentences.FLOW_STEP_NOT_HERE),
+    MOVEMENT_STEP_GONE(Area.INVENTORY, 125, HttpStatus.NOT_FOUND, Sentences.FLOW_STEP_NOT_HERE),
 
     /** A step forced that belongs to the station itself, which can simply acknowledge it. */
     MOVEMENT_STATION_STEP_NOT_FORCED(
@@ -2207,7 +2209,7 @@ public enum Refusal {
             "This movement is not on your side any more, so it was not called off"),
 
     /** A step walked on a movement that is not here. */
-    MOVEMENT_NOT_HERE_TO_WALK(Area.INVENTORY, 129, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_NOT_HERE),
+    MOVEMENT_NOT_HERE_TO_WALK(Area.INVENTORY, 129, HttpStatus.NOT_FOUND, Sentences.MOVEMENT_NOT_HERE),
 
     /** A step walked on a movement that is already finished or called off. */
     MOVEMENT_ALREADY_CLOSED(
@@ -2248,7 +2250,7 @@ public enum Refusal {
             "The chain this movement belongs on has no step at that place, so nothing was changed"),
 
     /** A movement moved onto another chain that is not here. */
-    MOVEMENT_NOT_HERE_TO_RECHAIN(Area.INVENTORY, 136, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_NOT_HERE),
+    MOVEMENT_NOT_HERE_TO_RECHAIN(Area.INVENTORY, 136, HttpStatus.NOT_FOUND, Sentences.MOVEMENT_NOT_HERE),
 
     /** A movement moved onto another chain after it has finished. */
     MOVEMENT_FINISHED_BEFORE_RECHAIN(
@@ -2258,7 +2260,7 @@ public enum Refusal {
             "That movement has finished, so the chain under it no longer decides anything"),
 
     /** A chain written again from its preset that is not here. */
-    MOVEMENT_FLOW_NOT_HERE_TO_RESTORE(Area.INVENTORY, 138, HttpStatus.BAD_REQUEST, Sentences.FLOW_NOT_HERE),
+    MOVEMENT_FLOW_NOT_HERE_TO_RESTORE(Area.INVENTORY, 138, HttpStatus.NOT_FOUND, Sentences.FLOW_NOT_HERE),
 
     /** A chain written again from its preset that belongs to the association above the station. */
     MOVEMENT_FLOW_RESTORE_BELONGS_TO_ASSOCIATION(
@@ -2320,16 +2322,16 @@ public enum Refusal {
     MOVEMENT_FLOW_NOT_BOUND(Area.INVENTORY, 147, HttpStatus.BAD_REQUEST, Sentences.NO_FLOW_FOR_THIS_MOVEMENT),
 
     /** A step of a chain changed that is not here. */
-    MOVEMENT_FLOW_STEP_NOT_HERE_TO_CHANGE(Area.INVENTORY, 148, HttpStatus.BAD_REQUEST, Sentences.FLOW_STEP_NOT_HERE),
+    MOVEMENT_FLOW_STEP_NOT_HERE_TO_CHANGE(Area.INVENTORY, 148, HttpStatus.NOT_FOUND, Sentences.FLOW_STEP_NOT_HERE),
 
     /** A step of a chain archived that is not here. */
-    MOVEMENT_FLOW_STEP_NOT_HERE_TO_ARCHIVE(Area.INVENTORY, 149, HttpStatus.BAD_REQUEST, Sentences.FLOW_STEP_NOT_HERE),
+    MOVEMENT_FLOW_STEP_NOT_HERE_TO_ARCHIVE(Area.INVENTORY, 149, HttpStatus.NOT_FOUND, Sentences.FLOW_STEP_NOT_HERE),
 
     /** A chain whose purpose was asked for, gone between being named and being read. */
-    MOVEMENT_FLOW_NOT_HERE_FOR_PURPOSE(Area.INVENTORY, 150, HttpStatus.BAD_REQUEST, Sentences.FLOW_NOT_HERE),
+    MOVEMENT_FLOW_NOT_HERE_FOR_PURPOSE(Area.INVENTORY, 150, HttpStatus.NOT_FOUND, Sentences.FLOW_NOT_HERE),
 
     /** A chain bound to a combination that is not here. */
-    MOVEMENT_FLOW_NOT_HERE_TO_BIND(Area.INVENTORY, 151, HttpStatus.BAD_REQUEST, Sentences.FLOW_NOT_HERE),
+    MOVEMENT_FLOW_NOT_HERE_TO_BIND(Area.INVENTORY, 151, HttpStatus.NOT_FOUND, Sentences.FLOW_NOT_HERE),
 
     /** A chain bound at a station it does not belong to. */
     MOVEMENT_FLOW_NOT_YOURS_TO_BIND(
@@ -2368,7 +2370,7 @@ public enum Refusal {
             "This step hands the gear to a member but the movement names none, so nothing was changed"),
 
     /** A loss reported for a piece of gear that is not here. */
-    LOSS_REPORT_PIECE_NOT_HERE(Area.INVENTORY, 158, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_HERE),
+    LOSS_REPORT_PIECE_NOT_HERE(Area.INVENTORY, 158, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
 
     /** A loss reported for gear that is not recorded as missing. */
     LOSS_REPORT_PIECE_NOT_MISSING(
@@ -2388,7 +2390,7 @@ public enum Refusal {
     LOSS_REPORT_OWNER_NOT_HERE(
             Area.INVENTORY,
             161,
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.NOT_FOUND,
             "The association that owns this gear is not here to answer, so nothing was reported"),
 
     /** A loss reported without the note the owning association asks for. */
@@ -2496,7 +2498,8 @@ public enum Refusal {
             "The station already has a tag of that name, so nothing was saved"),
 
     /** A tag that went between being renamed and being read back. */
-    INVENTORY_TAG_NOT_HERE_AFTER_CHANGE(Area.INVENTORY, 183, HttpStatus.NOT_FOUND, Sentences.INVENTORY_TAG_NOT_HERE),
+    INVENTORY_TAG_NOT_HERE_AFTER_CHANGE(
+            Area.INVENTORY, 183, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /**
      * A tag renamed that is gone or belongs to another station. One code for both, so the answer
@@ -3450,7 +3453,7 @@ public enum Refusal {
 
     /** An answer for one date that went between being saved and being read back. */
     APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE(
-            Area.EVENTS, 117, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+            Area.EVENTS, 117, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /** A question of an appointment filled in with something it does not take. */
     APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED(
@@ -3477,11 +3480,11 @@ public enum Refusal {
             "Nobody can put themselves in this question, so nothing was changed"),
 
     /** A member putting themselves in a question who is not here any more. */
-    APPOINTMENT_SELF_REGISTRATION_MEMBER_NOT_HERE(Area.EVENTS, 122, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_HERE),
+    APPOINTMENT_SELF_REGISTRATION_MEMBER_NOT_HERE(Area.EVENTS, 122, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A question somebody put themselves in that went before it could be read back. */
     APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION(
-            Area.EVENTS, 123, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+            Area.EVENTS, 123, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /** Somebody putting themselves in a single-member question somebody else already stands in. */
     APPOINTMENT_FIELD_SLOT_TAKEN(
@@ -3522,7 +3525,7 @@ public enum Refusal {
      * A file attached to an appointment that is not in the library, or one from another station's
      * library. One code for both: the lookup reaches every file on the instance.
      */
-    EVENT_FILE_TO_ATTACH_NOT_HERE(Area.EVENTS, 131, HttpStatus.BAD_REQUEST, Sentences.NOT_HERE_OR_NOT_YOURS),
+    EVENT_FILE_TO_ATTACH_NOT_HERE(Area.EVENTS, 131, HttpStatus.NOT_FOUND, Sentences.NOT_HERE_OR_NOT_YOURS),
 
     /** A value an appointment writes into a field of its attendance sheet that the field does not take. */
     EVENT_FIELD_DEFAULT_NOT_ACCEPTED(
@@ -4656,7 +4659,7 @@ public enum Refusal {
     CLUSTER_KB_CLUSTER_NOT_HERE(Area.CLUSTERS, 85, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
     /** A cluster that is not here, asked for the gear in its store. */
-    CLUSTER_DISPATCH_CLUSTER_NOT_HERE(Area.CLUSTERS, 86, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+    CLUSTER_DISPATCH_CLUSTER_NOT_HERE(Area.CLUSTERS, 86, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
     /** Gear sent out by a cluster that has no chain of its own for sending gear out. */
     CLUSTER_DISPATCH_WITHOUT_CHAIN(
@@ -4671,7 +4674,7 @@ public enum Refusal {
             Area.CLUSTERS, 88, HttpStatus.BAD_REQUEST, "Pick at least one piece of gear to send, so nothing was sent"),
 
     /** Gear sent out to a station that is not here. */
-    CLUSTER_DISPATCH_STATION_NOT_HERE(Area.CLUSTERS, 89, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+    CLUSTER_DISPATCH_STATION_NOT_HERE(Area.CLUSTERS, 89, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
     /** Gear sent out to a station that does not belong to the sending cluster. */
     CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER(
@@ -4727,7 +4730,7 @@ public enum Refusal {
 
     /** A recommended word that went between being changed and being read back. */
     CLUSTER_INVENTORY_TAG_NOT_HERE_AFTER_CHANGE(
-            Area.CLUSTERS, 101, HttpStatus.NOT_FOUND, Sentences.CLUSTER_TAG_NOT_HERE),
+            Area.CLUSTERS, 101, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /** A word recommended to stations without any word in it. */
     CLUSTER_INVENTORY_TAG_NEEDS_A_NAME(
@@ -4809,7 +4812,7 @@ public enum Refusal {
     CLUSTER_MEMBER_GROUP_PERMISSION_UNKNOWN(
             Area.CLUSTERS,
             115,
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.INTERNAL_SERVER_ERROR,
             "That is not a permission a group can carry, so nothing was saved"),
 
     /** A cluster that is not here, asked about its members or groups. */
@@ -4836,10 +4839,10 @@ public enum Refusal {
     CLUSTER_NEEDS_A_NAME_ON_RENAME(Area.CLUSTERS, 120, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NEEDS_A_NAME),
 
     /** A cluster that went before it could be renamed. */
-    CLUSTER_GONE_BEFORE_RENAME(Area.CLUSTERS, 121, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+    CLUSTER_GONE_BEFORE_RENAME(Area.CLUSTERS, 121, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
     /** A cluster that went before it could be deleted. */
-    CLUSTER_GONE_BEFORE_DELETE(Area.CLUSTERS, 122, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+    CLUSTER_GONE_BEFORE_DELETE(Area.CLUSTERS, 122, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
     /** A cluster asked to be deleted while stations still belong to it. */
     CLUSTER_STILL_HAS_STATIONS(
@@ -4872,18 +4875,21 @@ public enum Refusal {
     CLUSTER_ACCOUNT_ALREADY_A_MEMBER(
             Area.CLUSTERS,
             128,
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.CONFLICT,
             "That account is already a member of this cluster, so nothing was changed"),
 
     /** A permission granted to a cluster member that the instance keeps no record of. */
     CLUSTER_PERMISSION_NOT_KNOWN_ON_GRANT(
-            Area.CLUSTERS, 129, HttpStatus.BAD_REQUEST, "That permission is not known here, so nothing was granted"),
+            Area.CLUSTERS,
+            129,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "That permission is not known here, so nothing was granted"),
 
     /** The cluster a station is being created in, taken in by or released from, gone before the change. */
-    CLUSTER_GONE_FOR_STATION_CHANGE(Area.CLUSTERS, 130, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+    CLUSTER_GONE_FOR_STATION_CHANGE(Area.CLUSTERS, 130, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
     /** The station a cluster is taking in or letting go, gone before the change. */
-    CLUSTER_STATION_GONE_FOR_CHANGE(Area.CLUSTERS, 131, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+    CLUSTER_STATION_GONE_FOR_CHANGE(Area.CLUSTERS, 131, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
     /** A group of stations removed while questions are still asked of it. */
     CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS(
@@ -4914,7 +4920,7 @@ public enum Refusal {
             "Stock requirements still count at this group. Point them somewhere else first, so nothing was removed"),
 
     /** A station filed under a group that is not here at all. */
-    CLUSTER_STATION_GROUP_STATION_GONE(Area.CLUSTERS, 136, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+    CLUSTER_STATION_GROUP_STATION_GONE(Area.CLUSTERS, 136, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
     /** A station filed under a group of a cluster it does not belong to. */
     CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER(
@@ -5439,7 +5445,7 @@ public enum Refusal {
 
     /** A favourite of this station's entry that could not be read back after being marked. */
     KB_FAVOURITE_NOT_READ_BACK_AFTER_MARKING(
-            Area.KNOWLEDGE_BASE, 75, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+            Area.KNOWLEDGE_BASE, 75, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /** A partner favourite asked for with a kind of entry that does not live at a partner station. */
     KB_FAVOURITE_TARGET_NOT_AT_A_PARTNER(
@@ -5447,7 +5453,7 @@ public enum Refusal {
 
     /** A favourite of a partner's entry that could not be read back after being marked. */
     KB_PARTNER_FAVOURITE_NOT_READ_BACK_AFTER_MARKING(
-            Area.KNOWLEDGE_BASE, 77, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+            Area.KNOWLEDGE_BASE, 77, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /** A partner folder marked as a favourite that the partner's answer does not name. */
     PARTNER_KB_FOLDER_NOT_IN_ITS_TRAIL(Area.KNOWLEDGE_BASE, 78, HttpStatus.NOT_FOUND, Sentences.FOLDER_NOT_HERE),
@@ -6156,7 +6162,7 @@ public enum Refusal {
             "Signing in needs an email address on the account, so nothing was saved"),
 
     /** The member somebody is to look after, gone before the guardians were written. */
-    MEMBER_NOT_HERE_FOR_GUARDIANS(Area.MEMBERS, 166, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_HERE),
+    MEMBER_NOT_HERE_FOR_GUARDIANS(Area.MEMBERS, 166, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A guardian given to a member who is neither a member nor a trial member, and so looks after themselves. */
     MEMBER_TYPE_TAKES_NO_GUARDIANS(
@@ -6171,7 +6177,10 @@ public enum Refusal {
 
     /** Signing in switched on for a member in somebody's care, at an instance that has no permission for it. */
     MANAGED_SIGN_IN_PERMISSION_MISSING(
-            Area.MEMBERS, 169, HttpStatus.BAD_REQUEST, "Signing in cannot be switched on here, so nothing was changed"),
+            Area.MEMBERS,
+            169,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Signing in cannot be switched on here, so nothing was changed"),
 
     /** Signing in switched on for a member in somebody's care who has neither an address nor a username. */
     MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS(
@@ -6232,7 +6241,7 @@ public enum Refusal {
     USERNAME_TAKEN(
             Area.MEMBERS,
             182,
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.CONFLICT,
             "That username already belongs to another account, so nothing was saved"),
 
     /** A username taken away from an account that has nothing else to sign in with. */
@@ -6261,7 +6270,7 @@ public enum Refusal {
             "That is not an address anything can be sent to, so nothing was saved"),
 
     /** An address written onto an account that another account already carries. */
-    ADDRESS_TAKEN_ON_ADDRESS_WRITE(Area.MEMBERS, 187, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
+    ADDRESS_TAKEN_ON_ADDRESS_WRITE(Area.MEMBERS, 187, HttpStatus.CONFLICT, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
 
     /** A second date of birth asked for at a station that already asks for one, named after it. */
     PROFILE_BIRTH_DATE_ALREADY_ASKED(
@@ -6528,7 +6537,10 @@ public enum Refusal {
 
     /** The picture of a problem report that arrived but could not be kept. */
     PROBLEM_PICTURE_NOT_KEPT(
-            Area.SYSTEM, 49, HttpStatus.BAD_REQUEST, "The picture could not be kept, so the report was not sent"),
+            Area.SYSTEM,
+            49,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "The picture could not be kept, so the report was not sent"),
 
     /** The picture of a problem report that does not read as a picture at all. */
     PROBLEM_PICTURE_NOT_READABLE(
@@ -6549,10 +6561,10 @@ public enum Refusal {
             "A report only takes a picture as PNG or WebP, so the report was not sent"),
 
     /** Data tracking changed for a table it keeps no record of. */
-    TRACKED_TABLE_NOT_HERE_TO_UPDATE(Area.SYSTEM, 54, HttpStatus.BAD_REQUEST, Sentences.TRACKED_TABLE_NOT_HERE),
+    TRACKED_TABLE_NOT_HERE_TO_UPDATE(Area.SYSTEM, 54, HttpStatus.NOT_FOUND, Sentences.TRACKED_TABLE_NOT_HERE),
 
     /** Every column of a table marked checked where data tracking keeps no record of the table. */
-    TRACKED_TABLE_NOT_HERE_TO_VERIFY(Area.SYSTEM, 55, HttpStatus.BAD_REQUEST, Sentences.TRACKED_TABLE_NOT_HERE),
+    TRACKED_TABLE_NOT_HERE_TO_VERIFY(Area.SYSTEM, 55, HttpStatus.NOT_FOUND, Sentences.TRACKED_TABLE_NOT_HERE),
 
     /**
      * A station's files that could not be carried to the storage it asked for.
@@ -6713,7 +6725,7 @@ public enum Refusal {
     TRANSFER_BACKEND_ALREADY_HANDED_OVER(
             Area.STORAGE,
             30,
-            HttpStatus.TOO_MANY_REQUESTS,
+            HttpStatus.GONE,
             "The storage of this move has already been handed over, and it is handed over only once"),
 
     /** The files of a moving station listed with a transfer code that is not good. */
@@ -6865,7 +6877,7 @@ public enum Refusal {
     LEGAL_DOCUMENTS_CHANGED(
             Area.LEGAL,
             5,
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.CONFLICT,
             "The legal documents have changed since the form was loaded, so nothing was saved. "
                     + "Reload the page and agree again"),
 
@@ -8000,7 +8012,7 @@ public enum Refusal {
     STATION_CITY_TOO_LONG(Area.STATIONS, 56, HttpStatus.BAD_REQUEST, "The city is too long, so nothing was saved"),
 
     /** The location of a station that is not here, asked for to show it. */
-    STATION_NOT_HERE_FOR_LOCATION(Area.STATIONS, 57, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+    STATION_NOT_HERE_FOR_LOCATION(Area.STATIONS, 57, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
     /** An archive imported into a cluster's home station, which holds what its cluster owns. */
     STATION_IMPORT_INTO_CLUSTER_HOME(
@@ -8023,11 +8035,14 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "The other instance sent no station to bring over, so nothing was imported"),
 
-    /** The station just made for an import from another instance, gone before the import could start. */
+    /**
+     * The caller's own station, gone after the first page of an import from another instance was
+     * already written into it and before the rest could start.
+     */
     STATION_IMPORT_TARGET_NOT_HERE(
             Area.STATIONS,
             61,
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.INTERNAL_SERVER_ERROR,
             "The station the import was to go into is not here any more, so nothing was imported"),
 
     /** A failed import tried again for a station no import is known for. */
@@ -8038,8 +8053,7 @@ public enum Refusal {
             "No import is known for that station, so there is nothing to retry"),
 
     /** An import tried again that has not failed. */
-    STATION_IMPORT_NOT_FAILED(
-            Area.STATIONS, 63, HttpStatus.BAD_REQUEST, "Only an import that failed can be tried again"),
+    STATION_IMPORT_NOT_FAILED(Area.STATIONS, 63, HttpStatus.CONFLICT, "Only an import that failed can be tried again"),
 
     /** An import from an address that is not a public HTTPS address. */
     STATION_IMPORT_SOURCE_NOT_PUBLIC(
@@ -8091,7 +8105,7 @@ public enum Refusal {
             "This step ticks itself off once it is actually done, so nothing was changed"),
 
     /** A station's onboarding task marked by a member who is not here any more. */
-    ONBOARDING_MEMBER_NOT_HERE(Area.STATIONS, 72, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_HERE),
+    ONBOARDING_MEMBER_NOT_HERE(Area.STATIONS, 72, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A station whose look was saved, gone before the save reached it. */
     STATION_NOT_HERE_FOR_LOOK(Area.STATIONS, 73, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),

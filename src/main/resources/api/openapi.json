@@ -4426,6 +4426,9 @@
           },
           "404" : {
             "description" : "Not Found"
+          },
+          "409" : {
+            "description" : "Conflict"
           }
         },
         "parameters" : [ {
@@ -33774,8 +33777,8 @@
           "403" : {
             "description" : "Forbidden"
           },
-          "429" : {
-            "description" : "Too Many Requests"
+          "410" : {
+            "description" : "Gone"
           }
         },
         "parameters" : [ {

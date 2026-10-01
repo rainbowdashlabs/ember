@@ -6526,6 +6526,13 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         delete?: never;
@@ -44691,8 +44698,8 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Too Many Requests */
-                429: {
+                /** @description Gone */
+                410: {
                     headers: {
                         [name: string]: unknown;
                     };

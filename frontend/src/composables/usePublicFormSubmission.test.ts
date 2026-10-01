@@ -145,4 +145,41 @@ describe('usePublicFormSubmission', () => {
         expect(form.submitted.value).toBe(true)
         expect(readFormDraft(DRAFT_KEY)).toBeNull()
     })
+
+    it('says a second answer was already given in its own words', async () => {
+        submitPublicResponse.mockRejectedValue(refused(409, 'F-012', 'You have already answered this form'))
+
+        const failure = await sendRefused()
+
+        expect(failure?.message).toBe('publicForm.alreadyAnswered')
+        expect(failure?.reportable).toBe(false)
+    })
+
+    it('leaves changed legal documents to the server, which asks for agreeing again', async () => {
+        const said = 'The legal documents have changed since the form was loaded, so nothing was saved'
+        submitPublicResponse.mockRejectedValue(refused(409, 'LG-005', said))
+
+        const failure = await sendRefused()
+
+        expect(failure?.message).toBe(said)
+        expect(failure?.code).toBe('LG-005')
+    })
 })
+
+/** A refusal the way the client hands it on: the status and the body the server answered with. */
+function refused(status: number, code: string, message: string) {
+    return {response: {status, data: {code, message}}}
+}
+
+/** Fills in the first page, agrees and sends, then reads what the page says about the refusal. */
+async function sendRefused() {
+    const form = open()
+    await form.load()
+    form.updateText(twoPageForm().questions[0]!, 'Kim')
+    form.consentAccepted.value = true
+
+    form.submit()
+    await vi.advanceTimersByTimeAsync(2000)
+
+    return form.submitFailure.value
+}

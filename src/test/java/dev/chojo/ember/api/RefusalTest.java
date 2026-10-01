@@ -109,7 +109,8 @@ class RefusalTest {
      * A fault is the one thing a reader is asked to report, so anything that is really their own
      * doing must not be dressed as one. What is listed here is every failure that really is ours:
      * one nobody named, an upload that broke on the way in, a sheet that broke while it was being
-     * drawn, and a row that was written and then could not be read back.
+     * drawn, a row that was written and then could not be read back, and a row the instance keeps
+     * for itself, such as a permission, that is missing.
      *
      * <p>The list is long and written out on purpose. Adding a refusal that answers {@code 500} has
      * to be a decision somebody takes rather than a status they copy from the line above, because
@@ -177,7 +178,20 @@ class RefusalTest {
                         Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_LOCKING,
                         Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING,
                         Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION,
-                        Refusal.AI_KEY_NOT_READ_BACK),
+                        Refusal.AI_KEY_NOT_READ_BACK,
+                        Refusal.MAILBOX_NOT_HERE_AFTER_SAVE,
+                        Refusal.MAILBOX_RULE_NOT_HERE_AFTER_SAVE,
+                        Refusal.INVENTORY_TAG_NOT_HERE_AFTER_CHANGE,
+                        Refusal.CLUSTER_INVENTORY_TAG_NOT_HERE_AFTER_CHANGE,
+                        Refusal.APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE,
+                        Refusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION,
+                        Refusal.KB_FAVOURITE_NOT_READ_BACK_AFTER_MARKING,
+                        Refusal.KB_PARTNER_FAVOURITE_NOT_READ_BACK_AFTER_MARKING,
+                        Refusal.CLUSTER_MEMBER_GROUP_PERMISSION_UNKNOWN,
+                        Refusal.CLUSTER_PERMISSION_NOT_KNOWN_ON_GRANT,
+                        Refusal.MANAGED_SIGN_IN_PERMISSION_MISSING,
+                        Refusal.STATION_IMPORT_TARGET_NOT_HERE,
+                        Refusal.PROBLEM_PICTURE_NOT_KEPT),
                 faults);
     }
 

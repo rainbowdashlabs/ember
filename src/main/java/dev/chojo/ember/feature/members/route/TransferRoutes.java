@@ -284,7 +284,8 @@ public class TransferRoutes implements Routes {
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = ImportStartResponse.class)),
                 @OpenApiResponse(status = "400"),
-                @OpenApiResponse(status = "404")
+                @OpenApiResponse(status = "404"),
+                @OpenApiResponse(status = "409")
             })
     private void retryImport(Context ctx) {
         UUID stationUid = pathUuid(ctx, "stationUid");

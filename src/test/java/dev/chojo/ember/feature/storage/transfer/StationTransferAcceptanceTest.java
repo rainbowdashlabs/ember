@@ -301,7 +301,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     }
 
     /**
-     * The backend descriptor endpoint is one-shot per token: a second call answers 429 so the
+     * The backend descriptor endpoint is one-shot per token: a second call answers 410 so the
      * destination cannot reuse the token to harvest plaintext credentials repeatedly.
      */
     @Test
@@ -315,7 +315,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertEquals(200, first.statusCode());
 
         var second = client.send(HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofString());
-        assertEquals(429, second.statusCode());
+        assertEquals(410, second.statusCode());
     }
 
     /**

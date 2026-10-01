@@ -17,6 +17,9 @@ import { useAnswerBaseline } from '@/composables/useAnswerBaseline'
 import { clearFormDraft, readFormDraft, saveFormDraft } from '@/util/formDrafts'
 import { FailureKind, type Failure } from '@/util/failure'
 
+/** The refusal of a second answer to a form that takes one per reader. */
+const FORM_ALREADY_ANSWERED = 'F-012'
+
 /**
  * Filling in and submitting a public form, shared by the standalone submission page and the form
  * cell embedded in a public page.
@@ -271,7 +274,7 @@ export function usePublicFormSubmission(
   const submitFailure = computed<Failure | null>(() => {
     const described = sendFailure.value
     if (!described) return null
-    const known = knownRefusal(described.status)
+    const known = knownRefusal(described)
     if (!known) return described
     return {
       ...described,
@@ -281,10 +284,17 @@ export function usePublicFormSubmission(
     }
   })
 
-  function knownRefusal(status: number | undefined): string | null {
-    if (status === 409) return 'alreadyAnswered'
-    if (status === 429) return 'rateLimited'
-    if (status === 410) return 'closedWhileOpen'
+  /**
+   * Which of the three refusals this page words itself, if any.
+   *
+   * <p>An answer already given is told by its code rather than by its status alone, because legal
+   * documents that changed while the form stood open answer with the same status, and that reader has
+   * answered nothing yet: they have to reload and agree again, which the server's own sentence says.
+   */
+  function knownRefusal(failure: Failure): string | null {
+    if (failure.status === 409 && failure.code === FORM_ALREADY_ANSWERED) return 'alreadyAnswered'
+    if (failure.status === 429) return 'rateLimited'
+    if (failure.status === 410) return 'closedWhileOpen'
     return null
   }
 

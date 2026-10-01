@@ -74,19 +74,19 @@ public class StationTransferAssetRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Returns the source station's storage backend descriptor (one-shot per token)",
             description =
-                    "When the source station owns a remote storage backend, the response carries the plaintext credentials so the destination can re-encrypt them with its own key and reuse the same target. When the source uses the instance default, the response is {\"type\":\"LOCAL\"} and the destination must byte-copy each file via the /files endpoints. The endpoint is one-shot per transfer token: the second call returns 429 Too Many Requests.",
+                    "When the source station owns a remote storage backend, the response carries the plaintext credentials so the destination can re-encrypt them with its own key and reuse the same target. When the source uses the instance default, the response is {\"type\":\"LOCAL\"} and the destination must byte-copy each file via the /files endpoints. The endpoint is one-shot per transfer token: the second call returns 410 Gone.",
             tags = {"Transfer"},
             pathParams = @OpenApiParam(name = "token", required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = TransferBackendDescriptor.class)),
                 @OpenApiResponse(status = "403"),
-                @OpenApiResponse(status = "429")
+                @OpenApiResponse(status = "410")
             })
     private void getBackendDescriptor(Context ctx) {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_BACKEND::raise);
         int stationId = exportService.claimBackendDescriptor(token).orElseThrow(() -> {
-            log.info("[export] backend descriptor already claimed - responding 429");
+            log.info("[export] backend descriptor already claimed - responding 410");
             return Refusal.TRANSFER_BACKEND_ALREADY_HANDED_OVER.raise();
         });
         log.info("[export] serving backend descriptor for station {}", stationId);
