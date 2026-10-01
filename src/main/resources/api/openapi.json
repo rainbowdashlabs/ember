@@ -63487,11 +63487,14 @@
             "type" : "object",
             "additionalProperties" : { }
           },
+          "profileComplete" : {
+            "type" : "boolean"
+          },
           "identity" : {
             "$ref" : "#/components/schemas/MemberIdentity"
           }
         },
-        "required" : [ "id", "stationId", "uid", "accountId", "name", "firstName", "lastName", "nickname", "email", "accountSetupPending", "setupMailExpiresAt", "mailReaches", "former", "userType", "joinDate", "roles", "groups", "tags", "profileValues", "identity" ]
+        "required" : [ "id", "stationId", "uid", "accountId", "name", "firstName", "lastName", "nickname", "email", "accountSetupPending", "setupMailExpiresAt", "mailReaches", "former", "userType", "joinDate", "roles", "groups", "tags", "profileValues", "profileComplete", "identity" ]
       },
       "RuleRequest" : {
         "type" : "object",

@@ -61682,6 +61682,7 @@ export interface components {
             mailReaches: components["schemas"]["MailReaches"];
             name: string;
             nickname: string | null;
+            profileComplete: boolean;
             profileValues: {
                 [key: string]: unknown;
             };

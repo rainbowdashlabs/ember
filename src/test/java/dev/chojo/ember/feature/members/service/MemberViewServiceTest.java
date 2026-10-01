@@ -65,6 +65,7 @@ class MemberViewServiceTest {
                 List.of(),
                 List.of(),
                 Map.of("5", "readable", "6", "hidden"),
+                true,
                 null);
     }
 

@@ -402,6 +402,24 @@ public class ProfileFieldRepository {
     }
 
     /**
+     * Whether a member has answered everything their profile asks of them, judged as
+     * {@link ProfileCompletenessSql} says.
+     *
+     * @param memberId the member whose profile is being judged
+     * @return whether nothing required of them is left blank, true for a member that does not exist
+     */
+    public boolean isProfileComplete(int memberId) {
+        return query("""
+                SELECT NOT %s AS complete
+                FROM station_member sm
+                WHERE sm.id = :member_id;""", ProfileCompletenessSql.incomplete("sm"))
+                .single(call().bind("member_id", memberId))
+                .map(row -> row.getBoolean("complete"))
+                .first()
+                .orElse(true);
+    }
+
+    /**
      * The answers to one field from every member of a station, in one read.
      *
      * <p>For anything that asks the same question of a whole list at once. Asking member by member is

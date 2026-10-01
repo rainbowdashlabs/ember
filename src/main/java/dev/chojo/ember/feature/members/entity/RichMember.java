@@ -47,6 +47,8 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param groups               the list of groups this member belongs to
  * @param tags                 the list of tags assigned to this member
  * @param profileValues        a map of field ID to field value for profile fields
+ * @param profileComplete      whether the member has answered every question their profile requires of them,
+ *                             which the list marks beside their name when they have not
  */
 public record RichMember(
         int id,
@@ -69,6 +71,7 @@ public record RichMember(
         List<GroupEntry> groups,
         List<TagEntry> tags,
         Map<String, Object> profileValues,
+        boolean profileComplete,
         MemberIdentity identity) {
 
     private static final Logger log = getLogger(RichMember.class);
@@ -101,6 +104,7 @@ public record RichMember(
                 parseJson(row.getString("groups"), GROUP_LIST, List.of()),
                 parseJson(row.getString("tags"), TAG_LIST, List.of()),
                 parseJson(row.getString("profile_values"), STRING_MAP, Map.of()),
+                row.getBoolean("profile_complete"),
                 null);
     }
 
@@ -155,6 +159,7 @@ public record RichMember(
                 groups,
                 tags,
                 kept,
+                profileComplete,
                 identity);
     }
 
@@ -182,6 +187,7 @@ public record RichMember(
                 groups,
                 tags,
                 profileValues,
+                profileComplete,
                 identity);
     }
 

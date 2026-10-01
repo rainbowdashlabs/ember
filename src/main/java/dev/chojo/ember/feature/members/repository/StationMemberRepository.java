@@ -207,8 +207,9 @@ public class StationMemberRepository {
     }
 
     /**
-     * Finds members of a station with all associated data (roles, groups, tags, profile values)
-     * aggregated in a single query. Avoids N+1 queries when loading the member list.
+     * Finds members of a station with all associated data (roles, groups, tags, profile values and
+     * whether their profile is complete) aggregated in a single query. Avoids N+1 queries when loading
+     * the member list.
      *
      * @param stationId     the station identifier
      * @param includeFormer whether to include former members
@@ -243,11 +244,15 @@ public class StationMemberRepository {
                        coalesce((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::JSON)::TEXT AS roles,
                        coalesce((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::JSON)::TEXT AS groups,
                        coalesce((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::JSON)::TEXT AS tags,
-                       coalesce((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::JSON)::TEXT AS profile_values
+                       coalesce((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::JSON)::TEXT AS profile_values,
+                       NOT %s AS profile_complete
                 FROM station_member sm
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
-                ORDER BY %s;""".formatted(MemberNameSql.identifiedOfMember("sm", "a"), MemberNameSql.order("sm", "a")))
+                ORDER BY %s;""".formatted(
+                                MemberNameSql.identifiedOfMember("sm", "a"),
+                                ProfileCompletenessSql.incomplete("sm"),
+                                MemberNameSql.order("sm", "a")))
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(RichMember.map())
                 .all();

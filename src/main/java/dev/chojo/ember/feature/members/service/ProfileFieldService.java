@@ -465,55 +465,19 @@ public class ProfileFieldService {
     /**
      * Whether this member has answered everything their profile asks of them.
      *
-     * <p>The question is asked of {@link #findApplicableFields(int)}, which is the same list the
-     * profile screen draws. It has to be: what is counted as missing must be something the member
-     * was actually shown, and something they were shown and left empty must be counted. Working the
-     * list out a second time here is what let the two drift, and they did. This one decided from the
-     * member's permissions and threw away every question of group scope, so somebody in the
-     * instructors' group could be missing an answer the instructors are required to give and be told
-     * their profile was complete. Nothing reached the task list, the badge beside it, or the reminder
-     * on the dashboard, because all three ask this.
-     *
-     * <p>A question the member cannot answer is not counted against them: one the station only lets
-     * them read, and one an association asks and keeps to itself.
+     * <p>What is counted as missing must be something the member was actually shown on
+     * {@link #findApplicableFields(int)}, and something they were shown and left empty must be counted.
+     * An earlier version decided from the member's permissions and threw away every question of group
+     * scope, so somebody in the instructors' group could be missing an answer the instructors are
+     * required to give and be told their profile was complete. The task list, the badge beside it, the
+     * reminder on the dashboard and the member list all ask the one rule the repository holds, the list
+     * for every row at once.
      *
      * @param memberId the member whose profile is being judged
      * @return whether nothing required of them is left blank
      */
     public boolean isProfileComplete(int memberId) {
-        var answers = findValues(memberId).stream()
-                .collect(Collectors.toMap(
-                        value -> answerKey(value.origin(), value.fieldId()),
-                        MergedValue::value,
-                        (first, ignored) -> first));
-
-        for (var field : findApplicableFields(memberId)) {
-            if (!field.fieldType().holdsValue()) continue;
-            if (!field.required()) continue;
-            if (field.readonly() || field.readonlyAtStation()) continue;
-            if (isBlankAnswer(answers.get(answerKey(field.origin(), field.id())))) return false;
-        }
-        return true;
-    }
-
-    /**
-     * Whether an answer says nothing, in every shape that can reach the column.
-     *
-     * <p>Answers are kept as documents, so emptiness arrives spelled four ways: no row at all, an
-     * empty column, the empty string a text box hands back, and the document null a selection left
-     * on its blank entry produces. That last one reads as the four letters {@code null} rather than
-     * as nothing, which is how a question nobody had answered could count as answered.
-     */
-    private static boolean isBlankAnswer(String value) {
-        return value == null || value.isBlank() || "\"\"".equals(value) || "null".equals(value);
-    }
-
-    /**
-     * How an answer is matched to its question. The two carry their own numbering, so a station's
-     * question three and an association's question three are different questions.
-     */
-    private static String answerKey(FieldOrigin origin, int fieldId) {
-        return origin + "-" + fieldId;
+        return profileFieldRepository.isProfileComplete(memberId);
     }
 
     // -- Field Values --

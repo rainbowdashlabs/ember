@@ -35,6 +35,20 @@ public class ClusterProfileFieldRepository {
             "id, cluster_id, name, field_type, config, required, readonly, width, station_readonly, "
                     + "keep_on_archive, station_group_id";
 
+    /**
+     * Whether the association's question {@code cpf} reaches the station {@code s}. A question naming a
+     * group of stations reaches only the stations filed under it.
+     *
+     * <p>Every statement that asks which questions reach a station reads this, so the targeting is
+     * written once.
+     */
+    public static final String REACHES_STATION = """
+            (cpf.station_group_id IS NULL
+             OR EXISTS (SELECT 1
+                        FROM cluster_station_group_membership m
+                        WHERE m.group_id = cpf.station_group_id
+                          AND m.station_id = s.id))""";
+
     public List<ClusterProfileField> findByCluster(int clusterId) {
         return query("""
                 SELECT %s FROM cluster_profile_field
@@ -102,12 +116,8 @@ public class ClusterProfileFieldRepository {
                 JOIN station s ON s.cluster_id = cpf.cluster_id
                 WHERE s.id = :station_id
                   AND a.role = :role
-                  AND (cpf.station_group_id IS NULL
-                       OR EXISTS (SELECT 1
-                                  FROM cluster_station_group_membership m
-                                  WHERE m.group_id = cpf.station_group_id
-                                    AND m.station_id = s.id))
-                ORDER BY a.position, cpf.name;""", AssignedClusterProfileField.COLUMNS)
+                  AND %s
+                ORDER BY a.position, cpf.name;""", AssignedClusterProfileField.COLUMNS, REACHES_STATION)
                 .single(call().bind("station_id", stationId).bind("role", role))
                 .map(AssignedClusterProfileField.map())
                 .all();
@@ -218,11 +228,7 @@ public class ClusterProfileFieldRepository {
                 FROM cluster_profile_field cpf
                          JOIN station s ON s.cluster_id = cpf.cluster_id
                 WHERE s.id = :station_id
-                  AND (cpf.station_group_id IS NULL
-                       OR EXISTS (SELECT 1
-                                  FROM cluster_station_group_membership m
-                                  WHERE m.group_id = cpf.station_group_id
-                                    AND m.station_id = s.id));""")
+                  AND %s;""", REACHES_STATION)
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .all());
@@ -323,11 +329,7 @@ public class ClusterProfileFieldRepository {
                 JOIN station_member sm ON sm.id = cpfv.member_id
                 JOIN station s ON s.id = sm.station_id AND s.cluster_id = cpf.cluster_id
                 WHERE cpfv.member_id = :member_id
-                  AND (cpf.station_group_id IS NULL
-                       OR EXISTS (SELECT 1
-                                  FROM cluster_station_group_membership m
-                                  WHERE m.group_id = cpf.station_group_id
-                                    AND m.station_id = s.id));""")
+                  AND %s;""", REACHES_STATION)
                 .single(call().bind("member_id", memberId))
                 .map(row -> new Value(row.getInt("field_id"), row.getString("value")))
                 .all();

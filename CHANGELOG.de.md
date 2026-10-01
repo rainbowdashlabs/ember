@@ -117,6 +117,7 @@
 - **Eine Profilantwort konnte bei der falschen Frage landen.** In manchen Fällen, wenn eine Wache und ihr Verband je eine Frage unter derselben Nummer stellten, zeigte die eigene Profilseite eines Mitglieds für beide eine Antwort und speicherte sie nur bei der Frage der Wache. Jede Frage behält jetzt ihre eigene Antwort.
 - **Konten ohne Adresse zeigten "(null)".** Ein Konto, das sich mit einem Benutzernamen anmeldet und keine E-Mail-Adresse hat, erschien in der Kontoauswahl der Administration und beim Zurücksetzen seines zweiten Faktors mit seinem Namen und dahinter "(null)". Jetzt steht dort nur der Name.
 - **Hilfebeispiele ließen eine Berechtigung leer.** In den Beispielen des Hilfecenters zu Mitglieder-, Mitgliedstyp- und Gruppenberechtigungen erschienen die Rechte für Anwesenheits- und Terminverwaltung, die das Beispiel vergibt, als nicht vergeben. Die Beispiele zeigen sie jetzt angehakt.
+- **Die Mitgliederliste markierte nie ein unvollständiges Profil.** Mitglieder, die eine Pflichtfrage ihres Profils offen gelassen hatten, sahen in der Mitgliederliste aus wie alle anderen. Sie tragen jetzt „Unvollständig“ neben ihrem Namen, beurteilt wie bei der Erinnerung in ihrem eigenen Profil.
 
 ## v26.19.5
 

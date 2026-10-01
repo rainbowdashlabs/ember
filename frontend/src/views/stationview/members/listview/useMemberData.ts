@@ -55,11 +55,13 @@ export function getMemberLastName(m: NamedMember): string {
 
 /**
  * One person as the member list reads them: what a station's own roll sends, and what an association's
- * search can say about somebody at one of its stations.
+ * search can say about somebody at one of its stations. Whether a profile is complete is known only
+ * on a station's own roll; the search does not say.
  */
 export type RosterMember = Pick<RichMember,
     'id' | 'stationId' | 'accountId' | 'name' | 'firstName' | 'lastName' | 'email' | 'accountSetupPending'
     | 'setupMailExpiresAt' | 'mailReaches' | 'former' | 'roles' | 'groups' | 'tags' | 'profileValues'>
+    & Partial<Pick<RichMember, 'profileComplete'>>
     & {userType: string; identity: MemberIdentity}
 
 /**
