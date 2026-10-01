@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.question.FieldType;
@@ -49,11 +50,16 @@ public class ProfileFieldRoutes implements Routes {
 
     private final ProfileFieldService profileFieldService;
     private final StationMemberService memberService;
+    private final GuardianPolicy guardianPolicy;
 
     @Inject
-    public ProfileFieldRoutes(ProfileFieldService profileFieldService, StationMemberService memberService) {
+    public ProfileFieldRoutes(
+            ProfileFieldService profileFieldService,
+            StationMemberService memberService,
+            GuardianPolicy guardianPolicy) {
         this.profileFieldService = profileFieldService;
         this.memberService = memberService;
+        this.guardianPolicy = guardianPolicy;
     }
 
     private static boolean isBlank(String s) {
@@ -85,6 +91,24 @@ public class ProfileFieldRoutes implements Routes {
     private StationMember requireOwnedMember(Context ctx, int memberId) {
         StationSession.from(ctx);
         return requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
+    }
+
+    /**
+     * Refuses a member's answers to a reader who is neither that member, nor their guardian, nor
+     * allowed to read the station's members.
+     */
+    private void requireMayRead(StationSession session, int memberId) {
+        if (session.hasPermission(StationPermission.MEMBER_READ)) return;
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw MemberRefusal.PROFILE_NOT_YOURS_TO_READ.raise();
+    }
+
+    /**
+     * Refuses a member's answers to a writer who is neither that member, nor their guardian, nor
+     * allowed to edit the station's members.
+     */
+    private void requireMayWrite(StationSession session, int memberId) {
+        if (session.hasPermission(StationPermission.MEMBER_EDIT)) return;
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw MemberRefusal.PROFILE_NOT_YOURS_TO_WRITE.raise();
     }
 
     @Override
@@ -346,11 +370,15 @@ public class ProfileFieldRoutes implements Routes {
     private void getValues(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
+        requireMayRead(StationSession.from(ctx), memberId);
         ctx.json(profileFieldService.findValues(memberId));
     }
 
     /**
      * Writes a member's field values.
+     *
+     * <p>Only the member, their guardian or somebody allowed to edit members writes them; editing
+     * members also unlocks the fields that are read-only to everybody else.
      *
      * <p>Whether a station field may be written is the assignment's to say and differs by audience, so
      * it is read for this member; a field the member is never asked is not writable on them at all. A
@@ -373,6 +401,7 @@ public class ProfileFieldRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
+        requireMayWrite(session, memberId);
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 

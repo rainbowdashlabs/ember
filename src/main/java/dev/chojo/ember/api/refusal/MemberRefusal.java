@@ -681,7 +681,17 @@ public enum MemberRefusal implements Refusal {
             "This station already asks for the date of birth in another question, so nothing was saved"),
 
     /** A profile question saved with a default its own answers would not take, naming what is wrong. */
-    PROFILE_DEFAULT_NOT_ACCEPTED(189, HttpStatus.BAD_REQUEST, Sentences.DEFAULT_NOT_SUITING);
+    PROFILE_DEFAULT_NOT_ACCEPTED(189, HttpStatus.BAD_REQUEST, Sentences.DEFAULT_NOT_SUITING),
+
+    /** A member's answers read by somebody who is not them, not their guardian and may not read members. */
+    PROFILE_NOT_YOURS_TO_READ(
+            190, HttpStatus.FORBIDDEN, "You may only read your own answers and those of the members you look after"),
+
+    /** A member's answers written by somebody who is not them, not their guardian and may not edit members. */
+    PROFILE_NOT_YOURS_TO_WRITE(
+            191,
+            HttpStatus.FORBIDDEN,
+            "You may only change your own answers and those of the members you look after, so nothing was saved");
 
     private final Definition definition;
 

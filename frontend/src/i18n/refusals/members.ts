@@ -234,4 +234,6 @@ export default {
     'M-187': ADDRESS_BELONGS_TO_ANOTHER,
     'M-188': 'Diese Wache fragt das Geburtsdatum schon in einer anderen Frage ab, es wurde nichts gespeichert',
     'M-189': DEFAULT_NOT_SUITING,
+    'M-190': 'Du kannst nur deine eigenen Angaben lesen und die der Mitglieder, für die du zuständig bist',
+    'M-191': 'Du kannst nur deine eigenen Angaben ändern und die der Mitglieder, für die du zuständig bist, es wurde nichts gespeichert',
 }
