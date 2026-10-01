@@ -6,7 +6,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import IconButton from '@/components/button/IconButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import BoardAssigneeFilter from './BoardAssigneeFilter.vue'
@@ -16,25 +15,23 @@ const assigneeFilter = defineModel<Set<string>>('assigneeFilter', { required: tr
 const labelFilter = defineModel<string[]>('labelFilter', { required: true })
 
 const props = defineProps<{
-    shortKey: string
     hasBacklog: boolean
     assignees: MemberCompletion[]
     labels: BoardLabel[]
 }>()
 
+const emit = defineEmits<{
+    openBacklog: []
+}>()
+
 const { t } = useI18n()
-const router = useRouter()
 
 const labelFilterOptions = computed(() => props.labels.map(l => ({ value: String(l.id), label: l.name })))
-
-function openBacklog() {
-    router.push(`/station/boards/${props.shortKey}/backlog`)
-}
 </script>
 
 <template>
     <div class="flex items-center mb-4 gap-3">
-        <IconButton v-if="hasBacklog" :icon="['fas', 'inbox']" :label="t('boards.showBacklog')" class="text-(--text-muted)" @click="openBacklog" />
+        <IconButton v-if="hasBacklog" :icon="['fas', 'inbox']" :label="t('boards.showBacklog')" class="text-(--text-muted)" @click="emit('openBacklog')" />
         <BoardAssigneeFilter v-model="assigneeFilter" :assignees="assignees" />
         <MultiSelectDropdown
             v-if="labels.length > 0"

@@ -12,7 +12,9 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
 import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
 import {StationPermission} from '@/api/types'
-import DummyBoardList from './boardshelp/DummyBoardList.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import BoardCard from '@/views/stationview/boards/BoardCard.vue'
+import {demoBoards} from './boardshelp/fixtures'
 
 const {t} = useI18n()
 
@@ -54,7 +56,20 @@ const activeView = ref('')
         </template>
 
         <HelpSection :title="t('helpCenter.boardOverview.exampleTitle')">
-            <DummyBoardList :is-manager="activeView === 'manager'" />
+            <div v-if="activeView === 'manager'" class="flex items-center justify-end mb-6">
+                <PrimaryButton>
+                    <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+                    {{ t('boards.createBoard') }}
+                </PrimaryButton>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <BoardCard
+                    v-for="board in demoBoards"
+                    :key="board.id"
+                    :board="board"
+                    :manageable="activeView === 'manager'"
+                />
+            </div>
         </HelpSection>
 
         <HelpTip>{{ t('helpCenter.boardOverview.tip') }}</HelpTip>

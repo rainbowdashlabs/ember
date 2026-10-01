@@ -9,12 +9,26 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpList from '@/components/helpcenter/HelpList.vue'
-import DummyGeneralSettings from './boardsettingshelp/DummyGeneralSettings.vue'
-import DummyLanesSettings from './boardsettingshelp/DummyLanesSettings.vue'
-import DummyFieldsSettings from './boardsettingshelp/DummyFieldsSettings.vue'
-import DummyFederationSettings from './boardsettingshelp/DummyFederationSettings.vue'
+import BoardGeneralSection from '@/views/stationview/boards/boardsettingsview/BoardGeneralSection.vue'
+import BoardLanesSection from '@/views/stationview/boards/boardsettingsview/BoardLanesSection.vue'
+import BoardFieldsSection from '@/views/stationview/boards/boardsettingsview/BoardFieldsSection.vue'
+import BoardFederationSection from '@/views/stationview/boards/boardsettingsview/BoardFederationSection.vue'
+import {FieldTypes} from '@/api/fieldTypes'
+import {
+    demoAvailablePartners,
+    demoFederationTargets,
+    demoFieldDrafts,
+    demoGeneral,
+    demoLaneDrafts,
+    demoPartnerName,
+    demoRoleOptions,
+} from './boardsettingshelp/fixtures'
 
 const {t} = useI18n()
+
+const lanes = demoLaneDrafts()
+const fields = demoFieldDrafts()
+const federationTargets = demoFederationTargets()
 </script>
 
 <template>
@@ -26,7 +40,12 @@ const {t} = useI18n()
 
         <HelpSection :title="t('helpCenter.boardSettings.generalTitle')">
             <p>{{ t('helpCenter.boardSettings.generalText') }}</p>
-            <DummyGeneralSettings />
+            <BoardGeneralSection
+                :name="demoGeneral.name"
+                :description="demoGeneral.description"
+                :hide-done-after-days="demoGeneral.hideDoneAfterDays"
+                :has-backlog="demoGeneral.hasBacklog"
+            />
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardSettings.archiveTitle')">
@@ -36,7 +55,7 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.boardSettings.lanesTitle')">
             <p>{{ t('helpCenter.boardSettings.lanesText') }}</p>
             <p>{{ t('helpCenter.boardSettings.lanesText2') }}</p>
-            <DummyLanesSettings />
+            <BoardLanesSection :lanes="lanes" new-lane-name="" />
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardSettings.laneMoveTitle')">
@@ -46,7 +65,12 @@ const {t} = useI18n()
 
         <HelpSection :title="t('helpCenter.boardSettings.fieldsTitle')">
             <p>{{ t('helpCenter.boardSettings.fieldsText') }}</p>
-            <DummyFieldsSettings />
+            <BoardFieldsSection
+                :fields="fields"
+                :lanes="lanes"
+                new-field-name=""
+                :new-field-type="FieldTypes.TEXT"
+            />
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardSettings.fieldTypesTitle')">
@@ -64,7 +88,16 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.boardSettings.federationTitle')">
             <p>{{ t('helpCenter.boardSettings.federationText') }}</p>
             <p>{{ t('helpCenter.boardSettings.federationText2') }}</p>
-            <DummyFederationSettings />
+            <BoardFederationSection
+                can-federate
+                :targets="federationTargets"
+                :available-partners="demoAvailablePartners"
+                has-full-mode
+                :add-partner-id="null"
+                :federated-edit-user-types="[]"
+                :role-options="demoRoleOptions"
+                :partner-name="demoPartnerName"
+            />
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardSettings.shareModesTitle')">

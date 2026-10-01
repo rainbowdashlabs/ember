@@ -9,9 +9,22 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpList from '@/components/helpcenter/HelpList.vue'
-import DummyKanbanBoard from '@/views/helpcenter/stationview/boards/boardviewhelp/DummyKanbanBoard.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
+import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
+import BoardHeaderBar from '@/views/stationview/boards/boardview/BoardHeaderBar.vue'
+import BoardFilterBar from '@/views/stationview/boards/boardview/BoardFilterBar.vue'
+import {
+    demoBoard,
+    demoLabels,
+    demoLabelsForTicket,
+    demoLanes,
+    demoMembers,
+    demoTickets,
+} from '@/views/helpcenter/stationview/boards/boardviewhelp/fixtures'
 
 const {t} = useI18n()
+
+const noAssigneeFilter = new Set<string>()
 </script>
 
 <template>
@@ -144,7 +157,25 @@ const {t} = useI18n()
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardView.exampleTitle')">
-            <DummyKanbanBoard />
+            <BoardHeaderBar :short-key="demoBoard.shortKey" show-settings>
+                <SearchInput :model-value="''" :placeholder="t('boards.searchTickets')" class="w-96" />
+            </BoardHeaderBar>
+            <BoardFilterBar
+                :assignee-filter="noAssigneeFilter"
+                :label-filter="[]"
+                has-backlog
+                :assignees="demoMembers"
+                :labels="demoLabels"
+            />
+            <KanbanBoard
+                :board="demoBoard"
+                :lanes="demoLanes"
+                :tickets="demoTickets"
+                :members="demoMembers"
+                :labels-for-ticket="demoLabelsForTicket"
+                read-only
+                archive-linked
+            />
         </HelpSection>
 
         <HelpTip>{{ t('helpCenter.boardView.tip') }}</HelpTip>

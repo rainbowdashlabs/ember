@@ -14,6 +14,7 @@ import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 import { boardLanes } from '@/components/kanban/kanbanLanes'
 import BoardHeaderBar from './boardview/BoardHeaderBar.vue'
 import BoardFilterBar from './boardview/BoardFilterBar.vue'
+import BoardSearchBox from './boardview/BoardSearchBox.vue'
 import BoardCreateTicketModal from './boardview/BoardCreateTicketModal.vue'
 import { useTicketMoves } from '@/composables/useTicketMoves'
 import { boards, stationMembers } from '@/api'
@@ -24,7 +25,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { sessionInfo } = useSession()
+const { sessionInfo, canManageBoards } = useSession()
 
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
@@ -137,20 +138,26 @@ watch(boardKey, reload)
         <FailureAlert v-else-if="failure" :failure="failure"/>
         <template v-else-if="board">
             <BoardHeaderBar
-                :board-key="boardKey"
                 :short-key="board.shortKey"
-                :labels-for-ticket="labelsForTicket"
-                :lane-name="laneName"
+                :show-settings="canManageBoards()"
                 @create="showCreateModal = true"
-            />
+                @settings="router.push(`/station/boards/${board.shortKey}/settings`)"
+            >
+                <BoardSearchBox
+                    :board-key="boardKey"
+                    :short-key="board.shortKey"
+                    :labels-for-ticket="labelsForTicket"
+                    :lane-name="laneName"
+                />
+            </BoardHeaderBar>
 
             <BoardFilterBar
                 v-model:assignee-filter="assigneeFilter"
                 v-model:label-filter="labelFilter"
-                :short-key="board.shortKey"
                 :has-backlog="backlogLane !== null"
                 :assignees="assignees"
                 :labels="allLabels"
+                @open-backlog="router.push(`/station/boards/${board.shortKey}/backlog`)"
             />
 
             <KanbanBoard
