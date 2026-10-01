@@ -18,7 +18,7 @@ services:
 
   # --- latest (demo.ember-panel.de) ---
 
-  ember:
+  ember_demo:
     container_name: ember_demo
     image: ghcr.io/rainbowdashlabs/ember-backend:latest
     stop_grace_period: 30s
@@ -52,7 +52,7 @@ services:
     container_name: ember_demo_frontend
     image: ghcr.io/rainbowdashlabs/ember-frontend:latest
     environment:
-      NUXT_BACKEND_URL: http://ember:8080
+      NUXT_BACKEND_URL: http://ember_demo:8080
     labels:
       traefik.enable: true
       traefik.http.routers.demo_ember_web.rule: "Host(`demo.ember-panel.de`)"
@@ -63,7 +63,7 @@ services:
       traefik.http.services.demo_ember_web.loadbalancer.server.port: "3000"
       com.centurylinklabs.watchtower.enable: true
     depends_on:
-      - ember
+      - ember_demo
     networks:
       - traefik
 
@@ -103,7 +103,7 @@ services:
     container_name: ember_demo_dev_frontend
     image: ghcr.io/rainbowdashlabs/ember-frontend:dev
     environment:
-      NUXT_BACKEND_URL: http://ember_dev:8080
+      NUXT_BACKEND_URL: http://ember_demo_dev:8080
     labels:
       traefik.enable: true
       traefik.http.routers.demo_dev_ember_web.rule: "Host(`dev.ember-panel.de`)"
