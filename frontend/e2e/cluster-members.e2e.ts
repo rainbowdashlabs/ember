@@ -14,6 +14,14 @@ import type {Page} from '@playwright/test'
  * anywhere, and may not touch a station's owner. Both are here as stories of their own, because they are
  * the only thing standing between a cluster role and a way to promote yourself.
  */
+/** One row of the cluster's member search, as far as the stories read it. */
+interface SearchedMember {
+    name: string
+    stationName: string
+    former: boolean
+    identity: {name: string | null}
+}
+
 /**
  * Which membership the signed-in page is, asked of the application.
  *
@@ -42,21 +50,28 @@ test.describe('Cluster members and fields', () => {
 
         const found = await page.request.get('/api/v1/cluster/members/manage/search?size=200', {headers})
         expect(found.ok()).toBeTruthy()
-        const {members} = await found.json()
-        const stations = new Set(members.map((m: {stationName: string}) => m.stationName))
-        expect(stations.size, 'members of more than one station are found in the one list').toBeGreaterThan(1)
+        const members: SearchedMember[] = (await found.json()).members
+        const current = members.filter(member => !member.former)
+        const stations = [...new Set(current.map(member => member.stationName))].slice(0, 2)
+        expect(stations, 'members of more than one station are found in the one list').toHaveLength(2)
+        const listed = stations.map(station => current.find(member => member.stationName === station)!)
 
         await page.goto('/cluster/members/manage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        for (const stationName of [...stations].slice(0, 2)) {
-            await expect(page.getByRole('option', {name: stationName as string})).toHaveCount(1)
+        for (const station of stations) {
+            await expect(page.getByRole('option', {name: station})).toHaveCount(1)
         }
 
-        const names = members
-            .filter((m: {stationName: string}) => m.stationName === [...stations][0])
-            .concat(members.filter((m: {stationName: string}) => m.stationName === [...stations][1]))
-        expect(names.length).toBeGreaterThan(1)
+        const search = page.getByPlaceholder('Suchen...')
+        for (const member of listed) {
+            const name = member.identity.name ?? member.name
+            await search.fill(name)
+            const row = page.getByTestId('member-row').filter({hasText: name}).first()
+            await expect(row, `${name} is listed`).toBeVisible({timeout: 15000})
+            await expect(row.getByTestId('member-note'), `and the row says ${name} is at ${member.stationName}`)
+                .toContainText(member.stationName)
+        }
         await page.context().close()
     })
 
