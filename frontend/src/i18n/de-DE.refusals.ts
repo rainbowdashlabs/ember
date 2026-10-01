@@ -947,6 +947,7 @@ export default {
         + 'Eine kleinere Datei klappt',
     'G-015': CHOOSE_A_STATION,
     'G-016': NOT_A_MEMBER_HERE,
+    'G-017': 'Melde dich zuerst an',
 
     'CU-001': 'Eine Reihenfolge gehört zu genau einer Zielgruppe, es wurde nichts gespeichert',
     'CU-002': CHOOSE_A_CLUSTER,

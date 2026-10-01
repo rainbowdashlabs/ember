@@ -2814,6 +2814,9 @@ public enum Refusal {
     /** A request to something that lives at a station, from somebody who is no member of it. */
     NOT_A_MEMBER_OF_THIS_STATION(Area.GENERAL, 16, HttpStatus.FORBIDDEN, "You are not a member of this station"),
 
+    /** A request to something only somebody signed in may do, with no session behind it. */
+    NOT_SIGNED_IN(Area.GENERAL, 17, HttpStatus.UNAUTHORIZED, "Sign in before doing this"),
+
     /** An order for a cluster's questions, sent without saying which audience the order is for. */
     CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE(
             Area.CLUSTERS,

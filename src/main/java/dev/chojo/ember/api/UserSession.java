@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import io.javalin.http.Context;
-import io.javalin.http.UnauthorizedResponse;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -154,12 +153,12 @@ public record UserSession(
      *
      * @param ctx the Javalin context
      * @return the session stored as a context attribute
-     * @throws UnauthorizedResponse when the request carries no session
+     * @throws RefusalResponse {@link Refusal#NOT_SIGNED_IN} when the request carries no session
      */
     public static UserSession from(Context ctx) {
         UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
         if (session == null) {
-            throw new UnauthorizedResponse("Not signed in");
+            throw Refusal.NOT_SIGNED_IN.raise();
         }
         return session;
     }
