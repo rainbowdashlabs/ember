@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -322,9 +323,10 @@ public class MediaRoutes implements Routes {
     private void createFolder(Context ctx) {
         var session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(MediaFolderRequest.class);
-        if (body.name() == null || body.name().isBlank()) throw Refusal.FOLDER_NEEDS_A_NAME.raise();
+        String name = body.name();
+        if (name == null || name.isBlank()) throw Refusal.FOLDER_NEEDS_A_NAME.raise();
         var folder = media.createFolder(
-                session.stationId(), body.parentId(), body.name(), body.sortOrder() != null ? body.sortOrder() : 0);
+                session.stationId(), body.parentId(), name, Objects.requireNonNullElse(body.sortOrder(), 0));
         ctx.status(HttpStatus.CREATED).json(folder);
     }
 
@@ -342,7 +344,7 @@ public class MediaRoutes implements Routes {
                 folderId,
                 body.parentId(),
                 body.name(),
-                body.sortOrder() != null ? body.sortOrder() : 0)) {
+                Objects.requireNonNullElse(body.sortOrder(), 0))) {
             throw Refusal.FOLDER_NOT_HERE_ON_CHANGE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);

@@ -54,22 +54,21 @@ public class StationLocationService {
 
     private static void validate(LocationUpdate update) {
         if (update == null) throw new BadRequestResponse("body required");
-        if ((update.latitude() == null) != (update.longitude() == null)) {
+        BigDecimal latitude = update.latitude();
+        BigDecimal longitude = update.longitude();
+        String country = update.country();
+        if ((latitude == null) != (longitude == null)) {
             throw new BadRequestResponse("latitude and longitude must be set together");
         }
-        if (update.latitude() != null
-                && (update.latitude().compareTo(LAT_MIN) < 0
-                        || update.latitude().compareTo(LAT_MAX) > 0)) {
+        if (latitude != null && (latitude.compareTo(LAT_MIN) < 0 || latitude.compareTo(LAT_MAX) > 0)) {
             throw new BadRequestResponse("latitude out of range [-90, 90]");
         }
-        if (update.longitude() != null
-                && (update.longitude().compareTo(LON_MIN) < 0
-                        || update.longitude().compareTo(LON_MAX) > 0)) {
+        if (longitude != null && (longitude.compareTo(LON_MIN) < 0 || longitude.compareTo(LON_MAX) > 0)) {
             throw new BadRequestResponse("longitude out of range [-180, 180]");
         }
-        if (update.country() != null
-                && !update.country().isBlank()
-                && !COUNTRY_RX.matcher(update.country().trim()).matches()) {
+        if (country != null
+                && !country.isBlank()
+                && !COUNTRY_RX.matcher(country.trim()).matches()) {
             throw new BadRequestResponse("country must be ISO-3166-1 alpha-2 uppercase");
         }
         rejectIfTooLong("addressLine", update.addressLine());

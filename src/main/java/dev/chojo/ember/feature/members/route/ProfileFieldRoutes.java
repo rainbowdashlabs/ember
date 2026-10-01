@@ -180,13 +180,15 @@ public class ProfileFieldRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
         var request = ctx.bodyAsClass(AssignmentRequest.class);
-        if ((request.role() == null) == (request.groupId() == null)) {
+        var role = request.role();
+        var groupId = request.groupId();
+        if ((role == null) == (groupId == null)) {
             throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_ASSIGN.raise();
         }
-        if (request.role() != null) {
+        if (role != null) {
             profileFieldService.assignToRole(
                     id,
-                    request.role(),
+                    role,
                     request.position(),
                     request.widthOverride(),
                     request.readonlyOverride(),
@@ -194,7 +196,7 @@ public class ProfileFieldRoutes implements Routes {
         } else {
             profileFieldService.assignToGroup(
                     id,
-                    request.groupId(),
+                    groupId,
                     request.position(),
                     request.widthOverride(),
                     request.readonlyOverride(),
@@ -219,13 +221,15 @@ public class ProfileFieldRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
         var request = ctx.bodyAsClass(AssignmentRequest.class);
-        if ((request.role() == null) == (request.groupId() == null)) {
+        var role = request.role();
+        var groupId = request.groupId();
+        if ((role == null) == (groupId == null)) {
             throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_UNASSIGN.raise();
         }
-        if (request.role() != null) {
-            profileFieldService.unassignRole(id, request.role());
+        if (role != null) {
+            profileFieldService.unassignRole(id, role);
         } else {
-            profileFieldService.unassignGroup(id, request.groupId());
+            profileFieldService.unassignGroup(id, groupId);
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
