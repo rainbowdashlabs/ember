@@ -49,7 +49,7 @@ public record ClusterProfileField(
                 row.getInt("id"),
                 row.getInt("cluster_id"),
                 row.getString("name"),
-                row.getEnum("field_type", ProfileFieldType.class),
+                ProfileFieldType.stored(row.getString("field_type")),
                 ProfileFieldConfig.parse(row.getString("config")),
                 row.getBoolean("required"),
                 row.getBoolean("readonly"),

@@ -70,7 +70,7 @@ public class ClusterProfileFieldRepository {
                 SELECT %s FROM cluster_profile_field
                 WHERE field_type = :field_type
                 ORDER BY cluster_id, id;""", FIELD_COLUMNS)
-                .single(call().bind("field_type", fieldType))
+                .single(call().bind("field_type", fieldType.fieldType()))
                 .map(ClusterProfileField.map())
                 .all();
     }
@@ -257,7 +257,7 @@ public class ClusterProfileFieldRepository {
                 RETURNING %s;""",
                 call().bind("cluster_id", clusterId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)
@@ -294,7 +294,7 @@ public class ClusterProfileFieldRepository {
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)

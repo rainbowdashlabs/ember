@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
+
 public enum BoardFieldType {
     STRING(BoardFieldValue.StringValue.class, BoardFieldConfig.Simple.class),
     NUMBER(BoardFieldValue.NumberValue.class, BoardFieldConfig.Simple.class),
@@ -27,5 +29,23 @@ public enum BoardFieldType {
 
     public Class<? extends BoardFieldConfig> configClass() {
         return configClass;
+    }
+
+    /** The shared name this type is stored under. */
+    public FieldType fieldType() {
+        return switch (this) {
+            case STRING -> FieldType.TEXT;
+            case ENUM -> FieldType.CHOICE;
+            default -> FieldType.valueOf(name());
+        };
+    }
+
+    /**
+     * The type a column holds under its shared name.
+     *
+     * @param stored the name as the column holds it
+     */
+    public static BoardFieldType stored(String stored) {
+        return FieldType.featureType(BoardFieldType.class, stored, BoardFieldType::fieldType);
     }
 }

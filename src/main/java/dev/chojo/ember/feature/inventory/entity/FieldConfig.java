@@ -18,11 +18,17 @@ import java.util.List;
 /**
  * Typed config for an {@link InventoryFieldDefinition}, varying by
  * {@link FieldType}. Serialised as JSONB in {@code inventory_field_definition.config}.
+ *
+ * <p>The column stores the kind under the shared type name, so a choice reads as {@code CHOICE}
+ * there and as {@code ENUM} everywhere the API speaks; both are read.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
 @JsonSubTypes({
     @JsonSubTypes.Type(value = FieldConfig.DateConfig.class, name = "DATE"),
-    @JsonSubTypes.Type(value = FieldConfig.EnumConfig.class, name = "ENUM"),
+    @JsonSubTypes.Type(
+            value = FieldConfig.EnumConfig.class,
+            name = "ENUM",
+            names = {"ENUM", "CHOICE"}),
     @JsonSubTypes.Type(value = FieldConfig.TextConfig.class, name = "TEXT"),
     @JsonSubTypes.Type(value = FieldConfig.NumberConfig.class, name = "NUMBER"),
     @JsonSubTypes.Type(value = FieldConfig.BooleanConfig.class, name = "BOOLEAN")

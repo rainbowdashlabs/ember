@@ -16,7 +16,7 @@ public record BoardTicketFieldValue(
 
     public static RowMapping<BoardTicketFieldValue> map() {
         return row -> {
-            var fieldType = row.getEnum("field_type", BoardFieldType.class);
+            var fieldType = BoardFieldType.stored(row.getString("field_type"));
             return new BoardTicketFieldValue(
                     row.getInt("ticket_id"),
                     row.getInt("field_id"),

@@ -242,7 +242,7 @@ public class WaitingListRepository {
                 RETURNING %s;""",
                 call().bind("list_id", listId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("required", required)
@@ -272,7 +272,7 @@ public class WaitingListRepository {
                 RETURNING %s;""", WAITING_LIST_FIELD_COLUMNS)
                 .single(call().bind("id", fieldId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("required", required)

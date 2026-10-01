@@ -300,7 +300,7 @@ public class ProfileFieldRepository {
                 WHERE station_id = :station_id
                   AND field_type = :field_type
                 ORDER BY id;""", PROFILE_FIELD_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("field_type", fieldType))
+                .single(call().bind("station_id", stationId).bind("field_type", fieldType.fieldType()))
                 .map(ProfileField.map())
                 .all();
     }
@@ -317,7 +317,7 @@ public class ProfileFieldRepository {
                 FROM profile_field
                 WHERE field_type = :field_type
                 ORDER BY station_id, id;""", PROFILE_FIELD_COLUMNS)
-                .single(call().bind("field_type", fieldType))
+                .single(call().bind("field_type", fieldType.fieldType()))
                 .map(ProfileField.map())
                 .all();
     }
@@ -340,7 +340,7 @@ public class ProfileFieldRepository {
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)
@@ -373,7 +373,7 @@ public class ProfileFieldRepository {
                     keep_on_archive  = :keep_on_archive
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)

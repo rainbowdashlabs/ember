@@ -150,7 +150,7 @@ public class AttendanceRepository {
                     (:template_id, :name, :field_type, :config::JSONB, :position);""")
                 .single(call().bind("template_id", templateId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("position", position))
                 .insert();
@@ -177,7 +177,7 @@ public class AttendanceRepository {
                     position   = :position
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("id", id))

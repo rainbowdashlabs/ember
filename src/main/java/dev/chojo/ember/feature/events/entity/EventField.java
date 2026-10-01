@@ -25,7 +25,7 @@ public record EventField(
                 row.getInt("id"),
                 row.getInt("event_id"),
                 row.getString("name"),
-                row.getEnum("field_type", EventFieldType.class),
+                EventFieldType.stored(row.getString("field_type")),
                 EventFieldConfig.parse(row.getString("config")),
                 row.getString("value"),
                 row.getInt("position"),

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:2c202e75c960573a79768f914c63221ae9e1c5402cf1ee9d932f15f36272660a",
-  "generatedAt": "2026-10-01T15:12:57Z",
+  "generatedAt": "2026-10-01T15:44:25Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1645,7 +1645,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type: member, member_list, string, time, date, member_of_group, member_list_of_group."
+          "description": "What kind of answer it takes, by its shared type name, such as TEXT, CHOICE, TIME or MEMBER_OF_GROUP."
         },
         {
           "name": "config",
@@ -7373,7 +7373,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type of the field (e.g. string, number, date)."
+          "description": "What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, LOCATION or MEMBER_LIST_OF_GROUP."
         },
         {
           "name": "config",
@@ -7753,7 +7753,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type of the answer, from the shared event field type set (STRING, NUMBER, ENUM, MEMBER, ...)."
+          "description": "What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, CHOICE or MEMBER."
         },
         {
           "name": "config",
@@ -18760,7 +18760,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type: text, number, date, enum, boolean, composite."
+          "description": "What kind of answer it takes, by its shared type name: TEXT, NUMBER, DATE, BOOLEAN, CHOICE, AGE, BIRTH_DATE, EXPIRY_DATE, SECTION or SPACER."
         },
         {
           "name": "config",

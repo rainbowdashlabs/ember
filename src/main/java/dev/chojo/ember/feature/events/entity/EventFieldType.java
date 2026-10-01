@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionKind;
 
 /**
@@ -53,6 +54,25 @@ public enum EventFieldType {
             case TEXTAREA -> QuestionKind.LONG_TEXT;
             default -> QuestionKind.TEXT;
         };
+    }
+
+    /** The shared name this type is stored under. */
+    public FieldType fieldType() {
+        return switch (this) {
+            case STRING -> FieldType.TEXT;
+            case TEXTAREA -> FieldType.LONG_TEXT;
+            case ENUM -> FieldType.CHOICE;
+            default -> FieldType.valueOf(name());
+        };
+    }
+
+    /**
+     * The type a column holds under its shared name.
+     *
+     * @param stored the name as the column holds it
+     */
+    public static EventFieldType stored(String stored) {
+        return FieldType.featureType(EventFieldType.class, stored, EventFieldType::fieldType);
     }
 
     public boolean isMemberField() {

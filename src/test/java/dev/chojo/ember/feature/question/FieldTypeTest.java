@@ -103,7 +103,7 @@ class FieldTypeTest {
         assertEquals(shared(ProfileFieldType.values()), FieldTypes.PROFILE);
     }
 
-    /** The server has always refused a date of birth on an association, and nothing else. */
+    /** The server refuses a date of birth on an association, and nothing else of the profile's types. */
     @Test
     void theAssociationOffersTheProfileTypesButTheDateOfBirth() {
         var expected = EnumSet.copyOf(FieldTypes.PROFILE);
@@ -156,6 +156,41 @@ class FieldTypeTest {
     @Test
     void theSetsCannotBeChangedFromOutside() {
         assertThrows(UnsupportedOperationException.class, () -> FieldTypes.PROFILE.add(FieldType.URL));
+    }
+
+    /** Every feature type is stored under its shared name and read back from it. */
+    @Test
+    void featureTypesAreStoredUnderTheSharedNames() {
+        for (var type : EventFieldType.values()) {
+            assertEquals(type, EventFieldType.stored(type.fieldType().name()));
+        }
+        for (var type : ProfileFieldType.values()) {
+            assertEquals(type, ProfileFieldType.stored(type.fieldType().name()));
+        }
+        for (var type : AttendanceFieldType.values()) {
+            assertEquals(type, AttendanceFieldType.stored(type.fieldType().name()));
+        }
+        for (var type : WaitingListFieldType.values()) {
+            assertEquals(type, WaitingListFieldType.stored(type.fieldType().name()));
+        }
+        for (var type : BoardFieldType.values()) {
+            assertEquals(type, BoardFieldType.stored(type.fieldType().name()));
+        }
+        for (var type : dev.chojo.ember.feature.inventory.entity.FieldType.values()) {
+            assertEquals(
+                    type,
+                    dev.chojo.ember.feature.inventory.entity.FieldType.stored(
+                            type.fieldType().name()));
+        }
+        assertEquals(EventFieldType.STRING, EventFieldType.stored("TEXT"));
+        assertEquals(EventFieldType.TEXTAREA, EventFieldType.stored("LONG_TEXT"));
+        assertEquals(BoardFieldType.ENUM, BoardFieldType.stored("CHOICE"));
+    }
+
+    @Test
+    void anOldSpellingIsNoLongerRead() {
+        assertThrows(IllegalArgumentException.class, () -> EventFieldType.stored("STRING"));
+        assertThrows(IllegalArgumentException.class, () -> ProfileFieldType.stored("ENUM"));
     }
 
     /** Every name a feature spells today, under the shared one it means. */

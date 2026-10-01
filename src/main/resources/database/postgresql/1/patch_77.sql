@@ -616,3 +616,291 @@ COMMENT ON TABLE ember_schema.mail_webhook_receipt
 COMMENT ON COLUMN ember_schema.mail_webhook_receipt.provider IS 'The provider that sent the report.';
 COMMENT ON COLUMN ember_schema.mail_webhook_receipt.webhook_id IS 'The id the provider gives the report, the same on every repeat of it.';
 COMMENT ON COLUMN ember_schema.mail_webhook_receipt.received_at IS 'When the report first arrived. Receipts older than the provider keeps retrying are removed.';
+
+UPDATE ember_schema.profile_field
+SET field_type = CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END
+WHERE field_type <> CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END;
+
+UPDATE ember_schema.cluster_profile_field
+SET field_type = CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END
+WHERE field_type <> CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END;
+
+UPDATE ember_schema.inventory_field_definition
+SET field_type = CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END
+WHERE field_type <> CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END;
+
+UPDATE ember_schema.inventory_field_definition
+SET config = jsonb_set(coalesce(config, '{}'), '{kind}', to_jsonb(field_type))
+WHERE config ->> 'kind' IS DISTINCT FROM field_type;
+
+UPDATE ember_schema.waiting_list_field
+SET field_type = CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END
+WHERE field_type <> CASE upper(field_type) WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END;
+
+UPDATE ember_schema.board_field
+SET field_type = CASE upper(field_type) WHEN 'STRING' THEN 'TEXT' WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END
+WHERE field_type <> CASE upper(field_type) WHEN 'STRING' THEN 'TEXT' WHEN 'ENUM' THEN 'CHOICE' ELSE upper(field_type) END;
+
+UPDATE ember_schema.attendance_template_field
+SET field_type = CASE upper(field_type)
+                     WHEN 'STRING' THEN 'TEXT'
+                     WHEN 'TEXTAREA' THEN 'LONG_TEXT'
+                     WHEN 'ENUM' THEN 'CHOICE'
+                     ELSE upper(field_type) END
+WHERE upper(field_type) IN ('STRING', 'TEXTAREA', 'ENUM')
+   OR field_type <> upper(field_type);
+
+UPDATE ember_schema.event_field
+SET field_type = CASE upper(field_type)
+                     WHEN 'STRING' THEN 'TEXT'
+                     WHEN 'TEXTAREA' THEN 'LONG_TEXT'
+                     WHEN 'ENUM' THEN 'CHOICE'
+                     ELSE upper(field_type) END
+WHERE upper(field_type) IN ('STRING', 'TEXTAREA', 'ENUM')
+   OR field_type <> upper(field_type);
+
+UPDATE ember_schema.event_template_field
+SET field_type = CASE upper(field_type)
+                     WHEN 'STRING' THEN 'TEXT'
+                     WHEN 'TEXTAREA' THEN 'LONG_TEXT'
+                     WHEN 'ENUM' THEN 'CHOICE'
+                     ELSE upper(field_type) END
+WHERE upper(field_type) IN ('STRING', 'TEXTAREA', 'ENUM')
+   OR field_type <> upper(field_type);
+
+UPDATE ember_schema.event_registration_field
+SET field_type = CASE upper(field_type)
+                     WHEN 'STRING' THEN 'TEXT'
+                     WHEN 'TEXTAREA' THEN 'LONG_TEXT'
+                     WHEN 'ENUM' THEN 'CHOICE'
+                     ELSE upper(field_type) END
+WHERE upper(field_type) IN ('STRING', 'TEXTAREA', 'ENUM')
+   OR field_type <> upper(field_type);
+
+UPDATE ember_schema.event_template_registration_field
+SET field_type = CASE upper(field_type)
+                     WHEN 'STRING' THEN 'TEXT'
+                     WHEN 'TEXTAREA' THEN 'LONG_TEXT'
+                     WHEN 'ENUM' THEN 'CHOICE'
+                     ELSE upper(field_type) END
+WHERE upper(field_type) IN ('STRING', 'TEXTAREA', 'ENUM')
+   OR field_type <> upper(field_type);
+
+ALTER TABLE ember_schema.board_field
+    ALTER COLUMN field_type SET DEFAULT 'TEXT';
+ALTER TABLE ember_schema.event_field
+    ALTER COLUMN field_type SET DEFAULT 'TEXT';
+ALTER TABLE ember_schema.event_template_field
+    ALTER COLUMN field_type SET DEFAULT 'TEXT';
+
+DELETE
+FROM ember_schema.profile_field_value v
+    USING ember_schema.profile_field f
+WHERE v.field_id = f.id
+  AND (f.field_type IN ('SECTION', 'SPACER')
+    OR (f.field_type = 'BOOLEAN' AND v.value IN ('""', 'null', '{}')));
+
+DELETE
+FROM ember_schema.cluster_profile_field_value v
+    USING ember_schema.cluster_profile_field f
+WHERE v.field_id = f.id
+  AND (f.field_type IN ('SECTION', 'SPACER')
+    OR (f.field_type = 'BOOLEAN' AND (v.value IS NULL OR v.value IN ('""', 'null', '{}'))));
+
+DELETE
+FROM ember_schema.waiting_list_entry_value v
+    USING ember_schema.waiting_list_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'BOOLEAN'
+  AND v.value IN ('""', 'null', '{}');
+
+DELETE
+FROM ember_schema.attendance_session_field v
+    USING ember_schema.attendance_template_field f
+WHERE v.field_id = f.id
+  AND (f.field_type = 'BOOLEAN' OR f.field_type LIKE 'MEMBER%')
+  AND v.value IN ('""', 'null', '{}', '[]');
+
+UPDATE ember_schema.profile_field_value v
+SET value = to_jsonb(lower(trim(v.value #>> '{}')) IN ('true', '1'))
+FROM ember_schema.profile_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'BOOLEAN'
+  AND jsonb_typeof(v.value) IN ('string', 'number')
+  AND lower(trim(v.value #>> '{}')) IN ('true', 'false', '1', '0');
+
+UPDATE ember_schema.cluster_profile_field_value v
+SET value = to_jsonb(lower(trim(v.value #>> '{}')) IN ('true', '1'))
+FROM ember_schema.cluster_profile_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'BOOLEAN'
+  AND jsonb_typeof(v.value) IN ('string', 'number')
+  AND lower(trim(v.value #>> '{}')) IN ('true', 'false', '1', '0');
+
+UPDATE ember_schema.waiting_list_entry_value v
+SET value = to_jsonb(lower(trim(v.value #>> '{}')) IN ('true', '1'))
+FROM ember_schema.waiting_list_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'BOOLEAN'
+  AND jsonb_typeof(v.value) IN ('string', 'number')
+  AND lower(trim(v.value #>> '{}')) IN ('true', 'false', '1', '0');
+
+UPDATE ember_schema.attendance_session_field v
+SET value = to_jsonb(lower(trim(v.value #>> '{}')) IN ('true', '1'))
+FROM ember_schema.attendance_template_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'BOOLEAN'
+  AND jsonb_typeof(v.value) IN ('string', 'number')
+  AND lower(trim(v.value #>> '{}')) IN ('true', 'false', '1', '0');
+
+UPDATE ember_schema.attendance_session_field v
+SET value = to_jsonb(trim(v.value #>> '{}')::INTEGER)
+FROM ember_schema.attendance_template_field f
+WHERE v.field_id = f.id
+  AND f.field_type IN ('MEMBER', 'MEMBER_OF_GROUP')
+  AND jsonb_typeof(v.value) = 'string'
+  AND trim(v.value #>> '{}') ~ '^[0-9]+$';
+
+UPDATE ember_schema.attendance_session_field v
+SET value = CASE
+                WHEN trim(v.value #>> '{}') ~ '^[0-9]+$' THEN jsonb_build_array(trim(v.value #>> '{}')::INTEGER)
+                ELSE (v.value #>> '{}')::JSONB END
+FROM ember_schema.attendance_template_field f
+WHERE v.field_id = f.id
+  AND f.field_type IN ('MEMBER_LIST', 'MEMBER_LIST_OF_GROUP')
+  AND jsonb_typeof(v.value) = 'string'
+  AND trim(v.value #>> '{}') ~ '^([0-9]+|\[\s*"?[0-9]+"?(\s*,\s*"?[0-9]+"?)*\s*\])$';
+
+UPDATE ember_schema.attendance_session_field v
+SET value = (SELECT jsonb_agg((e.element #>> '{}')::INTEGER ORDER BY e.position)
+             FROM jsonb_array_elements(v.value) WITH ORDINALITY AS e(element, position))
+FROM ember_schema.attendance_template_field f
+WHERE v.field_id = f.id
+  AND f.field_type IN ('MEMBER_LIST', 'MEMBER_LIST_OF_GROUP')
+  AND jsonb_typeof(v.value) = 'array'
+  AND jsonb_array_length(v.value) > 0
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements(v.value) AS e(element) WHERE jsonb_typeof(e.element) = 'string')
+  AND NOT EXISTS (SELECT 1
+                  FROM jsonb_array_elements(v.value) AS e(element)
+                  WHERE trim(e.element #>> '{}') !~ '^[0-9]+$');
+
+DELETE
+FROM ember_schema.attendance_session_field v
+    USING ember_schema.attendance_template_field f
+WHERE v.field_id = f.id
+  AND f.field_type LIKE 'MEMBER%'
+  AND v.value = '[]';
+
+UPDATE ember_schema.event_field
+SET value = CASE WHEN lower(trim(value)) IN ('true', '1') THEN 'true' ELSE 'false' END
+WHERE field_type = 'BOOLEAN'
+  AND lower(trim(value)) IN ('true', 'false', '1', '0')
+  AND value NOT IN ('true', 'false');
+
+UPDATE ember_schema.event_field_date_value v
+SET value = CASE WHEN lower(trim(v.value)) IN ('true', '1') THEN 'true' ELSE 'false' END
+FROM ember_schema.event_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'BOOLEAN'
+  AND lower(trim(v.value)) IN ('true', 'false', '1', '0')
+  AND v.value NOT IN ('true', 'false');
+
+UPDATE ember_schema.event_registration_field_value v
+SET value = CASE WHEN lower(trim(v.value)) IN ('true', '1') THEN 'true' ELSE 'false' END
+FROM ember_schema.event_registration_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'BOOLEAN'
+  AND lower(trim(v.value)) IN ('true', 'false', '1', '0')
+  AND v.value NOT IN ('true', 'false');
+
+UPDATE ember_schema.event_field
+SET value = CASE
+                WHEN value ~ '^\s*\[\s*\]\s*$' THEN ''
+                WHEN value ~ '^\s*"?[0-9]+"?\s*$' THEN btrim(value, ' "')
+                ELSE '[' || (SELECT string_agg(e.element #>> '{}', ',' ORDER BY e.position)
+                             FROM jsonb_array_elements(value::JSONB) WITH ORDINALITY AS e(element, position)) || ']' END
+WHERE field_type LIKE 'MEMBER%'
+  AND value ~ '^\s*("?[0-9]+"?|\[\s*\]|\[\s*"?[0-9]+"?(\s*,\s*"?[0-9]+"?)*\s*\])\s*$'
+  AND value !~ '^([0-9]+|\[[0-9]+(,[0-9]+)*\])$';
+
+UPDATE ember_schema.event_field_date_value v
+SET value = CASE
+                WHEN v.value ~ '^\s*\[\s*\]\s*$' THEN ''
+                WHEN v.value ~ '^\s*"?[0-9]+"?\s*$' THEN btrim(v.value, ' "')
+                ELSE '[' || (SELECT string_agg(e.element #>> '{}', ',' ORDER BY e.position)
+                             FROM jsonb_array_elements(v.value::JSONB) WITH ORDINALITY AS e(element, position)) || ']' END
+FROM ember_schema.event_field f
+WHERE v.field_id = f.id
+  AND f.field_type LIKE 'MEMBER%'
+  AND v.value ~ '^\s*("?[0-9]+"?|\[\s*\]|\[\s*"?[0-9]+"?(\s*,\s*"?[0-9]+"?)*\s*\])\s*$'
+  AND v.value !~ '^([0-9]+|\[[0-9]+(,[0-9]+)*\])$';
+
+UPDATE ember_schema.event_registration_field_value v
+SET value = CASE
+                WHEN v.value ~ '^\s*\[\s*\]\s*$' THEN ''
+                WHEN v.value ~ '^\s*"?[0-9]+"?\s*$' THEN btrim(v.value, ' "')
+                ELSE '[' || (SELECT string_agg(e.element #>> '{}', ',' ORDER BY e.position)
+                             FROM jsonb_array_elements(v.value::JSONB) WITH ORDINALITY AS e(element, position)) || ']' END
+FROM ember_schema.event_registration_field f
+WHERE v.field_id = f.id
+  AND f.field_type LIKE 'MEMBER%'
+  AND v.value ~ '^\s*("?[0-9]+"?|\[\s*\]|\[\s*"?[0-9]+"?(\s*,\s*"?[0-9]+"?)*\s*\])\s*$'
+  AND v.value !~ '^([0-9]+|\[[0-9]+(,[0-9]+)*\])$';
+
+ALTER TABLE ember_schema.profile_field
+    ADD CONSTRAINT profile_field_type_known CHECK (field_type IN (
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'AGE', 'BIRTH_DATE', 'EXPIRY_DATE', 'SECTION', 'SPACER'));
+
+ALTER TABLE ember_schema.cluster_profile_field
+    ADD CONSTRAINT cluster_profile_field_type_known CHECK (field_type IN (
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'AGE', 'BIRTH_DATE', 'EXPIRY_DATE', 'SECTION', 'SPACER'));
+
+ALTER TABLE ember_schema.inventory_field_definition
+    ADD CONSTRAINT inventory_field_definition_type_known CHECK (field_type IN (
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE'));
+
+ALTER TABLE ember_schema.board_field
+    ADD CONSTRAINT board_field_type_known CHECK (field_type IN (
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'LANE_ASSIGNEE'));
+
+ALTER TABLE ember_schema.waiting_list_field
+    ADD CONSTRAINT waiting_list_field_type_known CHECK (field_type IN (
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'BIRTH_DATE'));
+
+ALTER TABLE ember_schema.attendance_template_field
+    ADD CONSTRAINT attendance_template_field_type_known CHECK (field_type IN (
+        'TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'TIME', 'BOOLEAN', 'CHOICE', 'URL',
+        'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'));
+
+ALTER TABLE ember_schema.event_field
+    ADD CONSTRAINT event_field_type_known CHECK (field_type IN (
+        'TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'TIME', 'BOOLEAN', 'CHOICE', 'URL', 'LOCATION',
+        'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP', 'MEMBER_OF_TYPE',
+        'MEMBER_LIST_OF_TYPE', 'MEMBER_OF_TAG', 'MEMBER_LIST_OF_TAG'));
+
+ALTER TABLE ember_schema.event_template_field
+    ADD CONSTRAINT event_template_field_type_known CHECK (field_type IN (
+        'TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'TIME', 'BOOLEAN', 'CHOICE', 'URL', 'LOCATION',
+        'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP', 'MEMBER_OF_TYPE',
+        'MEMBER_LIST_OF_TYPE', 'MEMBER_OF_TAG', 'MEMBER_LIST_OF_TAG'));
+
+ALTER TABLE ember_schema.event_registration_field
+    ADD CONSTRAINT event_registration_field_type_known CHECK (field_type IN (
+        'TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'TIME', 'BOOLEAN', 'CHOICE', 'URL', 'LOCATION',
+        'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP', 'MEMBER_OF_TYPE',
+        'MEMBER_LIST_OF_TYPE', 'MEMBER_OF_TAG', 'MEMBER_LIST_OF_TAG'));
+
+ALTER TABLE ember_schema.event_template_registration_field
+    ADD CONSTRAINT event_template_registration_field_type_known CHECK (field_type IN (
+        'TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'TIME', 'BOOLEAN', 'CHOICE', 'URL', 'LOCATION',
+        'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP', 'MEMBER_OF_TYPE',
+        'MEMBER_LIST_OF_TYPE', 'MEMBER_OF_TAG', 'MEMBER_LIST_OF_TAG'));
+
+COMMENT ON COLUMN ember_schema.profile_field.field_type
+    IS 'What kind of answer it takes, by its shared type name: TEXT, NUMBER, DATE, BOOLEAN, CHOICE, AGE, BIRTH_DATE, EXPIRY_DATE, SECTION or SPACER.';
+COMMENT ON COLUMN ember_schema.attendance_template_field.field_type
+    IS 'What kind of answer it takes, by its shared type name, such as TEXT, CHOICE, TIME or MEMBER_OF_GROUP.';
+COMMENT ON COLUMN ember_schema.event_field.field_type
+    IS 'What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, LOCATION or MEMBER_LIST_OF_GROUP.';
+COMMENT ON COLUMN ember_schema.event_registration_field.field_type
+    IS 'What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, CHOICE or MEMBER.';

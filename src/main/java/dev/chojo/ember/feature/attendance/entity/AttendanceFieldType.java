@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionKind;
 
 /**
@@ -43,5 +44,24 @@ public enum AttendanceFieldType {
             case MEMBER_LIST, MEMBER_LIST_OF_GROUP -> QuestionKind.MEMBER_LIST;
             case STRING -> QuestionKind.TEXT;
         };
+    }
+
+    /** The shared name this type is stored under. */
+    public FieldType fieldType() {
+        return switch (this) {
+            case STRING -> FieldType.TEXT;
+            case TEXTAREA -> FieldType.LONG_TEXT;
+            case ENUM -> FieldType.CHOICE;
+            default -> FieldType.valueOf(name());
+        };
+    }
+
+    /**
+     * The type a column holds under its shared name.
+     *
+     * @param stored the name as the column holds it
+     */
+    public static AttendanceFieldType stored(String stored) {
+        return FieldType.featureType(AttendanceFieldType.class, stored, AttendanceFieldType::fieldType);
     }
 }

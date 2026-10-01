@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.question;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * The one list of field types every feature with fields of its own picks from.
@@ -104,6 +105,25 @@ public enum FieldType {
     /** Whether an answer to this names members. */
     public boolean namesMembers() {
         return kind().map(QuestionKind::namesMembers).orElse(false);
+    }
+
+    /**
+     * A feature's own type from the shared name a column stores it under.
+     *
+     * <p>The columns hold the shared names while the features still speak their own, so each feature
+     * type says which shared name it is and this finds it again.
+     *
+     * @param type   the feature's own type enum
+     * @param stored the name as the column holds it
+     * @param shared the shared name of each feature type
+     * @return the feature type stored under that name
+     * @throws IllegalArgumentException where no feature type is stored under it
+     */
+    public static <E extends Enum<E>> E featureType(Class<E> type, String stored, Function<E, FieldType> shared) {
+        for (E constant : type.getEnumConstants()) {
+            if (shared.apply(constant).name().equals(stored)) return constant;
+        }
+        throw new IllegalArgumentException("No " + type.getSimpleName() + " is stored as " + stored);
     }
 
     /** Which members a field of this type may name. */

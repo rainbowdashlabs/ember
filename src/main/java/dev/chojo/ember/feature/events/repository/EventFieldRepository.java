@@ -228,7 +228,7 @@ public class EventFieldRepository {
     public List<Integer> findEventIdsWithMemberFields() {
         var memberTypes = Arrays.stream(EventFieldType.values())
                 .filter(EventFieldType::isMemberField)
-                .map(Enum::name)
+                .map(type -> type.fieldType().name())
                 .toList();
         return query("""
                 SELECT DISTINCT event_id
@@ -270,7 +270,7 @@ public class EventFieldRepository {
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("value", value)
                         .bind("position", position)
@@ -345,7 +345,7 @@ public class EventFieldRepository {
                 .single(call().bind("id", fieldId)
                         .bind("event_id", eventId)
                         .bind("name", field.name())
-                        .bind("field_type", type)
+                        .bind("field_type", type.fieldType())
                         .bind("config", config.toJson())
                         .bind("value", value)
                         .bind("position", position)

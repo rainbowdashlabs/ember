@@ -12,7 +12,7 @@ public record BoardField(
 
     public static RowMapping<BoardField> map() {
         return row -> {
-            var fieldType = row.getEnum("field_type", BoardFieldType.class);
+            var fieldType = BoardFieldType.stored(row.getString("field_type"));
             return new BoardField(
                     row.getInt("id"),
                     row.getInt("board_id"),

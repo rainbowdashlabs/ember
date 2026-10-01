@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionKind;
 
 import java.util.Optional;
@@ -80,5 +81,19 @@ public enum ProfileFieldType {
             case ENUM -> Optional.of(QuestionKind.CHOICE);
             case AGE, SECTION, SPACER -> Optional.empty();
         };
+    }
+
+    /** The shared name this type is stored under. */
+    public FieldType fieldType() {
+        return this == ENUM ? FieldType.CHOICE : FieldType.valueOf(name());
+    }
+
+    /**
+     * The type a column holds under its shared name.
+     *
+     * @param stored the name as the column holds it
+     */
+    public static ProfileFieldType stored(String stored) {
+        return FieldType.featureType(ProfileFieldType.class, stored, ProfileFieldType::fieldType);
     }
 }

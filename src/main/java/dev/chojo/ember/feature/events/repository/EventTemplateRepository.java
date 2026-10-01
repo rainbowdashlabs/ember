@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -147,7 +147,9 @@ public class EventTemplateRepository {
                     VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview, :public, :attendance_field_id, :default_value);""")
                     .single(call().bind("template_id", templateId)
                             .bind("name", f.name())
-                            .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
+                            .bind(
+                                    "field_type",
+                                    f.fieldType() != null ? f.fieldType().fieldType() : FieldType.TEXT)
                             .bind("config", config != null ? config.toJson() : "{}")
                             .bind("position", f.position())
                             .bind("overview", f.overview())

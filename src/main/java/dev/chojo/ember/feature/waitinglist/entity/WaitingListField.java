@@ -32,7 +32,7 @@ public record WaitingListField(
                 row.getInt("id"),
                 row.getInt("list_id"),
                 row.getString("name"),
-                row.getEnum("field_type", WaitingListFieldType.class),
+                WaitingListFieldType.stored(row.getString("field_type")),
                 WaitingListFieldConfig.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getBoolean("required"),

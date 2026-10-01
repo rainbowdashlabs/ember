@@ -136,14 +136,14 @@ public class InventoryFieldDefinitionRepository {
                 INSERT INTO inventory_field_definition(inventory_id, art_id, item_id, key, label, field_type,
                                                        required, sort_order, config)
                 VALUES(:inventory_id, :art_id, :item_id, :key, :label, :field_type,
-                       :required, :sort_order, :config::jsonb)
+                       :required, :sort_order, jsonb_set(:config::jsonb, '{kind}', to_jsonb(:field_type::TEXT)))
                 RETURNING %s, config::text AS config;""",
                 call().bind("inventory_id", inventoryId)
                         .bind("art_id", artId)
                         .bind("item_id", itemId)
                         .bind("key", key)
                         .bind("label", label)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("required", required)
                         .bind("sort_order", sortOrder)
                         .bind("config", FieldConfig.toJsonOrEmpty(config)),
@@ -159,7 +159,8 @@ public class InventoryFieldDefinitionRepository {
     public boolean update(int id, String label, boolean required, int sortOrder, FieldConfig config) {
         return query("""
                 UPDATE inventory_field_definition
-                SET label = :label, required = :required, sort_order = :sort_order, config = :config::jsonb
+                SET label = :label, required = :required, sort_order = :sort_order,
+                    config = jsonb_set(:config::jsonb, '{kind}', to_jsonb(field_type))
                 WHERE id = :id;""")
                 .single(call().bind("label", label)
                         .bind("required", required)

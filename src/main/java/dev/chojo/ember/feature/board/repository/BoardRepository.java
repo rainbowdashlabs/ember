@@ -252,7 +252,7 @@ public class BoardRepository {
                 RETURNING %s;""",
                 call().bind("board_id", boardId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("position", position),
                 BoardField.map(),

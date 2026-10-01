@@ -72,8 +72,12 @@ public record ProfileFieldChange(
                 row.getBoolean("requires_acknowledgement"),
                 row.getString("changed_by_name"),
                 row.getString("field_name"),
-                row.getString("field_type"),
+                typeName(row.getString("field_type")),
                 List.of(),
                 null);
+    }
+
+    private static @Nullable String typeName(@Nullable String stored) {
+        return stored == null ? null : ProfileFieldType.stored(stored).name();
     }
 }

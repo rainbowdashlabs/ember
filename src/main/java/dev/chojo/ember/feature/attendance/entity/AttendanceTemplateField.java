@@ -43,7 +43,7 @@ public record AttendanceTemplateField(
                 row.getInt("id"),
                 row.getInt("template_id"),
                 row.getString("name"),
-                row.getEnum("field_type", AttendanceFieldType.class),
+                AttendanceFieldType.stored(row.getString("field_type")),
                 AttendanceFieldConfig.parse(row.getString("config")),
                 row.getInt("position"));
     }

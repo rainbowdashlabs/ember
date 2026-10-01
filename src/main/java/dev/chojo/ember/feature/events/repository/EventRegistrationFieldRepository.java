@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -63,7 +64,7 @@ public class EventRegistrationFieldRepository {
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("overview", overview),
@@ -128,7 +129,7 @@ public class EventRegistrationFieldRepository {
                 WHERE id = :id;""")
                 .single(call().bind("id", fieldId)
                         .bind("name", name)
-                        .bind("field_type", fieldType)
+                        .bind("field_type", fieldType.fieldType())
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("overview", overview))
@@ -169,7 +170,11 @@ public class EventRegistrationFieldRepository {
                     VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview);""")
                     .single(call().bind("template_id", templateId)
                             .bind("name", field.name())
-                            .bind("field_type", field.fieldType() != null ? field.fieldType() : EventFieldType.STRING)
+                            .bind(
+                                    "field_type",
+                                    field.fieldType() != null
+                                            ? field.fieldType().fieldType()
+                                            : FieldType.TEXT)
                             .bind(
                                     "config",
                                     (field.config() != null ? field.config() : EventRegistrationFieldConfig.empty())

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionKind;
 
 public enum WaitingListFieldType {
@@ -35,5 +36,19 @@ public enum WaitingListFieldType {
             case BOOLEAN -> QuestionKind.BOOLEAN;
             case ENUM -> QuestionKind.CHOICE;
         };
+    }
+
+    /** The shared name this type is stored under. */
+    public FieldType fieldType() {
+        return this == ENUM ? FieldType.CHOICE : FieldType.valueOf(name());
+    }
+
+    /**
+     * The type a column holds under its shared name.
+     *
+     * @param stored the name as the column holds it
+     */
+    public static WaitingListFieldType stored(String stored) {
+        return FieldType.featureType(WaitingListFieldType.class, stored, WaitingListFieldType::fieldType);
     }
 }

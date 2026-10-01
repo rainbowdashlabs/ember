@@ -80,7 +80,7 @@ public final class ProfileCompletenessSql {
     private static String answerlessTypes() {
         return Arrays.stream(ProfileFieldType.values())
                 .filter(type -> !type.holdsValue() || type.isCalculated())
-                .map(type -> "'" + type.name() + "'")
+                .map(type -> "'" + type.fieldType().name() + "'")
                 .collect(Collectors.joining(", "));
     }
 }

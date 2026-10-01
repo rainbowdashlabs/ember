@@ -32,7 +32,7 @@ public record EventTemplateField(
                 row.getInt("id"),
                 row.getInt("template_id"),
                 row.getString("name"),
-                row.getEnum("field_type", EventFieldType.class),
+                EventFieldType.stored(row.getString("field_type")),
                 EventFieldConfig.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getBoolean("overview"),

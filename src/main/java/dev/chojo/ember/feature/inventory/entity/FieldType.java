@@ -47,4 +47,20 @@ public enum FieldType {
             case BOOLEAN -> QuestionKind.BOOLEAN;
         };
     }
+
+    /** The shared name this type is stored under. */
+    public dev.chojo.ember.feature.question.FieldType fieldType() {
+        return this == ENUM
+                ? dev.chojo.ember.feature.question.FieldType.CHOICE
+                : dev.chojo.ember.feature.question.FieldType.valueOf(name());
+    }
+
+    /**
+     * The type a column holds under its shared name.
+     *
+     * @param stored the name as the column holds it
+     */
+    public static FieldType stored(String stored) {
+        return dev.chojo.ember.feature.question.FieldType.featureType(FieldType.class, stored, FieldType::fieldType);
+    }
 }
