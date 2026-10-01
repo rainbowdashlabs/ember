@@ -22,27 +22,12 @@
  * Exit code 1 if a comment is found that is neither a doc comment nor a TODO.
  */
 
-import {existsSync, readFileSync, statSync, writeFileSync} from 'fs'
-import {join, relative} from 'path'
-import {SRC, walk, GREEN, YELLOW, RESET, BOLD, createReporter} from './lint-utils.mjs'
+import {readFileSync, statSync} from 'fs'
+import {join} from 'path'
+import {SRC, walk, GREEN, RESET, BOLD, createReporter} from './lint-utils.mjs'
 
 const reporter = createReporter()
 
-/**
- * What each file was already carrying when the check was written.
- *
- * <p>The rule is older than the check, and by the time anybody counted, four thousand comments had
- * gathered. Failing on all of them would have meant either a rewrite nobody asked for or a check
- * switched off within the week, so the debt is written down instead and the rule bites from here:
- * a file may carry what it carried, and not one comment more. A file that is not in the list must
- * carry none at all, which is every file written from now on.
- *
- * <p>Run with `--update` after genuinely removing some, so the count can only ever fall.
- */
-const BASELINE_PATH = new URL('./comment-baseline.json', import.meta.url).pathname
-const UPDATING = process.argv.includes('--update')
-const baseline = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf-8')) : {}
-const counts = {}
 
 const FRONTEND_EXTENSIONS = ['.ts', '.vue', '.js', '.mjs']
 
@@ -106,8 +91,6 @@ function commentStart(line) {
 
 function check(file) {
     const lines = readFileSync(file, 'utf-8').split('\n')
-    const key = relative(REPO_ROOT, file)
-    const allowed = baseline[key] ?? 0
     const found = []
     const markup = file.endsWith('.vue')
     const java = file.endsWith('.java')
@@ -195,13 +178,8 @@ function check(file) {
         })
     }
 
-    if (found.length > 0) counts[key] = found.length
-
-    if (found.length > allowed) {
-        const over = found.slice(allowed)
-        for (const one of over) {
-            reporter.error(file, one.line, one.message)
-        }
+    for (const one of found) {
+        reporter.error(file, one.line, one.message)
     }
 
 }
@@ -225,28 +203,9 @@ for (const target of ROOT_TARGETS) {
     rootFiles += files.length
 }
 
-if (UPDATING) {
-    const kept = Object.fromEntries(
-        Object.entries(counts)
-            .filter(([key, count]) => count <= (baseline[key] ?? Infinity))
-            .sort(([a], [b]) => a.localeCompare(b)),
-    )
-    writeFileSync(BASELINE_PATH, `${JSON.stringify(kept, null, 2)}\n`)
-    const before = Object.values(baseline).reduce((sum, n) => sum + n, 0)
-    const after = Object.values(kept).reduce((sum, n) => sum + n, 0)
-    console.log(`\n${GREEN}${BOLD}Comment baseline written.${RESET} ${after} left, ${before - after} fewer.\n`)
-    process.exit(0)
-}
-
-const debt = Object.entries(counts)
-    .filter(([key, count]) => Math.min(count, baseline[key] ?? 0) > 0)
-    .reduce((sum, [key, count]) => sum + Math.min(count, baseline[key] ?? 0), 0)
-
 if (reporter.errors.length === 0 && reporter.warnings.length === 0) {
     console.log(
-        `\n${GREEN}${BOLD}Comment lint passed.${RESET} ${scanned.length + rootFiles} files checked.`
-            + (debt > 0 ? ` ${YELLOW}${debt} comment(s) still owed from before the check existed.${RESET}` : '')
-            + '\n',
+        `\n${GREEN}${BOLD}Comment lint passed.${RESET} ${scanned.length + rootFiles} files checked.\n`,
     )
 } else {
     reporter.print()
