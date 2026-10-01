@@ -28,7 +28,6 @@ import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
-import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.WatcherResponse;
 import dev.chojo.ember.feature.board.service.FederatedBoardAccessService;
 import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService;
 import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService.DiscoveredBoard;
@@ -683,14 +682,16 @@ public class FederatedBoardRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WatcherResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void federatedLocalGetWatchers(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(ticketDetailProxy.proxyGetWatchers(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketDetailProxy
+                .proxyGetWatchers(partnerId, boardKey, ticketNumber)
+                .local());
     }
 
     @OpenApi(

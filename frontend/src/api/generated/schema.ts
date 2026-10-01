@@ -23577,7 +23577,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["WatcherResponse"];
+                        "application/json": number[];
                     };
                 };
             };
@@ -64035,10 +64035,6 @@ export interface components {
             entryCount: number;
             list: components["schemas"]["WaitingList"];
         };
-        WatcherResponse: {
-            federated: unknown[];
-            local: number[];
-        };
         WebAuthnBeginResponse: {
             challengeToken: string;
             optionsJson: string;
@@ -65549,7 +65545,6 @@ export type WaitingListRegistrationStatus = components['schemas']['WaitingListRe
 export type WaitingListRequest = components['schemas']['WaitingListRequest'];
 export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
 export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];
-export type WatcherResponse = components['schemas']['WatcherResponse'];
 export type WebAuthnBeginResponse = components['schemas']['WebAuthnBeginResponse'];
 export type WebAuthnConfig = components['schemas']['WebAuthnConfig'];
 export type WebAuthnLoginBeginRequest = components['schemas']['WebAuthnLoginBeginRequest'];

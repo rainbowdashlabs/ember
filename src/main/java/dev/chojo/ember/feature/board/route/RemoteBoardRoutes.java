@@ -152,6 +152,8 @@ public class RemoteBoardRoutes implements Routes {
 
     /**
      * The watchers of a shared ticket, split into the serving station's members and its partners'.
+     *
+     * <p>TODO: drop the always empty {@code federated} with the next change to the board sharing contract.
      */
     public record WatcherResponse(List<Integer> local, List<Object> federated) {}
 

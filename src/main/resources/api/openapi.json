@@ -18211,7 +18211,11 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/WatcherResponse"
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
                 }
               }
             }
@@ -70070,23 +70074,6 @@
           }
         },
         "required" : [ "list", "entryCount" ]
-      },
-      "WatcherResponse" : {
-        "type" : "object",
-        "properties" : {
-          "local" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
-          },
-          "federated" : {
-            "type" : "array",
-            "items" : { }
-          }
-        },
-        "required" : [ "local", "federated" ]
       },
       "WebAuthnBeginResponse" : {
         "type" : "object",

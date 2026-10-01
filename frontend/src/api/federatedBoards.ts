@@ -37,7 +37,6 @@ import type {
     MemberCompletion,
     TicketLabelMapping,
     TicketSummary,
-    WatcherResponse,
 } from './generated/schema'
 
 export type BoardShareModeName = components['schemas']['BoardShareMode']
@@ -146,8 +145,9 @@ export async function getAttachments(partnerUid: string, boardKey: string, ticke
     return res.data
 }
 
-export async function getWatchers(partnerUid: string, boardKey: string, ticketNumber: number): Promise<WatcherResponse> {
-    const res = await client.get<WatcherResponse>(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/watchers`)
+/** The partner station's members who watch the ticket. */
+export async function getWatchers(partnerUid: string, boardKey: string, ticketNumber: number): Promise<number[]> {
+    const res = await client.get<number[]>(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/watchers`)
     return res.data
 }
 

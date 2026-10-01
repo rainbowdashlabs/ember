@@ -144,10 +144,7 @@ export function useBoardApi() {
     }
 
     async function getWatchers(): Promise<number[]> {
-        if (isFederated.value) {
-            const data = await federatedBoards.getWatchers(partnerUid.value!, boardKey.value, ticketNumber.value)
-            return data.local
-        }
+        if (isFederated.value) return federatedBoards.getWatchers(partnerUid.value!, boardKey.value, ticketNumber.value)
         return boards.getWatchers(boardKey.value, ticketNumber.value)
     }
 
