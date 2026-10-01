@@ -210,6 +210,14 @@ public class TwoFactorService {
         return new TotpEnrollment(secret, uri, qr, codes);
     }
 
+    /**
+     * Enrols an authenticator app once a code from it proves it holds the secret.
+     *
+     * <p>The confirming code counts as used: it cannot pass a sign-in or step-up afterwards, for
+     * the same reason a code that passed a sign-in cannot pass a second one.
+     *
+     * @return false when the code does not match the secret
+     */
     public boolean confirmTotpEnrollment(
             int accountId,
             String secret,
@@ -217,7 +225,8 @@ public class TwoFactorService {
             List<String> recoveryCodes,
             @Nullable String userAgent,
             @Nullable String country) {
-        if (totpService.matchStep(secret, code).isEmpty()) {
+        var step = totpService.matchStep(secret, code);
+        if (step.isEmpty()) {
             return false;
         }
 
@@ -232,6 +241,7 @@ public class TwoFactorService {
                 (short) config.digits(),
                 (short) config.periodSeconds(),
                 config.algorithm());
+        repository.updateLastUsedStep(factor.id(), step.getAsLong());
 
         createBackupCodeFactor(accountId, recoveryCodes);
 

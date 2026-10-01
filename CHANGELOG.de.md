@@ -44,6 +44,7 @@
 - **Eine Wachen-Bewerbung ließ sich ohne die Bestätigungsmail bestätigen.** Die Bewerbung um eine neue Wache antwortete mit dem Code, der die Adresse der Bewerbung bestätigt, sodass sich die Adresse bestätigen ließ, ohne die Mail je erhalten zu haben. Der Code erreicht die Bewerbung jetzt nur noch über diese Mail.
 - **Die Neuigkeiten-Verwaltung konnte Kommentare anderer Wachen entfernen.** Wer Neuigkeiten verwaltet, konnte einen Kommentar zu einer Neuigkeit einer anderen Wache über seine Nummer entfernen. Ein Kommentar lässt sich jetzt nur noch aus seiner eigenen Wache entfernen; bei Neuigkeiten, die die Instanz an alle Wachen richtet, ist das die Wache, aus der er geschrieben wurde.
 - **Dateien einer Wache konnte jeder lesen, der auf der Instanz angemeldet war.** Wer angemeldet, aber kein Mitglied einer Wache war, konnte ihre Mediendateien, Bilder und Dokumente öffnen, ihre Mediendateien auflisten und ihren Verbund sehen, indem er die Wache angab. Das ist jetzt nur noch Mitgliedern der Wache möglich.
+- **Der Code, mit dem eine Authenticator-App eingerichtet wurde, ließ sich noch einmal verwenden.** Der Code, der eine neue Authenticator-App bestätigte, wurde innerhalb seiner kurzen Gültigkeit noch von der nächsten Anmeldung oder Bestätigung angenommen. Jetzt gilt er als verbraucht, sobald die App eingerichtet ist.
 
 ### Änderungen
 

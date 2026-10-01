@@ -104,11 +104,27 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertTrue(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), enrollCode, enrollment.recoveryCodes(), "ua", null));
 
-        String loginCode = generateCurrentTotp(enrollment.secret());
+        String loginCode = nextTotp(enrollment.secret());
         assertTrue(service.verifyTotp(accountId, loginCode), "first use of a fresh code should succeed");
         assertFalse(
                 service.verifyTotp(accountId, loginCode),
                 "the same code must be rejected as a replay within its window");
+    }
+
+    /**
+     * The code that confirmed the enrolment is spent: whoever saw it typed in cannot sign in or
+     * step up with it while it is still within its window.
+     */
+    @Test
+    void theEnrolmentCodeCannotBeUsedToSignIn() {
+        int accountId = newAccount();
+        var enrollment = service.beginTotpEnrollment(accountId, "enrol-replay@test.com");
+        String enrollCode = generateCurrentTotp(enrollment.secret());
+        assertTrue(service.confirmTotpEnrollment(
+                accountId, enrollment.secret(), enrollCode, enrollment.recoveryCodes(), "ua", null));
+
+        assertFalse(service.verifyTotp(accountId, enrollCode), "the enrolment code must not pass a sign-in");
+        assertTrue(service.verifyTotp(accountId, nextTotp(enrollment.secret())), "the next code still passes");
     }
 
     /**
@@ -135,7 +151,7 @@ class TwoFactorServiceTest extends RepositoryTestBase {
 
         assertTrue(shared.confirmTotpEnrollment(
                 accountId, enrollment.secret(), code, enrollment.recoveryCodes(), "ua", null));
-        assertTrue(shared.verifyTotp(accountId, code));
+        assertFalse(shared.verifyTotp(accountId, code), "the enrolment spent the code");
 
         verify(totp, times(2)).matchStep(enrollment.secret(), code);
     }
@@ -149,7 +165,7 @@ class TwoFactorServiceTest extends RepositoryTestBase {
                 accountId, enrollment.secret(), firstCode, enrollment.recoveryCodes(), "ua", null));
 
         // verifyTotp with a valid code succeeds
-        assertTrue(service.verifyTotp(accountId, generateCurrentTotp(enrollment.secret())));
+        assertTrue(service.verifyTotp(accountId, nextTotp(enrollment.secret())));
         // wrong code fails
         assertFalse(service.verifyTotp(accountId, "000000"));
 
@@ -426,5 +442,13 @@ class TwoFactorServiceTest extends RepositoryTestBase {
      */
     private String generateCurrentTotp(String secret) {
         return TotpCodes.current(secret);
+    }
+
+    /**
+     * The code an authenticator app shows in the next period, which the drift window accepts, for
+     * a check that follows a code already spent in this one.
+     */
+    private String nextTotp(String secret) {
+        return TotpCodes.at(secret, Instant.now().getEpochSecond() + 30);
     }
 }
