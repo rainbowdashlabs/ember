@@ -30,8 +30,8 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'replace'): void
-  (e: 'create'): void
+  replace: []
+  create: []
 }>()
 
 const {t} = useI18n()
