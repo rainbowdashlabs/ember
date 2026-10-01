@@ -5,12 +5,11 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -35,13 +34,11 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.station.service.StationService;
-import io.javalin.http.Context;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -69,12 +66,10 @@ import static org.mockito.Mockito.when;
  * the appointment and the appointment's questions on its own, so a list of a hundred people cost
  * some six hundred round trips. The rows must still say exactly what they said before.
  */
-// TODO: ask through RouteHarness once the per-date cancellation rework of the registration routes lands
 class RegistrationListReadsTest {
     private static final int STATION_ID = 3;
     private static final int EVENT_ID = 9;
     private static final int GUARDIAN_ID = 500;
-    private static final int MANAGER_ID = 900;
     private static final int FIELD_ID = 77;
     private static final LocalDate DATE = LocalDate.of(2026, 9, 2);
     private static final UUID STATION_UID = UUID.randomUUID();
@@ -82,9 +77,8 @@ class RegistrationListReadsTest {
     private StationMemberRepository memberRepository;
     private EventCrudService crudService;
     private EventFieldService eventFieldService;
+    private EventRegistrationService registrationService;
     private EventRegistrationFieldService registrationFieldService;
-    private MemberNameResolver nameResolver;
-    private MemberIdentityFactory identityFactory;
     private EventRegistrationRoutes routes;
 
     private static StationMember member(int id) {
@@ -132,9 +126,10 @@ class RegistrationListReadsTest {
         memberRepository = mock(StationMemberRepository.class);
         crudService = mock(EventCrudService.class);
         eventFieldService = mock(EventFieldService.class);
+        registrationService = mock(EventRegistrationService.class);
         registrationFieldService = mock(EventRegistrationFieldService.class);
-        nameResolver = mock(MemberNameResolver.class);
-        identityFactory = mock(MemberIdentityFactory.class);
+        var nameResolver = mock(MemberNameResolver.class);
+        var identityFactory = mock(MemberIdentityFactory.class);
 
         StationEvent event = mock(StationEvent.class);
         when(event.name()).thenReturn("Zeltlager");
@@ -147,7 +142,7 @@ class RegistrationListReadsTest {
 
         routes = new EventRegistrationRoutes(
                 crudService,
-                mock(EventRegistrationService.class),
+                registrationService,
                 mock(EventRestrictionService.class),
                 nameResolver,
                 mock(GuardianPolicy.class),
@@ -172,43 +167,19 @@ class RegistrationListReadsTest {
         when(eventFieldService.findByEvent(EVENT_ID, DATE)).thenReturn(List.of(driversNaming(memberIds)));
     }
 
-    private static Context managerAsking() {
-        Context ctx = mock(Context.class);
-        when(ctx.attribute(ApiServer.ATTR_SESSION))
-                .thenReturn(new UserSession(
-                        new Account(
-                                1,
-                                null,
-                                "manager@test.com",
-                                null,
-                                "Mara",
-                                "Nager",
-                                true,
-                                null,
-                                "Mara Nager",
-                                null,
-                                null),
-                        1,
-                        STATION_ID,
-                        STATION_UID,
-                        member(MANAGER_ID),
-                        Set.of(StationPermission.EVENT_EDIT),
-                        Set.of(),
-                        null));
-        return ctx;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<RegistrationResponse> list(List<EventRegistration> registrations) throws Exception {
-        Method mapper =
-                EventRegistrationRoutes.class.getDeclaredMethod("toRegistrationResponses", Context.class, List.class);
-        mapper.setAccessible(true);
-        return (List<RegistrationResponse>) mapper.invoke(routes, managerAsking(), registrations);
+    /** Asks for the date's list as somebody who runs the station's appointments. */
+    private List<RegistrationResponse> list(List<EventRegistration> registrations) {
+        when(registrationService.findByEventAndDate(EVENT_ID, DATE)).thenReturn(registrations);
+        var harness = RouteHarness.serving(routes);
+        var answer = harness.request(client -> client.get(
+                RouteHarness.PREFIX + "/events/%d/registrations?date=%s".formatted(EVENT_ID, DATE),
+                harness.as(TestSessions.member(STATION_ID, StationPermission.USER, StationPermission.EVENT_EDIT))));
+        return List.of(RouteHarness.read(answer, RegistrationResponse[].class));
     }
 
     @ParameterizedTest
     @ValueSource(ints = {1, 40})
-    void theReadsDoNotGrowWithTheList(int size) throws Exception {
+    void theReadsDoNotGrowWithTheList(int size) {
         var ids = memberIds(size);
         placed(ids);
 
@@ -226,7 +197,7 @@ class RegistrationListReadsTest {
 
     /** A child placed by their guardian through a question reads as it always did. */
     @Test
-    void aRowPlacedByAGuardianThroughAQuestionReadsAsBefore() throws Exception {
+    void aRowPlacedByAGuardianThroughAQuestionReadsAsBefore() {
         placed(List.of(7));
 
         var row = list(List.of(placedByTheGuardian(1007, 7))).getFirst();
@@ -252,7 +223,7 @@ class RegistrationListReadsTest {
 
     /** A member the station no longer knows keeps an empty name and no identity, as before. */
     @Test
-    void anUnknownMemberReadsWithAnEmptyName() throws Exception {
+    void anUnknownMemberReadsWithAnEmptyName() {
         placed(List.of());
 
         var row = list(List.of(placedByTheGuardian(1008, 8))).getFirst();
