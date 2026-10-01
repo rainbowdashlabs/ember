@@ -97,6 +97,8 @@
 - **Attendance fields without a default were given one.** Opening an attendance field without a default value in the template editor showed it as having one, and saving it stored an empty text, a zero or a no. The editor now shows such a field without a default.
 - **The registration limit was missing from the registrations overview.** The overview of registrations did not show how many places an appointment has. It now shows the limit beside the appointment.
 - **Restricted news entries showed no lock.** A news entry meant for only part of the station appeared without the lock that marks it. It now shows the lock in the news list and on the entry.
+- **New appointment categories forgot some settings.** A new category was saved without its limit of shown appointments and without its public setting, so both had to be set again afterwards. They are now saved with the category.
+- **Editing an appointment category could change its order.** Saving a category moved it to the top of the list. It now keeps its place.
 
 ## v26.19.5
 

@@ -52,14 +52,17 @@ public class EventCategoryService {
     /**
      * Creates a new event category.
      *
-     * @param stationId the station ID
-     * @param name      the category name
-     * @param position  the display order position
-     * @param color     optional display color (#RRGGBB), or null
+     * @param stationId      the station ID
+     * @param name           the category name
+     * @param position       the display order position
+     * @param maxShownEvents how many upcoming events of the category the overview shows, or null for all
+     * @param isPublic       whether the category's events show on the public calendar
+     * @param color          optional display color (#RRGGBB), or null
      * @return the created category
      */
-    public EventCategory create(int stationId, String name, int position, String color) {
-        var category = categoryRepository.create(stationId, name, position, color);
+    public EventCategory create(
+            int stationId, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
+        var category = categoryRepository.create(stationId, name, position, maxShownEvents, isPublic, color);
         log.info("Created event category {} for station {}", category.id(), stationId);
         return category;
     }

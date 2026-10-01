@@ -42,6 +42,7 @@ const editName = ref('')
 const editMaxShown = ref<number | null>(null)
 const editPublic = ref(false)
 const editColor = ref<string>('')
+const editPosition = ref(0)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   categories.value = await events.listCategories()
@@ -66,6 +67,7 @@ function openCreate() {
   editMaxShown.value = null
   editPublic.value = false
   editColor.value = ''
+  editPosition.value = categories.value.length
   editOpen.value = true
 }
 
@@ -75,6 +77,7 @@ function openEdit(cat: EventCategory) {
   editMaxShown.value = cat.maxShownEvents ?? null
   editPublic.value = cat.isPublic ?? false
   editColor.value = cat.color ?? ''
+  editPosition.value = cat.position
   editOpen.value = true
 }
 
@@ -89,7 +92,7 @@ function record(e: unknown) {
 async function saveCategory() {
   const data = {
     name: editName.value,
-    position: 0,
+    position: editPosition.value,
     maxShownEvents: editMaxShown.value || null,
     isPublic: editPublic.value,
     color: editColor.value ? editColor.value : null,

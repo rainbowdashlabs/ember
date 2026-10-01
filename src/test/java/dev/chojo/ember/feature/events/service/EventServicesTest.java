@@ -135,10 +135,12 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCategory() {
-        var cat = categoryService.create(station.id(), "Training", 0, "#ff6421");
+        var cat = categoryService.create(station.id(), "Training", 0, 3, true, "#ff6421");
         assertNotNull(cat);
         assertEquals("Training", cat.name());
         assertEquals("#ff6421", cat.color());
+        assertEquals(3, cat.maxShownEvents());
+        assertTrue(cat.isPublic());
         categoryId = cat.id();
     }
 
@@ -422,7 +424,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(53)
     void reorderCategories() {
-        var cat2 = categoryService.create(station.id(), "Category 2", 1, null);
+        var cat2 = categoryService.create(station.id(), "Category 2", 1, null, false, null);
         categoryService.reorder(station.id(), List.of(cat2.id(), categoryId));
         assertEquals(0, categoryService.findById(cat2.id()).orElseThrow().position());
         assertEquals(1, categoryService.findById(categoryId).orElseThrow().position());
@@ -432,7 +434,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void deleteCategory() {
-        var cat = categoryService.create(station.id(), "Temp Cat", 99, null);
+        var cat = categoryService.create(station.id(), "Temp Cat", 99, null, false, null);
         assertTrue(categoryService.delete(cat.id()));
         assertTrue(categoryService.findById(cat.id()).isEmpty());
     }

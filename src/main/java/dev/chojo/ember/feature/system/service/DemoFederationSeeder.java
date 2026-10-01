@@ -410,7 +410,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         }
 
         // Create a public event on the partner station (visible via federation)
-        var eventCategory = categoryService.create(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
+        var eventCategory = categoryService.create(partnerStation.id(), "Gemeinsame Übung", 0, null, false, "#3694ff");
         var partnerDays = clock.of(partnerStation);
         LocalDate partnerToday = partnerDays.today();
         Instant nextSatStart = partnerDays.at(

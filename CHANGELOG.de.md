@@ -97,6 +97,8 @@
 - **Anwesenheitsfelder ohne Vorgabe bekamen eine.** Ein Anwesenheitsfeld ohne Vorgabewert erschien im Vorlagen-Editor so, als hätte es einen, und beim Speichern wurde ein leerer Text, eine Null oder ein Nein hinterlegt. Der Editor zeigt solche Felder jetzt ohne Vorgabe.
 - **Im Anmeldeüberblick fehlte die Teilnehmergrenze.** Der Überblick über die Anmeldungen zeigte nicht, wie viele Plätze ein Termin hat. Die Grenze steht jetzt neben dem Termin.
 - **Eingeschränkte Neuigkeiten zeigten kein Schloss.** Eine Neuigkeit, die nur für einen Teil der Wache bestimmt ist, erschien ohne das Schloss, das sie kennzeichnet. Sie zeigt es jetzt in der Liste der Neuigkeiten und beim Eintrag.
+- **Neue Terminkategorien vergaßen Einstellungen.** Eine neue Kategorie wurde ohne die Zahl der angezeigten Termine und ohne ihre Einstellung „öffentlich“ gespeichert, sodass beides danach noch einmal gesetzt werden musste. Beides wird jetzt mit der Kategorie gespeichert.
+- **Das Bearbeiten einer Terminkategorie konnte ihre Reihenfolge ändern.** Beim Speichern rückte eine Kategorie an den Anfang der Liste. Sie behält jetzt ihren Platz.
 
 ## v26.19.5
 

@@ -146,7 +146,13 @@ public class EventStructureRoutes implements Routes {
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
-                .json(categoryService.create(session.stationId(), req.name(), req.position(), req.color()));
+                .json(categoryService.create(
+                        session.stationId(),
+                        req.name(),
+                        req.position(),
+                        req.maxShownEvents(),
+                        req.isPublic() != null && req.isPublic(),
+                        req.color()));
     }
 
     @OpenApi(
