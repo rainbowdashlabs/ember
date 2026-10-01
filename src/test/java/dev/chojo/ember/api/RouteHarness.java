@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.auth.AccessGate;
 import dev.chojo.ember.api.auth.CsrfGuard;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.SessionGate;
@@ -25,7 +26,6 @@ import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
-import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Request;
@@ -243,27 +243,33 @@ public final class RouteHarness {
     }
 
     private ApiServer server() {
+        Demo demo = new Demo();
+        ClusterRepository clusters = mock(ClusterRepository.class);
         return new ApiServer(
                 new LinkedHashSet<>(Arrays.asList(routes)),
                 new Api(),
-                new Auth(),
-                new Demo(),
-                accessManager,
+                demo,
                 stations,
-                mock(ClusterRepository.class),
+                clusters,
                 mock(ApiRequestLogger.class),
-                mock(DemoService.class),
                 mock(StationTrafficRecorder.class),
                 mock(StationResolver.class),
                 mock(AuthBucketClassifier.class),
                 mock(PageHitRecorder.class),
                 mock(RefererDomainExtractor.class),
                 mock(BotClassifier.class),
-                mock(TwoFactorService.class),
-                mock(StepUpGuard.class),
                 network,
                 new GlobalRateLimiter(),
-                sessionGate());
+                new AccessGate(
+                        accessManager,
+                        sessionGate(),
+                        mock(StepUpGuard.class),
+                        stations,
+                        clusters,
+                        demo,
+                        mock(DemoService.class)),
+                new ResponseHeaderPolicy(demo, stations),
+                new ExceptionMapping(demo));
     }
 
     /**

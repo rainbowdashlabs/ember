@@ -5,53 +5,35 @@
  */
 package dev.chojo.ember.api;
 
-import dev.chojo.ember.api.auth.ClusterPermission;
-import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.api.auth.SessionCookies;
-import dev.chojo.ember.api.auth.SessionGate;
-import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.auth.AccessGate;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
-import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
-import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyForTransferException;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
-import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
-import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.DevErrorWriter;
 import dev.chojo.ember.util.LogRedaction;
-import dev.chojo.ember.util.Sha256;
 import io.javalin.Javalin;
 import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
 import io.javalin.config.JavalinConfig;
-import io.javalin.config.RoutesConfig;
 import io.javalin.config.SizeUnit;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HandlerType;
-import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.UnauthorizedResponse;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
-import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletResponse;
@@ -60,15 +42,9 @@ import org.eclipse.jetty.server.handler.GracefulHandler;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.exc.StreamReadException;
-import tools.jackson.databind.exc.MismatchedInputException;
-import tools.jackson.databind.exc.UnrecognizedPropertyException;
-import tools.jackson.databind.exc.ValueInstantiationException;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -80,8 +56,9 @@ import static java.util.Objects.requireNonNullElse;
 
 /**
  * Configures and starts the Javalin HTTP server.
- * Sets up CORS, OpenAPI/Swagger, authentication/authorization, exception handling,
- * cache-control headers, demo mode guards, and registers all feature route groups.
+ * Sets up CORS, OpenAPI/Swagger, rate limits, demo mode guards and request logging, and wires the
+ * {@link AccessGate}, the {@link ResponseHeaderPolicy} and the {@link ExceptionMapping} into the
+ * application before registering all feature route groups.
  */
 @Singleton
 public class ApiServer {
@@ -91,7 +68,7 @@ public class ApiServer {
     public static final Duration STOP_TIMEOUT = Duration.ofSeconds(10);
 
     private static final Logger log = LoggerFactory.getLogger(ApiServer.class);
-    private static final String API_PREFIX = "/api/v1";
+    static final String API_PREFIX = "/api/v1";
     // Note on the transfer endpoints: /station/transfer/create-token and
     // /station/transfer/abort are NOT blocked here on purpose. They are mandatory for the
     // cross-instance transfer test harness (the compose.dev.yaml "transfer" profile), and the
@@ -136,68 +113,59 @@ public class ApiServer {
 
     private final Set<Routes> routes;
     private final Api apiConfig;
-    private final Auth authConfig;
     private final Demo demoConfig;
-    private final AccessManager accessManager;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
     private final ApiRequestLogger apiRequestLogger;
-    private final DemoService demoService;
     private final StationTrafficRecorder trafficRecorder;
     private final StationResolver stationResolver;
     private final AuthBucketClassifier authClassifier;
     private final PageHitRecorder pageHitRecorder;
     private final RefererDomainExtractor refererExtractor;
     private final BotClassifier botClassifier;
-    private final TwoFactorService twoFactorService;
-    private final StepUpGuard stepUpGuard;
     private final Network network;
     private final GlobalRateLimiter globalRateLimiter;
+    private final AccessGate accessGate;
+    private final ResponseHeaderPolicy responseHeaderPolicy;
+    private final ExceptionMapping exceptionMapping;
     private volatile Javalin app;
-    private final SessionGate sessionGate;
 
     @Inject
     public ApiServer(
             Set<Routes> routes,
             Api apiConfig,
-            Auth authConfig,
             Demo demoConfig,
-            AccessManager accessManager,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
             ApiRequestLogger apiRequestLogger,
-            DemoService demoService,
             StationTrafficRecorder trafficRecorder,
             StationResolver stationResolver,
             AuthBucketClassifier authClassifier,
             PageHitRecorder pageHitRecorder,
             RefererDomainExtractor refererExtractor,
             BotClassifier botClassifier,
-            TwoFactorService twoFactorService,
-            StepUpGuard stepUpGuard,
             Network network,
             GlobalRateLimiter globalRateLimiter,
-            SessionGate sessionGate) {
+            AccessGate accessGate,
+            ResponseHeaderPolicy responseHeaderPolicy,
+            ExceptionMapping exceptionMapping) {
         this.routes = routes;
         this.apiConfig = apiConfig;
-        this.authConfig = authConfig;
         this.demoConfig = demoConfig;
-        this.accessManager = accessManager;
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
         this.apiRequestLogger = apiRequestLogger;
-        this.demoService = demoService;
         this.trafficRecorder = trafficRecorder;
         this.stationResolver = stationResolver;
         this.authClassifier = authClassifier;
         this.pageHitRecorder = pageHitRecorder;
         this.refererExtractor = refererExtractor;
         this.botClassifier = botClassifier;
-        this.twoFactorService = twoFactorService;
-        this.stepUpGuard = stepUpGuard;
         this.network = network;
         this.globalRateLimiter = globalRateLimiter;
-        this.sessionGate = sessionGate;
+        this.accessGate = accessGate;
+        this.responseHeaderPolicy = responseHeaderPolicy;
+        this.exceptionMapping = exceptionMapping;
     }
 
     /**
@@ -438,13 +406,7 @@ public class ApiServer {
             config.routes.before(ApiServer::traceRequest);
             config.routes.after(ApiServer::traceResponse);
 
-            config.routes.after(this::applyBrowserSecurityHeaders);
-
-            // Cache-control headers
-            config.routes.after(ApiServer::applyCacheHeaders);
-
-            // Federation response headers
-            config.routes.after(this::applyFederationHeaders);
+            responseHeaderPolicy.install(config.routes);
 
             config.requestLogger.http(this::recordTiming);
             config.requestLogger.http(this::recordTraffic);
@@ -476,10 +438,10 @@ public class ApiServer {
                 config.routes.before(this::handleDemoGuard);
             }
 
-            config.routes.beforeMatched(this::handleAccess);
+            config.routes.beforeMatched(accessGate);
             config.routes.beforeMatched(this::handleStationReadOnly);
 
-            setupExceptionHandlers(config.routes);
+            exceptionMapping.install(config.routes);
 
             config.routes.get(ApiDocumentation.PATH, ApiDocumentation.load());
 
@@ -575,144 +537,6 @@ public class ApiServer {
     }
 
     /**
-     * Before-matched handler that enforces authentication and role-based authorization.
-     * Resolves the session from the session cookie, stores it as a context attribute,
-     * and checks that the user has at least one of the required route roles.
-     *
-     * <p>{@link SessionGate} does the session's part: it refuses a change that does not carry the
-     * token proving it came from this site's pages, renews a session that has used up half of its
-     * lifetime, and clears a cookie naming no live session on the way to the 401.
-     *
-     * <p>A station or cluster header naming something this instance cannot find is answered as a
-     * bad request, not as an unauthorized one. Only the session says whether the sign-in still
-     * stands, and every client reads a 401 as the sign-in being over: answering a stale header
-     * that way threw away a perfectly good session and put the reader back on the login screen,
-     * which is the one thing a wrong header must not be able to do.
-     */
-    private void handleAccess(@NotNull Context ctx) {
-        Set<RouteRole> routeRoles = ctx.routeRoles();
-
-        // Routes with no roles defined are public - still populate session if token or federation headers present
-        if (routeRoles.isEmpty()) {
-            // Try federation signature auth for /remote/ endpoints
-            if (ctx.header("X-Federation-Station-Id") != null) {
-                accessManager
-                        .resolveFederationSession(ctx)
-                        .ifPresent(s -> ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION, s));
-            }
-            SessionCookies.token(ctx).ifPresent(publicToken -> attachPublicSession(ctx, publicToken));
-            return;
-        }
-
-        String token = SessionCookies.token(ctx).orElse(null);
-        if (token == null) {
-            throw new UnauthorizedResponse("Not signed in");
-        }
-
-        Station station = null;
-        String stationIdHeader = ctx.header("X-Station-Id");
-        if (stationIdHeader != null && !stationIdHeader.isBlank()) {
-            try {
-                var uid = UUID.fromString(stationIdHeader);
-                station = stationRepository.findByUid(uid).orElse(null);
-                if (station == null) {
-                    throw new BadRequestResponse("Unknown station");
-                }
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid X-Station-Id header value", e);
-                throw new BadRequestResponse("Invalid X-Station-Id header");
-            }
-        }
-
-        // A request may name a cluster as well as a station: one person can wear both hats at once
-        Cluster cluster = null;
-        String clusterIdHeader = ctx.header("X-Cluster-Id");
-        if (clusterIdHeader != null && !clusterIdHeader.isBlank()) {
-            try {
-                cluster = clusterRepository
-                        .findByUid(UUID.fromString(clusterIdHeader))
-                        .orElseThrow(() -> new BadRequestResponse("Unknown cluster"));
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid X-Cluster-Id header value", e);
-                throw new BadRequestResponse("Invalid X-Cluster-Id header");
-            }
-        }
-
-        // Resolve user session with account info and roles
-        Optional<UserSession> sessionOpt = sessionGate.admit(ctx, token, station, cluster);
-        if (sessionOpt.isEmpty()) {
-            throw new UnauthorizedResponse("Invalid or expired session");
-        }
-
-        UserSession session = sessionOpt.get();
-        ctx.attribute(ATTR_SESSION, session);
-
-        // Track activity for demo idle reset
-        if (demoConfig.enabled()) {
-            demoService.recordActivity();
-        }
-
-        // If route only requires LOGIN, authenticated is enough
-        if (routeRoles.size() == 1 && routeRoles.contains(StationPermission.LOGIN)) {
-            return;
-        }
-
-        // Check if user has any of the required permissions (permissions are already expanded).
-        // Routes can declare a StepUpCategory alongside permissions; permission roles still gate access,
-        // and a fresh 2FA verification is additionally required when any StepUpCategory is present.
-        boolean permissionRequired = false;
-        boolean permissionGranted = false;
-        StepUpCategory stepUpCategory = null;
-        for (RouteRole required : routeRoles) {
-            if (required instanceof StepUpCategory sc) {
-                stepUpCategory = sc;
-                continue;
-            }
-            permissionRequired = true;
-            if (required instanceof StationPermission sp && session.hasPermission(sp)) {
-                permissionGranted = true;
-            } else if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) {
-                permissionGranted = true;
-            } else if (required instanceof ClusterPermission cp && session.hasClusterPermission(cp)) {
-                permissionGranted = true;
-            }
-        }
-
-        if (permissionRequired && !permissionGranted) {
-            // What a route asks for decides which of the three sets the answer should name: telling
-            // somebody their station permissions when the route wanted a cluster one explains nothing.
-            Set<? extends RouteRole> held = routeRoles.stream().anyMatch(r -> r instanceof ClusterPermission)
-                    ? session.clusterPermissions()
-                    : session.permissions();
-            ctx.header("X-Required-Permissions", routeRoles.toString());
-            ctx.header("X-User-Permissions", held.toString());
-            throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + held);
-        }
-
-        if (stepUpCategory != null) {
-            stepUpGuard.require(session, stepUpCategory);
-        }
-    }
-
-    /**
-     * Attaches the session a request to a public route carries, when it carries a live one. Best
-     * effort: a public route works without it, so a station header that names nothing is ignored
-     * rather than refused.
-     */
-    private void attachPublicSession(Context ctx, String token) {
-        Station station = null;
-        String stationId = ctx.header("X-Station-Id");
-        if (stationId != null && !stationId.isBlank()) {
-            try {
-                station =
-                        stationRepository.findByUid(UUID.fromString(stationId)).orElse(null);
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        sessionGate.attach(ctx, token, station);
-    }
-
-    /**
      * Rejects every state-changing request that targets a station which has been flagged
      * read-only for an in-flight cross-instance transfer. Catches both per-session station
      * routes ({@code /api/v1/station/*}) and admin routes that name a specific station via
@@ -763,197 +587,6 @@ public class ApiServer {
     }
 
     /**
-     * Records that nothing was found at an address, quietly where the address is one scanners try
-     * everywhere.
-     *
-     * <p>A 404 is worth an operator's attention when a client asks for something that ought to be
-     * there, and worth none when it is the hundredth guess at a credentials file. Since the address is
-     * part of what the fault log writes down, every spelling of a probe arrived as a fault of its own
-     * and the ones worth reading were lost among them.
-     *
-     * @param ctx     the request that found nothing
-     * @param message what the response said, which for an address no route claims is Javalin's own wording
-     */
-    private void logNotFound(Context ctx, String message) {
-        if (ScannerProbes.looksLikeAProbe(ctx.path())) {
-            log.debug("404 on {} {}: {}", ctx.method(), ctx.path(), message);
-            return;
-        }
-        log.warn("404 on {} {}: {}", ctx.method(), ctx.path(), message);
-    }
-
-    /**
-     * Registers exception handlers that convert exceptions into standardized JSON error responses.
-     *
-     * <p>Every one of them answers with a sentence. A status on its own leaves the reader unable to
-     * tell whether they sent something wrong or Ember fell over, which is the one thing they need
-     * to know before deciding whether to fix it or report it, so the body always carries prose and
-     * the status is chosen to say honestly whose problem this is.
-     *
-     * <p>The technical half of a fault never reaches the reader. A stack trace, a statement, a
-     * constraint name and a file path all stay in the log, and the response carries only the short
-     * reference that finds the log line.
-     */
-    private void setupExceptionHandlers(RoutesConfig routes) {
-        boolean devErrors = demoConfig.dev();
-
-        routes.exception(StepUpRequiredException.class, (err, ctx) -> {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.header("X-StepUp-Required", err.category().name());
-            ctx.json(StepUpChallenge.of(err.category(), err.proofs()));
-        });
-
-        routes.exception(ApiException.class, (err, ctx) -> {
-            logFailure(ctx, err.status().getCode(), err.getMessage(), err, devErrors);
-            ctx.json(new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
-                    .status(err.status());
-        });
-
-        routes.exception(RefusalResponse.class, (err, ctx) -> {
-            logFailure(ctx, err.getStatus(), err.getMessage(), err, devErrors);
-            ctx.json(err.body()).status(err.getStatus());
-        });
-
-        routes.exception(HttpResponseException.class, (err, ctx) -> {
-            int code = err.getStatus();
-            logFailure(ctx, code, err.getMessage(), err, devErrors);
-            Long retryAfter = null;
-            if (err instanceof RateLimits.TooManyRequestsException refused) {
-                retryAfter = refused.retryAfterSeconds();
-                ctx.header("Retry-After", Long.toString(retryAfter));
-            }
-            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage(), retryAfter))
-                    .status(code);
-        });
-
-        routes.exception(IllegalArgumentException.class, (err, ctx) -> {
-            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
-            String said = Failures.readable(err.getMessage()).orElse(Refusal.INPUT_NOT_USABLE.message());
-            ctx.json(ErrorResponseWrapper.of(Refusal.INPUT_NOT_USABLE, said)).status(Refusal.INPUT_NOT_USABLE.status());
-        });
-
-        // A copy that cannot be made is a refusal with a reason, not a fault. It reaches here from the acts
-        // that move files as a side effect of something else - a station joining a cluster or being let go -
-        // where the caller has to be told that nothing happened and why.
-        routes.exception(MigrationException.class, (err, ctx) -> {
-            log.warn("Storage move refused on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            ctx.json(new ErrorResponseWrapper("Storage Unavailable", err.getMessage()))
-                    .status(HttpStatus.BAD_REQUEST);
-        });
-
-        // Somebody who cannot be given an account is the same kind of answer: the address is already
-        // somebody's, and the caller has to be told so. It is mapped here rather than at each route
-        // because provisioning happens as a side effect of several acts, naming a manager for a
-        // station among them, and every route that forgot the mapping turned a refusal into a fault
-        // with no message at all.
-        routes.exception(StationMemberInviteService.ProvisionException.class, (err, ctx) -> {
-            log.warn("Member could not be provisioned on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            ctx.json(new ErrorResponseWrapper("Conflict", err.getMessage())).status(HttpStatus.CONFLICT);
-        });
-
-        routes.exception(StreamReadException.class, (err, ctx) -> {
-            log.warn("Malformed body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            answerRefusal(ctx, Refusal.BODY_NOT_JSON, Refusal.BODY_NOT_JSON.message());
-        });
-
-        routes.exception(MismatchedInputException.class, (err, ctx) -> {
-            log.warn("Rejected body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            if (err instanceof UnrecognizedPropertyException unknown) {
-                answerRefusal(
-                        ctx,
-                        Refusal.BODY_UNEXPECTED_FIELD,
-                        Refusal.BODY_UNEXPECTED_FIELD.message() + ": " + unknown.getPropertyName());
-                return;
-            }
-            answerRefusal(ctx, Refusal.BODY_DOES_NOT_MATCH, atFieldPath(Refusal.BODY_DOES_NOT_MATCH, err.getPath()));
-        });
-
-        routes.exception(ValueInstantiationException.class, (err, ctx) -> {
-            log.warn("Rejected value in body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            answerRefusal(ctx, Refusal.BODY_VALUE_REJECTED, rejectedValueDetail(err));
-        });
-
-        routes.exception(Exception.class, (err, ctx) -> {
-            var refusal = Failures.describe(err);
-            String reference = Failures.reference();
-            boolean ours = refusal.status().getCode() >= 500;
-            if (ours) {
-                log.error("Unhandled exception on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
-            } else {
-                log.warn("Request refused on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
-            }
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            ctx.json(new ErrorResponseWrapper(
-                            refusal.status().getMessage(),
-                            refusal.message(),
-                            refusal.code(),
-                            null,
-                            ours ? reference : null))
-                    .status(refusal.status());
-        });
-    }
-
-    /**
-     * Writes a named refusal as the error body and status it stands for.
-     */
-    private static void answerRefusal(Context ctx, Refusal refusal, String message) {
-        ctx.json(ErrorResponseWrapper.of(refusal, message)).status(refusal.status());
-    }
-
-    /**
-     * Records a failure on its way out, at the volume its status deserves.
-     *
-     * <p>A fault is an error with its stack trace, a miss is whatever {@link #logNotFound} decides,
-     * and an ordinary refusal is a warning without one, because a reader sending something wrong is
-     * not an event an operator needs a trace for. A {@code 401} is left silent: an expired session
-     * is the most ordinary thing that happens here.
-     */
-    private void logFailure(Context ctx, int code, String message, Throwable err, boolean devErrors) {
-        if (code >= 500) {
-            log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message, err);
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            return;
-        }
-        if (code == 404) {
-            logNotFound(ctx, message);
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            return;
-        }
-        if (code >= 400 && code != 401) {
-            log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message);
-        }
-    }
-
-    /**
-     * Names the place in a body a refusal was about, where Jackson recorded one.
-     *
-     * <p>Naming the place is the difference between a reader guessing and a reader looking. The
-     * place is spelled the way the sender wrote it, out of their own field names, so nothing of
-     * the type it failed to become is revealed.
-     */
-    private static String atFieldPath(Refusal refusal, List<JacksonException.Reference> path) {
-        return Failures.fieldPath(path)
-                .map(where -> refusal.message() + ", at " + where)
-                .orElse(refusal.message());
-    }
-
-    /**
-     * Says what was wrong with a value the body carried that whatever it describes refused to take.
-     *
-     * <p>This is the refusal a record writes in its own constructor, so its wording is the most
-     * useful thing there is to pass on, and it is passed on wherever it reads as prose rather than
-     * as machinery.
-     */
-    private static String rejectedValueDetail(ValueInstantiationException err) {
-        String where =
-                Failures.fieldPath(err.getPath()).map(path -> ", at " + path).orElse("");
-        String said = err.getCause() == null ? null : err.getCause().getMessage();
-        return Failures.readable(said)
-                .map(prose -> prose + where)
-                .orElse(Refusal.BODY_VALUE_REJECTED.message() + where);
-    }
-
-    /**
      * Installs a gzip-only compression strategy on the Javalin HTTP config. Universal gzip,
      * brotli explicitly out of scope. The default Javalin {@code excludedMimeTypes}
      * already covers the binary types we want to skip (already-compressed media), so the
@@ -991,48 +624,6 @@ public class ApiServer {
     }
 
     /**
-     * After-handler that sets Cache-Control and ETag headers based on the request path.
-     *
-     * <p>Ordering matters: content-hashed page files get an immutable year-long cache; the public
-     * configuration is revalidated every time because it names the running version; a waiting-list
-     * entry behind its own link is nobody's to keep, so it is stored nowhere; everything else under
-     * {@code /public/} is publicly cacheable; only then are non-public
-     * binary resources given a short private cache. Error responses receive no caching
-     * headers, and the binary-resource match is segment-precise so an authenticated path
-     * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
-     * endpoint) is not mis-tagged as cacheable.
-     */
-    /**
-     * Hardens every response in the browser.
-     *
-     * <p>The API hands out what members uploaded, and {@code SafeInlineMime} answers with
-     * {@code application/octet-stream} for everything it will not show inline. Without
-     * {@code nosniff} a browser may look at the body anyway and render it as HTML, which is the
-     * hole that allow-list exists to close, so this header is what makes the refusal hold.
-     *
-     * <p>Framing is limited to this origin rather than refused outright: the application shows a
-     * PDF, a presentation and a knowledge-base file by pointing an {@code iframe} at the endpoint
-     * that serves it, so a flat refusal blocks the application from displaying its own files while
-     * doing nothing about another site, which the same-origin rule already stops.
-     *
-     * <p>A route that has already asked for something stricter keeps its own referrer policy: the
-     * user feed says {@code no-referrer} so its token cannot travel in a {@code Referer}. Strict
-     * transport security is sent only over HTTPS, and never by a development instance, which is
-     * served over plain HTTP and would pin a browser to a scheme it cannot answer.
-     */
-    private void applyBrowserSecurityHeaders(@NotNull Context ctx) {
-        ctx.header("X-Content-Type-Options", "nosniff");
-        ctx.header("X-Frame-Options", "SAMEORIGIN");
-        ctx.header("Content-Security-Policy", "frame-ancestors 'self'");
-        if (ctx.res().getHeader("Referrer-Policy") == null) {
-            ctx.header("Referrer-Policy", "strict-origin-when-cross-origin");
-        }
-        if (!demoConfig.dev() && "https".equalsIgnoreCase(ctx.scheme())) {
-            ctx.header("Strict-Transport-Security", "max-age=31536000");
-        }
-    }
-
-    /**
      * The scheme the visitor used: the first entry of {@code X-Forwarded-Proto} when a proxy set
      * one, the scheme of the socket request otherwise. Installed as the context resolver so
      * {@link Context#scheme()} answers it everywhere.
@@ -1043,110 +634,5 @@ public class ApiServer {
             return forwarded.split(",")[0].trim();
         }
         return ctx.req().getScheme();
-    }
-
-    private static void applyCacheHeaders(@NotNull Context ctx) {
-        if (ctx.method() != HandlerType.GET) return;
-        if (ctx.statusCode() >= 400) return;
-
-        String path = ctx.path();
-
-        if (path.startsWith(API_PREFIX + "/public/pages/") && path.contains("/files/")) {
-            ctx.header("Cache-Control", "public, max-age=31536000, immutable");
-            ctx.header("Vary", "Accept");
-            return;
-        }
-
-        // What this one says is the version that is running, which is the one thing a deployment
-        // changes. Held for an hour it made every deployment look as though it had not happened.
-        // The tag is still written, so asking again costs a 304 on all the days nothing changed.
-        if (path.equals(API_PREFIX + "/public/config")) {
-            ctx.header("Cache-Control", "public, no-cache");
-            addETag(ctx);
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/public/waiting-list/entry/")) {
-            ctx.header("Cache-Control", "private, no-store");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/public/shared/") || path.startsWith(API_PREFIX + "/public/shared-form/")) {
-            ctx.header("Cache-Control", "private, no-store");
-            ctx.header("Referrer-Policy", "no-referrer");
-            ctx.header("X-Robots-Tag", "noindex");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/public/")) {
-            ctx.header("Cache-Control", "public, max-age=3600");
-            addETag(ctx);
-            return;
-        }
-
-        if (isBinaryResourcePath(path)) {
-            ctx.header("Cache-Control", "private, max-age=300");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/demo/")) {
-            ctx.header("Cache-Control", "public, max-age=60");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/")) {
-            ctx.header("Cache-Control", "private, no-cache");
-            addETag(ctx);
-        }
-    }
-
-    /**
-     * Matches the binary-resource endpoints (avatars, logos, images) by whole path
-     * segment or suffix rather than substring, so unrelated paths that merely contain
-     * {@code avatar}/{@code logo}/{@code image} - such as {@code /auth/logout} - are
-     * excluded.
-     */
-    private static boolean isBinaryResourcePath(String path) {
-        return path.endsWith("/avatar")
-                || path.endsWith("/logo")
-                || path.endsWith("/image")
-                || path.endsWith("/images")
-                || path.contains("/images/")
-                || path.contains("/logo-fragment/");
-    }
-
-    /**
-     * After-handler that sets federation station identity headers on responses from
-     * {@code /federated/} and {@code /remote/} endpoints.
-     * For remote endpoints (server-to-server), the headers identify this station.
-     * For federated endpoints, route handlers set these headers themselves per entity.
-     */
-    private void applyFederationHeaders(@NotNull Context ctx) {
-        String path = ctx.path();
-        if (!path.startsWith(API_PREFIX + "/remote/")) return;
-
-        // For /remote/ responses, identify this station (the one serving the data)
-        FederationSession fedSession = ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION);
-        if (fedSession != null) {
-            stationRepository
-                    .findById(fedSession.stationId())
-                    .ifPresent(station -> FederationHeaders.setStationHeaders(ctx, station));
-        }
-    }
-
-    /**
-     * Tags the response with the SHA-256 of its body, truncated to 16 hex characters. Javalin
-     * compares a tag set here with {@code If-None-Match} when it writes the response and answers
-     * {@code 304 Not Modified} on a match.
-     *
-     * <p>The tag is computed here rather than by Javalin's own generator for two reasons: only the
-     * paths {@link #applyCacheHeaders} names are tagged, and Javalin's generator uses an Adler-32
-     * checksum, for which a different body with the same tag is easy to build, while a truncated
-     * SHA-256 is not.
-     */
-    private static void addETag(@NotNull Context ctx) {
-        String body = ctx.result();
-        if (body == null || body.isEmpty()) return;
-        ctx.header("ETag", "\"" + Sha256.hexPrefix(body, 16) + "\"");
     }
 }
