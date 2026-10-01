@@ -390,7 +390,10 @@ public class PublicFormRoutes implements Routes {
      * @param link      where the reader may go on to, or null
      * @param linkLabel what the link says, or null for the address itself
      */
-    public record PublicFormCompletion(@Nullable String message, @Nullable String link, @Nullable String linkLabel) {}
+    public record PublicFormCompletion(
+            @Nullable String message,
+            @Nullable String link,
+            @Nullable String linkLabel) {}
 
     /**
      * One page of a public form, which the browser walks the way the server does on submit.

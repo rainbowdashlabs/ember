@@ -73,10 +73,7 @@ class TestProtocolRunServiceTest {
         when(tags.findMembers(8)).thenReturn(List.of(member(9, 6, "foreign", null)));
 
         var run = service.start(
-                1,
-                3,
-                11,
-                new ProtocolRunRequest("Herbst", DAY, List.of(1), List.of("MEMBER"), List.of(7), List.of(8)));
+                1, 3, 11, new ProtocolRunRequest("Herbst", DAY, List.of(1), List.of("MEMBER"), List.of(7), List.of(8)));
 
         assertEquals(RUN, run);
         verify(protocols).createRun(1, 3, "Herbst", DAY, 11);

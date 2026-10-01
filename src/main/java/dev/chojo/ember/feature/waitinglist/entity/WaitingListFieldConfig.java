@@ -19,7 +19,8 @@ import java.util.List;
  * @param placeholder placeholder text
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record WaitingListFieldConfig(@Nullable List<String> options, @Nullable String placeholder) {
+public record WaitingListFieldConfig(
+        @Nullable List<String> options, @Nullable String placeholder) {
     public static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
 
     public static WaitingListFieldConfig parse(String json) {

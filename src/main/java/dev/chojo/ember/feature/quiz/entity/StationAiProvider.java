@@ -8,7 +8,12 @@ package dev.chojo.ember.feature.quiz.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import org.jspecify.annotations.Nullable;
 
-public record StationAiProvider(int id, int stationId, String provider, String apiKey, @Nullable String model) {
+public record StationAiProvider(
+        int id,
+        int stationId,
+        String provider,
+        String apiKey,
+        @Nullable String model) {
 
     public static RowMapping<StationAiProvider> map() {
         return row -> new StationAiProvider(

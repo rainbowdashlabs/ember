@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
-
 /**
  * Form audience and sidebar entry point.
  *

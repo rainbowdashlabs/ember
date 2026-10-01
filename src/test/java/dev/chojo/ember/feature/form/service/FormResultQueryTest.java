@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
+import dev.chojo.ember.feature.form.service.FormResultQuery.Match;
 import dev.chojo.ember.feature.form.service.FormResultQuery.ResultFieldCondition;
 import dev.chojo.ember.feature.form.service.FormResultQuery.ResultFilter;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Match;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -58,7 +58,8 @@ class FormResultQueryTest {
 
     @Test
     void conditionsOnDifferentAttributesMustAllHold() {
-        var filter = new ResultFilter(List.of(StationUserType.TRIAL), List.of(10), Match.ANY, null, null, null, null, null);
+        var filter =
+                new ResultFilter(List.of(StationUserType.TRIAL), List.of(10), Match.ANY, null, null, null, null, null);
 
         assertFalse(filter.matches(YOUTH_AND_ACTIVE), "in the group but not of the type");
         assertTrue(filter.matches(YOUTH_ONLY));
@@ -92,8 +93,8 @@ class FormResultQueryTest {
                 List.of(new ResultFieldCondition(31, List.of("false"), null, null)),
                 null,
                 null);
-        var years =
-                new ResultFilter(null, null, null, null, null, List.of(new ResultFieldCondition(32, null, 10.0, 15.0)), null, null);
+        var years = new ResultFilter(
+                null, null, null, null, null, List.of(new ResultFieldCondition(32, null, 10.0, 15.0)), null, null);
 
         assertTrue(sizes.matches(YOUTH_AND_ACTIVE));
         assertFalse(sizes.matches(YOUTH_ONLY), "no answer is no match");

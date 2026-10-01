@@ -208,7 +208,8 @@ public class SelfCheckRoutes implements Routes {
                 task.submittedAt());
     }
 
-    public record HandOutSelfChecksRequest(List<Integer> memberIds, @Nullable String dueOn) {}
+    public record HandOutSelfChecksRequest(
+            List<Integer> memberIds, @Nullable String dueOn) {}
 
     /**
      * A report the member wants that must not go out while the record it names is wrong.

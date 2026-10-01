@@ -137,8 +137,7 @@ public class TestProtocolRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/protocols",
             methods = HttpMethod.GET,
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProtocolListResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProtocolListResponse.class)))
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
         var protocols = service.findProtocols(session.stationId());
@@ -375,8 +374,7 @@ public class TestProtocolRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/protocols/runs/{runId}/members/{memberId}/lock",
             methods = HttpMethod.POST,
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
     private void lockMember(Context ctx) {
         var session = UserSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
@@ -392,8 +390,7 @@ public class TestProtocolRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/protocols/runs/{runId}/members/{memberId}/unlock",
             methods = HttpMethod.POST,
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
     private void unlockMember(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -434,8 +431,7 @@ public class TestProtocolRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/protocols/runs/{runId}/members/{memberId}/complete",
             methods = HttpMethod.POST,
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
     private void completeMember(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -550,7 +546,10 @@ public class TestProtocolRoutes implements Routes {
      * @param description what the protocol is about, or {@code null} for none
      * @param passThreshold the share of points needed to pass, or {@code null} for no threshold
      */
-    public record ProtocolRequest(String name, @Nullable String description, @Nullable Integer passThreshold) {}
+    public record ProtocolRequest(
+            String name,
+            @Nullable String description,
+            @Nullable Integer passThreshold) {}
 
     /**
      * A section of a protocol as it is created or changed.
@@ -572,7 +571,10 @@ public class TestProtocolRoutes implements Routes {
      * @param points what ticking it is worth, or {@code null} for one point
      */
     public record ProtocolItemRequest(
-            String label, @Nullable String description, @Nullable Double points, @Nullable Integer position) {}
+            String label,
+            @Nullable String description,
+            @Nullable Double points,
+            @Nullable Integer position) {}
 
     /**
      * The ticked state of the checkboxes of one member's sheet, by checkbox id.

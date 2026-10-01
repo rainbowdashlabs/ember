@@ -149,12 +149,17 @@ class QuizGenerationServiceTest {
         catalog(STATION);
         var shortOfOptions = question(
                 QuizQuestionType.MULTIPLE_CHOICE,
-                new QuestionConfig.MultipleChoice(List.of(new ChoiceOption("Red", true), new ChoiceOption("Blue", false)), 1));
+                new QuestionConfig.MultipleChoice(
+                        List.of(new ChoiceOption("Red", true), new ChoiceOption("Blue", false)), 1));
         when(shortOfOptions.title()).thenReturn("Colour?");
         var full = question(
                 QuizQuestionType.MULTIPLE_CHOICE,
                 new QuestionConfig.MultipleChoice(
-                        List.of(new ChoiceOption("A", true), new ChoiceOption("B", false), new ChoiceOption("C", false)), 1));
+                        List.of(
+                                new ChoiceOption("A", true),
+                                new ChoiceOption("B", false),
+                                new ChoiceOption("C", false)),
+                        1));
         var noRightAnswer = question(
                 QuizQuestionType.MULTIPLE_CHOICE,
                 new QuestionConfig.MultipleChoice(List.of(new ChoiceOption("A", false)), 1));

@@ -18,8 +18,8 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalytics;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseDetail;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntry;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -173,13 +173,11 @@ public class PageRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/pages/polls/forms/{id}/responses",
             methods = HttpMethod.GET,
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
     @OpenApi(
             path = "/api/v1/pages/forms/{id}/responses",
             methods = HttpMethod.GET,
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
     private void listFormResponses(Context ctx, FormPurpose expected) {
         var form = resolvePagePublicForm(ctx, expected);
         ctx.json(formAnalyticsAssembler.listResponses(form.id()));

@@ -23,7 +23,10 @@ import java.util.List;
  * @param containers the name of every container carrying it, which shares the same numbering
  */
 public record SelfCheckIdentifierMatch(
-        SelfCheckIdentifierFinding finding, @Nullable String typed, List<SelfCheckMatchedPiece> pieces, List<String> containers) {
+        SelfCheckIdentifierFinding finding,
+        @Nullable String typed,
+        List<SelfCheckMatchedPiece> pieces,
+        List<String> containers) {
 
     /**
      * The answer for a member who typed nothing, which is a perfectly ordinary answer.

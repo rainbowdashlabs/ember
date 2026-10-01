@@ -258,9 +258,7 @@ public class WaitingListRoutes implements Routes {
             tags = {"Waiting List"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListRegisterRequest.class)),
             responses = {
-                @OpenApiResponse(
-                        status = "201",
-                        content = @OpenApiContent(from = WaitingListAccessResponse.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = WaitingListAccessResponse.class)),
                 @OpenApiResponse(status = "400")
             })
     private void registerViaInvite(Context ctx) {
@@ -299,7 +297,8 @@ public class WaitingListRoutes implements Routes {
             summary = "View waiting list entry by access token",
             tags = {"Waiting List"},
             pathParams = @OpenApiParam(name = "token", required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListPublicStatus.class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListPublicStatus.class)))
     @StationFree("the entry token is what a family holds instead of a login, and it names one entry")
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
@@ -468,7 +467,8 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List waiting lists",
             tags = {"Waiting List"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListWithCount[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListWithCount[].class)))
     private void listAll(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var lists = service.findByStation(session.member().stationId());
@@ -703,7 +703,9 @@ public class WaitingListRoutes implements Routes {
             path = "/api/v1/waiting-lists/{id}/entries",
             methods = HttpMethod.GET,
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListEntryWithScore[].class)))
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = WaitingListEntryWithScore[].class)))
     private void listEntries(Context ctx) {
         int listId = pathInt(ctx, "id");
         verifyListOwnership(ctx, listId);
@@ -981,7 +983,8 @@ public class WaitingListRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/public/station/{stationUid}/waitlists",
             methods = HttpMethod.GET,
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicWaitlistSummary[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicWaitlistSummary[].class)))
     private void listPublicWaitlists(Context ctx) {
         int stationId = resolveStation(ctx);
         var lists = service.findPublicByStation(stationId);
@@ -994,7 +997,9 @@ public class WaitingListRoutes implements Routes {
             path = "/api/v1/public/station/{stationUid}/waitlists/{wid}/form",
             methods = HttpMethod.GET,
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicWaitlistFormResponse.class)))
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = PublicWaitlistFormResponse.class)))
     private void getPublicForm(Context ctx) {
         int stationId = resolveStation(ctx);
         int wid = pathInt(ctx, "wid");
@@ -1153,7 +1158,10 @@ public class WaitingListRoutes implements Routes {
      * @param note    anything they wrote alongside it
      */
     public record WaitingListInvitationAnswerRequest(
-            @Nullable Integer eventId, @Nullable String date, @Nullable String answer, @Nullable String note) {}
+            @Nullable Integer eventId,
+            @Nullable String date,
+            @Nullable String answer,
+            @Nullable String note) {}
 
     /**
      * @param sendsMail whether the list writes to the people on it, sending nothing at all where it
@@ -1190,7 +1198,8 @@ public class WaitingListRoutes implements Routes {
 
     public record WaitingListVisibleFieldsRequest(@Nullable List<Integer> fieldIds) {}
 
-    public record WaitingListInviteRequest(@Nullable Integer maxUses, @Nullable String expiresAt) {}
+    public record WaitingListInviteRequest(
+            @Nullable Integer maxUses, @Nullable String expiresAt) {}
 
     public record WaitingListEntryRequest(
             String firstname,
@@ -1219,7 +1228,10 @@ public class WaitingListRoutes implements Routes {
             boolean belowJoinAge) {}
 
     public record WaitingListGuardianRequest(
-            @Nullable String firstname, @Nullable String lastname, @Nullable String email, @Nullable String phone) {}
+            @Nullable String firstname,
+            @Nullable String lastname,
+            @Nullable String email,
+            @Nullable String phone) {}
 
     /**
      * The appointment an invitation is about.
@@ -1229,7 +1241,9 @@ public class WaitingListRoutes implements Routes {
      * @param arrivalTime when they should be there, as {@code HH:MM}, or null to say nothing about it
      */
     public record WaitingListInvitationRequest(
-            @Nullable Integer eventId, @Nullable String date, @Nullable String arrivalTime) {}
+            @Nullable Integer eventId,
+            @Nullable String date,
+            @Nullable String arrivalTime) {}
 
     /**
      * Where a public registration or its confirmation stands.

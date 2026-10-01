@@ -116,7 +116,8 @@ class FormResultTallyTest {
         assertEquals(4.7, tally.statementAverages().get("o0"));
         assertEquals(3.5, tally.statementAverages().get("o1"));
         assertFalse(
-                tally.statementAverages().containsKey("o2"), "a statement nobody rated has no average rather than zero");
+                tally.statementAverages().containsKey("o2"),
+                "a statement nobody rated has no average rather than zero");
     }
 
     @Test

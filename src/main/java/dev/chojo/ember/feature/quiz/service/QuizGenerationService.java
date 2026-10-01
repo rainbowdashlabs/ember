@@ -224,7 +224,9 @@ public class QuizGenerationService {
             List<GenerateEntry> entries) {}
 
     public record GenerateEntry(
-            QuizQuestionType quizQuestionType, @Nullable Integer count, @Nullable Integer categoryId) {
+            QuizQuestionType quizQuestionType,
+            @Nullable Integer count,
+            @Nullable Integer categoryId) {
         boolean asksForQuestions() {
             return quizQuestionType != null && count != null && count >= 1;
         }
@@ -237,7 +239,10 @@ public class QuizGenerationService {
             @Nullable Integer targetTotalOptions) {}
 
     public record GeneratedQuestionWithMeta(
-            String title, String config, QuizQuestionType quizQuestionType, @Nullable Integer categoryId) {}
+            String title,
+            String config,
+            QuizQuestionType quizQuestionType,
+            @Nullable Integer categoryId) {}
 
     public record GenerationPollResponse(List<GeneratedQuestionWithMeta> questions, boolean done) {}
 

@@ -512,7 +512,10 @@ public class QuizTestRoutes implements Routes {
     /**
      * @param question the question drawn for the place, or {@code null} where it was deleted since
      */
-    public record FrozenQuestionDetail(int position, @Nullable Integer sectionId, @Nullable QuizQuestion question) {}
+    public record FrozenQuestionDetail(
+            int position,
+            @Nullable Integer sectionId,
+            @Nullable QuizQuestion question) {}
 
     public record QuizTestRequest(
             String title,
@@ -524,11 +527,14 @@ public class QuizTestRoutes implements Routes {
             @Nullable Instant endAt) {}
 
     public record QuizSectionRequest(
-            @Nullable String title, @Nullable String description, @Nullable List<QuizSourceRequest> sources) {}
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable List<QuizSourceRequest> sources) {}
 
     public record QuizSourceRequest(int catalogId, @Nullable Integer categoryId, int questionCount) {}
 
-    public record QuizAccessRequest(Integer memberId, @Nullable Instant closesAt) {}
+    public record QuizAccessRequest(
+            Integer memberId, @Nullable Instant closesAt) {}
 
     /**
      * Who may take a test, as it is stored.

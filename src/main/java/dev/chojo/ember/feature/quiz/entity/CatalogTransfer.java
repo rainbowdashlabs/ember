@@ -27,7 +27,10 @@ import java.util.List;
  * @param questions     the questions, created in the order they appear
  */
 public record CatalogTransfer(
-        int formatVersion, CatalogTransferInfo catalog, List<CatalogTransferCategory> categories, List<CatalogTransferQuestion> questions) {
+        int formatVersion,
+        CatalogTransferInfo catalog,
+        List<CatalogTransferCategory> categories,
+        List<CatalogTransferQuestion> questions) {
 
     /** The shape written by this version. */
     public static final int FORMAT_VERSION = 1;
@@ -43,7 +46,8 @@ public record CatalogTransfer(
      * @param trainingEnabled whether members may train against it
      * @param metadata        where the questions came from
      */
-    public record CatalogTransferInfo(String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
+    public record CatalogTransferInfo(
+            String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
 
         public CatalogTransferInfo {
             description = description != null ? description : "";

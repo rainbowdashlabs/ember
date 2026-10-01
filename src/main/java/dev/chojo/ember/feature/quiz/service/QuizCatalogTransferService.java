@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
-import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferInfo;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferCategory;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferInfo;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferQuestion;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
@@ -77,7 +77,8 @@ public class QuizCatalogTransferService {
             if (!used.contains(category.id())) continue;
             String key = uniqueKey(category.name(), taken);
             keysById.put(category.id(), key);
-            categories.add(new CatalogTransferCategory(key, category.name(), category.description(), category.position()));
+            categories.add(
+                    new CatalogTransferCategory(key, category.name(), category.description(), category.position()));
         }
 
         var entries = questions.stream()
@@ -93,8 +94,8 @@ public class QuizCatalogTransferService {
                         question.position()))
                 .toList();
 
-        var info =
-                new CatalogTransferInfo(catalog.name(), catalog.description(), catalog.trainingEnabled(), catalog.metadata());
+        var info = new CatalogTransferInfo(
+                catalog.name(), catalog.description(), catalog.trainingEnabled(), catalog.metadata());
         return new CatalogTransfer(CatalogTransfer.FORMAT_VERSION, info, categories, entries);
     }
 
@@ -165,7 +166,8 @@ public class QuizCatalogTransferService {
         }
         if (catalogNameRequired
                 && (info == null || info.name() == null || info.name().isBlank())) {
-            problems.add(new CatalogTransferProblem("catalog.name", "The file does not say what the catalog is called"));
+            problems.add(
+                    new CatalogTransferProblem("catalog.name", "The file does not say what the catalog is called"));
         }
         return new ImportPlan(List.copyOf(problems), categoriesByKey, planned);
     }
@@ -247,7 +249,8 @@ public class QuizCatalogTransferService {
         return id == null || id.isNull() || id.isMissingNode() ? null : id.asString();
     }
 
-    private Map<String, CatalogTransferCategory> planCategories(List<CatalogTransferCategory> entries, List<CatalogTransferProblem> problems) {
+    private Map<String, CatalogTransferCategory> planCategories(
+            List<CatalogTransferCategory> entries, List<CatalogTransferProblem> problems) {
         var byKey = new LinkedHashMap<String, CatalogTransferCategory>();
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
@@ -354,14 +357,20 @@ public class QuizCatalogTransferService {
     public record ImportOutcome(QuizCatalog catalog, List<CatalogTransferProblem> problems) {}
 
     private record PlannedQuestion(
-            String categoryKey, QuizQuestionType type, QuestionConfig config, CatalogTransferQuestion entry, int position) {}
+            String categoryKey,
+            QuizQuestionType type,
+            QuestionConfig config,
+            CatalogTransferQuestion entry,
+            int position) {}
 
     /**
      * A file read through in full before anything is written: the problems it carries, the
      * categories its questions may refer to, and the questions themselves.
      */
     private record ImportPlan(
-            List<CatalogTransferProblem> problems, Map<String, CatalogTransferCategory> categories, List<PlannedQuestion> questions) {
+            List<CatalogTransferProblem> problems,
+            Map<String, CatalogTransferCategory> categories,
+            List<PlannedQuestion> questions) {
 
         private boolean rejected() {
             return !problems.isEmpty();

@@ -98,5 +98,8 @@ public class AccountAiCredentialRoutes implements Routes {
      * @param model    the model to ask by default, blank for the provider's default
      * @param apiKey   the key, blank to keep the stored one
      */
-    public record AiCredentialRequest(String provider, @Nullable String model, @Nullable String apiKey) {}
+    public record AiCredentialRequest(
+            String provider,
+            @Nullable String model,
+            @Nullable String apiKey) {}
 }

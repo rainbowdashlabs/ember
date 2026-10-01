@@ -246,7 +246,8 @@ public class FormAnalyticsAssembler {
     public record FormQuestionInfo(
             int questionId, FormQuestionType questionType, String title, FormQuestionConfig config) {
         static FormQuestionInfo of(FormQuestion question) {
-            return new FormQuestionInfo(question.id(), question.formQuestionType(), question.title(), question.config());
+            return new FormQuestionInfo(
+                    question.id(), question.formQuestionType(), question.title(), question.config());
         }
     }
 

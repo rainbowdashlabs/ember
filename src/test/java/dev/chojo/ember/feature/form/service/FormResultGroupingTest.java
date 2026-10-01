@@ -102,7 +102,10 @@ class FormResultGroupingTest {
     void choosingTwoGroupsShowsExactlyThoseEvenWhenOneIsEmpty() {
         var only = List.of(String.valueOf(YOUTH), String.valueOf(OFFICERS));
         var buckets = split(
-                new ResultGrouping(Dimension.GROUP, null, only, null), inGroups(1, YOUTH), inGroups(2, ACTIVE), inGroups(3));
+                new ResultGrouping(Dimension.GROUP, null, only, null),
+                inGroups(1, YOUTH),
+                inGroups(2, ACTIVE),
+                inGroups(3));
 
         assertEquals(only, keys(buckets), "comparing two groups must not quietly turn into looking at one");
         assertTrue(buckets.get(1).ids().isEmpty());

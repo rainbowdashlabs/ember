@@ -174,8 +174,7 @@ public class ProcedureRoutes implements Routes {
             path = "/api/v1/procedure-templates/{tid}/items",
             methods = HttpMethod.POST,
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplateItem.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplateItem.class)))
     private void createTemplateItem(Context ctx) {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
@@ -362,7 +361,10 @@ public class ProcedureRoutes implements Routes {
         ctx.json(procedureService.findProcedureById(rid).orElseThrow(Refusal.PROCEDURE_NOT_HERE_AFTER_CHANGE::raise));
     }
 
-    @OpenApi(path = "/api/v1/procedures/{rid}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteProcedure(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
@@ -523,7 +525,8 @@ public class ProcedureRoutes implements Routes {
      *
      * @param description what the template is for, or {@code null} for nothing
      */
-    public record ProcedureTemplateRequest(String name, @Nullable String description) {}
+    public record ProcedureTemplateRequest(
+            String name, @Nullable String description) {}
 
     /**
      * A template with its steps and the order they depend on each other in.
@@ -574,7 +577,10 @@ public class ProcedureRoutes implements Routes {
      * @param dueAt       when it is due, or {@code null} for no date
      */
     public record UpdateProcedureRequest(
-            String name, @Nullable String description, boolean isPublic, @Nullable Instant dueAt) {}
+            String name,
+            @Nullable String description,
+            boolean isPublic,
+            @Nullable Instant dueAt) {}
 
     public record AssigneeRequest(List<Integer> memberIds) {}
 
@@ -584,7 +590,8 @@ public class ProcedureRoutes implements Routes {
      * @param checked the tick, or {@code null} to leave it
      * @param note    the note, or {@code null} to leave it
      */
-    public record PatchItemRequest(@Nullable Boolean checked, @Nullable String note) {}
+    public record PatchItemRequest(
+            @Nullable Boolean checked, @Nullable String note) {}
 
     public record ProcedureDetail(
             Procedure procedure,

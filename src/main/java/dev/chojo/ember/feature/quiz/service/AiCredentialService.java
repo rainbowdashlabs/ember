@@ -193,7 +193,10 @@ public class AiCredentialService {
      * @param keyEnding the last four characters of the key, or {@code null} when it does not open
      */
     public record AiCredentialSummary(
-            @Nullable String provider, @Nullable String model, boolean usable, @Nullable String keyEnding) {}
+            @Nullable String provider,
+            @Nullable String model,
+            boolean usable,
+            @Nullable String keyEnding) {}
 
     /** What became of a save. */
     public enum SaveOutcome {

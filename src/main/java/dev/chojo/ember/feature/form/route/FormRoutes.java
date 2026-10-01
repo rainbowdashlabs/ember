@@ -29,8 +29,8 @@ import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalytics;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseDetail;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntry;
 import dev.chojo.ember.feature.form.service.FormAnswersRefused;
 import dev.chojo.ember.feature.form.service.FormDirectoryService;
 import dev.chojo.ember.feature.form.service.FormDirectoryService.FormListEntry;
@@ -1132,8 +1132,7 @@ public class FormRoutes implements Routes {
             summary = "List all responses for a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
     private void listResponses(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1221,7 +1220,10 @@ public class FormRoutes implements Routes {
      * @param after       where the reader goes once the page is done; the next page where not given
      */
     public record FormPageRequest(
-            String key, @Nullable String title, @Nullable String description, @Nullable PageTarget after) {}
+            String key,
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable PageTarget after) {}
 
     /**
      * The pages and questions of a form as the editor saves them, each list in its order.

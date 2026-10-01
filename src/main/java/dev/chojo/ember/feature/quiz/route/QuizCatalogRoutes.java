@@ -406,7 +406,10 @@ public class QuizCatalogRoutes implements Routes {
      */
     public record CsvDraftRequest(String content, CsvMappings mappings) {}
 
-    public record QuizCategoryRequest(String name, @Nullable String description, @Nullable Integer position) {}
+    public record QuizCategoryRequest(
+            String name,
+            @Nullable String description,
+            @Nullable Integer position) {}
 
     public record QuizCatalogDetail(
             int id,

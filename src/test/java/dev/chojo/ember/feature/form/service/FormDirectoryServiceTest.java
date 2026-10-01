@@ -101,14 +101,17 @@ class FormDirectoryServiceTest {
 
     @Test
     void aFormPutToPartOfTheStationIsListedAsRestricted() {
-        var restricted = form(6, 3, "Nur Jugend", Form.FormStatus.OPEN, FormPurpose.INTERNAL, FormVisibility.PUBLIC, true);
+        var restricted =
+                form(6, 3, "Nur Jugend", Form.FormStatus.OPEN, FormPurpose.INTERNAL, FormVisibility.PUBLIC, true);
         when(forms.findByStationForMember(3, 11, false)).thenReturn(List.of(open(1), restricted));
 
         var available = directory.available(3, 11, false, List.of());
 
         assertEquals(
                 List.of(false, true),
-                available.stream().map(FormDirectoryService.FormListEntry::restricted).toList());
+                available.stream()
+                        .map(FormDirectoryService.FormListEntry::restricted)
+                        .toList());
     }
 
     @Test

@@ -547,5 +547,9 @@ public class TestProtocolService implements FederationServer {
      * partnership behind it can no longer be resolved.
      */
     public record SharedProtocolView(
-            int id, String name, String description, String stationName, @Nullable String stationUid) {}
+            int id,
+            String name,
+            String description,
+            String stationName,
+            @Nullable String stationUid) {}
 }

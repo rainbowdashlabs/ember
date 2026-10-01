@@ -19,7 +19,8 @@ import java.util.Set;
  * @param filter  which respondents count at all; {@code null} counts everybody
  * @param groupBy how to split them; {@code null} counts them as one group
  */
-public record FormResultQuery(@Nullable ResultFilter filter, @Nullable ResultGrouping groupBy) {
+public record FormResultQuery(
+        @Nullable ResultFilter filter, @Nullable ResultGrouping groupBy) {
 
     /** Whether a respondent has to belong to one of several groups or tags, or to all of them. */
     public enum Match {
@@ -103,7 +104,11 @@ public record FormResultQuery(@Nullable ResultFilter filter, @Nullable ResultGro
      * @param from    the smallest number that counts
      * @param to      the largest number that counts
      */
-    public record ResultFieldCondition(int fieldId, List<String> values, @Nullable Double from, @Nullable Double to) {
+    public record ResultFieldCondition(
+            int fieldId,
+            List<String> values,
+            @Nullable Double from,
+            @Nullable Double to) {
         boolean matches(String answer) {
             if (answer == null) return false;
             if (notEmpty(values) && values.stream().noneMatch(value -> Objects.equals(value, answer))) return false;

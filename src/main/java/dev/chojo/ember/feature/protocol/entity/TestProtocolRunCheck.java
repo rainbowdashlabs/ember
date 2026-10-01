@@ -13,7 +13,11 @@ import java.time.Instant;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record TestProtocolRunCheck(
-        int runMemberId, int itemId, boolean checked, @Nullable Integer checkedBy, @Nullable Instant checkedAt) {
+        int runMemberId,
+        int itemId,
+        boolean checked,
+        @Nullable Integer checkedBy,
+        @Nullable Instant checkedAt) {
 
     public static RowMapping<TestProtocolRunCheck> map() {
         return row -> new TestProtocolRunCheck(

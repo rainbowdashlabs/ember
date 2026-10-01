@@ -242,5 +242,9 @@ public class QuizFederationService implements FederationServer {
      * behind it can no longer be resolved.
      */
     public record SharedQuizCatalog(
-            int id, String name, String description, String stationName, @Nullable String stationUid) {}
+            int id,
+            String name,
+            String description,
+            String stationName,
+            @Nullable String stationUid) {}
 }
