@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -11,9 +12,14 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
-import DummyCheckView from '@/views/helpcenter/stationview/inventory/checkmemberhelp/DummyCheckView.vue'
+import CheckMemberBody from '@/views/stationview/inventory/checkmemberview/CheckMemberBody.vue'
+import {useMemberCheck} from '@/composables/useMemberCheck'
+import {results, state} from './checkmemberhelp/fixtures'
 
 const {t} = useI18n()
+
+const check = useMemberCheck(ref(0), ref(state), ref(null))
+for (const {itemId, result} of results) check.setResult(itemId, result)
 </script>
 
 <template>
@@ -29,7 +35,28 @@ const {t} = useI18n()
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryCheckMember.dummyTitle')">
-      <DummyCheckView />
+      <div class="space-y-6">
+        <CheckMemberBody
+            :hand-out-mode="check.handOutMode.value"
+            :state="state"
+            :check-mode="false"
+            :unchecked-entries="check.uncheckedEntries.value"
+            :all-marked="check.allMarked.value"
+            :any-marked="check.anyMarked.value"
+            :submitting="false"
+            :item-results="check.itemResults.value"
+            :item-notes="check.itemNotes.value"
+            :slots-not-in-possession="check.slotsNotInPossession.value"
+            :slot-procurements="check.slotProcurements.value"
+            :slot-selections="check.slotSelections.value"
+            :assigned-for-inventory="check.assignedForInventory"
+            :available-for-inventory="check.availableForInventory"
+            :empty-slot-count="check.emptySlotCount"
+            :size-label="check.sizeLabel"
+            :item-label="check.itemLabel"
+            :movement-step="check.movementStep"
+        />
+      </div>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryCheckMember.rapidCheckTitle')">

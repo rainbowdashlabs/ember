@@ -9,8 +9,10 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
-import TagsDummy from './tagshelp/TagsDummy.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EditItemNaming from '@/views/stationview/inventory/detailview/edititemmodal/EditItemNaming.vue'
 import {StationPermission} from '@/api/types'
+import {itemName, tagNames, tags} from './tagshelp/fixtures'
 
 const {t} = useI18n()
 </script>
@@ -24,7 +26,9 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryTags.pickedTitle')">
       <p>{{ t('helpCenter.inventoryTags.pickedText') }}</p>
-      <TagsDummy/>
+      <NeutralContainer>
+        <EditItemNaming :item-name="itemName" :tag-names="tagNames" :tags="tags"/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpPermissionGuard

@@ -9,8 +9,6 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -22,6 +20,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import TidyNamesTable from './tidyartsview/TidyNamesTable.vue'
 import TidyArtTarget from './tidyartsview/TidyArtTarget.vue'
+import TidyActions from './tidyartsview/TidyActions.vue'
 
 /**
  * Tidying the names written on the pieces into kinds.
@@ -169,20 +168,15 @@ const {running: assigning, failure: assignFailure, run: runAssign} = useAsyncAct
                 :arts="arts"
             />
 
-            <div class="space-y-2">
-              <p class="text-sm">{{ t('inventory.art.willRename', {count: selectedPieces, name: effectiveName}) }}</p>
-              <ButtonRow>
-                <PrimaryButton :disabled="!canTidy || merging" :icon="['fas', 'broom']"
-                               data-testid="tidy-merge" @click="runMerge()">
-                  {{ t('inventory.art.mergeSubmit') }}
-                </PrimaryButton>
-                <SecondaryButton :disabled="!canTidy || assigning" :icon="['fas', 'tags']"
-                                 data-testid="tidy-assign" @click="runAssign()">
-                  {{ t('inventory.art.assignSubmit') }}
-                </SecondaryButton>
-              </ButtonRow>
-              <p class="text-xs text-(--text-muted)">{{ t('inventory.art.assignHint') }}</p>
-            </div>
+            <TidyActions
+                :pieces="selectedPieces"
+                :name="effectiveName"
+                :can-tidy="canTidy"
+                :merging="merging"
+                :assigning="assigning"
+                @merge="runMerge()"
+                @assign="runAssign()"
+            />
           </template>
         </div>
       </AsyncSection>

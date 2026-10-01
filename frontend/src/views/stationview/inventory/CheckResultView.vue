@@ -11,14 +11,13 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import type { EnrichedCheckDetail } from '@/api/generated/schema'
 import { inventoryCheck } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
-import { formatDateTime } from '@/util/format'
 import CheckResultItemCard from '@/views/stationview/inventory/checkresultview/CheckResultItemCard.vue'
+import CheckResultMeta from '@/views/stationview/inventory/checkresultview/CheckResultMeta.vue'
 
 const routes = useInventoryRoutes()
 
@@ -66,18 +65,7 @@ function goBack() {
       <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && detail">
-        <NeutralContainer>
-          <div class="text-sm text-(--text-muted)">
-            {{ formatDateTime(detail.check.checkedAt) || '-' }}
-            &middot; {{ t('inventory.check.checkedBy') }}: {{ detail.checkerFirstName }} {{ detail.checkerLastName }}
-            <template v-if="detail.reporterFirstName">
-              &middot;
-              <span data-testid="check-result-reporter">
-                {{ t('inventory.check.reportedBy') }}: {{ detail.reporterFirstName }} {{ detail.reporterLastName }}
-              </span>
-            </template>
-          </div>
-        </NeutralContainer>
+        <CheckResultMeta :detail="detail"/>
 
         <EmptyState v-if="detail.items.length === 0">{{ t('inventory.check.noLastCheck') }}</EmptyState>
 

@@ -17,7 +17,7 @@ import type {ItemNameCount} from '@/api/generated/schema'
  */
 defineProps<{
   names: ItemNameCount[]
-  selected: Set<string>
+  selected: ReadonlySet<string>
 }>()
 
 const emit = defineEmits<{

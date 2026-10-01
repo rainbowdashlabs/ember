@@ -8,7 +8,10 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import TidyDummy from './tidyartshelp/TidyDummy.vue'
+import TidyNamesTable from '@/views/stationview/inventory/tidyartsview/TidyNamesTable.vue'
+import TidyArtTarget from '@/views/stationview/inventory/tidyartsview/TidyArtTarget.vue'
+import TidyActions from '@/views/stationview/inventory/tidyartsview/TidyActions.vue'
+import {names, selected, selectedPieces, targetName} from './tidyartshelp/fixtures'
 
 const {t} = useI18n()
 </script>
@@ -26,7 +29,11 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryTidy.screenTitle')">
       <p>{{ t('helpCenter.inventoryTidy.screenText') }}</p>
-      <TidyDummy/>
+      <div class="space-y-3">
+        <TidyNamesTable :names="names" :selected="selected"/>
+        <TidyArtTarget :art-id="null" :name="targetName" :arts="[]"/>
+        <TidyActions :pieces="selectedPieces" :name="targetName" can-tidy :merging="false" :assigning="false"/>
+      </div>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryTidy.twoButtonsTitle')">
