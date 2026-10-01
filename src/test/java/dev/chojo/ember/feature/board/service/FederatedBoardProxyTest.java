@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.LinkType;
@@ -27,7 +28,9 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteAccessResponse;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteCreateTicketRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteSharedBoardResponse;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteUpdateTicketRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.WatcherResponse;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
@@ -81,6 +84,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -815,24 +819,19 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertNotNull(tickets);
     }
 
-    /**
-     * Created through the ticket service with a real member, because the proxy creates with author 0, which
-     * the database's foreign key refuses.
-     */
     @Test
     @Order(105)
-    void createTicketForLocalProxyTests() {
-        var ticket = ticketService.createTicket(
-                boardId,
-                laneId,
-                "Test Ticket",
-                "Description",
-                null,
-                TicketPriority.HIGH,
-                null,
-                memberIdentityFactory.local(station1.id(), memberId));
-        assertNotNull(ticket);
+    void proxyCreateTicketLocalRecordsPartnerMemberAsCreator() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var ticket = ticketProxy.proxyCreateTicket(
+                partnerId, BOARD_KEY, laneId, "Test Ticket", "Description", TicketPriority.HIGH, null, REMOTE_MEMBER_1);
         assertEquals("Test Ticket", ticket.title());
+        var stored = ticketService.findById(ticket.id()).orElseThrow();
+        var creator = stored.creator();
+        assertNotNull(creator);
+        assertEquals(station1.uid(), creator.stationUid());
+        assertEquals(REMOTE_MEMBER_1, creator.memberUid());
         ticketId = ticket.id();
         ticketNumber = ticket.ticketNumber();
     }
@@ -937,10 +936,9 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertNotNull(watcherData.federated());
     }
 
-    /** Updates with the same values, so no history is written for the proxy's actor 0, which has no row. */
     @Test
     @Order(120)
-    void proxyUpdateTicketLocalNoFieldChange() {
+    void proxyUpdateTicketLocalRecordsPartnerMemberAsActor() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
         var current = ticketService.findById(ticketId).orElseThrow();
@@ -949,14 +947,23 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 BOARD_KEY,
                 ticketNumber,
                 current.title(),
-                current.description(),
+                "Edited by partner",
                 null,
                 current.priority(),
                 null,
-                null,
-                null);
-        assertNotNull(updated);
+                REMOTE_MEMBER_1,
+                "Partner Member");
         assertEquals(ticketId, updated.id());
+        assertEquals("Edited by partner", updated.description());
+
+        var entry = ticketService.findHistory(ticketId).stream()
+                .filter(h -> h.action() == BoardTicketHistoryAction.DESCRIPTION_CHANGED)
+                .findFirst()
+                .orElseThrow();
+        var actor = entry.actor();
+        assertNotNull(actor);
+        assertEquals(station1.uid(), actor.stationUid());
+        assertEquals(REMOTE_MEMBER_1, actor.memberUid());
     }
 
     @Test
@@ -1256,6 +1263,15 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 partnerId, BOARD_KEY, 1, "New Remote Ticket", "Desc", TicketPriority.HIGH, null, REMOTE_MEMBER_1);
         assertNotNull(ticket);
         assertEquals("New Remote Ticket", ticket.title());
+        verify(httpClient)
+                .post(
+                        eq("https://remote.example.com"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets"),
+                        argThat(body -> body instanceof RemoteCreateTicketRequest request
+                                && REMOTE_MEMBER_1.equals(request.remoteMemberId())),
+                        any(),
+                        anyInt(),
+                        any());
     }
 
     @Test
@@ -1533,9 +1549,18 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 .thenReturn(responseTicket);
 
         var updated = ticketProxy.proxyUpdateTicket(
-                partnerId, BOARD_KEY, 1, "Updated", null, null, TicketPriority.LOW, null, null, null);
+                partnerId, BOARD_KEY, 1, "Updated", null, null, TicketPriority.LOW, null, REMOTE_MEMBER_1, "Partner");
         assertNotNull(updated);
         assertEquals("Updated", updated.title());
+        verify(httpClient)
+                .put(
+                        eq("https://remote.example.com"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1"),
+                        argThat(body -> body instanceof RemoteUpdateTicketRequest request
+                                && REMOTE_MEMBER_1.equals(request.remoteMemberUid())),
+                        any(),
+                        anyInt(),
+                        any());
     }
 
     @Test
