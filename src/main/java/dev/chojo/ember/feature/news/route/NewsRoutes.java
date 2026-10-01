@@ -21,8 +21,16 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.Moderation;
+import dev.chojo.ember.feature.comment.entity.NewComment;
+import dev.chojo.ember.feature.comment.entity.TargetInfo;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
@@ -34,7 +42,6 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsAttachment;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
@@ -81,6 +88,7 @@ public class NewsRoutes implements Routes {
     private static final int SEARCH_LIMIT = 50;
 
     private final NewsService newsService;
+    private final CommentService commentService;
     private final NewsAttachmentService attachmentService;
     private final NewsFederationService newsFederationService;
     private final PublicBlogService publicBlogs;
@@ -91,6 +99,7 @@ public class NewsRoutes implements Routes {
     @Inject
     public NewsRoutes(
             NewsService newsService,
+            CommentService commentService,
             NewsAttachmentService attachmentService,
             NewsFederationService newsFederationService,
             PublicBlogService publicBlogs,
@@ -98,6 +107,7 @@ public class NewsRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory,
             EmailService emailService) {
         this.newsService = newsService;
+        this.commentService = commentService;
         this.attachmentService = attachmentService;
         this.newsFederationService = newsFederationService;
         this.publicBlogs = publicBlogs;
@@ -206,25 +216,9 @@ public class NewsRoutes implements Routes {
 
     /**
      * The entry behind an id, if the caller may read it, and a 404 otherwise.
-     *
-     * <p>Two things have to hold, and one question asks both. It has to be theirs to read at all:
-     * an entry belongs to one station, or to none at all when the instance published it to
-     * everyone, and a member of another station is no more entitled to it than a stranger. And it
-     * has to be addressed to them: an entry restricted to a user type is restricted however it is
-     * asked for, not only when it comes back from a listing. That is the same question the listings
-     * ask of every row they return, so it is asked in the same place rather than restated here.
-     *
-     * <p>Both refusals are a 404 rather than a 403, because saying "not for you" about an entry
-     * still tells the asker it exists.
      */
     private News requireReadable(Context ctx, int id) {
-        UserSession session = UserSession.from(ctx);
-        var news = newsService.findById(id).orElseThrow(Refusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
-        if (!newsService.isVisibleForMember(
-                id, session.member().id(), session.hasPermission(StationPermission.NEWS_MANAGER))) {
-            throw Refusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();
-        }
-        return news;
+        return newsService.requireReadable(UserSession.from(ctx), id);
     }
 
     @OpenApi(
@@ -452,7 +446,7 @@ public class NewsRoutes implements Routes {
             tagIds = restrictions.tagIds();
             memberIds = restrictions.memberIds();
         }
-        int commentCount = newsService.countComments(news.id());
+        int commentCount = commentService.count(CommentEntityType.NEWS, news.id());
         int viewCount = newsService.countViews(news.id());
         var attachments = attachmentService.list(news.id());
         boolean blocksWanted = withBlocks && news.contentMode() == ContentMode.RICH;
@@ -524,14 +518,20 @@ public class NewsRoutes implements Routes {
     private void listComments(Context ctx) {
         int newsId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var news = requireReadable(ctx, newsId);
-        // Under a system entry every station is talking at once, and what one station says is its
-        // own business: a station is shown its own part of the conversation. A station entry is
-        // read by that station alone, so there is nothing to separate.
-        var comments = news.systemEntry()
-                ? newsService.findCommentsForStation(newsId, session.stationUid())
-                : newsService.findComments(newsId);
-        ctx.json(comments.stream().map(this::toCommentResponse).toList());
+        var target = commentService.requireReadable(session, CommentEntityType.NEWS, newsId);
+        ctx.json(commentService.list(CommentEntityType.NEWS, newsId, commentFilter(session, target)).stream()
+                .map(this::toCommentResponse)
+                .toList());
+    }
+
+    /**
+     * Which comments a station reads under an entry. Under a system entry every station is talking
+     * at once, and what one station says is its own business: a station is shown its own part of
+     * the conversation. A station entry is read by that station alone, so there is nothing to
+     * separate.
+     */
+    private static CommentFilter commentFilter(UserSession session, TargetInfo target) {
+        return target.systemEntry() ? new CommentFilter.FromStation(session.stationUid()) : CommentFilter.ALL;
     }
 
     @OpenApi(
@@ -545,20 +545,16 @@ public class NewsRoutes implements Routes {
     private void createComment(Context ctx) {
         int newsId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        requireReadable(ctx, newsId);
         var request = ctx.bodyAsClass(CommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
             throw Refusal.NEWS_COMMENT_NEEDS_TEXT.raise();
         }
-        var authorIdentity = memberIdentityFactory.fromMemberId(session.member().id());
-        var comment = newsService.createComment(
-                session.stationId(),
+        var comment = commentService.create(
+                session,
+                CommentEntityType.NEWS,
                 newsId,
-                request.parentId(),
-                authorIdentity,
-                NameParts.of(session.account()).called(),
-                request.content());
-
+                commentWriter(session),
+                new NewComment(request.parentId(), null, request.content()));
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
 
@@ -576,21 +572,19 @@ public class NewsRoutes implements Routes {
     private void updateComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment =
-                newsService.findCommentById(commentId).orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
-        var sessionIdentity =
-                memberIdentityFactory.fromMemberId(session.member().id());
-        if (!sessionIdentity.sameMember(comment.author())) {
+        var comment = commentService
+                .findById(CommentEntityType.NEWS, commentId)
+                .orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
+        if (!commentService.mayModify(session, commentActor(session), comment, Moderation.EDIT)) {
             throw Refusal.NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
         }
         var request = ctx.bodyAsClass(CommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
             throw Refusal.NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
         }
-        newsService.updateOwnComment(
-                session.stationId(), commentId, NameParts.of(session.account()).called(), request.content());
-        var updated =
-                newsService.findCommentById(commentId).orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
+        var updated = commentService
+                .update(comment, commentWriter(session), request.content())
+                .orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
         ctx.json(toCommentResponse(updated));
     }
 
@@ -607,20 +601,26 @@ public class NewsRoutes implements Routes {
     private void deleteComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment =
-                newsService.findCommentById(commentId).orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
-        var sessionIdentity =
-                memberIdentityFactory.fromMemberId(session.member().id());
-        boolean isAuthor = sessionIdentity.sameMember(comment.author());
-        boolean canModerate = session.hasPermission(StationPermission.NEWS_MANAGER);
-        if (!isAuthor && !canModerate) {
+        var comment = commentService
+                .findById(CommentEntityType.NEWS, commentId)
+                .orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
+        commentService.requireSameStation(session, comment);
+        if (!commentService.mayModify(session, commentActor(session), comment, Moderation.DELETE)) {
             throw Refusal.NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
-        if (newsService.deleteComment(session.stationId(), commentId)) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
+        if (!commentService.delete(comment)) {
             throw Refusal.NEWS_COMMENT_NOT_DELETED.raise();
         }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private MemberIdentity commentActor(UserSession session) {
+        return memberIdentityFactory.local(session.stationId(), session.member().id());
+    }
+
+    private CommentWriter commentWriter(UserSession session) {
+        return CommentWriter.local(
+                commentActor(session), NameParts.of(session.account()).called());
     }
 
     @OpenApi(
@@ -690,12 +690,12 @@ public class NewsRoutes implements Routes {
     }
 
     /**
-     * Converts a {@link NewsComment} entity to an API response, resolving the author name.
+     * Converts a comment to an API response, resolving the author name.
      *
      * @param comment the comment entity
      * @return the comment response DTO
      */
-    private CommentResponse toCommentResponse(NewsComment comment) {
+    private CommentResponse toCommentResponse(Comment comment) {
         return CommentResponseMapper.fromNews(memberNameResolver, comment);
     }
 

@@ -162,6 +162,8 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.news.service.NewsBlockReferences;
+import dev.chojo.ember.feature.news.service.NewsCommentTarget;
+import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import dev.chojo.ember.feature.notifications.service.Notifier;
@@ -745,8 +747,12 @@ public abstract class RepositoryTestBase {
         var visibility =
                 new EventVisibility(events.crud(), events.restriction(), new GuardianPolicy(stationMemberRepo));
         Map<CommentEntityType, CommentTarget> targets = Map.of(
-                CommentEntityType.EVENT, new EventCommentTarget(events.crud(), visibility),
-                CommentEntityType.KB, new KbCommentTarget(knowledgeBaseRepo));
+                CommentEntityType.EVENT,
+                new EventCommentTarget(events.crud(), visibility),
+                CommentEntityType.KB,
+                new KbCommentTarget(knowledgeBaseRepo),
+                CommentEntityType.NEWS,
+                new NewsCommentTarget(newNewsService(new DomainEventBus(Set.of()))));
         return new CommentService(
                 commentRepo,
                 targets,
@@ -754,6 +760,25 @@ public abstract class RepositoryTestBase {
                 newStationMemberService(null, null),
                 stationRepo,
                 new CommentMentions(memberLookupService, eventBus));
+    }
+
+    /**
+     * The news service over the shared repositories, publishing to the given bus.
+     *
+     * @param eventBus where the news events go
+     * @return the service
+     */
+    protected static NewsService newNewsService(DomainEventBus eventBus) {
+        return new NewsService(
+                newsRepo,
+                contentBlocks(),
+                noCellDescriptions(),
+                stationRepo,
+                restrictionService,
+                eventBus,
+                stationMemberRepo,
+                memberLookupService,
+                memberNameResolver);
     }
 
     /**

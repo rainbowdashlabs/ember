@@ -494,7 +494,6 @@ public class DemoFederationSeeder implements DemoSeeder {
             newsFederationService.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
             // Federated comment from partner member on news1
             var nc1 = newsFederationService.createRemoteComment(
-                    primaryStationId,
                     news1.id(),
                     partner.id(),
                     partnerMember1Uid,
@@ -502,13 +501,11 @@ public class DemoFederationSeeder implements DemoSeeder {
                     null,
                     "Toll, dass es jetzt so eine Plattform gibt! Wir nutzen das bei uns auch seit Kurzem.");
             // Reply from local admin
-            newsService.createComment(
-                    primaryStationId,
+            seedComment(
+                    CommentEntityType.NEWS,
                     news1.id(),
-                    nc1.id(),
-                    stationMemberRepository.resolveIdentity(createdBy),
-                    "Admin",
-                    "Freut uns! Vielleicht können wir mal Erfahrungen austauschen.");
+                    CommentWriter.local(memberIdentityFactory.local(primaryStationId, createdBy), "Admin"),
+                    new NewComment(nc1.id(), null, "Freut uns! Vielleicht können wir mal Erfahrungen austauschen."));
         }
         if (news2 != null) {
             // Share news2 with specific partner, visibility TEAM
@@ -516,7 +513,6 @@ public class DemoFederationSeeder implements DemoSeeder {
                     news2.id(), ShareScope.SPECIFIC, NewsVisibilityRole.TEAM, List.of(partner.id()));
             // Federated comment from partner member on news2
             newsFederationService.createRemoteComment(
-                    primaryStationId,
                     news2.id(),
                     partner.id(),
                     partnerMember2Uid,
@@ -553,7 +549,6 @@ public class DemoFederationSeeder implements DemoSeeder {
             var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
             String primaryAdminName = calledName(primaryAdmin);
             var pnc1 = newsFederationService.createRemoteComment(
-                    partnerStation.id(),
                     partnerNews.id(),
                     reversePartner.id(),
                     primaryAdmin.uid(),
@@ -561,13 +556,12 @@ public class DemoFederationSeeder implements DemoSeeder {
                     null,
                     "Glückwunsch! Können wir die bei der Übung auch mal testen?");
             // Reply from partner station
-            newsService.createComment(
-                    partnerStation.id(),
+            seedComment(
+                    CommentEntityType.NEWS,
                     partnerNews.id(),
-                    pnc1.id(),
-                    stationMemberRepository.resolveIdentity(partnerMember.id()),
-                    "Partner Manager",
-                    "Natürlich, das lässt sich einrichten!");
+                    CommentWriter.local(
+                            memberIdentityFactory.local(partnerStation.id(), partnerMember.id()), "Partner Manager"),
+                    new NewComment(pnc1.id(), null, "Natürlich, das lässt sich einrichten!"));
         }
 
         log.info("Demo: Shared news with partner and added federated comments");

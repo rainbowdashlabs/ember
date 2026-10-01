@@ -6,16 +6,13 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.CommentCreated;
-import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.repository.CommentRepository;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -30,12 +27,8 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
-import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
-import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
-import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
@@ -55,16 +48,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service layer for managing news articles and comments.
- * Handles creation with group restrictions, updates, deletions, and comment operations.
+ * Service layer for managing news articles.
+ * Handles creation with group restrictions, updates and deletions.
  */
 @Singleton
 public class NewsService {
     private static final Logger log = LoggerFactory.getLogger(NewsService.class);
-    private static final int COMMENT_PREVIEW_LENGTH = 100;
 
     private final NewsRepository newsRepository;
-    private final CommentRepository comments;
     private final ContentBlockService blocks;
     private final CellDescriptions descriptions;
     /**
@@ -80,12 +71,10 @@ public class NewsService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
     private final MemberNameResolver memberNameResolver;
-    private final CommentMentions mentions;
 
     @Inject
     public NewsService(
             NewsRepository newsRepository,
-            CommentRepository comments,
             ContentBlockService blocks,
             CellDescriptions descriptions,
             StationRepository stationRepository,
@@ -93,10 +82,8 @@ public class NewsService {
             DomainEventBus eventBus,
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
-            MemberNameResolver memberNameResolver,
-            CommentMentions mentions) {
+            MemberNameResolver memberNameResolver) {
         this.newsRepository = newsRepository;
-        this.comments = comments;
         this.blocks = blocks;
         this.descriptions = descriptions;
         this.stationRepository = stationRepository;
@@ -105,7 +92,6 @@ public class NewsService {
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.memberNameResolver = memberNameResolver;
-        this.mentions = mentions;
     }
 
     /**
@@ -211,17 +197,28 @@ public class NewsService {
     }
 
     /**
-     * The comments on an entry that were written from one station. A station reads its own part of
-     * the conversation under a system entry; the instance reads all of it.
+     * The entry behind an id, if the member may read it, and a refusal otherwise.
      *
-     * @param newsId     the news article ID
-     * @param stationUid the station whose comments to return
-     * @return the comments written from that station
+     * <p>Two things have to hold, and one question asks both. It has to be theirs to read at all:
+     * an entry belongs to one station, or to none at all when the instance published it to
+     * everyone, and a member of another station is no more entitled to it than a stranger. And it
+     * has to be addressed to them: an entry restricted to a user type is restricted however it is
+     * asked for, not only when it comes back from a listing. That is the same question the listings
+     * ask of every row they return, so it is asked in the same place rather than restated here.
+     *
+     * <p>Both refusals are a 404 rather than a 403, because saying "not for you" about an entry
+     * still tells the asker it exists.
+     *
+     * @param session the reader
+     * @param newsId  the entry
+     * @return the entry
      */
-    public List<NewsComment> findCommentsForStation(int newsId, UUID stationUid) {
-        return comments.findByTargetFrom(CommentEntityType.NEWS, newsId, stationUid).stream()
-                .map(NewsComment::of)
-                .toList();
+    public News requireReadable(UserSession session, int newsId) {
+        var news = findById(newsId).orElseThrow(Refusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
+        if (!isVisibleForMember(newsId, session.member().id(), session.hasPermission(StationPermission.NEWS_MANAGER))) {
+            throw Refusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();
+        }
+        return news;
     }
 
     /**
@@ -484,184 +481,6 @@ public class NewsService {
      */
     public void setRestrictions(int newsId, RestrictionSelection selection) {
         restrictionService.setRestrictions(RestrictionType.NEWS, newsId, selection);
-    }
-
-    /**
-     * Counts the total number of comments on a news article.
-     *
-     * @param newsId the news article ID
-     * @return comment count
-     */
-    public int countComments(int newsId) {
-        return comments.count(CommentEntityType.NEWS, newsId);
-    }
-
-    /**
-     * Creates a comment on a news article.
-     *
-     * @param newsId     the news article ID
-     * @param parentId   parent comment ID for replies, or {@code null} for top-level comments
-     * @param author     identity of the comment author, or {@code null} for federated/system comments
-     * @param authorName display name of the comment author
-     * @param content    comment text
-     * @return the newly created comment
-     */
-    public NewsComment createComment(
-            int stationId, int newsId, Integer parentId, MemberIdentity author, String authorName, String content) {
-        var comment = NewsComment.of(comments.create(CommentEntityType.NEWS, newsId, null, parentId, author, content));
-        log.info("Created news comment {} on news {} (station {})", comment.id(), newsId, stationId);
-        var news = newsRepository.findById(newsId).orElse(null);
-        if (news != null) {
-            String preview = commentPreview(content);
-            Integer parentAuthorMemberId = null;
-            if (parentId != null) {
-                var parentComment = findCommentById(parentId).orElse(null);
-                if (parentComment != null && parentComment.author() != null) {
-                    parentAuthorMemberId = memberLookupService
-                            .resolveId(stationId, parentComment.author().memberUid())
-                            .orElse(null);
-                }
-            }
-            Integer authorMemberId = author != null
-                    ? memberLookupService
-                            .resolveId(stationId, author.memberUid())
-                            .orElse(null)
-                    : null;
-            eventBus.publish(new CommentCreated(
-                    stationId,
-                    CommentEntityType.NEWS,
-                    news.title(),
-                    commentLink(newsId, comment.id()),
-                    comment.id(),
-                    parentId,
-                    parentAuthorMemberId,
-                    authorMemberId,
-                    authorName,
-                    preview,
-                    StationAudience.holders(stationId, StationPermission.NEWS_MANAGER)));
-
-            if (authorMemberId != null) {
-                mentions.announce(
-                        mentionOrigin(stationId, authorMemberId, authorName, news, comment.id(), content), content);
-            }
-        }
-        return comment;
-    }
-
-    private static String commentPreview(String content) {
-        return content.length() > COMMENT_PREVIEW_LENGTH
-                ? content.substring(0, COMMENT_PREVIEW_LENGTH) + "..."
-                : content;
-    }
-
-    private static CommentMentions.Origin mentionOrigin(
-            int stationId, int authorMemberId, String authorName, News news, int commentId, String content) {
-        return new CommentMentions.Origin(
-                stationId,
-                authorMemberId,
-                authorName,
-                CommentEntityType.NEWS,
-                news.title(),
-                commentLink(news.id(), commentId),
-                commentId,
-                commentPreview(content));
-    }
-
-    private static NotificationLink commentLink(int newsId, int commentId) {
-        return NotificationLinks.comment(NotificationLinks.news(newsId), commentId);
-    }
-
-    // -- Comments --
-
-    /**
-     * Retrieves all comments for a news article.
-     *
-     * @param newsId the news article ID
-     * @return list of comments
-     */
-    public List<NewsComment> findComments(int newsId) {
-        return comments.findByTarget(CommentEntityType.NEWS, newsId).stream()
-                .map(NewsComment::of)
-                .toList();
-    }
-
-    /**
-     * Finds a comment by its ID.
-     *
-     * @param id the comment ID
-     * @return the comment, or empty if not found
-     */
-    public Optional<NewsComment> findCommentById(int id) {
-        return comments.findById(CommentEntityType.NEWS, id).map(NewsComment::of);
-    }
-
-    /**
-     * Updates a comment a member of the given station wrote there, and announces the mentions the
-     * edit added. Whoever the comment already mentioned is not told again.
-     *
-     * @param stationId  the station the comment was written in
-     * @param id         the comment ID
-     * @param authorName the display name of the author
-     * @param content    new comment text
-     * @return {@code true} if the comment was updated
-     */
-    public boolean updateOwnComment(int stationId, int id, String authorName, String content) {
-        var previous = findCommentById(id);
-        if (!updateComment(id, content)) return false;
-        previous.ifPresent(comment -> announceAddedMentions(stationId, comment, authorName, content));
-        return true;
-    }
-
-    private void announceAddedMentions(int stationId, NewsComment previous, String authorName, String content) {
-        if (previous.author() == null) return;
-        var authorMemberId =
-                memberLookupService.resolveId(stationId, previous.author().memberUid());
-        var news = newsRepository.findById(previous.newsId());
-        if (authorMemberId.isEmpty() || news.isEmpty()) return;
-        mentions.announceAdded(
-                mentionOrigin(stationId, authorMemberId.get(), authorName, news.get(), previous.id(), content),
-                previous.content(),
-                content);
-    }
-
-    /**
-     * Updates the content of a comment without announcing its mentions, which is what a comment
-     * written from another station gets: its mentions raised nothing when it was written either.
-     *
-     * @param id      the comment ID
-     * @param content new comment text
-     * @return {@code true} if the comment was updated
-     */
-    public boolean updateComment(int id, String content) {
-        boolean updated = comments.update(CommentEntityType.NEWS, id, content);
-        if (updated) {
-            log.info("Updated news comment {}", id);
-        } else {
-            log.warn("Update for news comment {} affected zero rows", id);
-        }
-        return updated;
-    }
-
-    /**
-     * Deletes a comment by its ID.
-     *
-     * @param id the comment ID
-     * @return {@code true} if the comment was deleted
-     */
-    public boolean deleteComment(int stationId, int id) {
-        var comment = findCommentById(id).orElse(null);
-        if (comment == null) {
-            log.warn("Delete for news comment {} skipped: not found", id);
-            return false;
-        }
-        if (comments.delete(CommentEntityType.NEWS, id)) {
-            eventBus.publish(
-                    new CommentDeleted(stationId, CommentEntityType.NEWS, commentLink(comment.newsId(), id), id));
-            log.info("Deleted news comment {} on station {}", id, stationId);
-            return true;
-        }
-        log.warn("Delete for news comment {} affected zero rows", id);
-        return false;
     }
 
     private String resolveAuthorName(int stationId, MemberIdentity author) {

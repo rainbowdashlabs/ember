@@ -220,7 +220,8 @@ public class CommentService {
         return parent;
     }
 
-    private void announceCreated(TargetInfo target, Comment comment, CommentWriter writer) {
+    private void announceCreated(TargetInfo commentedOn, Comment comment, CommentWriter writer) {
+        var target = seenFrom(commentedOn, writer.identity());
         var audience = targetOf(target.type()).audienceFor(target, writer.origin());
         int stationId = stationOf(target);
         Integer authorMemberId = resolveLocalMemberId(stationId, writer.identity());
@@ -288,13 +289,42 @@ public class CommentService {
     }
 
     /**
-     * Refuses unless the comment hangs under something the member's station owns.
+     * Refuses unless the comment belongs to the member's station: it hangs under something the
+     * station owns, or, under a news entry the instance published to every station, it was written
+     * from that station.
      *
      * @param session the member
      * @param comment the comment
      */
     public void requireSameStation(UserSession session, Comment comment) {
-        RouteSupport.requireSameStation(session, Objects.requireNonNullElse(comment.stationId(), NO_STATION));
+        RouteSupport.requireSameStation(session, owningStation(comment));
+    }
+
+    private int owningStation(Comment comment) {
+        Integer stationId = comment.stationId();
+        if (stationId != null) return stationId;
+        var author = comment.author();
+        if (author == null) return NO_STATION;
+        return stationRepository.resolveId(author.stationUid()).orElse(NO_STATION);
+    }
+
+    /**
+     * The target as the station of the given member sees it. A news entry the instance published to
+     * every station belongs to none of them, and a comment under it belongs to the station its
+     * author wrote from, so that is where whatever it tells goes.
+     */
+    private TargetInfo seenFrom(TargetInfo target, @Nullable MemberIdentity member) {
+        if (target.stationId() != null || member == null) return target;
+        return stationRepository
+                .resolveId(member.stationUid())
+                .map(stationId -> new TargetInfo(
+                        target.type(),
+                        target.id(),
+                        stationId,
+                        target.title(),
+                        target.ticketAddress(),
+                        target.systemEntry()))
+                .orElse(target);
     }
 
     /**
@@ -314,7 +344,8 @@ public class CommentService {
         }
         log.info("Updated {} comment {}", previous.type(), previous.id());
         target(previous.type(), previous.targetId())
-                .ifPresent(target -> announceAddedMentions(target, previous, writer, content));
+                .ifPresent(target ->
+                        announceAddedMentions(seenFrom(target, writer.identity()), previous, writer, content));
         return repository.findById(previous.type(), previous.id());
     }
 
@@ -333,7 +364,7 @@ public class CommentService {
      * @return {@code true} if the comment was removed
      */
     public boolean delete(Comment comment) {
-        var target = target(comment.type(), comment.targetId());
+        var target = target(comment.type(), comment.targetId()).map(info -> seenFrom(info, comment.author()));
         if (!repository.delete(comment.type(), comment.id())) {
             log.warn("Delete for {} comment {} affected zero rows", comment.type(), comment.id());
             return false;

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.news.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -55,6 +56,7 @@ class PublicBlogRoutesTest {
         when(email.getBaseUrl()).thenReturn("https://ember.test");
         var harness = RouteHarness.serving(new NewsRoutes(
                 news,
+                mock(CommentService.class),
                 attachments,
                 mock(NewsFederationService.class),
                 blogs,

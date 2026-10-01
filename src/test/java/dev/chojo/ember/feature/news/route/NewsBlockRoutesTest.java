@@ -9,7 +9,6 @@ import dev.chojo.ember.api.LocalRouteServer;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.BlockReferenceTestBase;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -57,7 +56,6 @@ class NewsBlockRoutesTest extends BlockReferenceTestBase {
 
         newsService = new NewsService(
                 newsRepo,
-                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
@@ -65,10 +63,10 @@ class NewsBlockRoutesTest extends BlockReferenceTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 mock(MemberLookupService.class),
-                mock(MemberNameResolver.class),
-                mock(CommentMentions.class));
+                mock(MemberNameResolver.class));
         var routes = new NewsRoutes(
                 newsService,
+                newCommentService(new DomainEventBus(Set.of())),
                 mock(NewsAttachmentService.class),
                 mock(NewsFederationService.class),
                 new PublicBlogService(stationRepo),

@@ -15,13 +15,13 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
-import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.news.service.PublicBlogService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -30,7 +30,6 @@ import io.javalin.testtools.Response;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.JsonNode;
@@ -44,6 +43,7 @@ import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
@@ -66,7 +66,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
     private static StationMember author;
     private static StationMember other;
     private static StationMember stranger;
-    private static NewsService news;
+    private static CommentService comments;
     private static int entryId;
     private static RouteHarness harness;
 
@@ -81,22 +81,12 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
         other = stationMemberRepo.create(station.id(), otherAccount.id());
         stranger = stationMemberRepo.create(elsewhere.id(), strangerAccount.id());
 
-        news = new NewsService(
-                newsRepo,
-                commentRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                BUS,
-                stationMemberRepo,
-                memberLookupService,
-                memberNameResolver,
-                new CommentMentions(memberLookupService, BUS));
+        comments = newCommentService(BUS);
         entryId = newsRepo.create(station.id(), "Neuigkeit", "Text", "<p>Text</p>", null)
                 .id();
         harness = RouteHarness.serving(new NewsRoutes(
-                        news,
+                        newNewsService(BUS),
+                        comments,
                         mock(NewsAttachmentService.class),
                         mock(NewsFederationService.class),
                         new PublicBlogService(stationRepo),
@@ -203,7 +193,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
     }
 
     @Test
-    void onlyTheAuthorChangesACommentAndTheEditLeavesNoMark() {
+    void onlyTheAuthorChangesACommentAndTheEditShows() {
         int id = write(author, entryId, "alt");
 
         assertEquals(
@@ -212,7 +202,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
         var changed = json(change(as(author), id, "neu"));
 
         assertEquals("neu", changed.path("content").asString());
-        assertTrue(changed.path("updatedAt").isMissingNode(), "a news comment never shows an edit");
+        assertFalse(changed.path("updatedAt").isMissingNode(), "an edited news comment says so");
     }
 
     @Test
@@ -238,16 +228,14 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
                         && deleted.entityType() == CommentEntityType.NEWS));
     }
 
-    // TODO: enable once removing a news comment checks that it hangs under an entry of the caller's station
-    @Disabled
     @Test
     void aNewsManagerOfAnotherStationCannotRemoveAComment() {
         int id = write(author, entryId, "bleibt");
 
         var answer = remove(as(stranger, StationPermission.NEWS_MANAGER), id);
 
-        assertEquals(Refusal.NEWS_COMMENT_NOT_HERE_ON_DELETE, refusalOf(answer));
-        assertTrue(news.findCommentById(id).isPresent());
+        assertEquals(Refusal.NOT_YOURS_TO_OPEN, refusalOf(answer));
+        assertFalse(comments.findById(CommentEntityType.NEWS, id).orElseThrow().deleted());
     }
 
     @Test
@@ -259,8 +247,9 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
 
         remove(as(author), parent);
 
-        assertTrue(news.findCommentById(parent).orElseThrow().deleted());
-        assertEquals(2, news.countComments(entry));
+        assertTrue(
+                comments.findById(CommentEntityType.NEWS, parent).orElseThrow().deleted());
+        assertEquals(2, comments.count(CommentEntityType.NEWS, entry));
     }
 
     @Test
@@ -278,7 +267,37 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
     }
 
     @Test
-    void everyCommentIsAnnouncedWithItsPreviewCutByThreeDots() {
+    void aCommentUnderASystemEntryBelongsToTheStationItWasWrittenFrom() {
+        var system = newsRepo.createSystem("An alle", "Text", "<p>Text</p>", true);
+        try {
+            reset(BUS);
+            int id = write(author, system.id(), "von hier");
+
+            var created = published().stream()
+                    .filter(CommentCreated.class::isInstance)
+                    .map(CommentCreated.class::cast)
+                    .toList();
+            assertEquals(1, created.size());
+            assertEquals(station.id(), created.getFirst().stationId());
+            assertEquals(
+                    StationAudience.holders(station.id(), StationPermission.NEWS_MANAGER),
+                    created.getFirst().alsoTold());
+
+            assertEquals(
+                    Refusal.NOT_YOURS_TO_OPEN, refusalOf(remove(as(stranger, StationPermission.NEWS_MANAGER), id)));
+            assertEquals(
+                    204, remove(as(other, StationPermission.NEWS_MANAGER), id).code());
+            assertTrue(published().stream()
+                    .anyMatch(event -> event instanceof CommentDeleted deleted
+                            && deleted.commentId() == id
+                            && deleted.stationId() == station.id()));
+        } finally {
+            newsRepo.delete(system.id());
+        }
+    }
+
+    @Test
+    void everyCommentTellsTheNewsManagersAndCutsThePreview() {
         int parent = write(author, entryId, "Frage");
         reset(BUS);
 
@@ -291,9 +310,12 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
                 .toList();
         assertEquals(2, created.size());
         assertEquals(author.id(), created.getFirst().parentAuthorId());
-        assertEquals("y".repeat(100) + "...", created.getFirst().preview());
+        assertEquals("y".repeat(100) + "…", created.getFirst().preview());
         assertNull(created.get(1).parentAuthorId());
         assertEquals(CommentEntityType.NEWS, created.get(1).entityType());
+        assertEquals(
+                StationAudience.holders(station.id(), StationPermission.NEWS_MANAGER),
+                created.get(1).alsoTold());
     }
 
     @Test

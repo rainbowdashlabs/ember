@@ -11,7 +11,12 @@ import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
@@ -66,6 +71,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     private static FederationHttpClient httpClient;
     private static FederationTestTransport transport;
     private static NewsService newsService;
+    private static CommentService comments;
 
     private static Station stationA;
     private static Station stationB;
@@ -85,18 +91,8 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        newsService = new NewsService(
-                newsRepo,
-                commentRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                eventBus,
-                stationMemberRepo,
-                memberLookupService,
-                memberNameResolver,
-                silentCommentMentions());
+        newsService = newNewsService(eventBus);
+        comments = newCommentService(eventBus);
 
         when(httpClient.canSign(anyInt())).thenReturn(true);
         transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
@@ -106,6 +102,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 federationRepo,
                 stationRepo,
                 newsService,
+                comments,
                 new NewsAttachmentService(
                         new NewsAttachmentRepository(),
                         MediaTestSupport.library(
@@ -237,7 +234,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(15)
     void createRemoteComment() {
         var comment = service.createRemoteComment(
-                stationA.id(), news1.id(), partnerIdAB, REMOTE_MEMBER_2, "Bob Jones", null, "Remote comment!");
+                news1.id(), partnerIdAB, REMOTE_MEMBER_2, "Bob Jones", null, "Remote comment!");
         assertNotNull(comment);
         assertNotNull(comment.author());
         assertEquals("Remote comment!", comment.content());
@@ -246,10 +243,9 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(16)
     void createRemoteCommentWithParent() {
-        var parentIdentity = stationMemberRepo.resolveIdentity(memberA.id());
-        var parent = newsService.createComment(stationA.id(), news1.id(), null, parentIdentity, "Alice", "Parent");
+        var parent = writeLocally(news1.id(), "Parent");
         var child = service.createRemoteComment(
-                stationA.id(), news1.id(), partnerIdAB, REMOTE_MEMBER_1, "Alice Remote", parent.id(), "Reply");
+                news1.id(), partnerIdAB, REMOTE_MEMBER_1, "Alice Remote", parent.id(), "Reply");
         assertNotNull(child);
         assertEquals("Reply", child.content());
     }
@@ -497,7 +493,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void listFederatedCommentsLocal() {
-        newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Local listing");
+        writeLocally(news2.id(), "Local listing");
         var comments = service.listFederatedComments(stationB.id(), stationA.uid(), news2.id());
         assertTrue(comments.stream().anyMatch(c -> "Local listing".equals(c.content())));
         transport.assertParity(
@@ -525,7 +521,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(63)
     void updateFederatedCommentLocalRejectsForeignAuthor() {
-        var comment = newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Mine");
+        var comment = writeLocally(news2.id(), "Mine");
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.updateFederatedComment(
@@ -539,14 +535,14 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var comment = service.createFederatedComment(
                 stationB.id(), stationA.uid(), news2.id(), memberOfB(), null, "Disposable");
         service.deleteFederatedComment(stationB.id(), stationA.uid(), comment.id(), memberOfB());
-        var remaining = newsService.findCommentById(comment.id());
+        var remaining = comments.findById(CommentEntityType.NEWS, comment.id());
         assertTrue(remaining.isEmpty() || remaining.get().deleted());
     }
 
     @Test
     @Order(65)
     void deleteFederatedCommentLocalRejectsForeignAuthor() {
-        var comment = newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Protected");
+        var comment = writeLocally(news2.id(), "Protected");
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.deleteFederatedComment(stationB.id(), stationA.uid(), comment.id(), memberOfB()));
@@ -743,6 +739,12 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
     private static MemberIdentity localAuthor() {
         return stationMemberRepo.resolveIdentity(memberA.id());
+    }
+
+    private static Comment writeLocally(int newsId, String content) {
+        var target = comments.target(CommentEntityType.NEWS, newsId).orElseThrow();
+        return comments.createOn(
+                target, CommentWriter.local(localAuthor(), "Alice"), new NewComment(null, null, content));
     }
 
     private static FederatedCommentAuthor federatedAuthor() {

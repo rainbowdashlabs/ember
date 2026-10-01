@@ -403,7 +403,8 @@ class CommentServiceTest extends RepositoryTestBase {
 
     /**
      * A target may name people besides the thread to tell about every comment, and a target owned
-     * by no station still takes comments.
+     * by no station still takes comments, which then tell within the station they were written
+     * from.
      */
     @Test
     void aTargetCanTellOthersAboutEveryComment() {
@@ -425,8 +426,8 @@ class CommentServiceTest extends RepositoryTestBase {
 
         var created = (CommentCreated) published().getFirst();
         assertEquals(others, created.alsoTold());
-        assertEquals(0, created.stationId());
-        assertNull(created.authorMemberId());
+        assertEquals(station.id(), created.stationId());
+        assertEquals(alice.id(), created.authorMemberId());
         assertNull(comment.stationId());
         newsRepo.delete(news);
     }

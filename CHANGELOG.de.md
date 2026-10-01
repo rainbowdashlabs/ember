@@ -27,6 +27,7 @@
 - **Die Einrichtung erklärt die Listung im Verzeichnis.** Der Schritt zur Sichtbarkeit bei der Einrichtung einer neuen Wache erklärt jede Wahl, auch die Listung nur auf dieser Instanz, und zeigt genau, welche Angaben eine öffentliche Listung an die Discovery-Seite und an andere Instanzen weitergibt. Mit unveränderter Voreinstellung gespeichert gilt er als erledigt.
 - **Gruppen für bestimmte Mitgliedstypen.** Eine Gruppe lässt sich auf einige Mitgliedstypen beschränken, etwa Team und Manager, und nimmt dann niemanden sonst auf. Ändert sich der Mitgliedstyp eines Mitglieds, verlässt es die Gruppen, die nicht mehr passen, nachdem seine Bearbeitungsseite sie aufgelistet hat.
 - **Gruppen und Tags oben in den Berechtigungen eines Mitglieds.** Auf der Bearbeitungsseite eines Mitglieds stehen Gruppen und Tags als kompakte Chips über der Liste der Berechtigungen, und die Gruppen eines Sets sind eine einzige Auswahl. Gruppen für andere Mitgliedstypen erscheinen ausgegraut, mit den Typen, die sie aufnehmen.
+- **Bearbeitete Kommentare zu Neuigkeiten sind gekennzeichnet.** Ein Kommentar zu einer Neuigkeit, den seine Verfasserin oder sein Verfasser geändert hat, ist als bearbeitet markiert, wie Kommentare zu Terminen, Wiki-Dateien und Board-Tickets.
 
 ### Sicherheit
 
@@ -40,6 +41,7 @@
 - **Registrierungscodes anderer Wachen waren erreichbar.** Eine Instanzadministration, die in einer Wache arbeitete, konnte Registrierungscodes einer anderen Wache über ihre Nummer öffnen, ihre Gruppen ändern und sie löschen. Ein Code ist jetzt nur noch aus seiner eigenen Wache erreichbar.
 - **Unveröffentlichte Instanz-Neuigkeiten erreichten die Neuigkeiten-Verwaltung der Wachen.** Wer in einer Wache Neuigkeiten verwaltet, sah Entwürfe der Instanz in der Liste der Neuigkeiten, bevor sie veröffentlicht waren. Entwürfe der Instanz bleiben jetzt bei der Instanzadministration, bis sie veröffentlicht sind.
 - **Eine Wachen-Bewerbung ließ sich ohne die Bestätigungsmail bestätigen.** Die Bewerbung um eine neue Wache antwortete mit dem Code, der die Adresse der Bewerbung bestätigt, sodass sich die Adresse bestätigen ließ, ohne die Mail je erhalten zu haben. Der Code erreicht die Bewerbung jetzt nur noch über diese Mail.
+- **Die Neuigkeiten-Verwaltung konnte Kommentare anderer Wachen entfernen.** Wer Neuigkeiten verwaltet, konnte einen Kommentar zu einer Neuigkeit einer anderen Wache über seine Nummer entfernen. Ein Kommentar lässt sich jetzt nur noch aus seiner eigenen Wache entfernen; bei Neuigkeiten, die die Instanz an alle Wachen richtet, ist das die Wache, aus der er geschrieben wurde.
 
 ### Änderungen
 

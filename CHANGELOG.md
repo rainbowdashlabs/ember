@@ -27,6 +27,7 @@
 - **Station setup explains the discovery listing.** The visibility step of a new station's setup explains each choice, including listing on this instance only, and shows exactly which details a public listing gives to the discovery page and to other instances. Saving it with the preset choice unchanged counts as done.
 - **Groups for chosen member types.** A group can be limited to some member types, such as team and manager, and takes nobody else. A member whose type changes leaves the groups that no longer fit, after their edit page has listed them.
 - **Groups and tags at the top of a member's permissions.** On a member's edit page, groups and tags are compact chips above the permission list, and the groups of a set are one choice. Groups bound to other member types are shown greyed out with the types they take.
+- **Edited news comments say so.** A comment on a news entry that its author changed is marked as edited, the same as comments on appointments, wiki files and board tickets.
 
 ### Security
 
@@ -40,6 +41,7 @@
 - **Registration codes of another station could be reached.** An instance administrator working in one station could open, change the groups of and delete another station's registration codes by their number. A code is now reached only from its own station.
 - **Unpublished instance news reached station news managers.** A station's news managers saw the instance's draft news entries in their news list before they were published. Instance drafts now stay with the instance administrators until they are published.
 - **A station application could be confirmed without the confirmation mail.** Applying for a new station answered with the code that confirms the applicant's address, so the address could be confirmed without ever receiving the mail. The code now reaches the applicant only in that mail.
+- **News managers could remove comments in other stations.** A news manager could remove a comment on another station's news entry by its number. A comment can now only be removed from its own station; under news the instance published to every station, that is the station its author wrote from.
 
 ### Changes
 

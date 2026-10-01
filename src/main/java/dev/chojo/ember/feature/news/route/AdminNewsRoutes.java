@@ -11,6 +11,10 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.route.SaveBlocksRequest;
@@ -19,7 +23,6 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService.FileListing;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.service.NewsService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -58,14 +61,20 @@ public class AdminNewsRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(AdminNewsRoutes.class);
 
     private final NewsService newsService;
+    private final CommentService commentService;
     private final MemberNameResolver memberNameResolver;
     private final MediaLibraryService media;
     private final Api apiConfig;
 
     @Inject
     public AdminNewsRoutes(
-            NewsService newsService, MemberNameResolver memberNameResolver, MediaLibraryService media, Api apiConfig) {
+            NewsService newsService,
+            CommentService commentService,
+            MemberNameResolver memberNameResolver,
+            MediaLibraryService media,
+            Api apiConfig) {
         this.newsService = newsService;
+        this.commentService = commentService;
         this.memberNameResolver = memberNameResolver;
         this.media = media;
         this.apiConfig = apiConfig;
@@ -226,7 +235,7 @@ public class AdminNewsRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = SystemCommentResponse[].class)))
     private void listComments(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
-        ctx.json(newsService.findComments(id).stream()
+        ctx.json(commentService.list(CommentEntityType.NEWS, id, CommentFilter.ALL).stream()
                 .map(this::toCommentResponse)
                 .toList());
     }
@@ -313,7 +322,7 @@ public class AdminNewsRoutes implements Routes {
                 news.publishedAt(),
                 news.createdAt(),
                 restrictions.userTypes(),
-                newsService.countComments(news.id()),
+                commentService.count(CommentEntityType.NEWS, news.id()),
                 news.contentMode(),
                 rows);
     }
@@ -323,11 +332,12 @@ public class AdminNewsRoutes implements Routes {
      * from, which is the whole point of reading every station's comments at once: knowing who is
      * asking is what makes the answer possible.
      */
-    private SystemCommentResponse toCommentResponse(NewsComment comment) {
-        var resolved = comment.author() != null ? memberNameResolver.resolveDisplay(comment.author()) : null;
+    private SystemCommentResponse toCommentResponse(Comment comment) {
+        var author = comment.author();
+        var resolved = author != null ? memberNameResolver.resolveDisplay(author) : null;
         return new SystemCommentResponse(
                 comment.id(),
-                comment.newsId(),
+                comment.targetId(),
                 comment.parentId(),
                 resolved != null ? resolved.identity() : null,
                 resolved != null && resolved.name() != null ? resolved.name() : "",

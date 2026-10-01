@@ -7,8 +7,15 @@ package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentOrigin;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
@@ -24,7 +31,6 @@ import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
@@ -38,6 +44,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +71,7 @@ public class NewsFederationService implements FederationServer {
     private final FederationRepository partnerRepository;
     private final StationRepository stationRepository;
     private final NewsService newsService;
+    private final CommentService commentService;
     private final NewsAttachmentService attachmentService;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
@@ -78,6 +86,7 @@ public class NewsFederationService implements FederationServer {
             FederationRepository partnerRepository,
             StationRepository stationRepository,
             NewsService newsService,
+            CommentService commentService,
             NewsAttachmentService attachmentService,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
@@ -89,6 +98,7 @@ public class NewsFederationService implements FederationServer {
         this.partnerRepository = partnerRepository;
         this.stationRepository = stationRepository;
         this.newsService = newsService;
+        this.commentService = commentService;
         this.attachmentService = attachmentService;
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
@@ -212,7 +222,7 @@ public class NewsFederationService implements FederationServer {
                                 Objects.requireNonNullElse(news.contentHtml(), ""), news.id(), news.stationId()),
                         authorName(news),
                         publishedAt(news),
-                        newsService.countComments(news.id()),
+                        commentService.count(CommentEntityType.NEWS, news.id()),
                         visibilityOf(news.id())))
                 .toList();
     }
@@ -236,7 +246,7 @@ public class NewsFederationService implements FederationServer {
                         Objects.requireNonNullElse(news.contentHtml(), ""), news.id(), news.stationId()),
                 authorName(news),
                 publishedAt(news),
-                newsService.countComments(newsId),
+                commentService.count(CommentEntityType.NEWS, newsId),
                 visibilityOf(newsId));
     }
 
@@ -249,7 +259,7 @@ public class NewsFederationService implements FederationServer {
      */
     public List<CommentResponse> serveComments(ServingPartner partner, int newsId) {
         requireShared(partner, newsId);
-        return newsService.findComments(newsId).stream()
+        return commentService.list(CommentEntityType.NEWS, newsId, CommentFilter.ALL).stream()
                 .map(this::toCommentResponse)
                 .toList();
     }
@@ -268,15 +278,22 @@ public class NewsFederationService implements FederationServer {
             throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT.raise();
         }
         var author = new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid());
-        var comment = newsService.createComment(
-                partner.servingStationId(),
+        var comment = storePartnerComment(
                 newsId,
-                request.parentId(),
-                author,
-                request.displayName(),
-                request.content());
+                CommentWriter.partner(author, request.displayName()),
+                new NewComment(request.parentId(), null, request.content()));
         eventFederationRepository.cacheName(partner.partnerId(), request.remoteMemberUid(), request.displayName());
         return toCommentResponse(comment);
+    }
+
+    /**
+     * Stores a comment a partner's member wrote, telling whoever a partner's comment on an entry
+     * tells, which the entry's comment target decides.
+     */
+    private Comment storePartnerComment(int newsId, CommentWriter writer, NewComment comment) {
+        var target =
+                commentService.target(CommentEntityType.NEWS, newsId).orElseThrow(Refusal.REMOTE_NEWS_NOT_HERE::raise);
+        return commentService.createOn(target, writer, comment);
     }
 
     /**
@@ -292,15 +309,15 @@ public class NewsFederationService implements FederationServer {
         if (request.content() == null || request.content().isBlank()) {
             throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
         }
-        var comment = newsService
-                .findCommentById(commentId)
+        var comment = commentService
+                .findById(CommentEntityType.NEWS, commentId)
                 .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
-        if (!new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid()).sameMember(comment.author())) {
+        var editor = new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid());
+        if (!editor.sameMember(comment.author())) {
             throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
         }
-        newsService.updateComment(commentId, request.content());
-        return toCommentResponse(newsService
-                .findCommentById(commentId)
+        return toCommentResponse(commentService
+                .update(comment, CommentWriter.partner(editor, ""), request.content())
                 .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise));
     }
 
@@ -312,13 +329,13 @@ public class NewsFederationService implements FederationServer {
      * @param request   who deletes
      */
     public void serveCommentDeletion(ServingPartner partner, int commentId, RemoteNewsCommentDeleteRequest request) {
-        var comment = newsService
-                .findCommentById(commentId)
+        var comment = commentService
+                .findById(CommentEntityType.NEWS, commentId)
                 .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
         if (!new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid()).sameMember(comment.author())) {
             throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
-        if (!newsService.deleteComment(partner.servingStationId(), commentId)) {
+        if (!commentService.delete(comment)) {
             throw Refusal.REMOTE_NEWS_COMMENT_NOT_DELETED.raise();
         }
     }
@@ -344,20 +361,22 @@ public class NewsFederationService implements FederationServer {
      * Creates a comment from a remote federated member on a news article.
      * Stores the comment with the federated author identity and caches the display name.
      */
-    public NewsComment createRemoteComment(
-            int stationId,
+    public Comment createRemoteComment(
             int newsId,
             int partnerId,
             UUID remoteMemberUid,
             String displayName,
-            Integer parentId,
+            @Nullable Integer parentId,
             String content) {
         var partnerStationUid = partnerRepository
                 .findPartnerById(partnerId)
                 .map(FederationPartner::partnerStationId)
                 .orElse(null);
         var authorIdentity = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
-        var comment = newsService.createComment(stationId, newsId, parentId, authorIdentity, displayName, content);
+        var comment = storePartnerComment(
+                newsId,
+                new CommentWriter(authorIdentity, displayName, CommentOrigin.PARTNER),
+                new NewComment(parentId, null, content));
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         log.info("Stored federated comment {} on news {} from partner {}", comment.id(), newsId, partnerId);
         return comment;
@@ -473,7 +492,7 @@ public class NewsFederationService implements FederationServer {
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
     }
 
-    private CommentResponse toCommentResponse(NewsComment comment) {
+    private CommentResponse toCommentResponse(Comment comment) {
         return CommentResponseMapper.fromNews(memberNameResolver, comment);
     }
 

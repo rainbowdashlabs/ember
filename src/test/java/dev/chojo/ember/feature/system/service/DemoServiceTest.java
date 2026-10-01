@@ -88,7 +88,6 @@ import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
-import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -187,18 +186,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationTransport = mock(FederationTransport.class);
 
         var eventServices = newEventServices(noOpBus);
-        var newsService = new NewsService(
-                newsRepo,
-                commentRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                noOpBus,
-                stationMemberRepo,
-                memberLookupService,
-                memberNameResolver,
-                silentCommentMentions());
+        var newsService = newNewsService(noOpBus);
         var inventoryService = new InventoryService(
                 inventoryRepo,
                 artRepo,
@@ -331,6 +319,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationRepo,
                 stationRepo,
                 newsService,
+                commentService,
                 new NewsAttachmentService(
                         new NewsAttachmentRepository(),
                         MediaTestSupport.library(
@@ -517,7 +506,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 demoMediaLibrary,
                 formRepo,
                 quizCatalogRepo);
-        var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
+        var newsSeeder = new DemoNewsSeeder(newsService, commentService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService, demoClock);
         var checklistService = new ChecklistService(
                 new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);

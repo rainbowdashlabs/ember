@@ -43,18 +43,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new NewsService(
-                newsRepo,
-                commentRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                new DomainEventBus(Set.of()),
-                stationMemberRepo,
-                memberLookupService,
-                memberNameResolver,
-                silentCommentMentions());
+        service = newNewsService(new DomainEventBus(Set.of()));
         station = stationRepo.create("NewsBlockStation");
         account = accountRepo.create("news-blocks@test.com", "News", "Blocks");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -324,7 +313,6 @@ class NewsBlockServiceTest extends RepositoryTestBase {
     private static NewsService describingService(MediaLibraryService media) {
         return new NewsService(
                 newsRepo,
-                commentRepo,
                 contentBlocks(),
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationRepo,
@@ -332,8 +320,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                memberNameResolver,
-                silentCommentMentions());
+                memberNameResolver);
     }
 
     private static StationFile picture(String alt, String description) {

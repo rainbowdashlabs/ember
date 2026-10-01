@@ -9,7 +9,6 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -45,19 +44,19 @@ public final class CommentResponseMapper {
     }
 
     /**
-     * Maps a news comment. News comments cannot be edited, so {@code updatedAt} stays {@code null}.
+     * Maps a news comment.
      */
-    public static CommentResponse fromNews(MemberNameResolver resolver, NewsComment comment) {
+    public static CommentResponse fromNews(MemberNameResolver resolver, Comment comment) {
         return withResolvedName(
                 resolver,
-                new Scope(comment.newsId(), null, null, null),
+                new Scope(comment.targetId(), null, null, null),
                 comment.id(),
                 comment.parentId(),
                 comment.author(),
                 comment.content(),
                 comment.deleted(),
                 comment.createdAt(),
-                null);
+                comment.updatedAt());
     }
 
     /**

@@ -239,6 +239,7 @@ import dev.chojo.ember.feature.news.route.FederatedNewsRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
 import dev.chojo.ember.feature.news.service.NewsBlockReferences;
+import dev.chojo.ember.feature.news.service.NewsCommentTarget;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsFeedDetails;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
@@ -599,6 +600,7 @@ public class EmberModule extends AbstractModule {
                 MapBinder.newMapBinder(binder(), CommentEntityType.class, CommentTarget.class);
         commentTargets.addBinding(CommentEntityType.EVENT).to(EventCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.KB).to(KbCommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.NEWS).to(NewsCommentTarget.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
