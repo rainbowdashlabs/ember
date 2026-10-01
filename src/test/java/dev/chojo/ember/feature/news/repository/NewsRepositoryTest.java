@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -66,6 +67,23 @@ class NewsRepositoryTest extends RepositoryTestBase {
     void findByStation() {
         var list = newsRepo.findByStation(station.id(), 0, 10);
         assertEquals(1, list.size());
+    }
+
+    @Test
+    @Order(3)
+    void anInstanceDraftStaysOutOfAStationsListUntilItIsPublished() {
+        var draft = newsRepo.createSystem("Instance draft", "draft", "<p>draft</p>", false);
+        var published = newsRepo.createSystem("Instance news", "news", "<p>news</p>", true);
+        try {
+            var ids = newsRepo.findByStation(station.id(), 0, 50).stream()
+                    .map(News::id)
+                    .toList();
+            assertFalse(ids.contains(draft.id()));
+            assertTrue(ids.contains(published.id()));
+        } finally {
+            newsRepo.delete(draft.id());
+            newsRepo.delete(published.id());
+        }
     }
 
     @Test

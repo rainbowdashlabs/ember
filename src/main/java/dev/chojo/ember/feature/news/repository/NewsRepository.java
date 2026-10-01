@@ -173,7 +173,9 @@ public class NewsRepository {
     }
 
     /**
-     * Retrieves news articles for a station, ordered by publication date descending.
+     * Retrieves news articles for a station, ordered by publication date descending: the station's own
+     * entries, drafts included, and the instance's published ones. An instance draft belongs to the
+     * instance administrators until it is published.
      *
      * @param stationId the station ID
      * @param offset    pagination offset
@@ -184,7 +186,7 @@ public class NewsRepository {
         return query("""
                 SELECT %s, %s
                 FROM news n
-                WHERE (n.station_id = :station_id OR n.station_id IS NULL)
+                WHERE (n.station_id = :station_id OR (n.station_id IS NULL AND n.published_at IS NOT NULL))
                 ORDER BY n.published_at DESC
                 LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED)
                 .single(call().bind("station_id", stationId)

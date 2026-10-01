@@ -38,6 +38,7 @@
 - **Joining a group needs the rights it grants.** Somebody allowed to manage groups could put anybody, themselves included, into a group whose permissions they did not hold. Putting somebody into a group now needs every permission the group grants, and a fresh confirmation where it grants any.
 - **Groups could take members of another station.** A group's member list accepted people of other stations when they were sent to the server directly. Such members are now refused.
 - **Registration codes of another station could be reached.** An instance administrator working in one station could open, change the groups of and delete another station's registration codes by their number. A code is now reached only from its own station.
+- **Unpublished instance news reached station news managers.** A station's news managers saw the instance's draft news entries in their news list before they were published. Instance drafts now stay with the instance administrators until they are published.
 
 ### Changes
 

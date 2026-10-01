@@ -38,6 +38,7 @@
 - **Die Aufnahme in eine Gruppe verlangt die Rechte, die sie vergibt.** Wer Gruppen verwalten durfte, konnte jeden, auch sich selbst, in eine Gruppe aufnehmen, deren Berechtigungen er selbst nicht hatte. Die Aufnahme in eine Gruppe verlangt jetzt jede Berechtigung, die die Gruppe vergibt, und eine frische Bestätigung, wo sie welche vergibt.
 - **Gruppen nahmen Mitglieder anderer Wachen auf.** Die Mitgliederliste einer Gruppe nahm Personen anderer Wachen an, wenn sie direkt an den Server geschickt wurden. Solche Mitglieder werden jetzt abgelehnt.
 - **Registrierungscodes anderer Wachen waren erreichbar.** Eine Instanzadministration, die in einer Wache arbeitete, konnte Registrierungscodes einer anderen Wache über ihre Nummer öffnen, ihre Gruppen ändern und sie löschen. Ein Code ist jetzt nur noch aus seiner eigenen Wache erreichbar.
+- **Unveröffentlichte Instanz-Neuigkeiten erreichten die Neuigkeiten-Verwaltung der Wachen.** Wer in einer Wache Neuigkeiten verwaltet, sah Entwürfe der Instanz in der Liste der Neuigkeiten, bevor sie veröffentlicht waren. Entwürfe der Instanz bleiben jetzt bei der Instanzadministration, bis sie veröffentlicht sind.
 
 ### Änderungen
 
