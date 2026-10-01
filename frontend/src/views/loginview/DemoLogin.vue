@@ -10,7 +10,8 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DemoAccountBrowser from '@/views/loginview/DemoAccountBrowser.vue'
-import type {DemoAccount, DemoAccountsView} from '@/composables/useDemoAccounts'
+import type {DemoAccount} from '@/api/generated/schema'
+import type {DemoAccountsView} from '@/composables/useDemoAccounts'
 
 const props = defineProps<{
   view: DemoAccountsView

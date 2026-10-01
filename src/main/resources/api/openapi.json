@@ -12932,6 +12932,24 @@
         }
       }
     },
+    "/api/v1/demo/accounts" : {
+      "get" : {
+        "summary" : "List the accounts the sign-in page offers on a demo or development instance",
+        "tags" : [ "Demo" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DemoAccountsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/demo/login" : {
       "post" : {
         "summary" : "Quick login (dev / demo only) - sign in by email, no password check",
@@ -12963,6 +12981,24 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/DemoLoginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/demo/status" : {
+      "get" : {
+        "summary" : "Tell whether this is a demo or a development instance",
+        "tags" : [ "Demo" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DemoStatusResponse"
+                }
               }
             }
           }
@@ -46164,6 +46200,72 @@
         },
         "required" : [ "column", "strategy" ]
       },
+      "DemoAccount" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "userType" : {
+            "$ref" : "#/components/schemas/StationUserType"
+          },
+          "permissions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "profileComplete" : {
+            "type" : "boolean"
+          },
+          "instanceAdministrator" : {
+            "type" : "boolean"
+          },
+          "clusterPermissions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "email", "firstName", "lastName", "userType", "permissions", "groups", "tags", "profileComplete", "instanceAdministrator", "clusterPermissions" ]
+      },
+      "DemoAccountsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "noStationAccounts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DemoAccount"
+            }
+          },
+          "stationGroups" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DemoStationGroup"
+            }
+          }
+        },
+        "required" : [ "noStationAccounts", "stationGroups" ]
+      },
       "DemoLoginRequest" : {
         "type" : "object",
         "properties" : {
@@ -46171,6 +46273,36 @@
             "type" : "string"
           }
         }
+      },
+      "DemoStationGroup" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "accounts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DemoAccount"
+            }
+          }
+        },
+        "required" : [ "stationId", "stationName", "accounts" ]
+      },
+      "DemoStatusResponse" : {
+        "type" : "object",
+        "properties" : {
+          "demo" : {
+            "type" : "boolean"
+          },
+          "dev" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "demo", "dev" ]
       },
       "DeniedModulesResponse" : {
         "type" : "object",

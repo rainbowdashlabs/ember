@@ -286,6 +286,7 @@ import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
 import dev.chojo.ember.feature.system.route.ChangelogRoutes;
 import dev.chojo.ember.feature.system.route.DataRoutes;
 import dev.chojo.ember.feature.system.route.DataTrackingRoutes;
+import dev.chojo.ember.feature.system.route.DemoRoutes;
 import dev.chojo.ember.feature.system.route.InstallRoutes;
 import dev.chojo.ember.feature.system.route.ProblemReportRoutes;
 import dev.chojo.ember.feature.system.route.ProblemRoutes;
@@ -472,6 +473,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(BeaconAdminRoutes.class);
         routesBinder.addBinding().to(ProblemReportRoutes.class);
         routesBinder.addBinding().to(ApiStatusRoutes.class);
+        routesBinder.addBinding().to(DemoRoutes.class);
         routesBinder.addBinding().to(UpdateRoutes.class);
         routesBinder.addBinding().to(TaskStatusRoutes.class);
         routesBinder.addBinding().to(ChangelogRoutes.class);

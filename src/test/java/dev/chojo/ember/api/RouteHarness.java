@@ -15,15 +15,10 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
@@ -254,14 +249,8 @@ public final class RouteHarness {
                 new Auth(),
                 new Demo(),
                 accessManager,
-                mock(AccountRepository.class),
-                mock(StationMemberRepository.class),
                 stations,
                 mock(ClusterRepository.class),
-                () -> mock(ClusterService.class),
-                mock(ProfileFieldService.class),
-                mock(MemberGroupRepository.class),
-                mock(UserTagRepository.class),
                 mock(ApiRequestLogger.class),
                 mock(DemoService.class),
                 mock(StationTrafficRecorder.class),

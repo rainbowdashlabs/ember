@@ -10,7 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import client from '@/api/client'
+import {getDemoStatus} from '@/api/demo'
 import Alert from '@/components/feedback/Alert.vue'
 import {StationPermission, StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -86,8 +86,7 @@ onMounted(async () => {
   resetTransferStatus()
   loadTransferStatus()
   try {
-    const res = await client.get<{ demo: boolean }>('/demo/status')
-    isDemo.value = res.data.demo
+    isDemo.value = (await getDemoStatus()).demo
   } catch {
     isDemo.value = false
   }

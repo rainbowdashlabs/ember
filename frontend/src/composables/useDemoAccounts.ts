@@ -7,10 +7,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { demo } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
-import type { DemoAccount, DemoAccountsPayload, DemoStationGroup } from '@/api/demo'
+import type { DemoAccount, DemoStationGroup } from '@/api/generated/schema'
 import { StationUserType, StationUserTypeLabels } from '@/api/types'
-
-export type { DemoAccount }
 
 /** The band a person with no station of their own is offered under. */
 const NO_STATION = 'Ohne Wache'
@@ -53,7 +51,7 @@ export interface DemoAccountsView {
 
 /** What somebody is at their station, in the words the account cards use. */
 export function roleLabel(account: DemoAccount): string {
-  return StationUserTypeLabels[account.userType as keyof typeof StationUserTypeLabels] ?? account.userType ?? 'Login'
+  return StationUserTypeLabels[account.userType]
 }
 
 /**
@@ -125,7 +123,7 @@ export function useDemoAccounts() {
     const everybody = [...noStationAccounts.value, ...stationGroups.value.flatMap(g => g.accounts)]
     const seen = new Set<string>()
     const acting = everybody.filter(a => {
-      if (!a.email || seen.has(a.email) || !(a.clusterPermissions ?? []).length) return false
+      if (seen.has(a.email) || !a.clusterPermissions.length) return false
       seen.add(a.email)
       return true
     })
@@ -134,7 +132,7 @@ export function useDemoAccounts() {
     const taken = new Set<string>()
 
     function addGroup(label: string, holds: string) {
-      const matching = acting.filter(a => !taken.has(a.email) && (a.clusterPermissions ?? []).includes(holds))
+      const matching = acting.filter(a => !taken.has(a.email) && a.clusterPermissions.includes(holds))
       if (!matching.length) return
       groups.push({label, accounts: matching})
       matching.forEach(a => taken.add(a.email))
@@ -173,7 +171,7 @@ export function useDemoAccounts() {
     if (!needle) return []
 
     const matching = (accounts: DemoAccount[]) => accounts.filter(account =>
-      haystack(account).some(value => value?.toLowerCase().includes(needle)))
+      haystack(account).some(value => value.toLowerCase().includes(needle)))
 
     const bands: RoleGroup[] = []
     const withoutStation = matching(noStationAccounts.value)
@@ -185,30 +183,15 @@ export function useDemoAccounts() {
     return bands
   })
 
-  /**
-   * Accepts both the grouped payload and the two flat shapes older instances return, so a demo
-   * instance one version behind still offers its accounts.
-   */
-  function applyPayload(payload: DemoAccountsPayload) {
-    if (!Array.isArray(payload)) {
-      stationGroups.value = payload.stationGroups ?? []
-      noStationAccounts.value = payload.noStationAccounts ?? []
-      return
-    }
-    const [firstEntry] = payload
-    stationGroups.value = firstEntry && 'accounts' in firstEntry
-      ? (payload as DemoStationGroup[])
-      : [{stationId: 'default', stationName: 'Station', accounts: payload as DemoAccount[]}]
-    noStationAccounts.value = []
-  }
-
   async function load() {
     try {
       const status = await demo.getDemoStatus()
       isDemo.value = status.demo
       isDev.value = status.dev
       if (isDemo.value || isDev.value) {
-        applyPayload(await demo.getDemoAccounts())
+        const accounts = await demo.getDemoAccounts()
+        stationGroups.value = accounts.stationGroups
+        noStationAccounts.value = accounts.noStationAccounts
         activeStation.value = stationGroups.value[0]?.stationId ?? ''
       }
     } catch (e) {

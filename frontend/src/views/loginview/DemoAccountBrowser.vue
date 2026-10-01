@@ -9,7 +9,8 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DemoAccountGroups from '@/views/loginview/DemoAccountGroups.vue'
 import DemoStationPicker from '@/views/loginview/DemoStationPicker.vue'
-import type {DemoAccount, DemoAccountsView} from '@/composables/useDemoAccounts'
+import type {DemoAccount} from '@/api/generated/schema'
+import type {DemoAccountsView} from '@/composables/useDemoAccounts'
 
 /**
  * The whole of choosing a demo account: a search across every station, and the picked station's

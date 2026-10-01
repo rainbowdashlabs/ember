@@ -7,31 +7,20 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.SessionGate;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -64,7 +53,6 @@ import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
@@ -81,7 +69,6 @@ import tools.jackson.databind.exc.ValueInstantiationException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,14 +141,8 @@ public class ApiServer {
     private final Auth authConfig;
     private final Demo demoConfig;
     private final AccessManager accessManager;
-    private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
-    private final Provider<ClusterService> clusterService;
-    private final ProfileFieldService profileFieldService;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
     private final ApiRequestLogger apiRequestLogger;
     private final DemoService demoService;
     private final StationTrafficRecorder trafficRecorder;
@@ -184,14 +165,8 @@ public class ApiServer {
             Auth authConfig,
             Demo demoConfig,
             AccessManager accessManager,
-            AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
-            Provider<ClusterService> clusterService,
-            ProfileFieldService profileFieldService,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository,
             ApiRequestLogger apiRequestLogger,
             DemoService demoService,
             StationTrafficRecorder trafficRecorder,
@@ -210,14 +185,8 @@ public class ApiServer {
         this.authConfig = authConfig;
         this.demoConfig = demoConfig;
         this.accessManager = accessManager;
-        this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
-        this.clusterService = clusterService;
-        this.profileFieldService = profileFieldService;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
         this.apiRequestLogger = apiRequestLogger;
         this.demoService = demoService;
         this.trafficRecorder = trafficRecorder;
@@ -524,15 +493,6 @@ public class ApiServer {
                             demoConfig.enabled() || demoConfig.dev(),
                             loadAppVersion())));
 
-            // Public demo endpoints
-            config.routes.get(
-                    API_PREFIX + "/demo/status",
-                    ctx -> ctx.json(new DemoStatusResponse(demoConfig.enabled(), demoConfig.dev())));
-
-            if (demoConfig.enabled() || demoConfig.dev()) {
-                config.routes.get(API_PREFIX + "/demo/accounts", this::handleDemoAccounts);
-            }
-
             if (demoConfig.dev()) {
                 config.routes.post(API_PREFIX + "/dev/errors", this::handleDevErrorReport);
                 config.routes.post(API_PREFIX + "/dev/reset", this::handleDevReset);
@@ -630,7 +590,7 @@ public class ApiServer {
     }
 
     /**
-     * Serves the list of demo accounts with their roles, groups, and tags for the demo login page.
+     * Writes an error the frontend reports on a development instance to the development error log.
      */
     private void handleDevErrorReport(@NotNull Context ctx) {
         record ErrorReport(String source, String message, String stack, String context) {}
@@ -659,73 +619,6 @@ public class ApiServer {
         log.info("Dev reset requested, discarding all data and seeding again");
         demoService.resetAndSeed();
         ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void handleDemoAccounts(@NotNull Context ctx) {
-        // A cluster's home station has no members, so it would only ever be an empty group
-        var allStations = stationRepository.findAllRegular();
-        var stationGroups = new ArrayList<DemoStationGroup>();
-        for (var station : allStations) {
-            var members = stationMemberRepository.findByStation(station.id());
-            var accounts = new ArrayList<DemoAccount>();
-            for (StationMember member : members) {
-                if (member.accountId() == null) continue;
-                accountRepository.findById(member.accountId()).ifPresent(account -> {
-                    var permissions = stationMemberRepository.findPermissions(member.id());
-                    var permissionNames =
-                            permissions.stream().map(p -> p.permission().name()).toList();
-                    var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
-                            .map(MemberGroup::name)
-                            .toList();
-                    var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
-                            .map(UserTag::name)
-                            .toList();
-                    boolean complete = profileFieldService.isProfileComplete(member.id());
-                    accounts.add(new DemoAccount(
-                            account.email(),
-                            account.firstName(),
-                            account.lastName(),
-                            member.userType(),
-                            permissionNames,
-                            groupNames,
-                            tagNames,
-                            complete,
-                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR,
-                            clusterPermissionsOf(account.id())));
-                });
-            }
-            if (!accounts.isEmpty()) {
-                stationGroups.add(new DemoStationGroup(station.uid().toString(), station.name(), accounts));
-            }
-        }
-
-        // A row on a cluster's own station is a byline on what the cluster writes, not somebody being at a
-        // station: the demo administrator would otherwise vanish from this list the moment they write for a
-        // cluster, and the picker is where they are chosen.
-        var regularStationIds = allStations.stream().map(Station::id).collect(Collectors.toSet());
-        var noStationAccounts = new ArrayList<DemoAccount>();
-        for (var account : accountRepository.findAll()) {
-            boolean atAStation = stationMemberRepository.findAllByAccountId(account.id()).stream()
-                    .anyMatch(member -> regularStationIds.contains(member.stationId()));
-            if (atAStation) {
-                continue;
-            }
-            boolean administrator = account.instanceUserType() == InstanceUserType.ADMINISTRATOR;
-            StationUserType bucket = administrator ? StationUserType.MANAGER : StationUserType.MEMBER;
-            noStationAccounts.add(new DemoAccount(
-                    account.email(),
-                    account.firstName(),
-                    account.lastName(),
-                    bucket,
-                    List.of(),
-                    List.of(),
-                    List.of(),
-                    true,
-                    administrator,
-                    clusterPermissionsOf(account.id())));
-        }
-
-        ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
     }
 
     /**
@@ -1315,65 +1208,5 @@ public class ApiServer {
         return "unknown";
     }
 
-    /**
-     * Representation of a demo account returned by the demo accounts endpoint.
-     *
-     * @param email           the account email
-     * @param firstName       the first name
-     * @param lastName        the last name
-     * @param userType        the user type assigned to this member
-     * @param groups          the group names the member belongs to
-     * @param tags            the tag names assigned to this member
-     * @param profileComplete whether the member's profile is fully filled in
-     */
-    /**
-     * One account the demo instance offers for signing in.
-     *
-     * @param instanceAdministrator whether the account administers the instance itself. Station
-     *                              permissions say nothing about that, so a caller looking for
-     *                              someone who may reach the admin area has no other way to tell.
-     */
-
-    /**
-     * Everything an account may do for any cluster it belongs to, flattened.
-     *
-     * <p>Flattened because the stories that read this pick an actor by what they are allowed to do, and the
-     * demo has one cluster: telling them which cluster each right came from would be a distinction with
-     * nothing behind it. An account in no cluster answers with nothing, which is the same answer the picker
-     * gives.
-     *
-     * @param accountId the account
-     * @return the names of the permissions it holds, sorted, each once
-     */
-    private List<String> clusterPermissionsOf(int accountId) {
-        var service = clusterService.get();
-        return clusterRepository.findAll().stream()
-                .flatMap(cluster -> service.findMembers(cluster.id()).stream())
-                .filter(member -> member.accountId() == accountId)
-                .flatMap(member -> service.resolvePermissions(member).stream())
-                .map(Enum::name)
-                .distinct()
-                .sorted()
-                .toList();
-    }
-
-    public record DemoAccount(
-            String email,
-            String firstName,
-            String lastName,
-            StationUserType userType,
-            List<String> permissions,
-            List<String> groups,
-            List<String> tags,
-            boolean profileComplete,
-            boolean instanceAdministrator,
-            List<String> clusterPermissions) {}
-
     public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
-
-    public record DemoStatusResponse(boolean demo, boolean dev) {}
-
-    public record DemoStationGroup(String stationId, String stationName, List<DemoAccount> accounts) {}
-
-    public record DemoAccountsResponse(List<DemoAccount> noStationAccounts, List<DemoStationGroup> stationGroups) {}
 }

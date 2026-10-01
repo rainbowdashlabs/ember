@@ -10,7 +10,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PillBadge from '@/components/badge/PillBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {roleLabel} from '@/composables/useDemoAccounts'
-import type {DemoAccount, RoleGroup} from '@/composables/useDemoAccounts'
+import type {RoleGroup} from '@/composables/useDemoAccounts'
+import type {DemoAccount} from '@/api/generated/schema'
 
 defineProps<{
   roleGroups: RoleGroup[]

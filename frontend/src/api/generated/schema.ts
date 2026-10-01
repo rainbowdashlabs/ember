@@ -16858,6 +16858,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/demo/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the accounts the sign-in page offers on a demo or development instance */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemoAccountsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/demo/login": {
         parameters: {
             query?: never;
@@ -16901,6 +16937,42 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/demo/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tell whether this is a demo or a development instance */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemoStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -55564,8 +55636,33 @@ export interface components {
             reason?: string;
             strategy: components["schemas"]["Strategy"];
         };
+        DemoAccount: {
+            clusterPermissions: string[];
+            email: string;
+            firstName: string;
+            groups: string[];
+            instanceAdministrator: boolean;
+            lastName: string;
+            permissions: string[];
+            profileComplete: boolean;
+            tags: string[];
+            userType: components["schemas"]["StationUserType"];
+        };
+        DemoAccountsResponse: {
+            noStationAccounts: components["schemas"]["DemoAccount"][];
+            stationGroups: components["schemas"]["DemoStationGroup"][];
+        };
         DemoLoginRequest: {
             email?: string;
+        };
+        DemoStationGroup: {
+            accounts: components["schemas"]["DemoAccount"][];
+            stationId: string;
+            stationName: string;
+        };
+        DemoStatusResponse: {
+            demo: boolean;
+            dev: boolean;
         };
         DeniedModulesResponse: {
             deniedModules: string[];
@@ -64267,7 +64364,11 @@ export type Deleted = components['schemas']['Deleted'];
 export type DeleteImpact = components['schemas']['DeleteImpact'];
 export type DeleteRequestResponse = components['schemas']['DeleteRequestResponse'];
 export type DeletionStrategy = components['schemas']['DeletionStrategy'];
+export type DemoAccount = components['schemas']['DemoAccount'];
+export type DemoAccountsResponse = components['schemas']['DemoAccountsResponse'];
 export type DemoLoginRequest = components['schemas']['DemoLoginRequest'];
+export type DemoStationGroup = components['schemas']['DemoStationGroup'];
+export type DemoStatusResponse = components['schemas']['DemoStatusResponse'];
 export type DeniedModulesResponse = components['schemas']['DeniedModulesResponse'];
 export type DenyRequest = components['schemas']['DenyRequest'];
 export type DependencyEntry = components['schemas']['DependencyEntry'];
