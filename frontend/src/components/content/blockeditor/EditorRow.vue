@@ -13,7 +13,8 @@ import RowActionsMenu from './RowActionsMenu.vue'
 import ContentRow from '@/components/content/ContentRow.vue'
 import {publicContentContext} from '@/util/contentContext'
 import type {CellEditData} from './EditorCell.vue'
-import {CellContentType, type PageRow} from '@/api/pageManage'
+import {CellContentType} from '@/api/pageManage'
+import type {ContentRow as RowData} from '@/api/generated/schema'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 
 export interface RowEditData {
@@ -165,7 +166,7 @@ function onPasteCell() {
 <template>
     <ContentRow
         v-if="preview"
-        :row="(row as unknown as PageRow)"
+        :row="(row as unknown as RowData)"
         :context="publicContentContext(stationUid)"
     />
 

@@ -7,14 +7,20 @@ package dev.chojo.ember.feature.page.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.federation.entity.PublicPartnerSummary;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.page.service.PublicSiteService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 @Singleton
 public class PublicPageRoutes implements Routes {
@@ -44,10 +50,19 @@ public class PublicPageRoutes implements Routes {
      * <p>Behind the same switch as the pages it serves: it exists for the cells on them, so a
      * station that has closed its pages has closed this too.
      */
+    @OpenApi(
+            path = "/api/v1/public/pages/{stationUid}/partners",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicPartnerSummary[].class)))
     private void listPartners(Context ctx) {
         ctx.json(site.partners(resolveOpenStation(ctx), ctx.queryParam("uids")));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/pages/{stationUid}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicPageSummary[].class)))
     private void listPages(Context ctx) {
         int stationId = resolveOpenStation(ctx);
         var pages = pageService.listListedPages(stationId);
@@ -56,6 +71,10 @@ public class PublicPageRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/public/pages/{stationUid}/page/{pagePath}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPage.class)))
     private void getPage(Context ctx) {
         int stationId = resolveOpenStation(ctx);
         String pagePath = ctx.pathParam("pagePath");
@@ -67,6 +86,10 @@ public class PublicPageRoutes implements Routes {
         ctx.json(rendered);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/pages/{stationUid}/landing",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPage.class)))
     private void getLandingPage(Context ctx) {
         int stationId = resolveOpenStation(ctx);
         var page = pageService.getLandingPage(stationId).orElseThrow(Refusal.PUBLIC_LANDING_PAGE_NOT_HERE::raise);
@@ -85,17 +108,17 @@ public class PublicPageRoutes implements Routes {
     record PublicPageSummary(
             int id,
             String publicUid,
-            Integer parentId,
+            @Nullable Integer parentId,
             String title,
             String slug,
             String path,
             int sortOrder,
-            String metaDescription,
-            Integer ogImageId) {
+            @Nullable String metaDescription,
+            @Nullable Integer ogImageId) {
         static PublicPageSummary from(StationPage page, String path) {
             return new PublicPageSummary(
                     page.id(),
-                    page.publicUid() != null ? page.publicUid().toString() : null,
+                    page.publicUid().toString(),
                     page.parentId(),
                     page.title(),
                     page.slug(),

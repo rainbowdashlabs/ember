@@ -16,6 +16,11 @@ import dev.chojo.ember.feature.knowledgebase.service.KbFavouriteService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -56,11 +61,20 @@ public class KbFavouriteRoutes implements Routes {
         return member;
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/favourites",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFavourite[].class)))
     private void list(Context ctx) {
         requireMember(UserSession.from(ctx));
         ctx.json(favourites.list(accessOf(ctx, accessService)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/favourites",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MarkFavouriteRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = KbFavourite.class)))
     private void mark(Context ctx) {
         var session = UserSession.from(ctx);
         var member = requireMember(session);
@@ -83,6 +97,10 @@ public class KbFavouriteRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(marked);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/favourites/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void unmark(Context ctx) {
         var member = requireMember(UserSession.from(ctx));
         if (!favourites.unmark(member.id(), pathInt(ctx, "id"))) throw Refusal.KB_FAVOURITE_NOT_HERE.raise();

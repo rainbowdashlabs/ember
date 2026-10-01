@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {onMounted, onUnmounted, ref} from 'vue'
-import type {CountdownConfig} from '@/api/pageManage'
+import type {CountdownConfig} from '@/api/generated/schema'
 
 const props = defineProps<{
     config: CountdownConfig

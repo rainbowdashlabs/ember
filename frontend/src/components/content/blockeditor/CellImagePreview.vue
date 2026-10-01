@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed, onBeforeUnmount, onMounted, ref, watch, type CSSProperties} from 'vue'
-import {ImageFit, type ImageConfig, type ImageFitName} from '@/api/pageManage'
+import {ImageFit, type ImageFitName} from '@/api/pageManage'
+import type {ImageConfig} from '@/api/generated/schema'
 import {mediaImageSrcset} from '@/api/media'
 
 const OBJECT_FIT_BY_IMAGE_FIT: Record<ImageFitName, CSSProperties['objectFit']> = {

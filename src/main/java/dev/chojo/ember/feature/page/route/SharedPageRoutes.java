@@ -26,6 +26,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A page reached by its link and by nothing else.
@@ -149,11 +150,11 @@ public class SharedPageRoutes implements Routes {
     @OpenApiName("SharedPageBrand")
     public record SharedBrand(
             String stationUid,
-            String publicSlug,
+            @Nullable String publicSlug,
             String name,
             boolean hasLogo,
-            String defaultTheme,
-            String defaultFeel,
-            String customThemeColors,
+            @Nullable String defaultTheme,
+            @Nullable String defaultFeel,
+            @Nullable String customThemeColors,
             String timezone) {}
 }

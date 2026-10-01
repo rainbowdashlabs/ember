@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -31,10 +32,10 @@ public record KbFavourite(
         int memberId,
         KbFavouriteTarget target,
         int entryId,
-        UUID partnerStationUid,
+        @Nullable UUID partnerStationUid,
         String title,
-        String fileType,
-        String stationName,
+        @Nullable String fileType,
+        @Nullable String stationName,
         Instant createdAt) {
 
     /**

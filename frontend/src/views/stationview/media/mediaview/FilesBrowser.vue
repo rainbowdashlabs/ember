@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import MediaSidebar from './MediaSidebar.vue'
 import ContentArea from './ContentArea.vue'
-import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
+import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import type {FolderTreeNode} from './useMediaFolderTree'
 
 const search = defineModel<string>('search', {required: true})
@@ -25,8 +25,8 @@ const props = defineProps<{
   selectedIds: number[]
   breadcrumbs: StationFileFolder[]
   visibleFolders: StationFileFolder[]
-  filtered: StationFileListing[]
-  pagedFiles: StationFileListing[]
+  filtered: FileListing[]
+  pagedFiles: FileListing[]
   stationUid: string
   currentPage: number
   totalPages: number

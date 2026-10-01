@@ -10,10 +10,16 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -57,11 +63,19 @@ public class KnowledgeBaseTagRoutes implements Routes {
         routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, StationPermission.KNOWLEDGE_EDIT);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/tags",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void listTags(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(tagService.findTagsByStation(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/tags/{name}/scope",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TagScopeResponse.class)))
     private void getTagScope(Context ctx) {
         var session = UserSession.from(ctx);
         String tagName = ctx.pathParam("name");
@@ -99,6 +113,10 @@ public class KnowledgeBaseTagRoutes implements Routes {
         ctx.json(new TagScopeResponse(matchingFileIds, new ArrayList<>(ancestorFolderIds)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/tags",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void getFileTags(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -106,14 +124,23 @@ public class KnowledgeBaseTagRoutes implements Routes {
         ctx.json(tagService.findFileTags(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/tags",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbTagRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void setFileTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
-        var req = ctx.bodyAsClass(TagRequest.class);
+        var req = ctx.bodyAsClass(KbTagRequest.class);
         ctx.json(tagService.setFileTags(id, req.tags(), session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/tags",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void getFolderTags(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
@@ -121,15 +148,20 @@ public class KnowledgeBaseTagRoutes implements Routes {
         ctx.json(tagService.findFolderTags(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/tags",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbTagRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void setFolderTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
-        var req = ctx.bodyAsClass(TagRequest.class);
+        var req = ctx.bodyAsClass(KbTagRequest.class);
         ctx.json(tagService.setFolderTags(id, req.tags(), session.stationId()));
     }
 
-    public record TagRequest(List<String> tags) {}
+    public record KbTagRequest(List<String> tags) {}
 
     public record TagScopeResponse(List<Integer> matchingFileIds, List<Integer> ancestorFolderIds) {}
 }

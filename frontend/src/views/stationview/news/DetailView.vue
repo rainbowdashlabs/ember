@@ -25,7 +25,7 @@ import NewsBody from './newsshared/NewsBody.vue'
 import NewsEntryHeader from './newsshared/NewsEntryHeader.vue'
 import {internalContentContext} from '@/util/contentContext'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
-import type {NewsEntry} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
@@ -38,7 +38,7 @@ const {canManageNews, sessionInfo} = useSession()
 provideBlockAudience('MEMBERS')
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
-const entry = ref<NewsEntry | null>(null)
+const entry = ref<NewsResponse | null>(null)
 
 /**
  * The entry's own headline at the head of the page, because "Neuigkeit" is the same word above every
@@ -76,7 +76,7 @@ const {
   show: showDeleteModal,
   request: requestDelete,
   confirm: confirmDelete,
-} = useConfirmAction<NewsEntry>({
+} = useConfirmAction<NewsResponse>({
   onConfirm: async e => {
     await news.deleteNews(e.id)
   },

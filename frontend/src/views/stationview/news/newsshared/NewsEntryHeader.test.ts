@@ -7,9 +7,9 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import NewsEntryHeader from './NewsEntryHeader.vue'
-import type {NewsEntry} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 
-function entry(overrides: Partial<NewsEntry> = {}): NewsEntry {
+function entry(overrides: Partial<NewsResponse> = {}): NewsResponse {
     return {
         id: 5,
         title: 'Ember 26.17.1',
@@ -22,7 +22,7 @@ function entry(overrides: Partial<NewsEntry> = {}): NewsEntry {
         restricted: false,
         systemEntry: false,
         ...overrides,
-    } as NewsEntry
+    } as NewsResponse
 }
 
 /**
@@ -33,7 +33,7 @@ function entry(overrides: Partial<NewsEntry> = {}): NewsEntry {
  * found". Offering the buttons anyway is offering three ways to be told no.
  */
 describe('NewsEntryHeader', () => {
-    function header(news: NewsEntry, canManage = true) {
+    function header(news: NewsResponse, canManage = true) {
         return mount(NewsEntryHeader, {
             props: {entry: news, canManage},
             slots: {actions: '<button data-testid="an-action">tu etwas</button>'},

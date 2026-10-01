@@ -10,7 +10,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {knowledgeBase} from '@/api'
-import type {DeleteImpact, KbFileSummary, KbFolder} from '@/api/knowledgeBase'
+import type {DeleteImpact, KbFileSummary, KbFolder} from '@/api/generated/schema'
 
 /**
  * Asking before a delete, and saying what it really costs.

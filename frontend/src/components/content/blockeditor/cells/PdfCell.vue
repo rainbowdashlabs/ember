@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
-import type {PdfConfig} from '@/api/pageManage'
+import type {PdfConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: PdfConfig

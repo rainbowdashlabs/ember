@@ -5,7 +5,8 @@
  */
 import {ref, type Ref} from 'vue'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import {createMediaFolder, deleteMediaFolder, updateMediaFolder, type StationFileFolder} from '@/api/media'
+import {createMediaFolder, deleteMediaFolder, updateMediaFolder} from '@/api/media'
+import type {StationFileFolder} from '@/api/generated/schema'
 
 /**
  * Create / rename / delete flow for file folders, including the modal state the folder dialog

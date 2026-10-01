@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.page.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,14 +36,14 @@ public record StationPage(
         int id,
         UUID publicUid,
         int stationId,
-        Integer parentId,
+        @Nullable Integer parentId,
         String title,
         String slug,
         PageVisibility visibility,
         int sortOrder,
-        String metaDescription,
-        Integer ogImageId,
-        String ogImageHash,
+        @Nullable String metaDescription,
+        @Nullable Integer ogImageId,
+        @Nullable String ogImageHash,
         Integer containerId,
         int createdBy,
         Instant createdAt,

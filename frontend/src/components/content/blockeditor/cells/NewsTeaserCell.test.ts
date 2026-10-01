@@ -32,7 +32,7 @@ function entry(newsUid: string, over: Partial<FoundNews> = {}): FoundNews {
 }
 
 async function shown(newsUid: string | null, audience?: BlockAudience) {
-    const props = {config: {newsUid}, stationUid: 'station-a', timezone: 'Europe/Berlin'}
+    const props = {config: newsUid ? {newsUid} : {}, stationUid: 'station-a', timezone: 'Europe/Berlin'}
     const host = defineComponent({
         setup() {
             if (audience) provideBlockAudience(audience)

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry} from '@/api/generated/schema'
+import type {AttendanceEntry, ContentRow, StationPage} from '@/api/generated/schema'
 import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {CheckResult} from '@/api/inventoryCheck'
@@ -12,7 +12,6 @@ import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheck
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
 import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
-import type {PageRow, StationPage} from '@/api/pageManage'
 import type {UserSettings} from '@/api/userSettings'
 import type {ActiveSession} from '@/api/session'
 import type {
@@ -200,7 +199,7 @@ export interface PitchTransfer {
 /** The pages of a station: the tree in the management, and the rows of the page itself. */
 export interface PitchPages {
     tree: {page: StationPage; depth: number}[]
-    rows: PageRow[]
+    rows: ContentRow[]
     landingPageId: number | null
 }
 

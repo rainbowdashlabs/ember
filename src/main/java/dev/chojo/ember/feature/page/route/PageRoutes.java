@@ -17,17 +17,28 @@ import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
 import dev.chojo.ember.feature.form.service.FormService;
+import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
+import dev.chojo.ember.feature.page.entity.PickerPage;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -114,6 +125,10 @@ public class PageRoutes implements Routes {
         routes.post(prefix + "/pages/{pid}/files", this::uploadPageFile, StationPermission.PAGE_EDIT);
     }
 
+    @OpenApi(
+            path = "/api/v1/pages",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PagesListResponse.class)))
     private void list(Context ctx) {
         var session = UserSession.from(ctx);
         var pages = pageService.listPages(session.stationId());
@@ -121,6 +136,13 @@ public class PageRoutes implements Routes {
         ctx.json(new PagesListResponse(pages, landingPageId));
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/search",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = PickerPage[].class)))
     private void searchPicker(Context ctx) {
         var session = UserSession.from(ctx);
         String q = ctx.queryParam("q");
@@ -142,16 +164,38 @@ public class PageRoutes implements Routes {
         return form;
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/polls/forms/{id}/analytics",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalyticsDto.class)))
     private void getFormAnalytics(Context ctx, FormPurpose expected) {
         var form = resolvePagePublicForm(ctx, expected);
         ctx.json(formAnalyticsAssembler.buildAnalytics(form.id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/polls/forms/{id}/responses",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntryDto[].class)))
+    @OpenApi(
+            path = "/api/v1/pages/forms/{id}/responses",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntryDto[].class)))
     private void listFormResponses(Context ctx, FormPurpose expected) {
         var form = resolvePagePublicForm(ctx, expected);
         ctx.json(formAnalyticsAssembler.listResponses(form.id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/polls/forms/{id}/responses/{responseId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
+    @OpenApi(
+            path = "/api/v1/pages/forms/{id}/responses/{responseId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
     private void getFormResponseDetail(Context ctx, FormPurpose expected) {
         var form = resolvePagePublicForm(ctx, expected);
         int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();
@@ -164,6 +208,10 @@ public class PageRoutes implements Routes {
      * a CONTACT form on the caller's station). Acknowledgement is idempotent - the first
      * acknowledger wins, so a second viewer cannot rewrite the audit trail.
      */
+    @OpenApi(
+            path = "/api/v1/pages/forms/{id}/responses/{responseId}/acknowledge",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "204"))
     private void acknowledgeFormResponse(Context ctx, FormPurpose expected) {
         var session = UserSession.from(ctx);
         if (session.member() == null) throw Refusal.PAGE_FORM_ANSWER_NOT_YOURS_TO_MARK.raise();
@@ -179,6 +227,13 @@ public class PageRoutes implements Routes {
      * Expands a member-list cell to the members it shows, so the editor preview can render the
      * cell live.
      */
+    @OpenApi(
+            path = "/api/v1/pages/member-list/resolve",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = CellConfig.ResolvedMember[].class)))
     private void resolveMemberList(Context ctx) {
         var session = UserSession.from(ctx);
         JsonNode body;
@@ -191,6 +246,11 @@ public class PageRoutes implements Routes {
         ctx.json(pageService.resolveMemberList(session.stationId(), body));
     }
 
+    @OpenApi(
+            path = "/api/v1/pages",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreatePageRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationPage.class)))
     private void create(Context ctx) {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreatePageRequest.class);
@@ -210,11 +270,20 @@ public class PageRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/{pid}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPage.class)))
     private void get(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         ctx.json(requireOwnedPage(ctx, pid));
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/{pid}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SavePageRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPage.class)))
     private void save(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
@@ -255,6 +324,10 @@ public class PageRoutes implements Routes {
      * such: catching it all and calling it a miss told the reader their page was gone when it was
      * sitting there and the copy had broken.
      */
+    @OpenApi(
+            path = "/api/v1/pages/{pid}/duplicate",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationPage.class)))
     private void duplicate(Context ctx) {
         var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
@@ -267,6 +340,7 @@ public class PageRoutes implements Routes {
         }
     }
 
+    @OpenApi(path = "/api/v1/pages/{pid}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
@@ -276,10 +350,15 @@ public class PageRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/{pid}/visibility",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PageVisibilityRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPage.class)))
     private void setVisibility(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
-        var request = ctx.bodyAsClass(VisibilityRequest.class);
+        var request = ctx.bodyAsClass(PageVisibilityRequest.class);
         if (request.visibility() == null) {
             throw Refusal.PAGE_VISIBILITY_MISSING.raise();
         }
@@ -293,23 +372,37 @@ public class PageRoutes implements Routes {
      * The link a page reached by one is reached at. Separate from the page itself because the page
      * travels to strangers and the link must not.
      */
+    @OpenApi(
+            path = "/api/v1/pages/{pid}/share-link",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PageShareLinkResponse.class)))
     private void getShareLink(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
-        ctx.json(new ShareLinkResponse(pageService.shareToken(pid).orElse(null)));
+        ctx.json(new PageShareLinkResponse(pageService.shareToken(pid).orElse(null)));
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/{pid}/share-link",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReplacePageShareLinkRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PageShareLinkResponse.class)))
     private void replaceShareLink(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
-        var request = ctx.bodyAsClass(ReplaceShareLinkRequest.class);
+        var request = ctx.bodyAsClass(ReplacePageShareLinkRequest.class);
         var replaced = pageService.replaceShareToken(pid, request.currentToken());
         if (replaced.isEmpty()) {
             throw Refusal.PAGE_LINK_ALREADY_REPLACED.raise();
         }
-        ctx.json(new ShareLinkResponse(replaced.get()));
+        ctx.json(new PageShareLinkResponse(replaced.get()));
     }
 
+    @OpenApi(
+            path = "/api/v1/pages/landing",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LandingPageRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void setLandingPage(Context ctx) {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(LandingPageRequest.class);
@@ -326,6 +419,10 @@ public class PageRoutes implements Routes {
      * Uploads a file from the page editor. It lands in the station media library like any other
      * upload; the page is recorded only as where it first came from.
      */
+    @OpenApi(
+            path = "/api/v1/pages/{pid}/files",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFile.class)))
     private void uploadPageFile(Context ctx) {
         var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
@@ -354,7 +451,7 @@ public class PageRoutes implements Routes {
     }
 
     // Response records
-    record PagesListResponse(List<StationPage> pages, Integer landingPageId) {}
+    record PagesListResponse(List<StationPage> pages, @Nullable Integer landingPageId) {}
 
     // Request records
     record CreatePageRequest(String title, Integer parentId) {}
@@ -367,11 +464,11 @@ public class PageRoutes implements Routes {
             Integer ogImageId,
             List<BlockRowRequest> rows) {}
 
-    record VisibilityRequest(PageVisibility visibility) {}
+    record PageVisibilityRequest(PageVisibility visibility) {}
 
-    record ShareLinkResponse(String token) {}
+    record PageShareLinkResponse(@Nullable String token) {}
 
-    record ReplaceShareLinkRequest(String currentToken) {}
+    record ReplacePageShareLinkRequest(String currentToken) {}
 
     record LandingPageRequest(Integer pageId) {}
 }

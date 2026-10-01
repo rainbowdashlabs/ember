@@ -14,7 +14,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {PageVisibility, type PageVisibilityName, type StationPage} from '@/api/pageManage'
+import {PageVisibility, type PageVisibilityName} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 
 /**
  * Who reaches a page, as three states rather than a switch.

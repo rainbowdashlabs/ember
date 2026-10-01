@@ -4,14 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, type Ref} from 'vue'
-import {assignMediaTag, removeMediaFile, unassignMediaTag, updateMediaFileMeta, type StationFile, type StationFileListing} from '@/api/media'
+import {assignMediaTag, removeMediaFile, unassignMediaTag, updateMediaFileMeta} from '@/api/media'
+import type {FileListing, StationFile} from '@/api/generated/schema'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 
 /**
  * Single-file mutations: alt text and description edits, tag assignment and deletion, each applied
  * to the in-memory listing so the grid never has to reload.
  */
-export function useMediaEditing(entries: Ref<StationFileListing[]>, selectedIds: Ref<number[]>) {
+export function useMediaEditing(entries: Ref<FileListing[]>, selectedIds: Ref<number[]>) {
     const editing = ref<StationFile | null>(null)
 
     function startEdit(f: StationFile) {

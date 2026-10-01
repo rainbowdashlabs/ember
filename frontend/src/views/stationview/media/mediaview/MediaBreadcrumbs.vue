@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import BaseButton from '@/components/button/BaseButton.vue'
-import type {StationFileFolder} from '@/api/media'
+import type {StationFileFolder} from '@/api/generated/schema'
 
 const props = defineProps<{
   breadcrumbs: StationFileFolder[]

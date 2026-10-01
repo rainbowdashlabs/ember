@@ -5,6 +5,22 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
+import type {
+    CellConfig,
+    CellConfigByType,
+    CreatePageRequest,
+    PageShareLinkResponse,
+    PagesListResponse,
+    PickerPage,
+    ResolvedMember,
+    SavePageRequest,
+    StationPage,
+    components,
+} from '@/api/generated/schema'
+
+type Schemas = components['schemas']
+
+export type CellContentTypeName = Schemas['CellContentType']
 
 export const CellContentType = {
     EMPTY: 'EMPTY',
@@ -43,8 +59,7 @@ export const CellContentType = {
     FORMS_CTA: 'FORMS_CTA',
     CODE_BLOCK: 'CODE_BLOCK',
     NESTED_ROWS: 'NESTED_ROWS',
-} as const
-export type CellContentTypeName = (typeof CellContentType)[keyof typeof CellContentType]
+} as const satisfies Record<CellContentTypeName, CellContentTypeName>
 
 export const LAYOUT_KINDS = [
     'CALLOUT', 'QUOTE', 'DIVIDER', 'SPACER', 'ACCORDION', 'PDF', 'FILE_DOWNLOAD',
@@ -53,369 +68,91 @@ export const LAYOUT_KINDS = [
     'MEMBER_LIST_SPOTLIGHT', 'STATS_COUNTER', 'IMAGE_GALLERY',
     'HERO_BANNER', 'PAST_EVENT_RECAP', 'TABS', 'ACHIEVEMENTS', 'EXTERNAL_LINK_CARD',
     'BLOG_SIGNUP', 'AUDIO_EMBED', 'POLL_EMBED', 'QUIZ_TEASER', 'FORMS_CTA', 'CODE_BLOCK',
-] as const
+] as const satisfies readonly CellContentTypeName[]
 export type LayoutKindName = (typeof LAYOUT_KINDS)[number]
 export function isLayoutKind(t: string): t is LayoutKindName {
     return (LAYOUT_KINDS as readonly string[]).includes(t)
 }
+
+/**
+ * The settings of a cell as the record its content type names.
+ *
+ * <p>The server binds a cell's settings by the content type standing next to them, so every cell it
+ * sends pairs the two; the generated union of every settings record cannot say which one a cell
+ * holds. This is the one place that reads the pairing, and it answers null for a cell of another
+ * kind rather than pretending.
+ */
+export function configOf<K extends CellContentTypeName>(
+    cell: {contentType: CellContentTypeName; config: CellConfig},
+    kind: K,
+): CellConfigByType[K] | null {
+    return cell.contentType === kind ? (cell.config as CellConfigByType[K]) : null
+}
+
+export type CalloutVariantName = Schemas['CalloutVariant']
 
 export const CalloutVariant = {
     INFO: 'INFO',
     WARNING: 'WARNING',
     SUCCESS: 'SUCCESS',
     TIP: 'TIP',
-} as const
-export type CalloutVariantName = (typeof CalloutVariant)[keyof typeof CalloutVariant]
+} as const satisfies Record<CalloutVariantName, CalloutVariantName>
+
+export type ImageFitName = Schemas['ImageFit']
 
 export const ImageFit = {
     COVER: 'COVER',
     CONTAIN: 'CONTAIN',
     FILL: 'FILL',
-} as const
-export type ImageFitName = (typeof ImageFit)[keyof typeof ImageFit]
-
-/** A markdown cell carries no settings of its own, so its configuration is any object at all. */
-export type MarkdownConfig = Record<string, unknown>
-
-export interface ImageConfig {
-    imageFit?: ImageFitName | null
-    altText?: string | null
-    maxHeight?: number | null
-    description?: string | null
-    cropTop?: number | null
-    cropRight?: number | null
-    cropBottom?: number | null
-    cropLeft?: number | null
-    borderRadiusPercent?: number | null
-    borderWidthPx?: number | null
-    borderColor?: string | null
-}
-
-export interface VideoConfig {
-    autoplay?: boolean | null
-    loop?: boolean | null
-}
-
-export interface CalloutConfig {
-    variant?: CalloutVariantName | null
-    title?: string | null
-}
-
-export interface QuoteConfig {
-    author?: string | null
-    attributionUrl?: string | null
-}
-
-export interface DividerConfig {
-    label?: string | null
-}
-
-export interface SpacerConfig {
-    heightPx?: number | null
-}
-
-export interface AccordionConfig {
-    title?: string | null
-    openByDefault?: boolean | null
-}
-
-export interface PdfConfig {
-    url?: string | null
-    heightPx?: number | null
-}
-
-export interface FileDownloadConfig {
-    url?: string | null
-    label?: string | null
-    description?: string | null
-}
-
-export interface CountdownConfig {
-    targetDate?: string | null
-    label?: string | null
-    sublabel?: string | null
-}
-
-export interface FeaturedEventConfig {
-    /** Public UUID of the referenced event. All other display fields come live. */
-    eventUid?: string | null
-    /** The one occurrence the block is about, as `YYYY-MM-DD`. Unset shows the event's own start. */
-    date?: string | null
-    /** Optional editor-supplied teaser blurb above the auto-rendered location row. */
-    descriptionOverride?: string | null
-}
-
-export interface UpcomingEventsConfig {
-    title?: string | null
-    /** Empty / unset = "all categories". Event categories are referenced by their numeric id -
-     *  no public_uid exists for them today. */
-    categoryIds?: number[] | null
-    /** Max items to render. Default 5, max 20. */
-    limit?: number | null
-    /** Include federated public events from partner stations. Default true. */
-    includeFederated?: boolean | null
-}
-
-export interface KbArticleConfig {
-    /** Internal KB file id. KB doesn't expose a public_uid yet;
-     *  the renderer + picker both speak the integer id directly. */
-    articleId?: number | null
-    /** Optional editor-supplied fallback shown until the live KB lookup resolves the real name. */
-    fallbackTitle?: string | null
-}
+} as const satisfies Record<ImageFitName, ImageFitName>
 
 /**
  * Who reads the content a block sits in, which decides what a news or event block may name and show.
  * A page (`PUBLIC`) only what is public to everyone; a news entry or wiki article (`MEMBERS`) what
  * every signed-in member of the station may see, internal ones included.
  */
-export type BlockAudience = 'PUBLIC' | 'MEMBERS'
+export type BlockAudience = Schemas['BlockAudience']
 
-export interface NewsTeaserConfig {
-    /** Public UUID of the referenced news entry. All other fields come live from the entity. */
-    newsUid?: string | null
-}
-
-export interface PageLinkConfig {
-    /** Public UUID of the referenced station page. */
-    pageUid?: string | null
-    /** Shown where the page can no longer be reached, so the card still says something. */
-    fallbackTitle?: string | null
-    /**
-     * Filled in by the server when the page is drawn, never stored: both the name and the address of
-     * the target move, and a copy written into the card would go stale the moment either did.
-     */
-    resolvedTitle?: string | null
-    resolvedHref?: string | null
-}
-
-export interface MapConfig {
-    latitude?: number | null
-    longitude?: number | null
-    zoom?: number | null
-    heightPx?: number | null
-    label?: string | null
-}
-
-export interface AddressCardConfig {
-    addressLine?: string | null
-    postalCode?: string | null
-    city?: string | null
-    country?: string | null
-    mapUrl?: string | null
-    label?: string | null
-}
-
-export interface PartnerStationsConfig {
-    title?: string | null
-    /** Explicit list of partner station UUIDs to render. */
-    stationUids?: string[] | null
-    /** When true, the cell ignores {@link stationUids} and pulls every federated partner. */
-    autoFillFromPartners?: boolean | null
-}
-
-export interface MemberSpotlightConfig {
-    /** UUID of the spotlighted member. All display fields come live. */
-    memberUid?: string | null
-    /** Editor-supplied free-form blurb shown next to the live member card. */
-    blurb?: string | null
-    /** When true (default), the renderer shows the member's user type next to the name. */
-    showUserType?: boolean | null
-    /** When true, the renderer additionally shows the member's primary visible tag as a badge. */
-    showTag?: boolean | null
-}
-
+/**
+ * Where a member list takes its members from. The server keeps this part of the settings as written,
+ * so its shape is the editor's to define.
+ */
 export type MemberListSource =
     | { kind: 'group';  groupId?: number | null }
     | { kind: 'tag';    tagId?: number | null }
     | { kind: 'manual'; memberUids?: string[] }
+
+/** Whether settings read back from the server hold a member list source the editor wrote. */
+export function isMemberListSource(value: unknown): value is MemberListSource {
+    if (typeof value !== 'object' || value === null) return false
+    const kind = (value as {kind?: unknown}).kind
+    return kind === 'group' || kind === 'tag' || kind === 'manual'
+}
+
+export type MemberListSortByName = Schemas['MemberListSortBy']
 
 export const MemberListSortBy = {
     ORDER: 'ORDER',
     NAME: 'NAME',
     ROLE: 'ROLE',
     JOIN_DATE: 'JOIN_DATE',
-} as const
+} as const satisfies Record<MemberListSortByName, MemberListSortByName>
 
-export type MemberListSortByName = (typeof MemberListSortBy)[keyof typeof MemberListSortBy]
-
-export interface ResolvedMember {
-    memberUid: string
-    displayName: string
-    userType: string | null
-    displayTag: string | null
-    displayTagColor: string | null
-    avatarUrl: string | null
-    description: string | null
-}
-
-export interface MemberListConfig {
-    title?: string | null
-    /** Source of the member list - group / tag / manual override. */
-    source?: MemberListSource | null
-    /** Default {@link MemberListSortBy.ORDER}; falls back to natural source order or memberOrder. */
-    sortBy?: MemberListSortByName | null
-    /** When true (default), each card shows the member's user type. */
-    showUserType?: boolean | null
-    /** When true, each card additionally shows the member's primary visible tag as a badge. */
-    showTag?: boolean | null
-    /** Per-entry description shown under the member name, keyed by member UID. */
-    memberDescriptions?: Record<string, string> | null
-    /** Persistent display order applied when sortBy === ORDER (overrides natural source order). */
-    memberOrder?: string[] | null
-    /**
-     * Render-time injection populated by the public render path so unauthenticated visitors
-     * can display the cell without hitting the auth-gated avatar endpoint. Avatar is inlined
-     * as a base64 {@code data:} URL when present. {@code null} on the editor path - that
-     * surface calls {@link resolveMemberListSource} live with auth in scope.
-     */
-    resolvedMembers?: ResolvedMember[] | null
-}
-
-export interface StatItem {
-    label?: string
-    value?: string
-    suffix?: string
-}
-
-export interface StatsCounterConfig {
-    items?: StatItem[] | null
-}
-
-export interface GalleryItem {
-    imageHash: string
-    altText?: string | null
-    subtext?: string | null
-}
+export type GalleryAspectModeName = Schemas['GalleryAspectMode']
 
 export const GalleryAspectMode = {
     SQUARE: 'SQUARE',
     PRESERVE: 'PRESERVE',
-} as const
-export type GalleryAspectModeName = (typeof GalleryAspectMode)[keyof typeof GalleryAspectMode]
+} as const satisfies Record<GalleryAspectModeName, GalleryAspectModeName>
 
-export interface ImageGalleryConfig {
-    items?: GalleryItem[] | null
-    columns?: number | null
-    aspectMode?: GalleryAspectModeName | null
-    maxItemHeightPx?: number | null
-}
-
-export interface HeroBannerConfig {
-    imageHash?: string | null
-    headline?: string | null
-    subtitle?: string | null
-    ctaText?: string | null
-    ctaUrl?: string | null
-}
-
-export interface PastEventRecapConfig {
-    /** Public UUID of the referenced past event. */
-    eventUid?: string | null
-    /** Editor-supplied recap text shown alongside the event's own description. */
-    recapDescription?: string | null
-}
-
-export interface TabItem {
-    title?: string
-    body?: string
-}
-
-export interface TabsConfig {
-    items?: TabItem[] | null
-}
-
-export interface AchievementItem {
-    title?: string
-    description?: string
-    year?: string
-}
-
-export interface AchievementsConfig {
-    title?: string | null
-    items?: AchievementItem[] | null
-}
+export type ExternalLinkImageDisplayName = Schemas['ExternalLinkImageDisplay']
 
 export const ExternalLinkImageDisplay = {
     BANNER: 'BANNER',
     ICON: 'ICON',
-} as const
+} as const satisfies Record<ExternalLinkImageDisplayName, ExternalLinkImageDisplayName>
 
-export type ExternalLinkImageDisplayName = (typeof ExternalLinkImageDisplay)[keyof typeof ExternalLinkImageDisplay]
-
-export interface ExternalLinkCardConfig {
-    url?: string | null
-    title?: string | null
-    description?: string | null
-    imageUrl?: string | null
-    imageDisplay?: ExternalLinkImageDisplayName | null
-}
-
-export interface BlogSignupConfig {
-    title?: string | null
-    description?: string | null
-}
-
-export interface AudioEmbedConfig {
-    url?: string | null
-    title?: string | null
-}
-
-export interface PollEmbedConfig {
-    formPublicUid?: string | null
-    showResultsAfterVote?: boolean | null
-}
-
-export interface QuizTeaserConfig {
-    title?: string | null
-    description?: string | null
-    /** Ids of public quiz catalogs. At least one required to render. */
-    catalogIds?: number[] | null
-}
-
-export interface FormsCtaConfig {
-    formPublicUid?: string | null
-    headlineOverride?: string | null
-    bodyOverride?: string | null
-}
-
-export interface CodeBlockConfig {
-    language?: string | null
-}
-
-/** Stored as the recursive RowEditData[] (forward declaration; defined where used). */
-export interface NestedRowsConfig {
-    rows?: unknown[] | null
-}
-
-export type CellConfig =
-    | MarkdownConfig
-    | ImageConfig
-    | VideoConfig
-    | CalloutConfig
-    | QuoteConfig
-    | DividerConfig
-    | SpacerConfig
-    | AccordionConfig
-    | PdfConfig
-    | FileDownloadConfig
-
-export interface PageCell {
-    id: number
-    rowId: number
-    sortOrder: number
-    widthPercent: number
-    contentType: CellContentTypeName
-    content: string
-    config: CellConfig
-}
-
-export interface PageRow {
-    id: number
-    pageId: number
-    sortOrder: number
-    cells: PageCell[]
-}
+export type PageVisibilityName = Schemas['PageVisibility']
 
 /**
  * Who reaches a page. A page reached by its link alone stands outside the page tree: no parent, no
@@ -425,63 +162,11 @@ export const PageVisibility = {
     DRAFT: 'DRAFT',
     UNLISTED: 'UNLISTED',
     PUBLIC: 'PUBLIC',
-} as const
-
-export type PageVisibilityName = (typeof PageVisibility)[keyof typeof PageVisibility]
-
-export interface StationPage {
-    id: number
-    stationId: number
-    parentId: number | null
-    title: string
-    slug: string
-    visibility: PageVisibilityName
-    sortOrder: number
-    metaDescription: string | null
-    ogImageId: number | null
-    /** Content hash of the social preview image. Media is served by hash, not by id. */
-    ogImageHash: string | null
-    createdBy: number
-    createdAt: string
-    updatedAt: string
-    rows: PageRow[]
-}
-
-export interface SaveCellRequest {
-    sortOrder: number
-    widthPercent: number
-    contentType: CellContentTypeName
-    content: string
-    config: CellConfig
-}
-
-export interface SaveRowRequest {
-    sortOrder: number
-    cells: SaveCellRequest[]
-}
-
-export interface SavePageRequest {
-    title: string
-    slug: string
-    parentId: number | null
-    metaDescription: string | null
-    ogImageId: number | null
-    rows: SaveRowRequest[]
-}
-
-export interface PagesListResponse {
-    pages: StationPage[]
-    landingPageId: number | null
-}
-
-interface PageCreateRequest {
-    title: string
-    parentId: number | null
-}
+} as const satisfies Record<PageVisibilityName, PageVisibilityName>
 
 const pages = createCrudResource<
     StationPage,
-    PageCreateRequest,
+    CreatePageRequest,
     SavePageRequest
 >('/pages')
 
@@ -490,19 +175,10 @@ export async function listPages(): Promise<PagesListResponse> {
     return res.data
 }
 
-// -- Page-editor PAGE_LINK picker. PAGE_EDIT-gated. --
-
-export interface PageSearchResult {
-    pageUid: string
-    title: string
-    slug: string
-    updatedAt: string
-}
-
-export async function searchPages(query?: string, limit = 5): Promise<PageSearchResult[]> {
+export async function searchPages(query?: string, limit = 5): Promise<PickerPage[]> {
     const params: Record<string, string | number> = {limit}
     if (query) params.q = query
-    const res = await client.get<PageSearchResult[]>('/pages/search', {params})
+    const res = await client.get<PickerPage[]>('/pages/search', {params})
     return res.data
 }
 
@@ -522,7 +198,7 @@ export async function resolveMemberListSource(
 }
 
 export async function createPage(title: string, parentId?: number | null): Promise<StationPage> {
-    return pages.create({title, parentId: parentId ?? null})
+    return pages.create({title, parentId: parentId ?? undefined})
 }
 
 export const getPage = pages.get
@@ -541,12 +217,12 @@ export async function setVisibility(id: number, visibility: PageVisibilityName):
 
 /** The link an unlisted page is reached at, kept off the page itself so it never travels to a reader. */
 export async function getPageShareLink(id: number): Promise<string | null> {
-    const res = await client.get<{token: string | null}>(`/pages/${id}/share-link`)
+    const res = await client.get<PageShareLinkResponse>(`/pages/${id}/share-link`)
     return res.data.token
 }
 
-export async function replacePageShareLink(id: number, currentToken: string | null): Promise<string> {
-    const res = await client.post<{token: string}>(`/pages/${id}/share-link`, {currentToken})
+export async function replacePageShareLink(id: number, currentToken: string | null): Promise<string | null> {
+    const res = await client.post<PageShareLinkResponse>(`/pages/${id}/share-link`, {currentToken})
     return res.data.token
 }
 

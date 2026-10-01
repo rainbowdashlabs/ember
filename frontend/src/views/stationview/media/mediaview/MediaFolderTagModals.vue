@@ -13,7 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import type {StationFileFolder, StationFileTag} from '@/api/media'
+import type {StationFileFolder, StationFileTag} from '@/api/generated/schema'
 
 const folderOpen = defineModel<boolean>('folderOpen', {required: true})
 const folderName = defineModel<string>('folderName', {required: true})

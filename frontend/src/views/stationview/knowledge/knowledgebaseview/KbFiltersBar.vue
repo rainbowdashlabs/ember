@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {KbTag} from '@/api/knowledgeBase'
+import type {KbTag} from '@/api/generated/schema'
 
 const showFederated = defineModel<boolean>('showFederated', {required: true})
 const filterStationId = defineModel<string | null>('filterStationId', {required: true})

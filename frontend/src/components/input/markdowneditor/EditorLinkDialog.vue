@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import { ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {search as kbSearch, type SearchResult} from '@/api/knowledgeBase'
+import {search as kbSearch} from '@/api/knowledgeBase'
+import type {SearchResultResponse} from '@/api/generated/schema'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -31,7 +32,7 @@ const fieldId = useId()
 const linkText = ref(props.initialText)
 const linkUrl = ref(props.initialUrl)
 const linkSearchQuery = ref(props.initialUrl)
-const linkSearchResults = ref<SearchResult[]>([])
+const linkSearchResults = ref<SearchResultResponse[]>([])
 const linkSearching = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -53,7 +54,7 @@ function onSearchInput() {
   }, 300)
 }
 
-function selectResult(result: SearchResult) {
+function selectResult(result: SearchResultResponse) {
   linkUrl.value = `/station/knowledge/file/${result.file.id}`
   linkSearchQuery.value = result.file.name
   linkSearchResults.value = []

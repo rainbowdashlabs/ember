@@ -17,7 +17,7 @@ import KbFolderPicker from './KbFolderPicker.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {knowledgeBase} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
-import type {DeleteImpact, KbFolderTreeEntry} from '@/api/knowledgeBase'
+import type {DeleteImpact, FolderTreeEntry} from '@/api/generated/schema'
 import {kbBulkMessage} from './kbRefusals'
 
 /**
@@ -33,7 +33,7 @@ import {kbBulkMessage} from './kbRefusals'
 const props = defineProps<{
     folderIds: number[]
     fileIds: number[]
-    folders: KbFolderTreeEntry[]
+    folders: FolderTreeEntry[]
 }>()
 
 const emit = defineEmits<{

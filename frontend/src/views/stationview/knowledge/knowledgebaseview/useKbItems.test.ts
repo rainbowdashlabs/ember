@@ -9,10 +9,9 @@ import {computed, ref} from 'vue'
 import {
     KbFavouriteTarget,
     type FavouriteEntry,
-    type KbFavourite,
-    type KbFileSummary,
     type SharedFileEntry,
 } from '@/api/knowledgeBase'
+import type {KbFavourite, KbFileSummary} from '@/api/generated/schema'
 import {favouriteKey} from '@/composables/useKbFavourites'
 import {useKbItems} from './useKbItems'
 
@@ -49,6 +48,7 @@ const partnerFile: SharedFileEntry = {
 function favourite(overrides: Partial<KbFavourite>): KbFavourite {
     return {
         id: 1,
+        memberId: 3,
         target: KbFavouriteTarget.FILE,
         entryId: 7,
         partnerStationUid: null,

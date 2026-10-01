@@ -9,7 +9,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberLogo} from '@/composables/useEmberLogo'
 import {formatDateTime} from '@/util/format'
-import type {NewsEntry} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 
 /**
  * Who wrote an entry and when, with the actions a manager has on it beside them.
@@ -21,7 +21,7 @@ import type {NewsEntry} from '@/api/news'
  * one of those buttons leads to a refusal.
  */
 defineProps<{
-  entry: NewsEntry
+  entry: NewsResponse
   canManage: boolean
 }>()
 

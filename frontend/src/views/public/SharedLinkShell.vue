@@ -9,7 +9,7 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useI18n} from 'vue-i18n'
 import {useTheme} from '@/composables/useTheme'
-import type {SharedBrand} from '@/api/sharedLinks'
+import type {SharedBrand} from '@/api/generated/schema'
 
 /**
  * The wrapper around something somebody was sent a link to.

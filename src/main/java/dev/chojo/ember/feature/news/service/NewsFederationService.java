@@ -382,9 +382,9 @@ public class NewsFederationService implements FederationServer {
         return new FederatedNewsData(
                 detail.id(),
                 detail.title(),
-                detail.contentMarkdown(),
-                detail.contentHtml(),
-                detail.authorName(),
+                Objects.requireNonNullElse(detail.contentMarkdown(), ""),
+                Objects.requireNonNullElse(detail.contentHtml(), ""),
+                Objects.requireNonNullElse(detail.authorName(), ""),
                 detail.publishedAt(),
                 detail.commentCount(),
                 detail.visibilityRole());

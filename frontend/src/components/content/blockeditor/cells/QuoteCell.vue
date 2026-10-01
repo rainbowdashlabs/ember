@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {QuoteConfig} from '@/api/pageManage'
+import type {QuoteConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: QuoteConfig

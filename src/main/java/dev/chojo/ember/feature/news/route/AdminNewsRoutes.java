@@ -14,7 +14,9 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.route.SaveBlocksRequest;
+import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.media.service.MediaLibraryService.FileListing;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
@@ -30,6 +32,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -233,7 +236,7 @@ public class AdminNewsRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List the files the instance holds",
             tags = {"Admin"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FileListing[].class)))
     private void listInstanceFiles(Context ctx) {
         ctx.json(media.listLibrary(null, true));
     }
@@ -243,7 +246,7 @@ public class AdminNewsRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Take a file into the library the instance holds",
             tags = {"Admin"},
-            responses = @OpenApiResponse(status = "201"))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFile.class)))
     private void uploadInstanceFile(Context ctx) {
         var file = ctx.uploadedFile("file");
         if (file == null) throw Refusal.INSTANCE_UPLOAD_MISSING_FILE.raise();
@@ -357,7 +360,7 @@ public class AdminNewsRoutes implements Routes {
             String title,
             String contentMarkdown,
             String contentHtml,
-            Instant publishedAt,
+            @Nullable Instant publishedAt,
             Instant createdAt,
             List<StationUserType> userTypes,
             int commentCount,
@@ -367,8 +370,8 @@ public class AdminNewsRoutes implements Routes {
     public record SystemCommentResponse(
             int id,
             int newsId,
-            Integer parentId,
-            MemberIdentity author,
+            @Nullable Integer parentId,
+            @Nullable MemberIdentity author,
             String authorName,
             String content,
             boolean deleted,

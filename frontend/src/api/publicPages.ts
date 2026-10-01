@@ -4,20 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {StationPage} from './pageManage'
-
-export interface PublicPageSummary {
-    id: number
-    /** Stable opaque public identifier - referenced by PAGE_LINK cells. */
-    publicUid: string
-    parentId: number | null
-    title: string
-    slug: string
-    path: string
-    sortOrder: number
-    metaDescription: string | null
-    ogImageId: number | null
-}
+import type {PublicPageSummary, PublicPartnerSummary, StationPage} from '@/api/generated/schema'
 
 export async function listPublicPages(stationUid: string): Promise<PublicPageSummary[]> {
     const res = await client.get<PublicPageSummary[]>(`/public/pages/${stationUid}`)
@@ -36,13 +23,6 @@ export async function getPublicLandingPage(stationUid: string): Promise<StationP
 
 export function publicPageImageUrl(stationUid: string, contentHash: string): string {
     return `/api/v1/public/pages/${stationUid}/files/${contentHash}`
-}
-
-export interface PublicPartnerSummary {
-    uid: string
-    name: string
-    slug: string | null
-    distanceKm: number | null
 }
 
 export async function listPartnerStations(stationUid: string): Promise<PublicPartnerSummary[]> {

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {AudioEmbedConfig} from '@/api/pageManage'
+import type {AudioEmbedConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: AudioEmbedConfig

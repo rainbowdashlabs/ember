@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import io.javalin.openapi.OpenApiName;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -148,7 +149,7 @@ public class DocumentCatalogService {
             boolean hidden,
             boolean keepOnArchive,
             boolean hasThumbnail,
-            Integer uploadedBy,
+            @Nullable Integer uploadedBy,
             Instant createdAt,
             List<Integer> memberIds,
             List<String> tags) {}

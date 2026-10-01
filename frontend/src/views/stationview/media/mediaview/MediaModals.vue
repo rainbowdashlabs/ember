@@ -8,7 +8,7 @@ import MediaFileEditModal from '@/components/media/MediaFileEditModal.vue'
 import MediaFolderTagModals from './MediaFolderTagModals.vue'
 import MediaFilePreviewModal from './MediaFilePreviewModal.vue'
 import MediaBulkModals from './MediaBulkModals.vue'
-import type {StationFile, StationFileFolder, StationFileTag} from '@/api/media'
+import type {StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 
 const editing = defineModel<StationFile | null>('editing', {required: true})
 const folderOpen = defineModel<boolean>('folderOpen', {required: true})

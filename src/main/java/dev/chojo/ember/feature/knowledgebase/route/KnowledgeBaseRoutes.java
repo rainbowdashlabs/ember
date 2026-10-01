@@ -17,21 +17,29 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbRefusalReason;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbBrowseService;
+import dev.chojo.ember.feature.knowledgebase.service.KbBrowseService.BrowseResponse;
 import dev.chojo.ember.feature.knowledgebase.service.KbBulkService;
+import dev.chojo.ember.feature.knowledgebase.service.KbBulkService.BulkOutcome;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
 import dev.chojo.ember.feature.knowledgebase.service.KbGuards;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbMoveService;
+import dev.chojo.ember.feature.knowledgebase.service.KbMoveService.MovePreview;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService.DeleteImpact;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService.RestoreResult;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService.TrashView;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -42,9 +50,15 @@ import io.javalin.http.ContentType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UploadedFile;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -225,6 +239,10 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, StationPermission.USER);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFolder[].class)))
     private void listFolders(Context ctx) {
         var session = UserSession.from(ctx);
         Integer parentId = optionalFolderId(ctx, "parentId");
@@ -252,6 +270,11 @@ public class KnowledgeBaseRoutes implements Routes {
         requireLevel(ctx, accessService, folderId, null, KbAccessLevel.WRITE);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FolderRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFolder.class)))
     private void createFolder(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(FolderRequest.class);
@@ -265,6 +288,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 session.member().id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFolder.class)))
     private void getFolder(Context ctx) {
         int id = pathInt(ctx, "id");
         var folder = requireOwnedFolder(ctx, service, id);
@@ -272,6 +299,11 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(folder);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FolderRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFolder.class)))
     private void updateFolder(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
@@ -293,6 +325,7 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * Puts a folder in the trash, with everything inside it.
      */
+    @OpenApi(path = "/api/v1/kb/folders/{id}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void deleteFolder(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -306,6 +339,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * Every folder of the station the caller may see, with what they may do in each, so a picker
      * can show the whole tree and grey out what it would refuse rather than offer it and fail.
      */
+    @OpenApi(
+            path = "/api/v1/kb/folders/tree",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FolderTreeEntry[].class)))
     private void folderTree(Context ctx) {
         var session = UserSession.from(ctx);
         var access = KbGuards.accessOf(ctx, accessService);
@@ -333,6 +370,11 @@ public class KnowledgeBaseRoutes implements Routes {
      * that turns out to hold a folder of the same name, or that lies inside the one being moved,
      * and the screen has to say which of those it was.
      */
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/parent",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MoveFolderRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MoveResponse.class)))
     private void moveFolder(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -346,6 +388,11 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * Moves an article into another folder of the station.
      */
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/folder",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MoveFileRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MoveResponse.class)))
     private void moveFile(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -371,6 +418,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * How far an entry reaches now and how far it would reach in the folder a reader is about to
      * move it into. Read before the move, because a folder can publish what it is given.
      */
+    @OpenApi(
+            path = "/api/v1/kb/move/preview",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovePreview.class)))
     private void movePreview(Context ctx) {
         var session = UserSession.from(ctx);
         Integer folderId = optionalFolderId(ctx, "folderId");
@@ -381,6 +432,11 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(moveService.preview(session.stationId(), folderId, fileId, optionalFolderId(ctx, "targetFolderId")));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/bulk/move",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkMoveRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkOutcome.class)))
     private void bulkMove(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BulkMoveRequest.class);
@@ -397,6 +453,11 @@ public class KnowledgeBaseRoutes implements Routes {
      * Puts a marked selection in the trash. Nothing here is final, which is what lets one press
      * stand for twenty entries.
      */
+    @OpenApi(
+            path = "/api/v1/kb/bulk/delete",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkDeleteRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkOutcome.class)))
     private void bulkDelete(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BulkDeleteRequest.class);
@@ -412,6 +473,11 @@ public class KnowledgeBaseRoutes implements Routes {
      * How much a marked selection would really take, folder contents counted, so the confirmation
      * can say the true number rather than the number of ticked boxes.
      */
+    @OpenApi(
+            path = "/api/v1/kb/bulk/delete/impact",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkDeleteRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeleteImpact.class)))
     private void bulkDeleteImpact(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BulkDeleteRequest.class);
@@ -427,6 +493,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * <p>Reach decides, not the station permission: everyone who could have deleted an entry finds
      * it here, and nobody reads the name of something they were never allowed to open.
      */
+    @OpenApi(
+            path = "/api/v1/kb/trash",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TrashView.class)))
     private void listTrash(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(trashService.list(KbGuards.accessOf(ctx, accessService), session.stationId()));
@@ -435,28 +505,48 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * Clears out everything the caller sees in the trash, and with it the storage it was holding.
      */
+    @OpenApi(
+            path = "/api/v1/kb/trash",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EmptyTrashResponse.class)))
     private void emptyTrash(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(
                 new EmptyTrashResponse(trashService.empty(KbGuards.accessOf(ctx, accessService), session.stationId())));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/trash/folders/{id}/restore",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RestoreResult.class)))
     private void restoreFolder(Context ctx) {
         int id = trashedFolder(ctx);
         ctx.json(trashService.restoreFolder(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/trash/files/{id}/restore",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RestoreResult.class)))
     private void restoreFile(Context ctx) {
         int id = trashedFile(ctx);
         ctx.json(trashService.restoreFile(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/trash/folders/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void purgeFolder(Context ctx) {
         int id = trashedFolder(ctx);
         if (!trashService.purgeFolder(id)) throw Refusal.KB_FOLDER_NOT_PURGED.raise();
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/trash/files/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void purgeFile(Context ctx) {
         int id = trashedFile(ctx);
         if (!trashService.purgeFile(id)) throw Refusal.KB_ARTICLE_NOT_PURGED.raise();
@@ -490,6 +580,11 @@ public class KnowledgeBaseRoutes implements Routes {
         return session.member() == null ? null : session.member().id();
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/bulk/tags",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkTagsRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkOutcome.class)))
     private void bulkTags(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BulkTagsRequest.class);
@@ -507,6 +602,11 @@ public class KnowledgeBaseRoutes implements Routes {
      * has been typed into it. Filtered the way a listing is, so it cannot name an article the
      * reader may not open.
      */
+    @OpenApi(
+            path = "/api/v1/kb/files/recent",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SearchResultResponse[].class)))
     private void listRecentFiles(Context ctx) {
         var session = UserSession.from(ctx);
         var access = KbGuards.accessOf(ctx, accessService);
@@ -530,6 +630,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFileSummary[].class)))
     private void listFiles(Context ctx) {
         var session = UserSession.from(ctx);
         var files = service.findFiles(session.stationId(), optionalFolderId(ctx, "folderId"));
@@ -542,6 +646,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FileResponse.class)))
     private void getFile(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -551,6 +659,11 @@ public class KnowledgeBaseRoutes implements Routes {
                 file, authorNameService.resolveMemberName(file.createdBy()), level.level(), level.source()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FileUpdateRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void updateFile(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -572,6 +685,7 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * Puts an article in the trash.
      */
+    @OpenApi(path = "/api/v1/kb/files/{id}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void deleteFile(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -581,6 +695,11 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/markdown",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MarkdownFileRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void createMarkdownFile(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(MarkdownFileRequest.class);
@@ -595,6 +714,11 @@ public class KnowledgeBaseRoutes implements Routes {
                 session.member().id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/youtube",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = YoutubeFileRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void createYoutubeFile(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(YoutubeFileRequest.class);
@@ -610,6 +734,11 @@ public class KnowledgeBaseRoutes implements Routes {
                 session.member().id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/link",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LinkFileRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void createLinkFile(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(LinkFileRequest.class);
@@ -624,6 +753,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 session.member().id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/upload",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void uploadFile(Context ctx) {
         var session = UserSession.from(ctx);
         var file = requireUpload(ctx);
@@ -653,6 +786,10 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(created);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/import-document",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void importDocument(Context ctx) {
         var session = UserSession.from(ctx);
         var file = requireUpload(ctx);
@@ -690,6 +827,10 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/content",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void getFileContent(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -727,6 +868,10 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/html",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MarkdownHtmlResponse.class)))
     private void getMarkdownHtml(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -737,6 +882,11 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(new MarkdownHtmlResponse(html, text.get()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/content",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ContentUpdateRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void updateMarkdownContent(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
@@ -752,6 +902,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * The blocks a rich article is built from. Reading them needs only read access to the article,
      * because they are the article: the stored text is a projection of them.
      */
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/blocks",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BlocksResponse.class)))
     private void getBlocks(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -764,6 +918,11 @@ public class KnowledgeBaseRoutes implements Routes {
                 file.contentMode(), contentService.loadBlocks(file), contentService.describedBlocks(file));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/blocks",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SaveBlocksRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BlocksResponse.class)))
     private void saveBlocks(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
@@ -780,6 +939,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * Turns a plain article into one built from blocks. What the author already wrote becomes a
      * single markdown block, which they then split up as they like.
      */
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/blocks/enable",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BlocksResponse.class)))
     private void enableBlocks(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -788,6 +951,7 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(blocksOf(switched));
     }
 
+    @OpenApi(path = "/api/v1/kb/files/{id}/pdf", methods = HttpMethod.GET, responses = @OpenApiResponse(status = "200"))
     private void getPdfExport(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -813,6 +977,10 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/original",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void getOriginalFile(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -836,6 +1004,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * throw. Inside it, a presentation that could not be read back would be caught there too and
      * answered as a replacement that failed, which is the one thing it is not: the file is in.
      */
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/original",
+            methods = HttpMethod.PUT,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void reuploadOriginal(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -854,12 +1026,16 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(service.findFile(id).orElseThrow(Refusal.KB_FILE_NOT_HERE_AFTER_REUPLOAD::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/versions",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbVersionResponse[].class)))
     private void listVersions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         ctx.json(contentService.findVersions(id).stream()
-                .map(v -> new VersionResponse(
+                .map(v -> new KbVersionResponse(
                         v.id(),
                         v.version(),
                         v.isFull(),
@@ -869,6 +1045,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/versions/{version}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFileVersion.class)))
     private void getVersion(Context ctx) {
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
@@ -879,6 +1059,10 @@ public class KnowledgeBaseRoutes implements Routes {
         });
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/versions/{version}/revert",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "204"))
     private void revertToVersion(Context ctx) {
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
@@ -889,6 +1073,10 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/related",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RelatedFilesResponse.class)))
     private void getRelatedFiles(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -896,6 +1084,11 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(relatedResponse(ctx, id));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/related",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RelatedFilesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RelatedFilesResponse.class)))
     private void setRelatedFiles(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -939,6 +1132,11 @@ public class KnowledgeBaseRoutes implements Routes {
      * title of an article the caller may not open would otherwise be handed over by searching for a
      * word in it.
      */
+    @OpenApi(
+            path = "/api/v1/kb/search",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SearchResultResponse[].class)))
     private void search(Context ctx) {
         var session = UserSession.from(ctx);
         String query = ctx.queryParam("q");
@@ -982,6 +1180,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 .toList();
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/browse",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BrowseResponse.class)))
     private void browse(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(browseService.browse(
@@ -997,6 +1199,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * <p>Kept behind the same door as the file's own bytes: a picture of a sheet is still the sheet.
      * A file with no picture answers 404, and the tile draws its icon instead.
      */
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/picture",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void getFilePicture(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -1010,6 +1216,10 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.result(picture.data());
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/icon",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void getFolderIcon(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1025,6 +1235,10 @@ public class KnowledgeBaseRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/icon",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void uploadFolderIcon(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
@@ -1049,6 +1263,10 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/images",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ImageUploadResponse.class)))
     private void uploadKbImage(Context ctx) {
         int fileId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
@@ -1073,6 +1291,10 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/images/{imageId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void getKbImage(Context ctx) {
         var session = UserSession.from(ctx);
         String imageId = ctx.pathParam("imageId");
@@ -1121,13 +1343,13 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * One folder of the tree a move picker offers, with what the caller may do in it.
      */
-    public record FolderTreeEntry(int id, Integer parentId, String name, KbAccessLevel level) {}
+    public record FolderTreeEntry(int id, @Nullable Integer parentId, String name, KbAccessLevel level) {}
 
     /**
      * The answer to a single move: whether the entry sits somewhere else now, and, when it does
      * not, which of the reasons a move can be turned down for it was.
      */
-    public record MoveResponse(boolean moved, String name, KbRefusalReason reason) {
+    public record MoveResponse(boolean moved, @Nullable String name, @Nullable KbRefusalReason reason) {
         static MoveResponse of(KbMoveService.MoveResult result) {
             return new MoveResponse(result.moved(), result.name(), result.reason());
         }
@@ -1161,13 +1383,17 @@ public class KnowledgeBaseRoutes implements Routes {
      * the page can say why an action is missing instead of just not showing it.
      */
     public record FileResponse(
-            KbFile file, String lastEditedByName, KbAccessLevel accessLevel, String accessLevelSource) {}
+            KbFile file, String lastEditedByName, KbAccessLevel accessLevel, @Nullable String accessLevelSource) {}
 
-    public record VersionResponse(
+    public record KbVersionResponse(
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
 
     public record SearchResultResponse(
-            KbFile file, String snippet, String folderPath, String stationName, String sourceStationUid) {}
+            KbFile file,
+            String snippet,
+            String folderPath,
+            @Nullable String stationName,
+            @Nullable String sourceStationUid) {}
 
     public record ImageUploadResponse(String imageId) {}
 }

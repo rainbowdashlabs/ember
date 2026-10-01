@@ -5,7 +5,7 @@
  */
 import { ref, type Ref } from 'vue'
 import { knowledgeBase } from '@/api'
-import type { KbFile, KbTag } from '@/api/knowledgeBase'
+import type { KbFile, KbTag } from '@/api/generated/schema'
 
 /**
  * The tags, related files and description that describe a knowledge base file.

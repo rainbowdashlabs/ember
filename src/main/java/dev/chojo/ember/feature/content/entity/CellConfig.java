@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.content.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
@@ -176,69 +177,71 @@ public sealed interface CellConfig {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record ImageConfig(
-            ImageFit imageFit,
-            String altText,
-            Integer maxHeight,
-            String description,
-            Double cropTop,
-            Double cropRight,
-            Double cropBottom,
-            Double cropLeft,
-            Integer borderRadiusPercent,
-            Integer borderWidthPx,
-            String borderColor)
+            @Nullable ImageFit imageFit,
+            @Nullable String altText,
+            @Nullable Integer maxHeight,
+            @Nullable String description,
+            @Nullable Double cropTop,
+            @Nullable Double cropRight,
+            @Nullable Double cropBottom,
+            @Nullable Double cropLeft,
+            @Nullable Integer borderRadiusPercent,
+            @Nullable Integer borderWidthPx,
+            @Nullable String borderColor)
             implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record VideoConfig(Boolean autoplay, Boolean loop) implements CellConfig {}
+    record VideoConfig(@Nullable Boolean autoplay, @Nullable Boolean loop) implements CellConfig {}
 
     /**
      * Callout box. The body text lives in cell.content (markdown).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record CalloutConfig(CalloutVariant variant, String title) implements CellConfig {}
+    record CalloutConfig(@Nullable CalloutVariant variant, @Nullable String title) implements CellConfig {}
 
     /**
      * Quote block. The quote text lives in cell.content.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record QuoteConfig(String author, String attributionUrl) implements CellConfig {}
+    record QuoteConfig(@Nullable String author, @Nullable String attributionUrl) implements CellConfig {}
 
     /**
      * Horizontal divider with optional centred label.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record DividerConfig(String label) implements CellConfig {}
+    record DividerConfig(@Nullable String label) implements CellConfig {}
 
     /**
      * Vertical spacer. Height in CSS pixels.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record SpacerConfig(Integer heightPx) implements CellConfig {}
+    record SpacerConfig(@Nullable Integer heightPx) implements CellConfig {}
 
     /**
      * Collapsible accordion. The body markdown lives in cell.content.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record AccordionConfig(String title, Boolean openByDefault) implements CellConfig {}
+    record AccordionConfig(@Nullable String title, @Nullable Boolean openByDefault) implements CellConfig {}
 
     /**
      * Embedded PDF viewer. url is required; height is in CSS pixels.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PdfConfig(String url, Integer heightPx) implements CellConfig {}
+    record PdfConfig(@Nullable String url, @Nullable Integer heightPx) implements CellConfig {}
 
     /**
      * Download card pointing at any file URL.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record FileDownloadConfig(String url, String label, String description) implements CellConfig {}
+    record FileDownloadConfig(@Nullable String url, @Nullable String label, @Nullable String description)
+            implements CellConfig {}
 
     /**
      * Countdown to a target date.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record CountdownConfig(String targetDate, String label, String sublabel) implements CellConfig {}
+    record CountdownConfig(@Nullable String targetDate, @Nullable String label, @Nullable String sublabel)
+            implements CellConfig {}
 
     /**
      * Featured event card.
@@ -253,14 +256,14 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record FeaturedEventConfig(
-            String title,
-            String date,
-            String location,
-            String description,
-            String ctaText,
-            String ctaUrl,
-            String eventUid,
-            String descriptionOverride)
+            @Nullable String title,
+            @Nullable String date,
+            @Nullable String location,
+            @Nullable String description,
+            @Nullable String ctaText,
+            @Nullable String ctaUrl,
+            @Nullable String eventUid,
+            @Nullable String descriptionOverride)
             implements CellConfig {
 
         public FeaturedEventConfig {
@@ -284,17 +287,22 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record UpcomingEventsConfig(
-            String title, List<EventItem> items, List<Integer> categoryIds, Integer limit, Boolean includeFederated)
+            @Nullable String title,
+            @Nullable List<EventItem> items,
+            @Nullable List<Integer> categoryIds,
+            @Nullable Integer limit,
+            @Nullable Boolean includeFederated)
             implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record EventItem(String title, String date, String location, String url) {}
+    record EventItem(
+            @Nullable String title, @Nullable String date, @Nullable String location, @Nullable String url) {}
 
     /**
      * Link card pointing at a public KB article.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record KbArticleConfig(Integer articleId, String fallbackTitle) implements CellConfig {}
+    record KbArticleConfig(@Nullable Integer articleId, @Nullable String fallbackTitle) implements CellConfig {}
 
     /**
      * News teaser.
@@ -308,7 +316,13 @@ public sealed interface CellConfig {
      * <p>An id that is not a UUID names nothing.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record NewsTeaserConfig(String title, String date, String summary, String url, String imageUrl, String newsUid)
+    record NewsTeaserConfig(
+            @Nullable String title,
+            @Nullable String date,
+            @Nullable String summary,
+            @Nullable String url,
+            @Nullable String imageUrl,
+            @Nullable String newsUid)
             implements CellConfig {
 
         public NewsTeaserConfig {
@@ -329,10 +343,14 @@ public sealed interface CellConfig {
      * the moment either did. The editor reads the raw cell and sees neither.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PageLinkConfig(String pageUid, String fallbackTitle, String resolvedTitle, String resolvedHref)
+    record PageLinkConfig(
+            @Nullable String pageUid,
+            @Nullable String fallbackTitle,
+            @Nullable String resolvedTitle,
+            @Nullable String resolvedHref)
             implements CellConfig {
 
-        public PageLinkConfig(String pageUid, String fallbackTitle) {
+        public PageLinkConfig(@Nullable String pageUid, @Nullable String fallbackTitle) {
             this(pageUid, fallbackTitle, null, null);
         }
 
@@ -345,7 +363,12 @@ public sealed interface CellConfig {
      * OpenStreetMap embed via configurable coordinates.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record MapConfig(Double latitude, Double longitude, Integer zoom, Integer heightPx, String label)
+    record MapConfig(
+            @Nullable Double latitude,
+            @Nullable Double longitude,
+            @Nullable Integer zoom,
+            @Nullable Integer heightPx,
+            @Nullable String label)
             implements CellConfig {}
 
     /**
@@ -353,7 +376,12 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record AddressCardConfig(
-            String addressLine, String postalCode, String city, String country, String mapUrl, String label)
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable String mapUrl,
+            @Nullable String label)
             implements CellConfig {}
 
     /**
@@ -361,7 +389,8 @@ public sealed interface CellConfig {
      * {@code autoFillFromPartners} is {@code true} - every federated partner of the host station.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PartnerStationsConfig(String title, List<String> stationUids, Boolean autoFillFromPartners)
+    record PartnerStationsConfig(
+            @Nullable String title, @Nullable List<String> stationUids, @Nullable Boolean autoFillFromPartners)
             implements CellConfig {}
 
     /**
@@ -372,7 +401,11 @@ public sealed interface CellConfig {
      * visible tag badge are rendered next to the name.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record MemberSpotlightConfig(String memberUid, String blurb, Boolean showUserType, Boolean showTag)
+    record MemberSpotlightConfig(
+            @Nullable String memberUid,
+            @Nullable String blurb,
+            @Nullable Boolean showUserType,
+            @Nullable Boolean showTag)
             implements CellConfig {}
 
     /**
@@ -392,14 +425,14 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record MemberListConfig(
-            String title,
-            JsonNode source,
-            MemberListSortBy sortBy,
-            Boolean showUserType,
-            Boolean showTag,
-            Map<String, String> memberDescriptions,
-            List<String> memberOrder,
-            List<ResolvedMember> resolvedMembers)
+            @Nullable String title,
+            @Nullable JsonNode source,
+            @Nullable MemberListSortBy sortBy,
+            @Nullable Boolean showUserType,
+            @Nullable Boolean showTag,
+            @Nullable Map<String, String> memberDescriptions,
+            @Nullable List<String> memberOrder,
+            @Nullable List<ResolvedMember> resolvedMembers)
             implements CellConfig {}
 
     /**
@@ -412,37 +445,45 @@ public sealed interface CellConfig {
     record ResolvedMember(
             String memberUid,
             String displayName,
-            String userType,
-            String displayTag,
-            String displayTagColor,
-            String avatarUrl,
-            String description) {}
+            @Nullable String userType,
+            @Nullable String displayTag,
+            @Nullable String displayTagColor,
+            @Nullable String avatarUrl,
+            @Nullable String description) {}
 
     /**
      * Big-number stats counter row.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record StatsCounterConfig(List<StatItem> items) implements CellConfig {}
+    record StatsCounterConfig(@Nullable List<StatItem> items) implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record StatItem(String label, String value, String suffix) {}
+    record StatItem(@Nullable String label, @Nullable String value, @Nullable String suffix) {}
 
     /**
      * Image gallery - list of items, each with its own image hash + alt + subtext.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record ImageGalleryConfig(
-            List<GalleryItem> items, Integer columns, GalleryAspectMode aspectMode, Integer maxItemHeightPx)
+            @Nullable List<GalleryItem> items,
+            @Nullable Integer columns,
+            @Nullable GalleryAspectMode aspectMode,
+            @Nullable Integer maxItemHeightPx)
             implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record GalleryItem(String imageHash, String altText, String subtext) {}
+    record GalleryItem(@Nullable String imageHash, @Nullable String altText, @Nullable String subtext) {}
 
     /**
      * Hero banner - full-width image with overlay text.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record HeroBannerConfig(String imageHash, String headline, String subtitle, String ctaText, String ctaUrl)
+    record HeroBannerConfig(
+            @Nullable String imageHash,
+            @Nullable String headline,
+            @Nullable String subtitle,
+            @Nullable String ctaText,
+            @Nullable String ctaUrl)
             implements CellConfig {}
 
     /**
@@ -451,33 +492,42 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record PastEventRecapConfig(
-            String title, String date, String imageHash, String summary, String eventUid, String recapDescription)
+            @Nullable String title,
+            @Nullable String date,
+            @Nullable String imageHash,
+            @Nullable String summary,
+            @Nullable String eventUid,
+            @Nullable String recapDescription)
             implements CellConfig {}
 
     /**
      * Tabbed sections.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record TabsConfig(List<TabItem> items) implements CellConfig {}
+    record TabsConfig(@Nullable List<TabItem> items) implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record TabItem(String title, String body) {}
+    record TabItem(@Nullable String title, @Nullable String body) {}
 
     /**
      * Achievements / badges showcase.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record AchievementsConfig(String title, List<AchievementItem> items) implements CellConfig {}
+    record AchievementsConfig(@Nullable String title, @Nullable List<AchievementItem> items) implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record AchievementItem(String title, String description, String year) {}
+    record AchievementItem(@Nullable String title, @Nullable String description, @Nullable String year) {}
 
     /**
      * External link card with OG-style preview metadata supplied by the admin.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record ExternalLinkCardConfig(
-            String url, String title, String description, String imageUrl, ExternalLinkImageDisplay imageDisplay)
+            @Nullable String url,
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable String imageUrl,
+            @Nullable ExternalLinkImageDisplay imageDisplay)
             implements CellConfig {}
 
     /**
@@ -486,13 +536,13 @@ public sealed interface CellConfig {
      * choice. Feed URLs are composed at render time from the host station UID.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record BlogSignupConfig(String title, String description) implements CellConfig {}
+    record BlogSignupConfig(@Nullable String title, @Nullable String description) implements CellConfig {}
 
     /**
      * Embedded audio player.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record AudioEmbedConfig(String url, String title) implements CellConfig {}
+    record AudioEmbedConfig(@Nullable String url, @Nullable String title) implements CellConfig {}
 
     /**
      * Embedded poll. The cell references a public form (purpose = POLL) by its public UUID and
@@ -500,14 +550,17 @@ public sealed interface CellConfig {
      * form endpoints.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PollEmbedConfig(String formPublicUid, Boolean showResultsAfterVote) implements CellConfig {}
+    record PollEmbedConfig(@Nullable String formPublicUid, @Nullable Boolean showResultsAfterVote)
+            implements CellConfig {}
 
     /**
      * Quiz teaser. References one or more public quiz catalogs by id; the renderer pulls a
      * random question from them and reveals the answer on click.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record QuizTeaserConfig(String title, String description, List<Integer> catalogIds) implements CellConfig {}
+    record QuizTeaserConfig(
+            @Nullable String title, @Nullable String description, @Nullable List<Integer> catalogIds)
+            implements CellConfig {}
 
     /**
      * Contact form call-to-action. References a public form (purpose = CONTACT) by its public
@@ -515,13 +568,15 @@ public sealed interface CellConfig {
      * editor-supplied overrides shown above the form fields.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record FormsCtaConfig(String formPublicUid, String headlineOverride, String bodyOverride) implements CellConfig {}
+    record FormsCtaConfig(
+            @Nullable String formPublicUid, @Nullable String headlineOverride, @Nullable String bodyOverride)
+            implements CellConfig {}
 
     /**
      * Syntax-highlighted code block. Code lives in cell.content.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record CodeBlockConfig(String language) implements CellConfig {}
+    record CodeBlockConfig(@Nullable String language) implements CellConfig {}
 
     /**
      * Cell that contains nested rows. The rows are stored opaquely as JSON nodes so the existing
@@ -529,5 +584,5 @@ public sealed interface CellConfig {
      * The frontend treats this as a recursive RowEditData[].
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record NestedRowsConfig(JsonNode rows) implements CellConfig {}
+    record NestedRowsConfig(@Nullable JsonNode rows) implements CellConfig {}
 }

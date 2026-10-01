@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {StatsCounterConfig} from '@/api/pageManage'
+import type {StatsCounterConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: StatsCounterConfig

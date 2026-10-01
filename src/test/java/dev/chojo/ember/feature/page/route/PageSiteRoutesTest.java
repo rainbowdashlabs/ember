@@ -10,7 +10,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.federation.repository.FederationRepository.PublicPartnerSummary;
+import dev.chojo.ember.feature.federation.entity.PublicPartnerSummary;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;

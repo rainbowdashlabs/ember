@@ -10,12 +10,8 @@ import * as publicEvents from '@/api/publicEvents'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import FeaturedEventCell from './cells/FeaturedEventCell.vue'
 import {publicEventsAddress} from './embeddedEventLookup'
-import type {
-    FeaturedEventConfig,
-    LayoutKindName,
-    PastEventRecapConfig,
-    UpcomingEventsConfig,
-} from '@/api/pageManage'
+import type {LayoutKindName} from '@/api/pageManage'
+import type {FeaturedEventConfig, PastEventRecapConfig, UpcomingEventsConfig} from '@/api/generated/schema'
 import {formatDateTime, formatDateTimeLong} from '@/util/format'
 
 const props = defineProps<{

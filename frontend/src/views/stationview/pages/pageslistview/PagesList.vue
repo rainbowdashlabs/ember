@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import DragList from '@/components/input/DragList.vue'
 import PageRow from './PageRow.vue'
-import type {StationPage} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 
 interface FlatPageEntry {
   page: StationPage

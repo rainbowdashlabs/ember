@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, type Ref} from 'vue'
-import {removeMediaFile, moveMediaFileToFolder, pruneMediaFiles, type StationFileListing} from '@/api/media'
+import {removeMediaFile, moveMediaFileToFolder, pruneMediaFiles} from '@/api/media'
+import type {FileListing} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 interface PageFileBulkDeps {
-    entries: Ref<StationFileListing[]>
+    entries: Ref<FileListing[]>
     selectedIds: Ref<number[]>
     activeFolder: Ref<number | null>
     clearSelection: () => void

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationServ
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -104,13 +105,13 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
             String name,
             String description,
             KbFileType fileType,
-            String mimeType,
+            @Nullable String mimeType,
             long fileSize,
-            String youtubeUrl,
-            String linkUrl,
+            @Nullable String youtubeUrl,
+            @Nullable String linkUrl,
             Instant createdAt,
             Instant updatedAt,
-            ConversionStatus conversionStatus) {
+            @Nullable ConversionStatus conversionStatus) {
 
         public static RemoteKbFile of(KbFile file, UUID stationUid) {
             return new RemoteKbFile(

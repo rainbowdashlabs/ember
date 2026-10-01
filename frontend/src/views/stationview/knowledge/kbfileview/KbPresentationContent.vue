@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FileInput from '@/components/input/FileInput.vue'
-import type {KbFile} from '@/api/knowledgeBase'
+import type {KbFile} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

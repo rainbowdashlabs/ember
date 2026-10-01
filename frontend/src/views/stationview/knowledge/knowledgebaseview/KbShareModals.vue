@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {ref} from 'vue'
 import KbShareModal from './KbShareModal.vue'
-import type {KbFileSummary, KbFolder} from '@/api/knowledgeBase'
+import type {KbFileSummary, KbFolder} from '@/api/generated/schema'
 
 const emit = defineEmits<{
     saved: []

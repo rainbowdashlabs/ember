@@ -10,7 +10,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import NewsListItemHeader from './NewsListItemHeader.vue'
 import NewsListItemComments from './NewsListItemComments.vue'
 import {useNewsRoutes} from '@/composables/useNewsRoutes'
-import type {NewsEntry} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 import type {MemberIdentity} from '@/api/types'
 import NewsExcerpt from '../newsshared/NewsExcerpt.vue'
 
@@ -21,17 +21,17 @@ const props = defineProps<{
   contentHtml?: string
   author?: MemberIdentity | null
   authorName?: string
-  publishedAt?: string
+  publishedAt?: string | null
   restricted?: boolean
   publicBlog?: boolean
   stationName?: string
   stationUid?: string
   commentCount: number
-  localEntry?: NewsEntry
+  localEntry?: NewsResponse
   canEditNews: boolean
   commentsOpen: boolean
   setViewBadgeRef: (el: unknown, newsId: number) => void
-  onRequestDelete: (entry: NewsEntry) => void
+  onRequestDelete: (entry: NewsResponse) => void
 }>()
 
 const emit = defineEmits<{

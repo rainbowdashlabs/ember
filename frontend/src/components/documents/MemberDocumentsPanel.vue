@@ -16,7 +16,8 @@ import DocumentGrid from './DocumentGrid.vue'
 import DocumentModal from './DocumentModal.vue'
 import DocumentUploadModal from './DocumentUploadModal.vue'
 import {documents as documentsApi} from '@/api'
-import type {DocumentUpload, StationDocument} from '@/api/documents'
+import type {DocumentUpload} from '@/api/documents'
+import type {MemberDocumentResponse} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -40,13 +41,13 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const documents = ref<StationDocument[]>([])
+const documents = ref<MemberDocumentResponse[]>([])
 const search = ref('')
 const allTags = ref<string[]>([])
 const actionFailure = ref<Failure | null>(null)
 const showUpload = ref(false)
 const showDocument = ref(false)
-const opened = ref<StationDocument | null>(null)
+const opened = ref<MemberDocumentResponse | null>(null)
 
 const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
   const found = await documentsApi.listForMember(props.memberId)
@@ -102,7 +103,7 @@ async function upload(upload: DocumentUpload) {
   await catchUp()
 }
 
-function open(document: StationDocument) {
+function open(document: MemberDocumentResponse) {
   opened.value = document
   showDocument.value = true
 }

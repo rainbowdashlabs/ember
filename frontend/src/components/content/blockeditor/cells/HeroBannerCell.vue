@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {HeroBannerConfig} from '@/api/pageManage'
+import type {HeroBannerConfig} from '@/api/generated/schema'
 import {mediaImageSrcset, mediaImageUrlAt} from '@/api/media'
 import {PAGE_WIDTH} from '@/util/contentContext'
 

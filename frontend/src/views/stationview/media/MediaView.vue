@@ -19,7 +19,7 @@ import {useMediaUpload} from './mediaview/useMediaUpload'
 import {useMediaEditing} from './mediaview/useMediaEditing'
 import {useMediaBulkActions} from './mediaview/useMediaBulkActions'
 import {PAGE_SIZE_OPTIONS, useMediaPaging} from './mediaview/useMediaPaging'
-import type {StationFile} from '@/api/media'
+import type {StationFile} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()

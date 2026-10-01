@@ -95,6 +95,7 @@
 - **Das Bearbeiten eines Termins nahm seine Fragen aus dem öffentlichen Kalender.** Beim Speichern eines Termins wurde bei jeder seiner Fragen die Einstellung „öffentlich“ ausgeschaltet, sodass sie im öffentlichen Kalender nicht mehr erschienen. Fragen behalten jetzt ihre Einstellung.
 - **Anwesenheitsfelder ohne Vorgabe bekamen eine.** Ein Anwesenheitsfeld ohne Vorgabewert erschien im Vorlagen-Editor so, als hätte es einen, und beim Speichern wurde ein leerer Text, eine Null oder ein Nein hinterlegt. Der Editor zeigt solche Felder jetzt ohne Vorgabe.
 - **Im Anmeldeüberblick fehlte die Teilnehmergrenze.** Der Überblick über die Anmeldungen zeigte nicht, wie viele Plätze ein Termin hat. Die Grenze steht jetzt neben dem Termin.
+- **Eingeschränkte Neuigkeiten zeigten kein Schloss.** Eine Neuigkeit, die nur für einen Teil der Wache bestimmt ist, erschien ohne das Schloss, das sie kennzeichnet. Sie zeigt es jetzt in der Liste der Neuigkeiten und beim Eintrag.
 
 ## v26.19.5
 

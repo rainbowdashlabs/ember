@@ -12,7 +12,7 @@ import KbCreateMenu from './KbCreateMenu.vue'
 import KbItemGrid from './KbItemGrid.vue'
 import KbItemList from './KbItemList.vue'
 import KbSelectionBar from './KbSelectionBar.vue'
-import type {KbFolder} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 import type {KbItem} from './useKbItems'
 
 const {t} = useI18n()

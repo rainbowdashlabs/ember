@@ -10,7 +10,8 @@ import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
-import {resolveMemberListSource, type LayoutKindName, type MemberListConfig, type MemberSpotlightConfig, type ResolvedMember} from '@/api/pageManage'
+import {isMemberListSource, resolveMemberListSource, type LayoutKindName} from '@/api/pageManage'
+import type {MemberListConfig, MemberSpotlightConfig, ResolvedMember} from '@/api/generated/schema'
 
 /**
  * Renderer for MEMBER_SPOTLIGHT and MEMBER_LIST_SPOTLIGHT (member-list spotlight).
@@ -49,7 +50,7 @@ async function resolveMemberList() {
         return
     }
     const source = memberList.value.source
-    if (!source) { memberListResolved.value = []; return }
+    if (!isMemberListSource(source)) { memberListResolved.value = []; return }
     try {
         memberListResolved.value = await resolveMemberListSource(
             source,

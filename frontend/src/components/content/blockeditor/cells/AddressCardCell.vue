@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {AddressCardConfig} from '@/api/pageManage'
+import type {AddressCardConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: AddressCardConfig

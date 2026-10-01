@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import LabeledNumberInput from './LabeledNumberInput.vue'
 import ColorPickerInput from '@/components/input/ColorPickerInput.vue'
-import type {ImageConfig} from '@/api/pageManage'
+import type {ImageConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: ImageConfig

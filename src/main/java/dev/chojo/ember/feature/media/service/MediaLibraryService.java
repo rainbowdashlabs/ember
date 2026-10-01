@@ -19,6 +19,7 @@ import dev.chojo.ember.util.PixelBudget;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -483,5 +484,5 @@ public class MediaLibraryService {
      * @param uploadedBy the member who first brought the file in, or {@code null} for a file that
      *                   predates uploader tracking
      */
-    public record FileListing(StationFile file, boolean inUse, Set<Integer> tagIds, Integer uploadedBy) {}
+    public record FileListing(StationFile file, boolean inUse, Set<Integer> tagIds, @Nullable Integer uploadedBy) {}
 }

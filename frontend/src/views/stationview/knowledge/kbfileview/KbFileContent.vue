@@ -22,8 +22,8 @@ import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {internalContentContext} from '@/util/contentContext'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 import {ContentMode, type ContentModeName} from '@/api/news'
-import type {PageRow} from '@/api/pageManage'
-import {KbFileType, type KbFile} from '@/api/knowledgeBase'
+import {KbFileType} from '@/api/knowledgeBase'
+import type {ContentRow, KbFile} from '@/api/generated/schema'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
 const props = defineProps<{
@@ -36,7 +36,7 @@ const props = defineProps<{
   canEdit: boolean
   contentMode: ContentModeName
   stationUid: string
-  readerRows: PageRow[]
+  readerRows: ContentRow[]
 }>()
 
 const editContent = defineModel<string>('editContent', {required: true})

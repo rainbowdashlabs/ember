@@ -34,7 +34,8 @@ import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {knowledgeBase} from '@/api'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {KbAccessLevel, levelCovers, type FavouriteEntry, type KbFolder, type KbFileSummary} from '@/api/knowledgeBase'
+import {KbAccessLevel, levelCovers, type FavouriteEntry} from '@/api/knowledgeBase'
+import type {KbFileSummary, KbFolder} from '@/api/generated/schema'
 import {useKbFavourites} from '@/composables/useKbFavourites'
 
 const props = defineProps<{

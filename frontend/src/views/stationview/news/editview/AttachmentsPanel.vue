@@ -12,7 +12,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import {formatSize} from '@/util/format'
-import type {StationFile} from '@/api/media'
+import type {StationFile} from '@/api/generated/schema'
 import type {AttachmentDraft} from './useNewsAttachments'
 
 const attachments = defineModel<AttachmentDraft[]>('attachments', {required: true})

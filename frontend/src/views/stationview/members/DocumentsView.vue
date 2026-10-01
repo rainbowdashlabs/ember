@@ -20,7 +20,8 @@ import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
 import {usePermissions} from '@/composables/usePermissions'
 import {StationPermission} from '@/api/types'
 import {documents as documentsApi, stationMembers} from '@/api'
-import type {DocumentUpload, StationDocument} from '@/api/documents'
+import type {DocumentUpload} from '@/api/documents'
+import type {MemberDocumentResponse} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -33,7 +34,7 @@ const {hasPermission} = usePermissions()
 
 const canEdit = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 
-const documents = ref<StationDocument[]>([])
+const documents = ref<MemberDocumentResponse[]>([])
 const total = ref(0)
 const page = ref(0)
 const search = ref('')
@@ -46,7 +47,7 @@ const failure = ref<Failure | null>(null)
 
 const showUpload = ref(false)
 const showDocument = ref(false)
-const opened = ref<StationDocument | null>(null)
+const opened = ref<MemberDocumentResponse | null>(null)
 
 /** How many documents a page holds, which the store answers with rather than being told. */
 const pageSize = 24
@@ -141,7 +142,7 @@ async function upload(upload: DocumentUpload) {
   await reload()
 }
 
-function open(document: StationDocument) {
+function open(document: MemberDocumentResponse) {
   opened.value = document
   showDocument.value = true
 }

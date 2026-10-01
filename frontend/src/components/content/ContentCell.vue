@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {CellContentType, isLayoutKind, type ImageConfig, type LayoutKindName, type PageCell} from '@/api/pageManage'
+import {CellContentType, configOf, isLayoutKind, type LayoutKindName} from '@/api/pageManage'
+import type {ContentCell as CellData, ImageConfig} from '@/api/generated/schema'
 import CellLayoutRender from '@/components/content/blockeditor/CellLayoutRender.vue'
 import CellImagePreview from '@/components/content/blockeditor/CellImagePreview.vue'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
@@ -22,7 +23,7 @@ import {ENLARGED_WIDTH, type ContentRenderContext} from '@/util/contentContext'
  * component, not because two files were kept in step by hand.
  */
 const props = defineProps<{
-    cell: PageCell
+    cell: CellData
     context: ContentRenderContext
 }>()
 
@@ -31,15 +32,15 @@ const markdownHtml = computed(() => {
     return renderPageMarkdown(props.cell.content)
 })
 
-interface NestedRow { cells: PageCell[] }
+/** A row inside a nested-rows block. The server keeps these as written, cells and all. */
+interface NestedRow { cells: CellData[] }
 
 const nestedRows = computed<NestedRow[]>(() => {
-    if (props.cell.contentType !== CellContentType.NESTED_ROWS) return []
-    const raw = (props.cell.config as {rows?: NestedRow[]})?.rows
-    return Array.isArray(raw) ? raw : []
+    const raw = configOf(props.cell, CellContentType.NESTED_ROWS)?.rows
+    return Array.isArray(raw) ? raw as NestedRow[] : []
 })
 
-const imageConfig = computed<ImageConfig>(() => (props.cell.config as ImageConfig) ?? {})
+const imageConfig = computed<ImageConfig>(() => configOf(props.cell, CellContentType.IMAGE) ?? {})
 
 const imageUrl = computed(() => props.cell.content ? props.context.fileUrl(props.cell.content) : '')
 
@@ -93,7 +94,7 @@ function youtubeEmbedUrl(url: string): string | null {
         v-else-if="isLayoutKind(cell.contentType)"
         :kind="cell.contentType as LayoutKindName"
         :content="cell.content"
-        :config="cell.config as Record<string, unknown>"
+        :config="cell.config"
         :station-uid="context.stationUid"
         :timezone="context.timezone"
     />
@@ -109,7 +110,7 @@ function youtubeEmbedUrl(url: string): string | null {
                 :style="{flex: `0 0 calc(${child.widthPercent}% - 0.5rem)`}"
                 class="min-w-0"
             >
-                <ContentCell :cell="child as PageCell" :context="context"/>
+                <ContentCell :cell="child" :context="context"/>
             </div>
         </div>
     </div>

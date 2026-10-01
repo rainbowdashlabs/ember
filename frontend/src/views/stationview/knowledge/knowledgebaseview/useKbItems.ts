@@ -14,13 +14,10 @@ import {
     KbFavouriteTarget,
     type FavouriteEntry,
     type KbAccessLevelName,
-    type KbFavourite,
-    type KbFileSummary,
-    type KbFolder,
-    type SearchResult,
     type SharedFileEntry,
     type SharedFolderEntry,
 } from '@/api/knowledgeBase'
+import type {KbFavourite, KbFileSummary, KbFolder, SearchResultResponse} from '@/api/generated/schema'
 import {fileIcon} from '@/util/kbFileIcon'
 import {isPdfExportable} from '@/util/kbFileExport'
 import type {KbFavourites} from '@/composables/useKbFavourites'
@@ -530,7 +527,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
      * a copy action; a local hit offers the export and nothing else, because a hit is reached
      * without walking the folders whose levels decide what may be done to it.
      */
-    function toSearchItems(results: SearchResult[]): KbItem[] {
+    function toSearchItems(results: SearchResultResponse[]): KbItem[] {
         return results.map((result) => {
             const stationUid = result.sourceStationUid
             if (!stationUid) {

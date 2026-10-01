@@ -5,7 +5,7 @@
  */
 import {computed} from 'vue'
 import {useRoute, useRouter, type RouteLocationRaw} from 'vue-router'
-import type {KbFileSummary} from '@/api/knowledgeBase'
+import type {KbFileSummary} from '@/api/generated/schema'
 
 /** Where the knowledge base is mounted: a station's own screens, or an association's. */
 export type KbRoutes = {browse: string; file: string; versions: string}

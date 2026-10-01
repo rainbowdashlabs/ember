@@ -49,6 +49,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -729,7 +730,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
     }
 
     /** One share of a wiki entry, with the stations it names. */
-    public record EntryAudience(int id, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {}
+    public record EntryAudience(
+            int id, @Nullable Integer fileId, @Nullable Integer folderId, ShareScope scope, List<Integer> partnerIds) {}
 
     /**
      * The shares of one station that reach one reader.

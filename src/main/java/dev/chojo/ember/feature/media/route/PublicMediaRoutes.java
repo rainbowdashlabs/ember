@@ -13,6 +13,9 @@ import dev.chojo.ember.feature.media.service.PublicMediaService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -48,6 +51,14 @@ public class PublicMediaRoutes implements Routes {
         routes.get(prefix + "/public/pages/{stationUid}/files/{hash}", this::serveFile);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/media/{stationUid}/{hash}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
+    @OpenApi(
+            path = "/api/v1/public/pages/{stationUid}/files/{hash}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void serveFile(Context ctx) {
         int stationId = media.resolveStation(ctx.pathParam("stationUid"));
         String hash = ctx.pathParam("hash");
@@ -56,6 +67,10 @@ public class PublicMediaRoutes implements Routes {
 
     /** A file the instance holds, which belongs to no station and is served to every one of them. */
     @StationFree("a file of the instance's own library belongs to no station and is served to every one of them")
+    @OpenApi(
+            path = "/api/v1/public/media/instance/{hash}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void serveInstanceFile(Context ctx) {
         String hash = ctx.pathParam("hash");
         serve(ctx, hash, media.readInstance(hash, ctx.queryParam("w"), ctx.header("Accept")));

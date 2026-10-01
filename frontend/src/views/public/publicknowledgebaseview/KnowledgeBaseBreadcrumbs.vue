@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import type {KbFolder} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 
 defineProps<{
   currentFolder: KbFolder | null

@@ -19,7 +19,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import FileView from '@/components/documents/FileView.vue'
 import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {contentUrl, type StationDocument} from '@/api/documents'
+import {contentUrl} from '@/api/documents'
+import type {MemberDocumentResponse} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 
 /**
@@ -32,7 +33,7 @@ import type {StationMember} from '@/api/types'
 const modelValue = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  document: StationDocument | null
+  document: MemberDocumentResponse | null
   /** Every member of the station, to name and to choose the ones a document is bound to. */
   allMembers?: StationMember[]
   /** Every label written so far, offered while typing. */
@@ -43,7 +44,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   members: [documentId: number, memberIds: number[]]
   tags: [documentId: number, tags: string[]]
-  remove: [document: StationDocument]
+  remove: [document: MemberDocumentResponse]
 }>()
 
 const {t} = useI18n()

@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import BareButton from '@/components/button/BareButton.vue'
-import {KbAccessLevel, levelCovers, type KbFolderTreeEntry} from '@/api/knowledgeBase'
+import {KbAccessLevel, levelCovers} from '@/api/knowledgeBase'
+import type {FolderTreeEntry} from '@/api/generated/schema'
 
 /**
  * Picks a folder anywhere in the station's wiki, the tree root included.
@@ -23,7 +24,7 @@ import {KbAccessLevel, levelCovers, type KbFolderTreeEntry} from '@/api/knowledg
  * the tree lie about its own shape, and the server refuses them anyway.
  */
 const props = defineProps<{
-    folders: KbFolderTreeEntry[]
+    folders: FolderTreeEntry[]
     /** The folder being moved and everything under it, which cannot receive themselves. */
     excludeIds?: number[]
 }>()
@@ -34,12 +35,12 @@ const {t} = useI18n()
 
 const query = ref('')
 
-interface Row extends KbFolderTreeEntry {
+interface Row extends FolderTreeEntry {
     depth: number
 }
 
 const rows = computed<Row[]>(() => {
-    const byParent = new Map<number | null, KbFolderTreeEntry[]>()
+    const byParent = new Map<number | null, FolderTreeEntry[]>()
     for (const folder of props.folders) {
         const siblings = byParent.get(folder.parentId ?? null) ?? []
         siblings.push(folder)
@@ -65,7 +66,7 @@ const visibleRows = computed(() => {
     const byId = new Map(props.folders.map(folder => [folder.id, folder]))
     for (const folder of props.folders) {
         if (!folder.name.toLowerCase().includes(term)) continue
-        let current: KbFolderTreeEntry | undefined = folder
+        let current: FolderTreeEntry | undefined = folder
         while (current && !matched.has(current.id)) {
             matched.add(current.id)
             current = current.parentId != null ? byId.get(current.parentId) : undefined

@@ -25,7 +25,6 @@ import PresentationViewer from '@/views/stationview/knowledge/kbfileview/Present
 import KbFileContent from '@/views/stationview/knowledge/kbfileview/KbFileContent.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
 import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
 import KbShareModal from '@/views/stationview/knowledge/knowledgebaseview/KbShareModal.vue'
 import KbMoveModal from '@/views/stationview/knowledge/knowledgebaseview/KbMoveModal.vue'
@@ -37,9 +36,8 @@ import {
     KbFileType,
     levelCovers,
     type KbAccessLevelName,
-    type KbFile,
-    type MarkdownHtmlResponse,
 } from '@/api/knowledgeBase'
+import type {BlockCellRequest, BlockRowRequest, ContentRow, KbFile, MarkdownHtmlResponse} from '@/api/generated/schema'
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {useKbMoveTarget} from '@/views/stationview/knowledge/knowledgebaseview/useKbMoveTarget'
 import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
@@ -75,7 +73,7 @@ const editing = ref(false)
 const editContent = ref('')
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
 const blockRows = ref<RowEditData[]>([])
-const readerRows = ref<PageRow[]>([])
+const readerRows = ref<ContentRow[]>([])
 const textContent = ref('')
 const {
     fileTags, allStationTags, relatedFiles, backlinks, applyReferences,
@@ -256,7 +254,7 @@ function onContentInput() {
 /**
  * The saved shape of a block tree turned into the shape the editor works on.
  */
-function toEditRows(saved: PageRow[]): RowEditData[] {
+function toEditRows(saved: ContentRow[]): RowEditData[] {
     return [...saved]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(r => ({
@@ -288,9 +286,9 @@ async function saveContent() {
     if (!file.value) return
     try {
         if (contentMode.value === ContentMode.RICH) {
-            const rows: SaveRowRequest[] = blockRows.value.map((r, ri) => ({
+            const rows: BlockRowRequest[] = blockRows.value.map((r, ri) => ({
                 sortOrder: ri,
-                cells: r.cells.map((c, ci): SaveCellRequest => ({
+                cells: r.cells.map((c, ci): BlockCellRequest => ({
                     sortOrder: ci,
                     widthPercent: c.widthPercent,
                     contentType: c.contentType,

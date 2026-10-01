@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.page.entity.PageUsingForm;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
+import dev.chojo.ember.feature.page.entity.PickerPage;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
@@ -377,10 +378,4 @@ public class PageRepository {
      * deleting the article under it is as visible a change as deleting one under a page in the menu.
      */
     public record EmbeddingPage(String title, boolean reachable) {}
-
-    /**
-     * Lightweight picker result row for the page picker. Exposes only the public UUID - never the
-     * internal integer id.
-     */
-    public record PickerPage(UUID pageUid, String title, String slug, Instant updatedAt) {}
 }

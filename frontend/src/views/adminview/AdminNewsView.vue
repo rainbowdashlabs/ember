@@ -13,8 +13,9 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {adminNews} from '@/api'
-import type {SystemNewsEntry, SystemNewsRequest} from '@/api/adminNews'
+import type {SystemNewsRequest, SystemNewsResponse} from '@/api/generated/schema'
 import {ContentMode, type ContentModeName} from '@/api/news'
+import {userTypesOf} from '@/util/stationUserTypes'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -23,13 +24,13 @@ import SystemNewsEditor from './adminnewsview/SystemNewsEditor.vue'
 
 const {t} = useI18n()
 
-const {config: entries, loading, failure, runWith} = useConfigPanel<SystemNewsEntry[]>({
+const {config: entries, loading, failure, runWith} = useConfigPanel<SystemNewsResponse[]>({
   initial: [],
   fetch: () => adminNews.listSystemNews(),
 })
 
 const editing = ref(false)
-const editingEntry = ref<SystemNewsEntry | null>(null)
+const editingEntry = ref<SystemNewsResponse | null>(null)
 const saving = ref(false)
 
 function startCreate() {
@@ -42,7 +43,7 @@ function startCreate() {
  * full: the editor needs what it is about to edit, and loading it for every row of the list would
  * ask the database once per row for something the list never shows.
  */
-async function startEdit(entry: SystemNewsEntry) {
+async function startEdit(entry: SystemNewsResponse) {
   editingEntry.value = entry.contentMode === ContentMode.RICH
       ? await adminNews.getSystemNews(entry.id)
       : entry
@@ -69,7 +70,7 @@ async function save(payload: EditorPayload) {
     const data: SystemNewsRequest = {
       title: payload.title,
       contentMarkdown: payload.contentMarkdown,
-      userTypes: payload.userTypes,
+      userTypes: userTypesOf(payload.userTypes),
       publish: true,
       notifyMembers: payload.notifyMembers,
       contentMode: payload.contentMode,
@@ -99,7 +100,7 @@ async function save(payload: EditorPayload) {
 }
 
 const {show: showRetract, target: retractTarget, requestDelete: requestRetract, confirm: confirmRetract} =
-    useConfirmDelete<SystemNewsEntry>({
+    useConfirmDelete<SystemNewsResponse>({
       onDelete: entry => adminNews.retractSystemNews(entry.id),
       onSuccess: () => runWith(() => adminNews.listSystemNews()),
     })

@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import PartnerStationSearchPicker from '@/components/input/search/PartnerStationSearchPicker.vue'
-import {resolvePartnerStations, type PublicPartnerSummary} from '@/api/publicPages'
+import {resolvePartnerStations} from '@/api/publicPages'
+import type {PublicPartnerSummary} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 
 const modelValue = defineModel<string[]>({required: true})

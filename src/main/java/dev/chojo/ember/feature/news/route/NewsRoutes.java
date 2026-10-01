@@ -53,6 +53,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -320,6 +321,11 @@ public class NewsRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/news/{id}/blocks",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SaveBlocksRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsResponse.class)))
     private void saveBlocks(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
@@ -334,6 +340,10 @@ public class NewsRoutes implements Routes {
      * Turns a plain entry into one built from blocks. What the author already wrote becomes a
      * single markdown block, which they then split up as they like.
      */
+    @OpenApi(
+            path = "/api/v1/news/{id}/blocks/enable",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsResponse.class)))
     private void enableBlocks(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
@@ -352,33 +362,52 @@ public class NewsRoutes implements Routes {
         return attachment;
     }
 
+    @OpenApi(
+            path = "/api/v1/news/{id}/attachments",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsAttachmentRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = NewsAttachment.class)))
     private void attachFile(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
-        var request = ctx.bodyAsClass(AttachmentRequest.class);
+        var request = ctx.bodyAsClass(NewsAttachmentRequest.class);
         if (request.fileId() == null) throw Refusal.NEWS_ATTACHMENT_FILE_NOT_NAMED.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(attachmentService.attach(id, session.stationId(), request.fileId(), request.label()));
     }
 
+    @OpenApi(
+            path = "/api/v1/news/attachments/{attachmentId}/label",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsAttachmentRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void relabelAttachment(Context ctx) {
         int attachmentId = pathInt(ctx, "attachmentId");
         requireOwnedAttachment(ctx, attachmentId);
-        var request = ctx.bodyAsClass(AttachmentRequest.class);
+        var request = ctx.bodyAsClass(NewsAttachmentRequest.class);
         if (!attachmentService.relabel(attachmentId, request.label()))
             throw Refusal.NEWS_ATTACHMENT_NOT_RELABELLED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/news/{id}/attachments/order",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsAttachmentOrderRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void reorderAttachments(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
-        var request = ctx.bodyAsClass(AttachmentOrderRequest.class);
+        var request = ctx.bodyAsClass(NewsAttachmentOrderRequest.class);
         attachmentService.reorder(id, request.attachmentIds() != null ? request.attachmentIds() : List.of());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/news/attachments/{attachmentId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void detachAttachment(Context ctx) {
         int attachmentId = pathInt(ctx, "attachmentId");
         requireOwnedAttachment(ctx, attachmentId);
@@ -432,7 +461,7 @@ public class NewsRoutes implements Routes {
         boolean viewedByMe = newsService.hasViewed(news.id(), viewerMemberId);
         return new NewsResponse(
                 news.id(),
-                news.stationId(),
+                news.systemEntry() ? null : news.stationId(),
                 news.title(),
                 news.contentMarkdown(),
                 news.contentHtml(),
@@ -445,6 +474,7 @@ public class NewsRoutes implements Routes {
                 tagIds,
                 memberIds,
                 commentCount,
+                news.restricted(),
                 news.publicBlog(),
                 viewCount,
                 viewedByMe,
@@ -682,6 +712,13 @@ public class NewsRoutes implements Routes {
         return id;
     }
 
+    @OpenApi(
+            path = "/api/v1/news/{id}/federation",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = NewsFederationShareResponse.class)))
     private void getFederationShare(Context ctx) {
         int id = requireOwnedNewsId(ctx);
         var share = newsFederationService.findShareByNews(id);
@@ -694,6 +731,14 @@ public class NewsRoutes implements Routes {
                 true, share.get().scope(), share.get().visibilityRole(), targets));
     }
 
+    @OpenApi(
+            path = "/api/v1/news/{id}/federation",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetNewsFederationShareRequest.class)),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = NewsFederationShareResponse.class)))
     private void setFederationShare(Context ctx) {
         int id = requireOwnedNewsId(ctx);
         var req = ctx.bodyAsClass(SetNewsFederationShareRequest.class);
@@ -704,12 +749,20 @@ public class NewsRoutes implements Routes {
         ctx.json(new NewsFederationShareResponse(true, req.scope(), visibilityRole, null));
     }
 
+    @OpenApi(
+            path = "/api/v1/news/{id}/federation",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void removeFederationShare(Context ctx) {
         int id = requireOwnedNewsId(ctx);
         newsFederationService.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/station/{stationUid}/blog",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicBlogEntry[].class)))
     private void publicBlogList(Context ctx) {
         int stationId = publicBlogs
                 .openBlog(
@@ -743,6 +796,14 @@ public class NewsRoutes implements Routes {
      * recent 50 entries to keep the payload bounded; readers fetch incrementally via the
      * existing JSON endpoint when they want older posts.
      */
+    @OpenApi(
+            path = "/api/v1/public/station/{stationUid}/blog.rss",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
+    @OpenApi(
+            path = "/api/v1/public/station/{stationUid}/blog.atom",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void publicBlogFeed(Context ctx, String feedType) {
         var station = publicBlogs.openBlog(
                 ctx.pathParam("stationUid"),
@@ -810,6 +871,10 @@ public class NewsRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/public/station/{stationUid}/blog/{blogId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicBlogEntry.class)))
     private void publicBlogDetail(Context ctx) {
         int stationId = publicBlogs
                 .openBlog(
@@ -928,19 +993,20 @@ public class NewsRoutes implements Routes {
      */
     public record NewsResponse(
             int id,
-            int stationId,
+            @Nullable Integer stationId,
             String title,
             String contentMarkdown,
             String contentHtml,
-            MemberIdentity author,
+            @Nullable MemberIdentity author,
             String authorName,
-            Instant publishedAt,
+            @Nullable Instant publishedAt,
             Instant createdAt,
             List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
             int commentCount,
+            boolean restricted,
             boolean publicBlog,
             int viewCount,
             boolean viewedByMe,
@@ -956,7 +1022,10 @@ public class NewsRoutes implements Routes {
     public record CommentRequest(Integer parentId, String content) {}
 
     public record NewsFederationShareResponse(
-            boolean shared, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
+            boolean shared,
+            @Nullable ShareScope scope,
+            @Nullable NewsVisibilityRole visibilityRole,
+            @Nullable List<Integer> partnerIds) {}
 
     /**
      * Request body for setting news federation sharing.
@@ -978,12 +1047,12 @@ public class NewsRoutes implements Routes {
     /**
      * Request body for attaching a file to an entry, or for renaming what a reader sees.
      */
-    public record AttachmentRequest(Integer fileId, String label) {}
+    public record NewsAttachmentRequest(Integer fileId, String label) {}
 
     /**
      * Request body for writing the order the author put the attachments in.
      */
-    public record AttachmentOrderRequest(List<Integer> attachmentIds) {}
+    public record NewsAttachmentOrderRequest(List<Integer> attachmentIds) {}
 
     /**
      * Response shape for {@code GET /api/v1/news/{id}/views} (editors only).
@@ -994,7 +1063,7 @@ public class NewsRoutes implements Routes {
      * One viewer entry in the seen/unseen lists. {@code seenAt} is {@code null} for the
      * unseen branch, otherwise the moment of the first view.
      */
-    public record NewsViewerEntry(MemberIdentity member, Instant seenAt) {}
+    public record NewsViewerEntry(MemberIdentity member, @Nullable Instant seenAt) {}
 
     /**
      * Lightweight response for {@code GET /api/v1/news/{id}/view-count} (editors only).

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {DividerConfig} from '@/api/pageManage'
+import type {DividerConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: DividerConfig

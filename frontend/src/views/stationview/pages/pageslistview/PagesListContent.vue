@@ -13,7 +13,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PagesList from './PagesList.vue'
 import CreatePageModal from './CreatePageModal.vue'
-import type {StationPage} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 interface FlatPageEntry {

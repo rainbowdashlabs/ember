@@ -587,7 +587,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["FileListing"][];
+                    };
                 };
             };
         };
@@ -607,7 +609,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["StationFile"];
+                    };
                 };
             };
         };
@@ -15985,6 +15989,442 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/{stationuid}/kb/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateKbCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/kb/files/{fileId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateKbCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/kb/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteKbFile"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/kb/files/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FileContentResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/kb/files/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/kb/files/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/kb/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederatedKbBrowse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/news/{newsId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederatedNewsData"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/news/{newsId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/news/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/boards": {
         parameters: {
             query?: never;
@@ -17309,6 +17749,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/kb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederatedKbBrowse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/kb/files/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/my-registrations": {
         parameters: {
             query?: never;
@@ -17333,6 +17843,41 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["RemoteMemberRegistration"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/news": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederatedNewsItem"][];
                     };
                 };
             };
@@ -22815,6 +23360,2295 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kb/audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EntryAudience"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AudienceRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BrowseResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/bulk/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BulkDeleteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkOutcome"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/bulk/delete/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BulkDeleteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeleteImpact"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/bulk/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BulkMoveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkOutcome"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/bulk/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BulkTagsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkOutcome"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateKbCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/favourites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFavourite"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MarkFavouriteRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFavourite"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/favourites/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFileSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{fileId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateKbCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FileResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FileUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BlocksResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SaveBlocksRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BlocksResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/blocks/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BlocksResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ContentUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/folder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MoveFileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MoveResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/html": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MarkdownHtmlResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImageUploadResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/original": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/public-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicVisibilityResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PublicVisibilityRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicVisibilityResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RelatedFilesResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RelatedFilesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RelatedFilesResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRestrictionResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["KbRestrictionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRestrictionResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbTag"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["KbTagRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbTag"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbVersionResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFileVersion"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/{id}/versions/{version}/revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/import-document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LinkFileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/markdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MarkdownFileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SearchResultResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/files/youtube": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["YoutubeFileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFolder"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FolderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFolder"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFolder"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FolderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbFolder"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders/{id}/icon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders/{id}/parent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MoveFolderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MoveResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders/{id}/public-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicVisibilityResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PublicVisibilityRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicVisibilityResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders/{id}/restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRestrictionResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["KbRestrictionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRestrictionResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbTag"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["KbTagRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbTag"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/folders/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FolderTreeEntry"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/move/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MovePreview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SearchResultResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbTag"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/tags/{name}/scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagScopeResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TrashView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EmptyTrashResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/trash/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/trash/files/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RestoreResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/trash/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/trash/folders/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RestoreResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lost-and-found": {
         parameters: {
             query?: never;
@@ -23523,6 +26357,526 @@ export interface paths {
         };
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/file/{hash}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FileListing"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MediaFileMetaRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/files/{fileId}/folder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MoveMediaFileRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/files/{fileId}/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/files/prune": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MediaPruneResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFileFolder"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MediaFolderRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFileFolder"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/folders/{folderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MediaFolderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/picture/{hash}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFileTag"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MediaTagRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFileTag"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MediaTagRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -25370,6 +28724,156 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/news/{id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["NewsAttachmentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NewsAttachment"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/news/{id}/attachments/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["NewsAttachmentOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/news/{id}/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SaveBlocksRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NewsResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/news/{id}/blocks/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NewsResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/news/{id}/comments": {
         parameters: {
             query?: never;
@@ -25429,6 +28933,81 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/news/{id}/federation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NewsFederationShareResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetNewsFederationShareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NewsFederationShareResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -25567,6 +29146,76 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/news/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/news/attachments/{attachmentId}/label": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["NewsAttachmentRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -26268,6 +29917,621 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagesListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreatePageRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPage"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/{pid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPage"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SavePageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPage"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/{pid}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPage"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/{pid}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/{pid}/share-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PageShareLinkResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReplacePageShareLinkRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PageShareLinkResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/{pid}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PageVisibilityRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPage"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/forms/{id}/responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FormResponseEntryDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/forms/{id}/responses/{responseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponseDetailDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/forms/{id}/responses/{responseId}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/landing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LandingPageRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/member-list/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResolvedMember"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/polls/forms/{id}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FormAnalyticsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/polls/forms/{id}/responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FormResponseEntryDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/polls/forms/{id}/responses/{responseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponseDetailDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pages/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PickerPage"][];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -27953,7 +32217,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MarkdownHtmlResponse"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -27963,6 +32229,39 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/kb/{stationUid}/files/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -28138,7 +32437,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["PublicKbInfo"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -28185,7 +32486,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["SearchResultItem"][];
+                    };
                 };
             };
         };
@@ -28222,7 +32525,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": string[];
+                        "application/json": components["schemas"]["KbTag"][];
                     };
                 };
             };
@@ -28259,6 +32562,245 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["LegalVersionsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/media/{stationUid}/{hash}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/media/instance/{hash}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/pages/{stationUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicPageSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/pages/{stationUid}/files/{hash}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/pages/{stationUid}/landing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/pages/{stationUid}/page/{pagePath}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/pages/{stationUid}/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicPartnerSummary"][];
                     };
                 };
             };
@@ -28599,6 +33141,142 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/blog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicBlogEntry"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/blog.atom": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/blog.rss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/blog/{blogId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicBlogEntry"];
                     };
                 };
             };
@@ -33860,8 +38538,8 @@ export interface components {
             userTypes: components["schemas"]["StationUserType"][];
         };
         AccordionConfig: {
-            openByDefault: boolean;
-            title: string;
+            openByDefault?: boolean;
+            title?: string;
         };
         AccountInfo: {
             email: string;
@@ -33873,13 +38551,13 @@ export interface components {
             username: string;
         };
         AchievementItem: {
-            description: string;
-            title: string;
-            year: string;
+            description?: string;
+            title?: string;
+            year?: string;
         };
         AchievementsConfig: {
-            items: components["schemas"]["AchievementItem"][];
-            title: string;
+            items?: components["schemas"]["AchievementItem"][];
+            title?: string;
         };
         /** @enum {string} */
         AckKind: "CONFIRMED" | "ASSERTED" | "FORCED" | "CORRECTED";
@@ -33922,12 +38600,12 @@ export interface components {
             skipped: number;
         };
         AddressCardConfig: {
-            addressLine: string;
-            city: string;
-            country: string;
-            label: string;
-            mapUrl: string;
-            postalCode: string;
+            addressLine?: string;
+            city?: string;
+            country?: string;
+            label?: string;
+            mapUrl?: string;
+            postalCode?: string;
         };
         AdminOverview: {
             /** Format: int32 */
@@ -34238,9 +38916,18 @@ export interface components {
             /** Format: int32 */
             templateId: number;
         };
+        AudienceRequest: {
+            everyStation?: boolean;
+            /** Format: int32 */
+            fileId?: number;
+            /** Format: int32 */
+            folderId?: number;
+            partnerIds?: number[];
+            shared?: boolean;
+        };
         AudioEmbedConfig: {
-            title: string;
-            url: string;
+            title?: string;
+            url?: string;
         };
         AvailableClusterResponse: {
             description: string;
@@ -34349,9 +39036,14 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
         };
+        BlocksResponse: {
+            contentMode: components["schemas"]["ContentMode"];
+            describedRows: components["schemas"]["ContentRow"][];
+            rows: components["schemas"]["ContentRow"][];
+        };
         BlogSignupConfig: {
-            description: string;
-            title: string;
+            description?: string;
+            title?: string;
         };
         Board: {
             /** Format: int32 */
@@ -34576,6 +39268,37 @@ export interface components {
             name?: string;
             startDate?: components["schemas"]["LocalDate"];
         };
+        BrowseResponse: {
+            currentFolder: components["schemas"]["KbFolder"] | null;
+            currentLevel: components["schemas"]["KbAccessLevel"];
+            fileLevels: {
+                [key: string]: components["schemas"]["KbAccessLevel"];
+            };
+            fileReach: components["schemas"]["Reach"];
+            files: components["schemas"]["KbFileSummary"][];
+            folderLevels: {
+                [key: string]: components["schemas"]["KbAccessLevel"];
+            };
+            folderReach: components["schemas"]["Reach"];
+            folders: components["schemas"]["KbFolder"][];
+        };
+        BulkDeleteRequest: {
+            fileIds?: number[];
+            folderIds?: number[];
+        };
+        BulkMoveRequest: {
+            fileIds?: number[];
+            folderIds?: number[];
+            /** Format: int32 */
+            targetFolderId?: number;
+        };
+        BulkOutcome: {
+            doneFileIds: number[];
+            doneFolderIds: number[];
+            refused: components["schemas"]["RefusedEntry"][];
+            /** Format: int32 */
+            refusedTotal: number;
+        };
         BulkSetRequest: {
             checked?: boolean;
             entryIds?: number[];
@@ -34584,9 +39307,15 @@ export interface components {
             /** Format: int32 */
             updated: number;
         };
+        BulkTagsRequest: {
+            addTags?: string[];
+            fileIds?: number[];
+            folderIds?: number[];
+            removeTags?: string[];
+        };
         CalloutConfig: {
-            title: string;
-            variant: components["schemas"]["CalloutVariant"];
+            title?: string;
+            variant?: components["schemas"]["CalloutVariant"];
         };
         /** @enum {string} */
         CalloutVariant: "INFO" | "WARNING" | "SUCCESS" | "TIP";
@@ -35011,7 +39740,7 @@ export interface components {
         /** @enum {string} */
         Code: "TOO_SHORT" | "ENDS_IN_TRANSIT" | "OUTGOING_NAMES_ITEM" | "EXCHANGE_NEEDS_BOTH_DIRECTIONS" | "ARRIVAL_UNNAMED" | "FLOW_IN_USE" | "FLOW_NAME_REQUIRED" | "STEP_LABEL_REQUIRED" | "ILLEGAL_STEP_CUSTODY" | "ONLY_ARRIVAL_NAMES_ITEM" | "ITEM_ALREADY_NAMED" | "ORDER_MUST_NAME_EVERY_STEP";
         CodeBlockConfig: {
-            language: string;
+            language?: string;
         };
         CodeDetail: {
             code: string;
@@ -35200,6 +39929,9 @@ export interface components {
             /** Format: int32 */
             sortOrder: number;
         };
+        ContentUpdateRequest: {
+            content?: string;
+        };
         /** @enum {string} */
         ConversionStatus: "PENDING" | "SUCCESS" | "FAILED";
         CorrectItemRequest: {
@@ -35234,9 +39966,9 @@ export interface components {
             sizeId?: number;
         };
         CountdownConfig: {
-            label: string;
-            sublabel: string;
-            targetDate: string;
+            label?: string;
+            sublabel?: string;
+            targetDate?: string;
         };
         CreateAndAssignRequest: {
             /** Format: int32 */
@@ -35286,6 +40018,11 @@ export interface components {
             description?: string;
             foundAt?: string;
         };
+        CreateKbCommentRequest: {
+            content?: string;
+            /** Format: int32 */
+            parentId?: number;
+        };
         CreateMemberRequest: {
             /** Format: int32 */
             accountId?: number;
@@ -35309,6 +40046,11 @@ export interface components {
             reason?: string;
             /** Format: int32 */
             selfCheckId?: number;
+        };
+        CreatePageRequest: {
+            /** Format: int32 */
+            parentId?: number;
+            title?: string;
         };
         CreatePresetRequest: {
             groupIds?: number[];
@@ -35396,6 +40138,14 @@ export interface components {
             id: number;
             name: string;
         };
+        DeleteImpact: {
+            embeddedOn: string[];
+            /** Format: int32 */
+            files: number;
+            /** Format: int32 */
+            folders: number;
+            onPublicPage: boolean;
+        };
         DeleteRequestResponse: {
             deleted: boolean;
             message: string;
@@ -35456,7 +40206,7 @@ export interface components {
             name: string;
         };
         DividerConfig: {
-            label: string;
+            label?: string;
         };
         DocumentPage: {
             documents: components["schemas"]["MemberDocumentResponse"][];
@@ -35513,6 +40263,10 @@ export interface components {
             /** Format: uuid */
             eventUid: string;
         };
+        EmptyTrashResponse: {
+            /** Format: int32 */
+            cleared: number;
+        };
         EndpointDetail: {
             avgDurationMs: number;
             method: string;
@@ -35540,9 +40294,9 @@ export interface components {
         };
         EntryAudience: {
             /** Format: int32 */
-            fileId: number;
+            fileId: number | null;
             /** Format: int32 */
-            folderId: number;
+            folderId: number | null;
             /** Format: int32 */
             id: number;
             partnerIds: number[];
@@ -35747,10 +40501,10 @@ export interface components {
         /** @enum {string} */
         EventFieldType: "STRING" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "ENUM" | "URL" | "TEXTAREA" | "LOCATION" | "MEMBER" | "MEMBER_LIST" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG";
         EventItem: {
-            date: string;
-            location: string;
-            title: string;
-            url: string;
+            date?: string;
+            location?: string;
+            title?: string;
+            url?: string;
         };
         EventPartnerPlaces: {
             /** Format: int32 */
@@ -35950,11 +40704,11 @@ export interface components {
             movementIds?: number[];
         };
         ExternalLinkCardConfig: {
-            description: string;
-            imageDisplay: components["schemas"]["ExternalLinkImageDisplay"];
-            imageUrl: string;
-            title: string;
-            url: string;
+            description?: string;
+            imageDisplay?: components["schemas"]["ExternalLinkImageDisplay"];
+            imageUrl?: string;
+            title?: string;
+            url?: string;
         };
         /** @enum {string} */
         ExternalLinkImageDisplay: "BANNER" | "ICON";
@@ -35968,17 +40722,63 @@ export interface components {
             reason: string;
         };
         FeaturedEventConfig: {
-            ctaText: string;
-            ctaUrl: string;
-            date: string;
-            description: string;
-            descriptionOverride: string;
-            eventUid: string;
-            location: string;
-            title: string;
+            ctaText?: string;
+            ctaUrl?: string;
+            date?: string;
+            description?: string;
+            descriptionOverride?: string;
+            eventUid?: string;
+            location?: string;
+            title?: string;
         };
         FederatedEventItem: {
             event: components["schemas"]["SharedEvent"];
+            /** Format: int32 */
+            partnerId: number;
+            partnerStationName: string;
+            partnerStationUid: string;
+        };
+        FederatedKbBrowse: {
+            files: components["schemas"]["FederatedKbItem"][];
+            folders: components["schemas"]["FederatedKbFolder"][];
+            trail: components["schemas"]["FederatedKbFolder"][];
+        };
+        FederatedKbFolder: {
+            description: string;
+            /** Format: int32 */
+            partnerId: number;
+            /** Format: int32 */
+            remoteId: number;
+            stationName: string;
+            stationUid: string;
+            title: string;
+            userTypes: string[];
+        };
+        FederatedKbItem: {
+            description: string;
+            /** Format: int32 */
+            partnerId: number;
+            /** Format: int32 */
+            remoteId: number;
+            stationName: string;
+            stationUid: string;
+            title: string;
+            userTypes: string[];
+        };
+        FederatedNewsData: {
+            authorName: string;
+            /** Format: int32 */
+            commentCount: number;
+            contentHtml: string;
+            contentMarkdown: string;
+            /** Format: int32 */
+            id: number;
+            publishedAt: string;
+            title: string;
+            visibilityRole: components["schemas"]["NewsVisibilityRole"];
+        };
+        FederatedNewsItem: {
+            news: components["schemas"]["FederatedNewsData"];
             /** Format: int32 */
             partnerId: number;
             partnerStationName: string;
@@ -36125,10 +40925,35 @@ export interface components {
                 [key: string]: string;
             };
         };
+        FileContentResponse: {
+            content: string;
+            /** Format: int32 */
+            fileId: number;
+        };
         FileDownloadConfig: {
-            description: string;
-            label: string;
-            url: string;
+            description?: string;
+            label?: string;
+            url?: string;
+        };
+        FileListing: {
+            file: components["schemas"]["StationFile"];
+            inUse: boolean;
+            tagIds: number[];
+            /** Format: int32 */
+            uploadedBy: number | null;
+        };
+        FileResponse: {
+            accessLevel: components["schemas"]["KbAccessLevel"];
+            accessLevelSource: string | null;
+            file: components["schemas"]["KbFile"];
+            lastEditedByName: string;
+        };
+        FileUpdateRequest: {
+            description?: string;
+            iconUrl?: string;
+            name?: string;
+            /** Format: int32 */
+            position?: number;
         };
         Filter: {
             /** Format: int32 */
@@ -36166,6 +40991,23 @@ export interface components {
             problem: components["schemas"]["FlowProblem"];
             purpose: components["schemas"]["MovementPurpose"];
             steps: components["schemas"]["StepResponse"][];
+        };
+        FolderRequest: {
+            description?: string;
+            iconUrl?: string;
+            name?: string;
+            /** Format: int32 */
+            parentId?: number;
+            /** Format: int32 */
+            position?: number;
+        };
+        FolderTreeEntry: {
+            /** Format: int32 */
+            id: number;
+            level: components["schemas"]["KbAccessLevel"];
+            name: string;
+            /** Format: int32 */
+            parentId: number | null;
         };
         Form: {
             acceptingResponses: boolean;
@@ -36355,9 +41197,9 @@ export interface components {
             groupBy?: components["schemas"]["Grouping"];
         };
         FormsCtaConfig: {
-            bodyOverride: string;
-            formPublicUid: string;
-            headlineOverride: string;
+            bodyOverride?: string;
+            formPublicUid?: string;
+            headlineOverride?: string;
         };
         FormSearchResult: {
             /** Format: uuid */
@@ -36378,9 +41220,9 @@ export interface components {
         /** @enum {string} */
         GalleryAspectMode: "SQUARE" | "PRESERVE";
         GalleryItem: {
-            altText: string;
-            imageHash: string;
-            subtext: string;
+            altText?: string;
+            imageHash?: string;
+            subtext?: string;
         };
         GenerateDatesRequest: {
             /** Format: int32 */
@@ -36431,6 +41273,16 @@ export interface components {
         GenerationPollResponse: {
             done: boolean;
             questions: components["schemas"]["GeneratedQuestionWithMeta"][];
+        };
+        GrantRequest: {
+            /** Format: int32 */
+            groupId?: number;
+            level?: components["schemas"]["KbAccessLevel"];
+            /** Format: int32 */
+            memberId?: number;
+            /** Format: int32 */
+            tagId?: number;
+            userType?: components["schemas"]["StationUserType"];
         };
         GroupDetail: {
             /** Format: int32 */
@@ -36496,11 +41348,11 @@ export interface components {
             words?: string;
         };
         HeroBannerConfig: {
-            ctaText: string;
-            ctaUrl: string;
-            headline: string;
-            imageHash: string;
-            subtitle: string;
+            ctaText?: string;
+            ctaUrl?: string;
+            headline?: string;
+            imageHash?: string;
+            subtitle?: string;
         };
         HourlyStats: {
             avgDurationMs: number;
@@ -36511,30 +41363,33 @@ export interface components {
             requestCount: number;
         };
         ImageConfig: {
-            altText: string;
-            borderColor: string;
+            altText?: string;
+            borderColor?: string;
             /** Format: int32 */
-            borderRadiusPercent: number;
+            borderRadiusPercent?: number;
             /** Format: int32 */
-            borderWidthPx: number;
-            cropBottom: number;
-            cropLeft: number;
-            cropRight: number;
-            cropTop: number;
-            description: string;
-            imageFit: components["schemas"]["ImageFit"];
+            borderWidthPx?: number;
+            cropBottom?: number;
+            cropLeft?: number;
+            cropRight?: number;
+            cropTop?: number;
+            description?: string;
+            imageFit?: components["schemas"]["ImageFit"];
             /** Format: int32 */
-            maxHeight: number;
+            maxHeight?: number;
         };
         /** @enum {string} */
         ImageFit: "COVER" | "CONTAIN" | "FILL";
         ImageGalleryConfig: {
-            aspectMode: components["schemas"]["GalleryAspectMode"];
+            aspectMode?: components["schemas"]["GalleryAspectMode"];
             /** Format: int32 */
-            columns: number;
-            items: components["schemas"]["GalleryItem"][];
+            columns?: number;
+            items?: components["schemas"]["GalleryItem"][];
             /** Format: int32 */
-            maxItemHeightPx: number;
+            maxItemHeightPx?: number;
+        };
+        ImageUploadResponse: {
+            imageId: string;
         };
         ImportProgressResponse: {
             /** Format: int32 */
@@ -36923,16 +41778,35 @@ export interface components {
         JobIdResponse: {
             jobId: string;
         };
+        /** @enum {string} */
+        KbAccessLevel: "NONE" | "READ" | "WRITE" | "MANAGE";
         KbArticleConfig: {
             /** Format: int32 */
-            articleId: number;
-            fallbackTitle: string;
+            articleId?: number;
+            fallbackTitle?: string;
         };
+        KbFavourite: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            entryId: number;
+            fileType: string | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number;
+            /** Format: uuid */
+            partnerStationUid: string | null;
+            stationName: string | null;
+            target: components["schemas"]["KbFavouriteTarget"];
+            title: string;
+        };
+        /** @enum {string} */
+        KbFavouriteTarget: "FILE" | "FOLDER" | "PARTNER_FILE" | "PARTNER_FOLDER";
         KbFile: {
             /** Format: int32 */
-            containerId: number;
+            containerId: number | null;
             contentMode: components["schemas"]["ContentMode"];
-            conversionStatus: components["schemas"]["ConversionStatus"];
+            conversionStatus: components["schemas"]["ConversionStatus"] | null;
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             createdBy: number;
@@ -36941,39 +41815,65 @@ export interface components {
             fileSize: number;
             fileType: components["schemas"]["KbFileType"];
             /** Format: int32 */
-            folderId: number;
-            iconUrl: string;
+            folderId: number | null;
+            iconUrl: string | null;
             /** Format: int32 */
             id: number;
-            linkUrl: string;
-            mimeType: string;
+            linkUrl: string | null;
+            mimeType: string | null;
             name: string;
             /** Format: int32 */
             position: number;
             restricted: boolean;
             restrictionMode: components["schemas"]["RestrictionMode"];
             /** Format: int32 */
-            sourceFileId: number;
+            sourceFileId: number | null;
             /** Format: uuid */
-            sourceStationId: string;
+            sourceStationId: string | null;
             /** Format: uuid */
             stationId: string;
             updatedAt: components["schemas"]["Instant"];
-            youtubeUrl: string;
+            youtubeUrl: string | null;
+        };
+        KbFileSummary: {
+            description: string;
+            fileType: components["schemas"]["KbFileType"];
+            /** Format: int32 */
+            folderId: number | null;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            restricted: boolean;
+            /** Format: uuid */
+            stationId: string;
+            updatedAt: components["schemas"]["Instant"];
         };
         /** @enum {string} */
         KbFileType: "MARKDOWN" | "PDF" | "TEXT" | "IMAGE" | "YOUTUBE" | "LINK" | "PRESENTATION" | "OTHER";
+        KbFileVersion: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            createdBy: number;
+            /** Format: int32 */
+            fileId: number;
+            /** Format: int32 */
+            id: number;
+            isFull: boolean;
+            patch: string;
+            /** Format: int32 */
+            version: number;
+        };
         KbFolder: {
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             createdBy: number;
             description: string;
-            iconUrl: string;
+            iconUrl: string | null;
             /** Format: int32 */
             id: number;
             name: string;
             /** Format: int32 */
-            parentId: number;
+            parentId: number | null;
             /** Format: int32 */
             position: number;
             restricted: boolean;
@@ -36981,6 +41881,55 @@ export interface components {
             /** Format: uuid */
             stationId: string;
             updatedAt: components["schemas"]["Instant"];
+        };
+        KbGrant: {
+            /** Format: int32 */
+            groupId: number | null;
+            level: components["schemas"]["KbAccessLevel"] | null;
+            /** Format: int32 */
+            memberId: number | null;
+            /** Format: int32 */
+            tagId: number | null;
+            userType: components["schemas"]["StationUserType"] | null;
+        };
+        /** @enum {string} */
+        KbReach: "INTERNAL" | "NARROW" | "FEDERATED" | "PUBLIC";
+        /** @enum {string} */
+        KbRefusalReason: "NO_PERMISSION" | "NAME_TAKEN" | "TARGET_INSIDE" | "SHARE_TOO_WIDE" | "NOT_FOUND";
+        KbRestrictionRequest: {
+            grants?: components["schemas"]["GrantRequest"][];
+            groupIds?: number[];
+            memberIds?: number[];
+            tagIds?: number[];
+            userTypes?: string[];
+        };
+        KbRestrictionResponse: {
+            grants: components["schemas"]["KbGrant"][];
+            groupIds: number[];
+            memberIds: number[];
+            tagIds: number[];
+            userTypes: components["schemas"]["StationUserType"][];
+        };
+        KbTag: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: uuid */
+            stationId: string;
+        };
+        KbTagRequest: {
+            tags?: string[];
+        };
+        KbVersionResponse: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            createdBy: number;
+            createdByName: string;
+            /** Format: int32 */
+            id: number;
+            isFull: boolean;
+            /** Format: int32 */
+            version: number;
         };
         KindRequest: {
             color?: string;
@@ -36994,6 +41943,10 @@ export interface components {
         LabelRequest: {
             color?: string;
             name?: string;
+        };
+        LandingPageRequest: {
+            /** Format: int32 */
+            pageId?: number;
         };
         LaneAssignee: {
             /** Format: int32 */
@@ -37067,6 +42020,13 @@ export interface components {
             available: number;
             changed: boolean;
             line: components["schemas"]["CollectedLine"];
+        };
+        LinkFileRequest: {
+            description?: string;
+            /** Format: int32 */
+            folderId?: number;
+            linkUrl?: string;
+            name?: string;
         };
         LinkRequest: {
             /** Format: int32 */
@@ -37367,19 +42327,56 @@ export interface components {
         };
         MapConfig: {
             /** Format: int32 */
-            heightPx: number;
-            label: string;
-            latitude: number;
-            longitude: number;
+            heightPx?: number;
+            label?: string;
+            latitude?: number;
+            longitude?: number;
             /** Format: int32 */
-            zoom: number;
+            zoom?: number;
         };
         MarkdownConfig: Record<string, never>;
+        MarkdownFileRequest: {
+            content?: string;
+            description?: string;
+            /** Format: int32 */
+            folderId?: number;
+            name?: string;
+        };
+        MarkdownHtmlResponse: {
+            html: string;
+            markdown: string;
+        };
+        MarkFavouriteRequest: {
+            /** Format: int32 */
+            entryId?: number;
+            /** Format: uuid */
+            partnerStationUid?: string;
+            target?: components["schemas"]["KbFavouriteTarget"];
+        };
         MarkRequest: {
             state?: components["schemas"]["OnboardingTaskState"];
         };
         /** @enum {string} */
         Match: "ANY" | "ALL";
+        MediaFileMetaRequest: {
+            altText?: string;
+            description?: string;
+        };
+        MediaFolderRequest: {
+            name?: string;
+            /** Format: int32 */
+            parentId?: number;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        MediaPruneResult: {
+            /** Format: int32 */
+            removed: number;
+        };
+        MediaTagRequest: {
+            color?: string;
+            name?: string;
+        };
         MemberAbsence: {
             absentFrom: components["schemas"]["LocalDate"];
             absentUntil: components["schemas"]["LocalDate"];
@@ -37415,7 +42412,7 @@ export interface components {
             tags: string[];
             title: string;
             /** Format: int32 */
-            uploadedBy: number;
+            uploadedBy: number | null;
         };
         MemberDocumentSummary: {
             createdAt: components["schemas"]["Instant"];
@@ -37496,16 +42493,16 @@ export interface components {
             sizeName: string;
         };
         MemberListConfig: {
-            memberDescriptions: {
+            memberDescriptions?: {
                 [key: string]: string;
             };
-            memberOrder: string[];
-            resolvedMembers: components["schemas"]["ResolvedMember"][];
-            showTag: boolean;
-            showUserType: boolean;
-            sortBy: components["schemas"]["MemberListSortBy"];
-            source: unknown;
-            title: string;
+            memberOrder?: string[];
+            resolvedMembers?: components["schemas"]["ResolvedMember"][];
+            showTag?: boolean;
+            showUserType?: boolean;
+            sortBy?: components["schemas"]["MemberListSortBy"];
+            source?: unknown;
+            title?: string;
         };
         /** @enum {string} */
         MemberListSortBy: "ORDER" | "NAME" | "ROLE" | "JOIN_DATE";
@@ -37597,10 +42594,10 @@ export interface components {
             userType: string;
         };
         MemberSpotlightConfig: {
-            blurb: string;
-            memberUid: string;
-            showTag: boolean;
-            showUserType: boolean;
+            blurb?: string;
+            memberUid?: string;
+            showTag?: boolean;
+            showUserType?: boolean;
         };
         MemberSummary: {
             /** Format: int32 */
@@ -37705,9 +42702,21 @@ export interface components {
             /** Format: int32 */
             to: number;
         };
+        MoveFileRequest: {
+            /** Format: int32 */
+            folderId?: number;
+        };
+        MoveFolderRequest: {
+            /** Format: int32 */
+            parentId?: number;
+        };
         MoveItemRequest: {
             /** Format: int32 */
             inventoryId?: number;
+        };
+        MoveMediaFileRequest: {
+            /** Format: int32 */
+            folderId?: number;
         };
         MovementDetail: {
             lossReport: components["schemas"]["LossReport"];
@@ -37785,6 +42794,15 @@ export interface components {
             /** Format: int32 */
             position: number;
             subject: components["schemas"]["StepSubject"];
+        };
+        MovePreview: {
+            after: components["schemas"]["KbReach"];
+            before: components["schemas"]["KbReach"];
+        };
+        MoveResponse: {
+            moved: boolean;
+            name: string | null;
+            reason: components["schemas"]["KbRefusalReason"] | null;
         };
         MoveTicketRequest: {
             /** Format: int32 */
@@ -37876,7 +42894,7 @@ export interface components {
             trailMinutes?: number;
         };
         NestedRowsConfig: {
-            rows: unknown;
+            rows?: unknown;
         };
         NewClusterFlowRequest: {
             name?: string;
@@ -37920,12 +42938,26 @@ export interface components {
             fileSize: number;
             /** Format: int32 */
             id: number;
-            label: string;
+            label: string | null;
             mimeType: string;
             /** Format: int32 */
             newsId: number;
             /** Format: int32 */
             sortOrder: number;
+        };
+        NewsAttachmentOrderRequest: {
+            attachmentIds?: number[];
+        };
+        NewsAttachmentRequest: {
+            /** Format: int32 */
+            fileId?: number;
+            label?: string;
+        };
+        NewsFederationShareResponse: {
+            partnerIds: number[] | null;
+            scope: components["schemas"]["ShareScope"] | null;
+            shared: boolean;
+            visibilityRole: components["schemas"]["NewsVisibilityRole"] | null;
         };
         NewsRequest: {
             contentMarkdown?: string;
@@ -37939,7 +42971,7 @@ export interface components {
         };
         NewsResponse: {
             attachments: components["schemas"]["NewsAttachment"][];
-            author: components["schemas"]["MemberIdentity"];
+            author: components["schemas"]["MemberIdentity"] | null;
             authorName: string;
             /** Format: int32 */
             commentCount: number;
@@ -37953,10 +42985,11 @@ export interface components {
             id: number;
             memberIds: number[];
             publicBlog: boolean;
-            publishedAt: components["schemas"]["Instant"];
+            publishedAt: components["schemas"]["Instant"] | null;
+            restricted: boolean;
             rows: components["schemas"]["ContentRow"][];
             /** Format: uuid */
-            stationId: string;
+            stationId: string | null;
             systemEntry: boolean;
             tagIds: number[];
             title: string;
@@ -37986,12 +43019,12 @@ export interface components {
             title: string;
         };
         NewsTeaserConfig: {
-            date: string;
-            imageUrl: string;
-            newsUid: string;
-            summary: string;
-            title: string;
-            url: string;
+            date?: string;
+            imageUrl?: string;
+            newsUid?: string;
+            summary?: string;
+            title?: string;
+            url?: string;
         };
         NewsViewCountResponse: {
             /** Format: int32 */
@@ -37999,12 +43032,14 @@ export interface components {
         };
         NewsViewerEntry: {
             member: components["schemas"]["MemberIdentity"];
-            seenAt: components["schemas"]["Instant"];
+            seenAt: components["schemas"]["Instant"] | null;
         };
         NewsViewsResponse: {
             seen: components["schemas"]["NewsViewerEntry"][];
             unseen: components["schemas"]["NewsViewerEntry"][];
         };
+        /** @enum {string} */
+        NewsVisibilityRole: "MEMBER" | "TEAM" | "MANAGER";
         NextDate: {
             date: components["schemas"]["LocalDate"] | null;
         };
@@ -38133,16 +43168,24 @@ export interface components {
             name: string;
         };
         PageLinkConfig: {
-            fallbackTitle: string;
-            pageUid: string;
-            resolvedHref: string;
-            resolvedTitle: string;
+            fallbackTitle?: string;
+            pageUid?: string;
+            resolvedHref?: string;
+            resolvedTitle?: string;
         };
         PageRequest: {
             after?: components["schemas"]["PageTarget"];
             description?: string;
             key?: string;
             title?: string;
+        };
+        PageShareLinkResponse: {
+            token: string | null;
+        };
+        PagesListResponse: {
+            /** Format: int32 */
+            landingPageId: number | null;
+            pages: components["schemas"]["StationPage"][];
         };
         PageTarget: {
             kind: components["schemas"]["TargetKind"];
@@ -38156,27 +43199,30 @@ export interface components {
         };
         /** @enum {string} */
         PageVisibility: "DRAFT" | "UNLISTED" | "PUBLIC";
+        PageVisibilityRequest: {
+            visibility?: components["schemas"]["PageVisibility"];
+        };
         ParseResult: {
             headers: string[];
             rows: string[][];
         };
         PartnerStationsConfig: {
-            autoFillFromPartners: boolean;
-            stationUids: string[];
-            title: string;
+            autoFillFromPartners?: boolean;
+            stationUids?: string[];
+            title?: string;
         };
         PastEventRecapConfig: {
-            date: string;
-            eventUid: string;
-            imageHash: string;
-            recapDescription: string;
-            summary: string;
-            title: string;
+            date?: string;
+            eventUid?: string;
+            imageHash?: string;
+            recapDescription?: string;
+            summary?: string;
+            title?: string;
         };
         PdfConfig: {
             /** Format: int32 */
-            heightPx: number;
-            url: string;
+            heightPx?: number;
+            url?: string;
         };
         Permission: {
             /** Format: int32 */
@@ -38193,6 +43239,13 @@ export interface components {
             eventUid: string;
             name: string;
             startTime: components["schemas"]["Instant"];
+        };
+        PickerPage: {
+            /** Format: uuid */
+            pageUid: string;
+            slug: string;
+            title: string;
+            updatedAt: components["schemas"]["Instant"];
         };
         Piece: {
             /** Format: int32 */
@@ -38242,8 +43295,8 @@ export interface components {
             reach: components["schemas"]["ClusterBackendReach"];
         };
         PollEmbedConfig: {
-            formPublicUid: string;
-            showResultsAfterVote: boolean;
+            formPublicUid?: string;
+            showResultsAfterVote?: boolean;
         };
         PoolRequest: {
             /** Format: int64 */
@@ -38445,8 +43498,21 @@ export interface components {
             membershipCreated: boolean;
             userType: components["schemas"]["StationUserType"];
         };
+        PublicBlogEntry: {
+            attachments: components["schemas"]["NewsAttachment"][];
+            authorName: string;
+            contentHtml: string;
+            contentMode: components["schemas"]["ContentMode"];
+            /** Format: int32 */
+            id: number;
+            /** Format: uuid */
+            publicUid: string;
+            publishedAt: components["schemas"]["Instant"];
+            rows: components["schemas"]["ContentRow"][];
+            title: string;
+        };
         PublicBrowseResponse: {
-            currentFolder: components["schemas"]["KbFolder"];
+            currentFolder: components["schemas"]["KbFolder"] | null;
             files: components["schemas"]["KbFile"][];
             folders: components["schemas"]["KbFolder"][];
         };
@@ -38521,6 +43587,11 @@ export interface components {
         };
         /** @enum {string} */
         PublicFormState: "OPEN" | "NOT_PUBLISHED" | "NOT_OPEN_YET" | "CLOSED";
+        PublicKbInfo: {
+            stationName: string;
+            stationTimezone: string;
+            stationUid: string;
+        };
         /** @enum {string} */
         PublicKbMode: "OFF" | "ALLOW_ALL" | "DENY_ALL";
         PublicKbRequest: {
@@ -38529,6 +43600,28 @@ export interface components {
         PublicKbResponse: {
             mode: string;
             stationUid: string;
+        };
+        PublicPageSummary: {
+            /** Format: int32 */
+            id: number;
+            metaDescription: string | null;
+            /** Format: int32 */
+            ogImageId: number | null;
+            /** Format: int32 */
+            parentId: number | null;
+            path: string;
+            publicUid: string;
+            slug: string;
+            /** Format: int32 */
+            sortOrder: number;
+            title: string;
+        };
+        PublicPartnerSummary: {
+            distanceKm: number | null;
+            name: string;
+            slug: string | null;
+            /** Format: uuid */
+            uid: string;
         };
         PublicStationInfo: {
             customThemeColors: string;
@@ -38558,6 +43651,12 @@ export interface components {
         PublicSubmitResponse: {
             /** Format: int32 */
             responseId: number;
+        };
+        PublicVisibilityRequest: {
+            visible?: boolean;
+        };
+        PublicVisibilityResponse: {
+            visible: boolean | null;
         };
         QuestionAnswerCount: {
             /** Format: int32 */
@@ -38620,15 +43719,15 @@ export interface components {
         /** @enum {string} */
         QuizQuestionType: "MULTIPLE_CHOICE" | "FILL_IN_THE_BLANK" | "FREE_ANSWER" | "CONNECT" | "IMAGE_TEXT" | "TRUE_FALSE" | "ORDERING" | "ENUMERATION";
         QuizTeaserConfig: {
-            catalogIds: number[];
-            description: string;
-            title: string;
+            catalogIds?: number[];
+            description?: string;
+            title?: string;
         };
         /** @enum {string} */
         QuotaOrigin: "CLUSTER_GRANT" | "CLUSTER_DEFAULT" | "INSTANCE_OVERRIDE" | "INSTANCE_DEFAULT" | "UNLIMITED";
         QuoteConfig: {
-            attributionUrl: string;
-            author: string;
+            attributionUrl?: string;
+            author?: string;
         };
         Ranking: {
             options: components["schemas"]["Option"][];
@@ -38669,6 +43768,11 @@ export interface components {
         };
         /** @enum {string} */
         RatingIcon: "HEART" | "STAR" | "THUMB_UP" | "NUMBER";
+        Reach: {
+            federated: number[];
+            narrowly: number[];
+            publicly: number[];
+        };
         RecentApplication: {
             created_at: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -38750,6 +43854,10 @@ export interface components {
             added: number;
             /** Format: int32 */
             alreadyPresent: number;
+        };
+        RefusedEntry: {
+            name: string | null;
+            reason: components["schemas"]["KbRefusalReason"];
         };
         RefuseRowRequest: {
             reason?: string;
@@ -38861,6 +43969,13 @@ export interface components {
             /** Format: int32 */
             registrationId: number;
         };
+        RelatedFilesRequest: {
+            fileIds?: number[];
+        };
+        RelatedFilesResponse: {
+            backlinks: components["schemas"]["KbFile"][];
+            related: components["schemas"]["KbFile"][];
+        };
         RemoteAttachment: {
             fileName: string;
             /** Format: int64 */
@@ -38874,6 +43989,23 @@ export interface components {
             event: components["schemas"]["SharedEvent"];
             places: components["schemas"]["RemotePlaces"] | null;
             publicFields: components["schemas"]["EventField"][];
+        };
+        RemoteKbFile: {
+            conversionStatus: components["schemas"]["ConversionStatus"] | null;
+            createdAt: components["schemas"]["Instant"];
+            description: string;
+            /** Format: int64 */
+            fileSize: number;
+            fileType: components["schemas"]["KbFileType"];
+            /** Format: int32 */
+            id: number;
+            linkUrl: string | null;
+            mimeType: string | null;
+            name: string;
+            /** Format: uuid */
+            stationUid: string;
+            updatedAt: components["schemas"]["Instant"];
+            youtubeUrl: string | null;
         };
         RemoteMemberRegistration: {
             eventDate: string;
@@ -38906,6 +44038,9 @@ export interface components {
             /** Format: int32 */
             laneId?: number;
             orderedIds?: number[];
+        };
+        ReplacePageShareLinkRequest: {
+            currentToken?: string;
         };
         ReplaceShareLinkRequest: {
             currentToken?: string;
@@ -38990,13 +44125,13 @@ export interface components {
             forceChange?: boolean;
         };
         ResolvedMember: {
-            avatarUrl: string;
-            description: string;
+            avatarUrl?: string;
+            description?: string;
             displayName: string;
-            displayTag: string;
-            displayTagColor: string;
+            displayTag?: string;
+            displayTagColor?: string;
             memberUid: string;
-            userType: string;
+            userType?: string;
         };
         ResolvedResponse: {
             board: components["schemas"]["ResolvedValueResponse"];
@@ -39031,6 +44166,11 @@ export interface components {
         };
         RestoreRequest: {
             mappings?: components["schemas"]["ChosenLanding"][];
+        };
+        RestoreResult: {
+            movedToRoot: boolean;
+            name: string | null;
+            restored: boolean;
         };
         RestrictionAudience: {
             groupIds: number[];
@@ -39157,6 +44297,27 @@ export interface components {
             /** Format: int32 */
             position: number;
             tableType: components["schemas"]["FilterTableType"];
+        };
+        SavePageRequest: {
+            metaDescription?: string;
+            /** Format: int32 */
+            ogImageId?: number;
+            /** Format: int32 */
+            parentId?: number;
+            rows?: components["schemas"]["BlockRowRequest"][];
+            slug?: string;
+            title?: string;
+        };
+        SearchResultItem: {
+            file: components["schemas"]["KbFile"];
+            snippet: string;
+        };
+        SearchResultResponse: {
+            file: components["schemas"]["KbFile"];
+            folderPath: string;
+            snippet: string;
+            sourceStationUid: string | null;
+            stationName: string | null;
         };
         SelfCheck: {
             /** Format: int32 */
@@ -39459,6 +44620,11 @@ export interface components {
             memberIds?: number[];
             move?: boolean;
         };
+        SetNewsFederationShareRequest: {
+            partnerIds?: number[];
+            scope?: components["schemas"]["ShareScope"];
+            visibilityRole?: components["schemas"]["NewsVisibilityRole"];
+        };
         SetPartnerPlacesRequest: {
             partnerConfirms?: boolean;
             /** Format: int32 */
@@ -39568,12 +44734,12 @@ export interface components {
             username: string;
         };
         SharedBrand: {
-            customThemeColors: string;
-            defaultFeel: string;
-            defaultTheme: string;
+            customThemeColors: string | null;
+            defaultFeel: string | null;
+            defaultTheme: string | null;
             hasLogo: boolean;
             name: string;
-            publicSlug: string;
+            publicSlug: string | null;
             stationUid: string;
             timezone: string;
         };
@@ -39712,7 +44878,7 @@ export interface components {
         };
         SpacerConfig: {
             /** Format: int32 */
-            heightPx: number;
+            heightPx?: number;
         };
         Station: {
             addressLine: string;
@@ -39814,6 +44980,44 @@ export interface components {
             thresholdDays: number | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
+        StationFile: {
+            contentHash: string;
+            defaultAltText: string | null;
+            defaultDescription: string | null;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            /** Format: int32 */
+            folderId: number | null;
+            /** Format: int32 */
+            id: number;
+            mimeType: string;
+            /** Format: int32 */
+            pageId: number;
+            /** Format: uuid */
+            stationId: string | null;
+            uploadedAt: components["schemas"]["Instant"];
+        };
+        StationFileFolder: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            parentId: number | null;
+            /** Format: int32 */
+            sortOrder: number;
+            /** Format: uuid */
+            stationId: string;
+        };
+        StationFileTag: {
+            color: string | null;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: uuid */
+            stationId: string;
+        };
         StationGroupRequest: {
             name?: string;
         };
@@ -39905,12 +45109,12 @@ export interface components {
             createdBy: number;
             /** Format: int32 */
             id: number;
-            metaDescription: string;
-            ogImageHash: string;
+            metaDescription: string | null;
+            ogImageHash: string | null;
             /** Format: int32 */
-            ogImageId: number;
+            ogImageId: number | null;
             /** Format: int32 */
-            parentId: number;
+            parentId: number | null;
             /** Format: uuid */
             publicUid: string;
             rows: components["schemas"]["ContentRow"][];
@@ -39970,12 +45174,12 @@ export interface components {
             userType?: string;
         };
         StatItem: {
-            label: string;
-            suffix: string;
-            value: string;
+            label?: string;
+            suffix?: string;
+            value?: string;
         };
         StatsCounterConfig: {
-            items: components["schemas"]["StatItem"][];
+            items?: components["schemas"]["StatItem"][];
         };
         /** @enum {string} */
         Status: "IN_PROGRESS" | "COMPLETED" | "FAILED";
@@ -40075,7 +45279,7 @@ export interface components {
             message: string;
         };
         SystemCommentResponse: {
-            author: components["schemas"]["MemberIdentity"];
+            author: components["schemas"]["MemberIdentity"] | null;
             authorName: string;
             content: string;
             createdAt: components["schemas"]["Instant"];
@@ -40085,7 +45289,7 @@ export interface components {
             /** Format: int32 */
             newsId: number;
             /** Format: int32 */
-            parentId: number;
+            parentId: number | null;
         };
         SystemNewsRequest: {
             contentMarkdown?: string;
@@ -40104,21 +45308,21 @@ export interface components {
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             id: number;
-            publishedAt: components["schemas"]["Instant"];
+            publishedAt: components["schemas"]["Instant"] | null;
             rows: components["schemas"]["ContentRow"][];
             title: string;
             userTypes: components["schemas"]["StationUserType"][];
         };
         TabItem: {
-            body: string;
-            title: string;
+            body?: string;
+            title?: string;
         };
         TableColumnsResponse: {
             member: components["schemas"]["MemberTableHeader"][];
             questions: components["schemas"]["QuestionColumn"][];
         };
         TabsConfig: {
-            items: components["schemas"]["TabItem"][];
+            items?: components["schemas"]["TabItem"][];
         };
         TagEntry: {
             /** Format: int32 */
@@ -40157,6 +45361,10 @@ export interface components {
             name: string;
             /** Format: int32 */
             position: number;
+        };
+        TagScopeResponse: {
+            ancestorFolderIds: number[];
+            matchingFileIds: number[];
         };
         TagSetMembersRequest: {
             memberIds?: number[];
@@ -40373,6 +45581,25 @@ export interface components {
         TransientKeyRequest: {
             apiKey?: string;
         };
+        TrashEntry: {
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int32 */
+            contained: number;
+            deletedAt: components["schemas"]["Instant"];
+            deletedByName: string | null;
+            description: string;
+            fileType: components["schemas"]["KbFileType"] | null;
+            folder: boolean;
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        TrashView: {
+            /** Format: int64 */
+            bytes: number;
+            entries: components["schemas"]["TrashEntry"][];
+        };
         UnassignItemRequest: {
             /** Format: int32 */
             itemId?: number;
@@ -40383,12 +45610,12 @@ export interface components {
             event: components["schemas"]["EventSummary"];
         };
         UpcomingEventsConfig: {
-            categoryIds: number[];
-            includeFederated: boolean;
-            items: components["schemas"]["EventItem"][];
+            categoryIds?: number[];
+            includeFederated?: boolean;
+            items?: components["schemas"]["EventItem"][];
             /** Format: int32 */
-            limit: number;
-            title: string;
+            limit?: number;
+            title?: string;
         };
         UpdateAccountRequest: {
             email?: string;
@@ -40407,6 +45634,9 @@ export interface components {
             name?: string;
         };
         UpdateCommentRequest: {
+            content?: string;
+        };
+        UpdateKbCommentRequest: {
             content?: string;
         };
         UpdateNoteRequest: {
@@ -40502,8 +45732,8 @@ export interface components {
             version: string;
         };
         VideoConfig: {
-            autoplay: boolean;
-            loop: boolean;
+            autoplay?: boolean;
+            loop?: boolean;
         };
         VisibilityRequest: {
             visibility?: components["schemas"]["FormVisibility"];
@@ -40552,6 +45782,13 @@ export interface components {
         };
         WithdrawalResponse: {
             undoUntil: components["schemas"]["Instant"];
+        };
+        YoutubeFileRequest: {
+            description?: string;
+            /** Format: int32 */
+            folderId?: number;
+            name?: string;
+            youtubeUrl?: string;
         };
     };
     responses: never;
@@ -40613,6 +45850,7 @@ export type AttendanceStatus = components['schemas']['AttendanceStatus'];
 export type AttendanceStatusCount = components['schemas']['AttendanceStatusCount'];
 export type AttendanceTemplate = components['schemas']['AttendanceTemplate'];
 export type AttendanceTemplateField = components['schemas']['AttendanceTemplateField'];
+export type AudienceRequest = components['schemas']['AudienceRequest'];
 export type AudioEmbedConfig = components['schemas']['AudioEmbedConfig'];
 export type AvailableClusterResponse = components['schemas']['AvailableClusterResponse'];
 export type AwaitingAnswer = components['schemas']['AwaitingAnswer'];
@@ -40630,6 +45868,7 @@ export type BindingResponse = components['schemas']['BindingResponse'];
 export type BlockAudience = components['schemas']['BlockAudience'];
 export type BlockCellRequest = components['schemas']['BlockCellRequest'];
 export type BlockRowRequest = components['schemas']['BlockRowRequest'];
+export type BlocksResponse = components['schemas']['BlocksResponse'];
 export type BlogSignupConfig = components['schemas']['BlogSignupConfig'];
 export type Board = components['schemas']['Board'];
 export type BoardChecklistItem = components['schemas']['BoardChecklistItem'];
@@ -40658,8 +45897,13 @@ export type BooleanConfig = components['schemas']['BooleanConfig'];
 export type BooleanValue = components['schemas']['BooleanValue'];
 export type BorrowedItemResponse = components['schemas']['BorrowedItemResponse'];
 export type BreakRequest = components['schemas']['BreakRequest'];
+export type BrowseResponse = components['schemas']['BrowseResponse'];
+export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
+export type BulkMoveRequest = components['schemas']['BulkMoveRequest'];
+export type BulkOutcome = components['schemas']['BulkOutcome'];
 export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
+export type BulkTagsRequest = components['schemas']['BulkTagsRequest'];
 export type CalloutConfig = components['schemas']['CalloutConfig'];
 export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
@@ -40748,6 +45992,7 @@ export type ContainerRequest = components['schemas']['ContainerRequest'];
 export type ContentCell = components['schemas']['ContentCell'];
 export type ContentMode = components['schemas']['ContentMode'];
 export type ContentRow = components['schemas']['ContentRow'];
+export type ContentUpdateRequest = components['schemas']['ContentUpdateRequest'];
 export type ConversionStatus = components['schemas']['ConversionStatus'];
 export type CorrectItemRequest = components['schemas']['CorrectItemRequest'];
 export type CorrectMovementRequest = components['schemas']['CorrectMovementRequest'];
@@ -40762,8 +46007,10 @@ export type CreateEntryRequest = components['schemas']['CreateEntryRequest'];
 export type CreateFilterRequest = components['schemas']['CreateFilterRequest'];
 export type CreateInvitesResponse = components['schemas']['CreateInvitesResponse'];
 export type CreateItemRequest = components['schemas']['CreateItemRequest'];
+export type CreateKbCommentRequest = components['schemas']['CreateKbCommentRequest'];
 export type CreateMemberRequest = components['schemas']['CreateMemberRequest'];
 export type CreateMovementRequest = components['schemas']['CreateMovementRequest'];
+export type CreatePageRequest = components['schemas']['CreatePageRequest'];
 export type CreatePresetRequest = components['schemas']['CreatePresetRequest'];
 export type CreateProcurementRequest = components['schemas']['CreateProcurementRequest'];
 export type CreateRequest = components['schemas']['CreateRequest'];
@@ -40778,6 +46025,7 @@ export type DatedEvent = components['schemas']['DatedEvent'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayCount = components['schemas']['DayCount'];
 export type Deleted = components['schemas']['Deleted'];
+export type DeleteImpact = components['schemas']['DeleteImpact'];
 export type DeleteRequestResponse = components['schemas']['DeleteRequestResponse'];
 export type DemoLoginRequest = components['schemas']['DemoLoginRequest'];
 export type DeniedModulesResponse = components['schemas']['DeniedModulesResponse'];
@@ -40802,6 +46050,7 @@ export type EmailRequest = components['schemas']['EmailRequest'];
 export type EmailStatusCount = components['schemas']['EmailStatusCount'];
 export type EmbeddedEvent = components['schemas']['EmbeddedEvent'];
 export type EmbedReference = components['schemas']['EmbedReference'];
+export type EmptyTrashResponse = components['schemas']['EmptyTrashResponse'];
 export type EndpointDetail = components['schemas']['EndpointDetail'];
 export type EndpointStats = components['schemas']['EndpointStats'];
 export type EnrichedFederationRegistration = components['schemas']['EnrichedFederationRegistration'];
@@ -40851,6 +46100,11 @@ export type Facet = components['schemas']['Facet'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
 export type FederatedEventItem = components['schemas']['FederatedEventItem'];
+export type FederatedKbBrowse = components['schemas']['FederatedKbBrowse'];
+export type FederatedKbFolder = components['schemas']['FederatedKbFolder'];
+export type FederatedKbItem = components['schemas']['FederatedKbItem'];
+export type FederatedNewsData = components['schemas']['FederatedNewsData'];
+export type FederatedNewsItem = components['schemas']['FederatedNewsItem'];
 export type FederatedRegBody = components['schemas']['FederatedRegBody'];
 export type FederatedRegistrationAnswer = components['schemas']['FederatedRegistrationAnswer'];
 export type FederationConfigRequest = components['schemas']['FederationConfigRequest'];
@@ -40875,13 +46129,19 @@ export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
 export type FieldValue = components['schemas']['FieldValue'];
 export type FieldValueEntry = components['schemas']['FieldValueEntry'];
 export type FieldValuesRequest = components['schemas']['FieldValuesRequest'];
+export type FileContentResponse = components['schemas']['FileContentResponse'];
 export type FileDownloadConfig = components['schemas']['FileDownloadConfig'];
+export type FileListing = components['schemas']['FileListing'];
+export type FileResponse = components['schemas']['FileResponse'];
+export type FileUpdateRequest = components['schemas']['FileUpdateRequest'];
 export type Filter = components['schemas']['Filter'];
 export type FilterTableType = components['schemas']['FilterTableType'];
 export type FlowPreview = components['schemas']['FlowPreview'];
 export type FlowProblem = components['schemas']['FlowProblem'];
 export type FlowRequest = components['schemas']['FlowRequest'];
 export type FlowResponse = components['schemas']['FlowResponse'];
+export type FolderRequest = components['schemas']['FolderRequest'];
+export type FolderTreeEntry = components['schemas']['FolderTreeEntry'];
 export type Form = components['schemas']['Form'];
 export type FormAnalyticsDto = components['schemas']['FormAnalyticsDto'];
 export type FormAnswer = components['schemas']['FormAnswer'];
@@ -40915,6 +46175,7 @@ export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsR
 export type GenerateRequest = components['schemas']['GenerateRequest'];
 export type GenerateResponse = components['schemas']['GenerateResponse'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
+export type GrantRequest = components['schemas']['GrantRequest'];
 export type GroupDetail = components['schemas']['GroupDetail'];
 export type GroupEntry = components['schemas']['GroupEntry'];
 export type Grouping = components['schemas']['Grouping'];
@@ -40931,6 +46192,7 @@ export type HourlyStats = components['schemas']['HourlyStats'];
 export type ImageConfig = components['schemas']['ImageConfig'];
 export type ImageFit = components['schemas']['ImageFit'];
 export type ImageGalleryConfig = components['schemas']['ImageGalleryConfig'];
+export type ImageUploadResponse = components['schemas']['ImageUploadResponse'];
 export type ImportProgressResponse = components['schemas']['ImportProgressResponse'];
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
@@ -40975,12 +46237,26 @@ export type ItemTagsRequest = components['schemas']['ItemTagsRequest'];
 export type ItemTagsResponse = components['schemas']['ItemTagsResponse'];
 export type ItemTextValue = components['schemas']['ItemTextValue'];
 export type JobIdResponse = components['schemas']['JobIdResponse'];
+export type KbAccessLevel = components['schemas']['KbAccessLevel'];
 export type KbArticleConfig = components['schemas']['KbArticleConfig'];
+export type KbFavourite = components['schemas']['KbFavourite'];
+export type KbFavouriteTarget = components['schemas']['KbFavouriteTarget'];
 export type KbFile = components['schemas']['KbFile'];
+export type KbFileSummary = components['schemas']['KbFileSummary'];
 export type KbFileType = components['schemas']['KbFileType'];
+export type KbFileVersion = components['schemas']['KbFileVersion'];
 export type KbFolder = components['schemas']['KbFolder'];
+export type KbGrant = components['schemas']['KbGrant'];
+export type KbReach = components['schemas']['KbReach'];
+export type KbRefusalReason = components['schemas']['KbRefusalReason'];
+export type KbRestrictionRequest = components['schemas']['KbRestrictionRequest'];
+export type KbRestrictionResponse = components['schemas']['KbRestrictionResponse'];
+export type KbTag = components['schemas']['KbTag'];
+export type KbTagRequest = components['schemas']['KbTagRequest'];
+export type KbVersionResponse = components['schemas']['KbVersionResponse'];
 export type KindRequest = components['schemas']['KindRequest'];
 export type LabelRequest = components['schemas']['LabelRequest'];
+export type LandingPageRequest = components['schemas']['LandingPageRequest'];
 export type LaneAssignee = components['schemas']['LaneAssignee'];
 export type LaneAssigneeValue = components['schemas']['LaneAssigneeValue'];
 export type LanePreset = components['schemas']['LanePreset'];
@@ -40993,6 +46269,7 @@ export type LegalVersionsResponse = components['schemas']['LegalVersionsResponse
 export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
+export type LinkFileRequest = components['schemas']['LinkFileRequest'];
 export type LinkRequest = components['schemas']['LinkRequest'];
 export type LinkType = components['schemas']['LinkType'];
 export type ListKeysResponse = components['schemas']['ListKeysResponse'];
@@ -41038,8 +46315,15 @@ export type ManagedStationResponse = components['schemas']['ManagedStationRespon
 export type ManagerDetail = components['schemas']['ManagerDetail'];
 export type MapConfig = components['schemas']['MapConfig'];
 export type MarkdownConfig = components['schemas']['MarkdownConfig'];
+export type MarkdownFileRequest = components['schemas']['MarkdownFileRequest'];
+export type MarkdownHtmlResponse = components['schemas']['MarkdownHtmlResponse'];
+export type MarkFavouriteRequest = components['schemas']['MarkFavouriteRequest'];
 export type MarkRequest = components['schemas']['MarkRequest'];
 export type Match = components['schemas']['Match'];
+export type MediaFileMetaRequest = components['schemas']['MediaFileMetaRequest'];
+export type MediaFolderRequest = components['schemas']['MediaFolderRequest'];
+export type MediaPruneResult = components['schemas']['MediaPruneResult'];
+export type MediaTagRequest = components['schemas']['MediaTagRequest'];
 export type MemberAbsence = components['schemas']['MemberAbsence'];
 export type MemberChangeSummary = components['schemas']['MemberChangeSummary'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];
@@ -41081,13 +46365,18 @@ export type ModulesResponse = components['schemas']['ModulesResponse'];
 export type MonitoringCounts = components['schemas']['MonitoringCounts'];
 export type MonthSummary = components['schemas']['MonthSummary'];
 export type Moved = components['schemas']['Moved'];
+export type MoveFileRequest = components['schemas']['MoveFileRequest'];
+export type MoveFolderRequest = components['schemas']['MoveFolderRequest'];
 export type MoveItemRequest = components['schemas']['MoveItemRequest'];
+export type MoveMediaFileRequest = components['schemas']['MoveMediaFileRequest'];
 export type MovementDetail = components['schemas']['MovementDetail'];
 export type MovementParty = components['schemas']['MovementParty'];
 export type MovementPurpose = components['schemas']['MovementPurpose'];
 export type MovementResponse = components['schemas']['MovementResponse'];
 export type MovementState = components['schemas']['MovementState'];
 export type MovementStepResponse = components['schemas']['MovementStepResponse'];
+export type MovePreview = components['schemas']['MovePreview'];
+export type MoveResponse = components['schemas']['MoveResponse'];
 export type MoveTicketRequest = components['schemas']['MoveTicketRequest'];
 export type MultiLimitType = components['schemas']['MultiLimitType'];
 export type MyAbsenceRequest = components['schemas']['MyAbsenceRequest'];
@@ -41104,6 +46393,9 @@ export type NewItemRequest = components['schemas']['NewItemRequest'];
 export type NewMemberRequest = components['schemas']['NewMemberRequest'];
 export type NewMemberResponse = components['schemas']['NewMemberResponse'];
 export type NewsAttachment = components['schemas']['NewsAttachment'];
+export type NewsAttachmentOrderRequest = components['schemas']['NewsAttachmentOrderRequest'];
+export type NewsAttachmentRequest = components['schemas']['NewsAttachmentRequest'];
+export type NewsFederationShareResponse = components['schemas']['NewsFederationShareResponse'];
 export type NewsRequest = components['schemas']['NewsRequest'];
 export type NewsResponse = components['schemas']['NewsResponse'];
 export type NewsSearchPage = components['schemas']['NewsSearchPage'];
@@ -41113,6 +46405,7 @@ export type NewsTeaserConfig = components['schemas']['NewsTeaserConfig'];
 export type NewsViewCountResponse = components['schemas']['NewsViewCountResponse'];
 export type NewsViewerEntry = components['schemas']['NewsViewerEntry'];
 export type NewsViewsResponse = components['schemas']['NewsViewsResponse'];
+export type NewsVisibilityRole = components['schemas']['NewsVisibilityRole'];
 export type NextDate = components['schemas']['NextDate'];
 export type NextMemberResponse = components['schemas']['NextMemberResponse'];
 export type NicknameRequest = components['schemas']['NicknameRequest'];
@@ -41135,9 +46428,12 @@ export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
 export type PageLinkConfig = components['schemas']['PageLinkConfig'];
 export type PageRequest = components['schemas']['PageRequest'];
+export type PageShareLinkResponse = components['schemas']['PageShareLinkResponse'];
+export type PagesListResponse = components['schemas']['PagesListResponse'];
 export type PageTarget = components['schemas']['PageTarget'];
 export type PageUsingForm = components['schemas']['PageUsingForm'];
 export type PageVisibility = components['schemas']['PageVisibility'];
+export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
 export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig'];
@@ -41145,6 +46441,7 @@ export type PdfConfig = components['schemas']['PdfConfig'];
 export type Permission = components['schemas']['Permission'];
 export type PermissionNode = components['schemas']['PermissionNode'];
 export type PickerEvent = components['schemas']['PickerEvent'];
+export type PickerPage = components['schemas']['PickerPage'];
 export type Piece = components['schemas']['Piece'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
@@ -41173,6 +46470,7 @@ export type ProviderBlock = components['schemas']['ProviderBlock'];
 export type ProviderRequest = components['schemas']['ProviderRequest'];
 export type ProviderStanding = components['schemas']['ProviderStanding'];
 export type ProvisionedMemberResponse = components['schemas']['ProvisionedMemberResponse'];
+export type PublicBlogEntry = components['schemas']['PublicBlogEntry'];
 export type PublicBrowseResponse = components['schemas']['PublicBrowseResponse'];
 export type PublicCompletion = components['schemas']['PublicCompletion'];
 export type PublicEventDetail = components['schemas']['PublicEventDetail'];
@@ -41181,12 +46479,17 @@ export type PublicForm = components['schemas']['PublicForm'];
 export type PublicFormPage = components['schemas']['PublicFormPage'];
 export type PublicFormQuestion = components['schemas']['PublicFormQuestion'];
 export type PublicFormState = components['schemas']['PublicFormState'];
+export type PublicKbInfo = components['schemas']['PublicKbInfo'];
 export type PublicKbMode = components['schemas']['PublicKbMode'];
 export type PublicKbRequest = components['schemas']['PublicKbRequest'];
 export type PublicKbResponse = components['schemas']['PublicKbResponse'];
+export type PublicPageSummary = components['schemas']['PublicPageSummary'];
+export type PublicPartnerSummary = components['schemas']['PublicPartnerSummary'];
 export type PublicStationInfo = components['schemas']['PublicStationInfo'];
 export type PublicSubmitRequest = components['schemas']['PublicSubmitRequest'];
 export type PublicSubmitResponse = components['schemas']['PublicSubmitResponse'];
+export type PublicVisibilityRequest = components['schemas']['PublicVisibilityRequest'];
+export type PublicVisibilityResponse = components['schemas']['PublicVisibilityResponse'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
@@ -41202,6 +46505,7 @@ export type RankingAnswer = components['schemas']['RankingAnswer'];
 export type Rating = components['schemas']['Rating'];
 export type RatingAnswer = components['schemas']['RatingAnswer'];
 export type RatingIcon = components['schemas']['RatingIcon'];
+export type Reach = components['schemas']['Reach'];
 export type RecentApplication = components['schemas']['RecentApplication'];
 export type RecentProblemReport = components['schemas']['RecentProblemReport'];
 export type RechainPlan = components['schemas']['RechainPlan'];
@@ -41213,6 +46517,7 @@ export type Recommendation = components['schemas']['Recommendation'];
 export type RecommendedTag = components['schemas']['RecommendedTag'];
 export type RecordConsentRequest = components['schemas']['RecordConsentRequest'];
 export type RefreshResponse = components['schemas']['RefreshResponse'];
+export type RefusedEntry = components['schemas']['RefusedEntry'];
 export type RefuseRowRequest = components['schemas']['RefuseRowRequest'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RegisterResponse = components['schemas']['RegisterResponse'];
@@ -41227,8 +46532,11 @@ export type RegistrationStatsResponse = components['schemas']['RegistrationStats
 export type RegistrationStatus = components['schemas']['RegistrationStatus'];
 export type RegistrationTableRequest = components['schemas']['RegistrationTableRequest'];
 export type RegistrationUpdateItem = components['schemas']['RegistrationUpdateItem'];
+export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
+export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteEventDetail = components['schemas']['RemoteEventDetail'];
+export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
 export type Renamed = components['schemas']['Renamed'];
@@ -41236,6 +46544,7 @@ export type ReorderCategoriesRequest = components['schemas']['ReorderCategoriesR
 export type ReorderChecklistRequest = components['schemas']['ReorderChecklistRequest'];
 export type ReorderColumnsRequest = components['schemas']['ReorderColumnsRequest'];
 export type ReorderRequest = components['schemas']['ReorderRequest'];
+export type ReplacePageShareLinkRequest = components['schemas']['ReplacePageShareLinkRequest'];
 export type ReplaceShareLinkRequest = components['schemas']['ReplaceShareLinkRequest'];
 export type ReportData = components['schemas']['ReportData'];
 export type ReportRequest = components['schemas']['ReportRequest'];
@@ -41253,6 +46562,7 @@ export type ResolvedValueResponse = components['schemas']['ResolvedValueResponse
 export type ResponseDetailDto = components['schemas']['ResponseDetailDto'];
 export type RestorePlan = components['schemas']['RestorePlan'];
 export type RestoreRequest = components['schemas']['RestoreRequest'];
+export type RestoreResult = components['schemas']['RestoreResult'];
 export type RestrictionAudience = components['schemas']['RestrictionAudience'];
 export type RestrictionMode = components['schemas']['RestrictionMode'];
 export type RestrictionRequest = components['schemas']['RestrictionRequest'];
@@ -41266,6 +46576,9 @@ export type S3Request = components['schemas']['S3Request'];
 export type S3Summary = components['schemas']['S3Summary'];
 export type SaveBlocksRequest = components['schemas']['SaveBlocksRequest'];
 export type SavedFilter = components['schemas']['SavedFilter'];
+export type SavePageRequest = components['schemas']['SavePageRequest'];
+export type SearchResultItem = components['schemas']['SearchResultItem'];
+export type SearchResultResponse = components['schemas']['SearchResultResponse'];
 export type SelfCheck = components['schemas']['SelfCheck'];
 export type SelfCheckAnswer = components['schemas']['SelfCheckAnswer'];
 export type SelfCheckAnswerRequest = components['schemas']['SelfCheckAnswerRequest'];
@@ -41306,6 +46619,7 @@ export type SetLoginRequest = components['schemas']['SetLoginRequest'];
 export type SetManagedPasswordRequest = components['schemas']['SetManagedPasswordRequest'];
 export type SetManagersRequest = components['schemas']['SetManagersRequest'];
 export type SetMembersRequest = components['schemas']['SetMembersRequest'];
+export type SetNewsFederationShareRequest = components['schemas']['SetNewsFederationShareRequest'];
 export type SetPartnerPlacesRequest = components['schemas']['SetPartnerPlacesRequest'];
 export type SetPasswordRequest = components['schemas']['SetPasswordRequest'];
 export type SetPermissionsRequest = components['schemas']['SetPermissionsRequest'];
@@ -41345,6 +46659,9 @@ export type StationAiProvider = components['schemas']['StationAiProvider'];
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
 export type StationEvent = components['schemas']['StationEvent'];
+export type StationFile = components['schemas']['StationFile'];
+export type StationFileFolder = components['schemas']['StationFileFolder'];
+export type StationFileTag = components['schemas']['StationFileTag'];
 export type StationGroupRequest = components['schemas']['StationGroupRequest'];
 export type StationGroupResponse = components['schemas']['StationGroupResponse'];
 export type StationGroupStationResponse = components['schemas']['StationGroupStationResponse'];
@@ -41396,6 +46713,7 @@ export type TagEntry = components['schemas']['TagEntry'];
 export type TaggedItemSummary = components['schemas']['TaggedItemSummary'];
 export type TagRequest = components['schemas']['TagRequest'];
 export type TagResponse = components['schemas']['TagResponse'];
+export type TagScopeResponse = components['schemas']['TagScopeResponse'];
 export type TagSetMembersRequest = components['schemas']['TagSetMembersRequest'];
 export type TargetKind = components['schemas']['TargetKind'];
 export type TaskOutcome = components['schemas']['TaskOutcome'];
@@ -41429,6 +46747,8 @@ export type TransferImportRequest = components['schemas']['TransferImportRequest
 export type TransferOwnershipRequest = components['schemas']['TransferOwnershipRequest'];
 export type TransferStatusResponse = components['schemas']['TransferStatusResponse'];
 export type TransientKeyRequest = components['schemas']['TransientKeyRequest'];
+export type TrashEntry = components['schemas']['TrashEntry'];
+export type TrashView = components['schemas']['TrashView'];
 export type UnassignItemRequest = components['schemas']['UnassignItemRequest'];
 export type UpcomingEventOccurrence = components['schemas']['UpcomingEventOccurrence'];
 export type UpcomingEventsConfig = components['schemas']['UpcomingEventsConfig'];
@@ -41436,6 +46756,7 @@ export type UpdateAccountRequest = components['schemas']['UpdateAccountRequest']
 export type UpdateAccountResponse = components['schemas']['UpdateAccountResponse'];
 export type UpdateBoardRequest = components['schemas']['UpdateBoardRequest'];
 export type UpdateCommentRequest = components['schemas']['UpdateCommentRequest'];
+export type UpdateKbCommentRequest = components['schemas']['UpdateKbCommentRequest'];
 export type UpdateNoteRequest = components['schemas']['UpdateNoteRequest'];
 export type UpdatePositionRequest = components['schemas']['UpdatePositionRequest'];
 export type UpdateRequest = components['schemas']['UpdateRequest'];
@@ -41458,5 +46779,6 @@ export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
 export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
+export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

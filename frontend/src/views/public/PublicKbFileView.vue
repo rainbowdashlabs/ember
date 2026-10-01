@@ -12,8 +12,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {usePublicFailure} from '@/composables/usePublicFailure'
 import * as publicKb from '@/api/publicKb'
-import type {PublicStationInfo} from '@/api/publicKb'
-import {KbFileType, type KbFile, type MarkdownHtmlResponse} from '@/api/knowledgeBase'
+import {KbFileType} from '@/api/knowledgeBase'
+import type {KbFile, MarkdownHtmlResponse, PublicKbInfo} from '@/api/generated/schema'
 import KbFileHeader from '@/views/public/publickbfileview/KbFileHeader.vue'
 import KbFileRenderer from '@/views/public/publickbfileview/KbFileRenderer.vue'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
@@ -86,7 +86,7 @@ const {data: article, error: loadError, status} = await useAsyncData(
     async () => {
         if (fileId.value == null) return null
         const [info, file] = await Promise.all([
-            $fetch<PublicStationInfo>(`${apiBase}/public/kb/${stationUid.value}/info`),
+            $fetch<PublicKbInfo>(`${apiBase}/public/kb/${stationUid.value}/info`),
             $fetch<KbFile>(`${apiBase}/public/kb/${stationUid.value}/files/${fileId.value}`),
         ])
         return {info, file, ...(await articleBody(file))}
@@ -94,7 +94,7 @@ const {data: article, error: loadError, status} = await useAsyncData(
     {watch: [stationUid, fileId]},
 )
 
-const stationInfo = computed<PublicStationInfo | null>(() => article.value?.info ?? null)
+const stationInfo = computed<PublicKbInfo | null>(() => article.value?.info ?? null)
 const file = computed<KbFile | null>(() => article.value?.file ?? null)
 const renderedHtml = computed(() => article.value?.renderedHtml ?? '')
 const textContent = computed(() => article.value?.textContent ?? '')

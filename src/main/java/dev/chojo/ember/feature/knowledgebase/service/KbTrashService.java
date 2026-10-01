@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAcces
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -386,9 +387,9 @@ public class KbTrashService {
             int id,
             String name,
             String description,
-            KbFileType fileType,
+            @Nullable KbFileType fileType,
             Instant deletedAt,
-            String deletedByName,
+            @Nullable String deletedByName,
             long bytes,
             int contained) {}
 
@@ -406,7 +407,7 @@ public class KbTrashService {
      * @param movedToRoot whether the entry had to come back at the top level because the folder it
      *                    was deleted from is itself in the trash
      */
-    public record RestoreResult(boolean restored, String name, boolean movedToRoot) {
+    public record RestoreResult(boolean restored, @Nullable String name, boolean movedToRoot) {
         static RestoreResult missing() {
             return new RestoreResult(false, null, false);
         }

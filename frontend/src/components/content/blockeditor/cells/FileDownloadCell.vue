@@ -8,8 +8,8 @@ import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {FileDownloadConfig} from '@/api/pageManage'
-import {listMediaFiles, type StationFile} from '@/api/media'
+import type {FileDownloadConfig, StationFile} from '@/api/generated/schema'
+import {listMediaFiles} from '@/api/media'
 
 const props = defineProps<{
     config: FileDownloadConfig

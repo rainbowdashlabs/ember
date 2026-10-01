@@ -14,15 +14,8 @@ import PageEditorHeader from './pageeditorview/PageEditorHeader.vue'
 import MetadataPanel from './pageeditorview/MetadataPanel.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import {
-    getPage,
-    savePage,
-    listPages,
-    type StationPage,
-    type SavePageRequest,
-    type SaveRowRequest,
-    type SaveCellRequest,
-} from '@/api/pageManage'
+import {getPage, savePage, listPages} from '@/api/pageManage'
+import type {BlockCellRequest, BlockRowRequest, SavePageRequest, StationPage} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -110,9 +103,9 @@ function togglePreview() {
 async function save() {
     failure.value = null
     try {
-        const saveRows: SaveRowRequest[] = rows.value.map((r, ri) => ({
+        const saveRows: BlockRowRequest[] = rows.value.map((r, ri) => ({
             sortOrder: ri,
-            cells: r.cells.map((c, ci): SaveCellRequest => ({
+            cells: r.cells.map((c, ci): BlockCellRequest => ({
                 sortOrder: ci,
                 widthPercent: c.widthPercent,
                 contentType: c.contentType,
@@ -123,9 +116,9 @@ async function save() {
         const request: SavePageRequest = {
             title: title.value,
             slug: slug.value,
-            parentId: parentId.value,
-            metaDescription: metaDescription.value || null,
-            ogImageId: page.value?.ogImageId ?? null,
+            parentId: parentId.value ?? undefined,
+            metaDescription: metaDescription.value || undefined,
+            ogImageId: page.value?.ogImageId ?? undefined,
             rows: saveRows,
         }
         const updated = await savePage(pageId.value, request)

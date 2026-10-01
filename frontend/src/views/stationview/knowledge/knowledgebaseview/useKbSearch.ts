@@ -6,7 +6,7 @@
 import {computed, watch} from 'vue'
 import {knowledgeBase} from '@/api'
 import {useDebouncedSearch} from '@/composables/useDebouncedSearch'
-import type {SearchResult} from '@/api/knowledgeBase'
+import type {SearchResultResponse} from '@/api/generated/schema'
 import type {useKbFilters} from './useKbFilters'
 
 /**
@@ -23,7 +23,7 @@ export function useKbSearch(filters: ReturnType<typeof useKbFilters>) {
         searching,
         isSearching,
         onInput: onSearchInput,
-    } = useDebouncedSearch<SearchResult>(query => knowledgeBase.search(query, {
+    } = useDebouncedSearch<SearchResultResponse>(query => knowledgeBase.search(query, {
         tag: filters.filterTag.value || undefined,
         federated: filters.showFederated.value,
     }))

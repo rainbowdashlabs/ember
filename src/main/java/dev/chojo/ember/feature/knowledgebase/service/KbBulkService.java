@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -262,5 +263,5 @@ public class KbBulkService {
      * One entry a bulk action left alone, by name and reason. The name is {@code null} only when
      * there was no entry behind the id to name.
      */
-    public record RefusedEntry(String name, KbRefusalReason reason) {}
+    public record RefusedEntry(@Nullable String name, KbRefusalReason reason) {}
 }

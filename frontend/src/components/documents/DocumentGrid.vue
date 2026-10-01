@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import {useAuthImages} from '@/composables/useAuthImage'
 import DocumentTile from './DocumentTile.vue'
-import {thumbnailUrl, type StationDocument} from '@/api/documents'
+import {thumbnailUrl} from '@/api/documents'
+import type {MemberDocumentResponse} from '@/api/generated/schema'
 
 /**
  * The documents as tiles, each with the picture that was made of it.
@@ -17,10 +18,10 @@ import {thumbnailUrl, type StationDocument} from '@/api/documents'
  * <p>The pictures come from an endpoint that wants a token, so they are fetched rather than
  * pointed at, which is why the grid rather than the tile owns them.
  */
-const props = defineProps<{ documents: StationDocument[] }>()
+const props = defineProps<{ documents: MemberDocumentResponse[] }>()
 
 const emit = defineEmits<{
-  open: [document: StationDocument]
+  open: [document: MemberDocumentResponse]
 }>()
 
 const {t} = useI18n()

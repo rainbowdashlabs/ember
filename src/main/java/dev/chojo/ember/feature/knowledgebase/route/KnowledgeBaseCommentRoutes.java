@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
@@ -17,6 +18,11 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -63,12 +69,21 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{fileId}/comments",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void listComments(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
         requireOwnedFile(ctx, service, fileId);
         ctx.json(federationService.listComments(fileId));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{fileId}/comments",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateKbCommentRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void createComment(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
         var session = UserSession.from(ctx);
@@ -81,6 +96,11 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(federationService.toCommentResponse(comment));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateKbCommentRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void updateComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         var session = UserSession.from(ctx);
@@ -102,6 +122,10 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         ctx.json(federationService.toCommentResponse(updated));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         var session = UserSession.from(ctx);

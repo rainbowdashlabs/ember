@@ -10,6 +10,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {PartnerResponse} from '@/api/federation'
+import {ShareScope} from '@/api/lending'
 
 const shared = defineModel<boolean>('shared', {required: true})
 const scope = defineModel<string>('scope', {required: true})
@@ -48,13 +49,13 @@ function togglePartner(id: number, checked: boolean) {
     <template v-if="shared && !disabled">
       <div class="space-y-1">
         <FieldLabel>{{ t('federationShare.scope') }}</FieldLabel>
-        <SelectInput :model-value="scope" @update:model-value="scope = String($event ?? 'ALL_PARTNERS')">
-          <option value="ALL_PARTNERS">{{ t('federationShare.scopeAll') }}</option>
-          <option value="SPECIFIC">{{ t('federationShare.scopeSpecific') }}</option>
+        <SelectInput :model-value="scope" @update:model-value="scope = String($event ?? ShareScope.ALL_PARTNERS)">
+          <option :value="ShareScope.ALL_PARTNERS">{{ t('federationShare.scopeAll') }}</option>
+          <option :value="ShareScope.SPECIFIC">{{ t('federationShare.scopeSpecific') }}</option>
         </SelectInput>
       </div>
 
-      <div v-if="scope === 'SPECIFIC' && activePartners.length > 0" class="space-y-1">
+      <div v-if="scope === ShareScope.SPECIFIC && activePartners.length > 0" class="space-y-1">
         <FieldLabel>{{ t('federationShare.partners') }}</FieldLabel>
         <div class="space-y-1">
           <label v-for="p in activePartners" :key="p.partner.id" class="flex items-center gap-2 text-sm">
@@ -72,9 +73,9 @@ function togglePartner(id: number, checked: boolean) {
 
     <template v-else-if="shared && disabled">
       <p class="text-xs text-(--text-muted)">
-        {{ scope === 'ALL_PARTNERS' ? t('federationShare.scopeAll') : t('federationShare.scopeSpecific') }}
+        {{ scope === ShareScope.ALL_PARTNERS ? t('federationShare.scopeAll') : t('federationShare.scopeSpecific') }}
       </p>
-      <div v-if="scope === 'SPECIFIC'" class="text-xs text-(--text-muted)">
+      <div v-if="scope === ShareScope.SPECIFIC" class="text-xs text-(--text-muted)">
         {{ activePartners.filter(p => partnerIds.includes(p.partner.id)).map(p => p.partnerStationName).join(', ') || '-' }}
       </div>
     </template>

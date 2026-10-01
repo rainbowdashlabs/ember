@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.PageUsingForm;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
+import dev.chojo.ember.feature.page.entity.PickerPage;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.util.HtmlSanitizer.Policy;
@@ -142,7 +143,7 @@ public class PageService {
      * title + slug + updatedAt) for the pages of the supplied station that somebody outside can
      * open, with optional case-insensitive title-substring filter.
      */
-    public List<PageRepository.PickerPage> searchPagePicker(int stationId, String search, int limit) {
+    public List<PickerPage> searchPagePicker(int stationId, String search, int limit) {
         return pageRepository.searchForPicker(stationId, search, limit);
     }
 

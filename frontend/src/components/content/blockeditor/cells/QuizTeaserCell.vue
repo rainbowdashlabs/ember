@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import QuizTeaserRunner from '../QuizTeaserRunner.vue'
-import type {QuizTeaserConfig} from '@/api/pageManage'
+import type {QuizTeaserConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: QuizTeaserConfig

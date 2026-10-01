@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -25,26 +26,26 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record KbFile(
         int id,
         int stationId,
-        Integer folderId,
+        @Nullable Integer folderId,
         String name,
         String description,
         KbFileType fileType,
-        String mimeType,
+        @Nullable String mimeType,
         long fileSize,
-        String iconUrl,
-        String youtubeUrl,
-        String linkUrl,
+        @Nullable String iconUrl,
+        @Nullable String youtubeUrl,
+        @Nullable String linkUrl,
         int position,
         int createdBy,
         Instant createdAt,
         Instant updatedAt,
-        Integer sourceFileId,
-        Integer sourceStationId,
+        @Nullable Integer sourceFileId,
+        @Nullable Integer sourceStationId,
         RestrictionMode restrictionMode,
         boolean restricted,
-        ConversionStatus conversionStatus,
+        @Nullable ConversionStatus conversionStatus,
         ContentMode contentMode,
-        Integer containerId) {
+        @Nullable Integer containerId) {
 
     public static RowMapping<KbFile> map() {
         return row -> new KbFile(

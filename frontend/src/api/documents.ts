@@ -5,30 +5,7 @@
  */
 import client from './client'
 import {uploadFile} from './upload'
-
-/** A file kept for the members it concerns. */
-export interface StationDocument {
-    id: number
-    title: string
-    fileName: string
-    mimeType: string
-    sizeBytes: number
-    /** Kept from the members it belongs to and shown only to whoever may read other members. */
-    hidden: boolean
-    /** Survives its members being marked former, which is what a binding document needs. */
-    keepOnArchive: boolean
-    hasThumbnail: boolean
-    uploadedBy: number | null
-    createdAt: string
-    memberIds: number[]
-    tags: string[]
-}
-
-/** A page of the store, with the number of documents the filters match in all. */
-export interface DocumentPage {
-    documents: StationDocument[]
-    total: number
-}
+import type {DocumentPage, MemberDocumentResponse} from '@/api/generated/schema'
 
 /** What is said about a document while it is put in. */
 export interface DocumentUpload {
@@ -53,13 +30,13 @@ function fieldsOf(upload: DocumentUpload): Record<string, string | File | undefi
     }
 }
 
-export async function listForMember(memberId: number): Promise<StationDocument[]> {
-    const res = await client.get<StationDocument[]>(`/station-members/${memberId}/documents`)
+export async function listForMember(memberId: number): Promise<MemberDocumentResponse[]> {
+    const res = await client.get<MemberDocumentResponse[]>(`/station-members/${memberId}/documents`)
     return res.data
 }
 
-export async function uploadForMember(memberId: number, upload: DocumentUpload): Promise<StationDocument> {
-    return uploadFile<StationDocument>(`/station-members/${memberId}/documents`, fieldsOf(upload))
+export async function uploadForMember(memberId: number, upload: DocumentUpload): Promise<MemberDocumentResponse> {
+    return uploadFile<MemberDocumentResponse>(`/station-members/${memberId}/documents`, fieldsOf(upload))
 }
 
 /** What the store holds, a page at a time, narrowed by member or by words. */
@@ -79,18 +56,18 @@ export async function listStation(params: {
 }
 
 /** Puts a document in the store without binding it to anybody. */
-export async function uploadForStation(upload: DocumentUpload): Promise<StationDocument> {
-    return uploadFile<StationDocument>('/documents', fieldsOf(upload))
+export async function uploadForStation(upload: DocumentUpload): Promise<MemberDocumentResponse> {
+    return uploadFile<MemberDocumentResponse>('/documents', fieldsOf(upload))
 }
 
 /** Gives a document exactly these members, letting go of the ones left out. */
-export async function setMembers(documentId: number, memberIds: number[]): Promise<StationDocument> {
-    const res = await client.put<StationDocument>(`/documents/${documentId}/members`, {memberIds})
+export async function setMembers(documentId: number, memberIds: number[]): Promise<MemberDocumentResponse> {
+    const res = await client.put<MemberDocumentResponse>(`/documents/${documentId}/members`, {memberIds})
     return res.data
 }
 
-export async function setTags(documentId: number, tags: string[]): Promise<StationDocument> {
-    const res = await client.put<StationDocument>(`/documents/${documentId}/tags`, {tags})
+export async function setTags(documentId: number, tags: string[]): Promise<MemberDocumentResponse> {
+    const res = await client.put<MemberDocumentResponse>(`/documents/${documentId}/tags`, {tags})
     return res.data
 }
 

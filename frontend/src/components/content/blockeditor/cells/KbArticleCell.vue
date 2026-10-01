@@ -7,7 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import * as publicKb from '@/api/publicKb'
-import type {KbArticleConfig} from '@/api/pageManage'
+import type {KbArticleConfig} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const props = defineProps<{

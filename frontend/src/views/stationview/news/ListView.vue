@@ -13,7 +13,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NewsList, { type UnifiedNewsItem } from './listview/NewsList.vue'
-import type {FederatedNewsItem, NewsEntry} from '@/api/news'
+import type {FederatedNewsListing} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 import { news } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
@@ -35,16 +36,16 @@ const canEditNews = computed(() => hasPermission(StationPermission.NEWS_EDIT))
 
 const PAGE_SIZE = 20
 
-const entries = ref<NewsEntry[]>([])
+const entries = ref<NewsResponse[]>([])
 const loadingMore = ref(false)
 const hasMore = ref(true)
 
-const federatedNews = ref<FederatedNewsItem[]>([])
+const federatedNews = ref<FederatedNewsListing[]>([])
 
 const { loading, failure, reload } = useAsyncLoader(async () => {
   const [batch, fed] = await Promise.all([
     news.listNews(0, PAGE_SIZE),
-    news.listFederatedNews().catch(() => [] as FederatedNewsItem[]),
+    news.listFederatedNews().catch(() => [] as FederatedNewsListing[]),
   ])
   entries.value = batch
   hasMore.value = batch.length >= PAGE_SIZE
@@ -56,7 +57,7 @@ const {
   target: deleteTarget,
   requestDelete,
   confirm: confirmDelete,
-} = useConfirmDelete<NewsEntry>({
+} = useConfirmDelete<NewsResponse>({
   onDelete: e => news.deleteNews(e.id),
   onSuccess: () => reload(),
   failure,

@@ -10,7 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import PillBadge from '@/components/badge/PillBadge.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import type {KbTag} from '@/api/knowledgeBase'
+import type {KbTag} from '@/api/generated/schema'
 
 const props = defineProps<{
     tags: KbTag[]

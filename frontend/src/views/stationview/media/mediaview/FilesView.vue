@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FilesBrowser from './FilesBrowser.vue'
 import MediaModals from './MediaModals.vue'
-import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
+import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import type {FolderTreeNode} from './useMediaFolderTree'
 
 const search = defineModel<string>('search', {required: true})
@@ -40,8 +40,8 @@ const props = defineProps<{
   selectedIds: number[]
   breadcrumbs: StationFileFolder[]
   visibleFolders: StationFileFolder[]
-  filtered: StationFileListing[]
-  pagedFiles: StationFileListing[]
+  filtered: FileListing[]
+  pagedFiles: FileListing[]
   stationUid: string
   totalPages: number
   pageSizeOptions: readonly number[]

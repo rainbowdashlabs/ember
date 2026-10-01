@@ -7,8 +7,7 @@ import {computed, type ComputedRef, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import * as publicKb from '@/api/publicKb'
-import type {PublicSearchResult} from '@/api/publicKb'
-import type {KbFile, KbFolder} from '@/api/knowledgeBase'
+import type {KbFile, KbFolder, SearchResultItem} from '@/api/generated/schema'
 import {fileIcon} from '@/util/kbFileIcon'
 import {
     PICTURED_TYPES,
@@ -105,7 +104,7 @@ export function usePublicKbItems(sources: PublicKbSources) {
     ])
 
     /** A hit is the file it found, told apart from the same file in the listing by its key. */
-    function toSearchItems(results: PublicSearchResult[]): KbItem[] {
+    function toSearchItems(results: SearchResultItem[]): KbItem[] {
         return results.map(result => ({
             ...toFileItem(result.file),
             key: 'search-' + result.file.id,

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {AchievementsConfig} from '@/api/pageManage'
+import type {AchievementsConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: AchievementsConfig

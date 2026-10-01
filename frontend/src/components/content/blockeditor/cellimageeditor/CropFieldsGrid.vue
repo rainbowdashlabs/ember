@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import LabeledNumberInput from './LabeledNumberInput.vue'
-import type {ImageConfig} from '@/api/pageManage'
+import type {ImageConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: ImageConfig

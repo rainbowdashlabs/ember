@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {SpacerConfig} from '@/api/pageManage'
+import type {SpacerConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: SpacerConfig

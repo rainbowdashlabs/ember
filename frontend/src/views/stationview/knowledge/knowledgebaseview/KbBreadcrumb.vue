@@ -7,7 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import KbCrumb from './KbCrumb.vue'
-import type {KbFolder, SharedFolderEntry} from '@/api/knowledgeBase'
+import type {SharedFolderEntry} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

@@ -25,7 +25,7 @@ import {knowledgeBase} from '@/api'
 import {formatDateTime} from '@/util/format'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {KbFile, KbFileVersion} from '@/api/knowledgeBase'
+import type {KbFile, KbFileVersion, KbVersionResponse} from '@/api/generated/schema'
 import {ContentMode} from '@/api/news'
 import {STATION_KB_ROUTES, type KbRoutes} from './knowledgebaseview/useKbNavigation'
 
@@ -42,7 +42,7 @@ const route = useRoute()
 const {loaded} = useSession()
 
 const file = ref<KbFile | null>(null)
-const versions = ref<KbFileVersion[]>([])
+const versions = ref<KbVersionResponse[]>([])
 
 const selectedVersion = ref<KbFileVersion | null>(null)
 const loadingVersion = ref(false)
@@ -77,13 +77,13 @@ const {
     show: showRevertModal,
     request: requestRevert,
     confirm: handleRevert,
-} = useConfirmAction<KbFileVersion>({
+} = useConfirmAction<KbVersionResponse>({
     onConfirm: v => knowledgeBase.revertToVersion(fileId.value, v.version),
     onSuccess: () => { router.push({name: routes.value.file, params: {id: fileId.value}}) },
     failure,
 })
 
-async function viewVersion(version: KbFileVersion) {
+async function viewVersion(version: KbVersionResponse) {
     loadingVersion.value = true
     try {
         selectedVersion.value = await knowledgeBase.getVersion(fileId.value, version.version)

@@ -410,7 +410,14 @@
         "tags" : [ "Admin" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationFile"
+                }
+              }
+            }
           }
         }
       },
@@ -419,7 +426,17 @@
         "tags" : [ "Admin" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FileListing"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -13954,6 +13971,38 @@
         } ]
       }
     },
+    "/api/v1/federated/kb" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederatedKbBrowse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/kb/files/{id}/copy" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/federated/my-registrations" : {
       "get" : {
         "summary" : "List the reader's household's registrations at partner stations",
@@ -13967,6 +14016,25 @@
                   "type" : "array",
                   "items" : {
                     "$ref" : "#/components/schemas/RemoteMemberRegistration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/news" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FederatedNewsItem"
                   }
                 }
               }
@@ -14186,6 +14254,243 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/FederatedRegBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/kb/comments/{commentId}" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateKbCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/kb/files/{fileId}/comments" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateKbCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CommentResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/kb/files/{id}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RemoteKbFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/kb/files/{id}/content" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FileContentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/kb/files/{id}/copy" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/kb/files/{id}/pdf" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/kb/folders/{id}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederatedKbBrowse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/news/comments/{commentId}" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/news/{newsId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederatedNewsData"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/news/{newsId}/comments" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CommentResponse"
+                  }
+                }
               }
             }
           }
@@ -18955,6 +19260,1294 @@
         } ]
       }
     },
+    "/api/v1/kb/audiences" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EntryAudience"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AudienceRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/browse" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BrowseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/bulk/delete" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BulkOutcome"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BulkDeleteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/bulk/delete/impact" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeleteImpact"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BulkDeleteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/bulk/move" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BulkOutcome"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BulkMoveRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/bulk/tags" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BulkOutcome"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BulkTagsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/comments/{commentId}" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateKbCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/favourites" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFavourite"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MarkFavouriteRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbFavourite"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/favourites/{id}" : {
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbFileSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/import-document" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/link" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LinkFileRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/markdown" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MarkdownFileRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/recent" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SearchResultResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/upload" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/youtube" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/YoutubeFileRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{fileId}/comments" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateKbCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CommentResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FileResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FileUpdateRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/blocks" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BlocksResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BlocksResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveBlocksRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/blocks/enable" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BlocksResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/content" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ContentUpdateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/folder" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MoveResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MoveFileRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/html" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MarkdownHtmlResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/images" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImageUploadResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/original" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/pdf" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/picture" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/public-visibility" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicVisibilityResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicVisibilityResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PublicVisibilityRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/related" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RelatedFilesResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RelatedFilesResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RelatedFilesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/restrictions" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbRestrictionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbRestrictionResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbRestrictionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/tags" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbTag"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbTag"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbTagRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/versions" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbVersionResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/versions/{version}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFileVersion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/files/{id}/versions/{version}/revert" : {
+      "post" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFolder"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FolderRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbFolder"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders/tree" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FolderTreeEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders/{id}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFolder"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbFolder"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FolderRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders/{id}/icon" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders/{id}/parent" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MoveResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MoveFolderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders/{id}/public-visibility" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicVisibilityResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicVisibilityResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PublicVisibilityRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders/{id}/restrictions" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbRestrictionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbRestrictionResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbRestrictionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/folders/{id}/tags" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbTag"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbTag"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbTagRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/images/{imageId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/move/preview" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MovePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/search" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SearchResultResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/tags" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbTag"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/tags/{name}/scope" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TagScopeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/trash" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TrashView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmptyTrashResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/trash/files/{id}" : {
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/trash/files/{id}/restore" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestoreResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/trash/folders/{id}" : {
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/trash/folders/{id}/restore" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestoreResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/lost-and-found" : {
       "post" : {
         "summary" : "Create a lost and found item",
@@ -19489,6 +21082,266 @@
                 "$ref" : "#/components/schemas/SetUsernameRequest"
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/media/file/{hash}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/media/files" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationFile"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FileListing"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/files/prune" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MediaPruneResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/files/{fileId}" : {
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MediaFileMetaRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/media/files/{fileId}/folder" : {
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MoveMediaFileRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/files/{fileId}/tags/{tagId}" : {
+      "post" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/media/folders" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationFileFolder"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MediaFolderRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationFileFolder"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/folders/{folderId}" : {
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MediaFolderRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/media/picture/{hash}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/media/tags" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationFileTag"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MediaTagRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationFileTag"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/tags/{tagId}" : {
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MediaTagRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
           }
         }
       }
@@ -20910,6 +22763,33 @@
         }
       }
     },
+    "/api/v1/news/attachments/{attachmentId}" : {
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/news/attachments/{attachmentId}/label" : {
+      "post" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewsAttachmentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/news/comments/{commentId}" : {
       "put" : {
         "summary" : "Update own comment",
@@ -21167,6 +23047,90 @@
         } ]
       }
     },
+    "/api/v1/news/{id}/attachments" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NewsAttachment"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewsAttachmentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/news/{id}/attachments/order" : {
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewsAttachmentOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/news/{id}/blocks" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NewsResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveBlocksRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/news/{id}/blocks/enable" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NewsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/news/{id}/comments" : {
       "post" : {
         "summary" : "Add a comment to a news entry",
@@ -21229,6 +23193,52 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/news/{id}/federation" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NewsFederationShareResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NewsFederationShareResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetNewsFederationShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
       }
     },
     "/api/v1/news/{id}/view" : {
@@ -21711,6 +23721,338 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/MarkRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPage"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreatePageRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagesListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/forms/{id}/responses" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FormResponseEntryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/forms/{id}/responses/{responseId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResponseDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/forms/{id}/responses/{responseId}/acknowledge" : {
+      "post" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/pages/landing" : {
+      "put" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LandingPageRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/member-list/resolve" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ResolvedMember"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/polls/forms/{id}/analytics" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormAnalyticsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/polls/forms/{id}/responses" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FormResponseEntryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/polls/forms/{id}/responses/{responseId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResponseDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/search" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PickerPage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/{pid}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPage"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SavePageRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/pages/{pid}/duplicate" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/{pid}/files" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/{pid}/share-link" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageShareLinkResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReplacePageShareLinkRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageShareLinkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages/{pid}/visibility" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPage"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PageVisibilityRequest"
               }
             }
           }
@@ -22888,7 +25230,14 @@
         "tags" : [ "Public Knowledge Base" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MarkdownHtmlResponse"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -22917,6 +25266,15 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/public/kb/{stationUid}/files/{id}/pdf" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
       }
     },
     "/api/v1/public/kb/{stationUid}/files/{id}/picture" : {
@@ -23042,7 +25400,14 @@
         "tags" : [ "Public Knowledge Base" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicKbInfo"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -23071,7 +25436,17 @@
         "tags" : [ "Public Knowledge Base" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SearchResultItem"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -23103,7 +25478,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "type" : "string"
+                    "$ref" : "#/components/schemas/KbTag"
                   }
                 }
               }
@@ -23131,6 +25506,103 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/LegalVersionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/media/instance/{hash}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/public/media/{stationUid}/{hash}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/public/pages/{stationUid}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PublicPageSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/pages/{stationUid}/files/{hash}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/public/pages/{stationUid}/landing" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/pages/{stationUid}/page/{pagePath}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/pages/{stationUid}/partners" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PublicPartnerSummary"
+                  }
                 }
               }
             }
@@ -23398,6 +25870,59 @@
             "type" : "string"
           }
         } ]
+      }
+    },
+    "/api/v1/public/station/{stationUid}/blog" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PublicBlogEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/station/{stationUid}/blog.atom" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/public/station/{stationUid}/blog.rss" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/public/station/{stationUid}/blog/{blogId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicBlogEntry"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/public/station/{stationUid}/info" : {
@@ -27476,8 +30001,7 @@
           "openByDefault" : {
             "type" : "boolean"
           }
-        },
-        "required" : [ "title", "openByDefault" ]
+        }
       },
       "AccountInfo" : {
         "type" : "object",
@@ -27516,8 +30040,7 @@
           "year" : {
             "type" : "string"
           }
-        },
-        "required" : [ "title", "description", "year" ]
+        }
       },
       "AchievementsConfig" : {
         "type" : "object",
@@ -27531,8 +30054,7 @@
               "$ref" : "#/components/schemas/AchievementItem"
             }
           }
-        },
-        "required" : [ "title", "items" ]
+        }
       },
       "AckKind" : {
         "type" : "string",
@@ -27658,8 +30180,7 @@
           "label" : {
             "type" : "string"
           }
-        },
-        "required" : [ "addressLine", "postalCode", "city", "country", "mapUrl", "label" ]
+        }
       },
       "AdminOverview" : {
         "type" : "object",
@@ -28493,6 +31014,32 @@
         },
         "required" : [ "id", "templateId", "name", "fieldType", "config", "position" ]
       },
+      "AudienceRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fileId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "folderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "everyStation" : {
+            "type" : "boolean"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
       "AudioEmbedConfig" : {
         "type" : "object",
         "properties" : {
@@ -28502,8 +31049,7 @@
           "title" : {
             "type" : "string"
           }
-        },
-        "required" : [ "url", "title" ]
+        }
       },
       "AvailableClusterResponse" : {
         "type" : "object",
@@ -28848,6 +31394,27 @@
           }
         }
       },
+      "BlocksResponse" : {
+        "type" : "object",
+        "properties" : {
+          "contentMode" : {
+            "$ref" : "#/components/schemas/ContentMode"
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          },
+          "describedRows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          }
+        },
+        "required" : [ "contentMode", "rows", "describedRows" ]
+      },
       "BlogSignupConfig" : {
         "type" : "object",
         "properties" : {
@@ -28857,8 +31424,7 @@
           "description" : {
             "type" : "string"
           }
-        },
-        "required" : [ "title", "description" ]
+        }
       },
       "Board" : {
         "type" : "object",
@@ -29432,6 +31998,124 @@
           }
         }
       },
+      "BrowseResponse" : {
+        "type" : "object",
+        "properties" : {
+          "currentFolder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/KbFolder"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "folders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KbFolder"
+            }
+          },
+          "files" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KbFileSummary"
+            }
+          },
+          "currentLevel" : {
+            "$ref" : "#/components/schemas/KbAccessLevel"
+          },
+          "folderLevels" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/KbAccessLevel"
+            }
+          },
+          "fileLevels" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/KbAccessLevel"
+            }
+          },
+          "folderReach" : {
+            "$ref" : "#/components/schemas/Reach"
+          },
+          "fileReach" : {
+            "$ref" : "#/components/schemas/Reach"
+          }
+        },
+        "required" : [ "currentFolder", "folders", "files", "currentLevel", "folderLevels", "fileLevels", "folderReach", "fileReach" ]
+      },
+      "BulkDeleteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "fileIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "BulkMoveRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "fileIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "targetFolderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "BulkOutcome" : {
+        "type" : "object",
+        "properties" : {
+          "doneFolderIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "doneFileIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "refused" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RefusedEntry"
+            }
+          },
+          "refusedTotal" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "doneFolderIds", "doneFileIds", "refused", "refusedTotal" ]
+      },
       "BulkSetRequest" : {
         "type" : "object",
         "properties" : {
@@ -29457,6 +32141,37 @@
         },
         "required" : [ "updated" ]
       },
+      "BulkTagsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "fileIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "addTags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "removeTags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "CalloutConfig" : {
         "type" : "object",
         "properties" : {
@@ -29466,8 +32181,7 @@
           "title" : {
             "type" : "string"
           }
-        },
-        "required" : [ "variant", "title" ]
+        }
       },
       "CalloutVariant" : {
         "type" : "string",
@@ -30713,8 +33427,7 @@
           "language" : {
             "type" : "string"
           }
-        },
-        "required" : [ "language" ]
+        }
       },
       "CodeDetail" : {
         "type" : "object",
@@ -31243,6 +33956,14 @@
         },
         "required" : [ "id", "containerId", "sortOrder", "cells" ]
       },
+      "ContentUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          }
+        }
+      },
       "ConversionStatus" : {
         "type" : "string",
         "enum" : [ "PENDING", "SUCCESS", "FAILED" ]
@@ -31335,8 +34056,7 @@
           "sublabel" : {
             "type" : "string"
           }
-        },
-        "required" : [ "targetDate", "label", "sublabel" ]
+        }
       },
       "CreateAndAssignRequest" : {
         "type" : "object",
@@ -31454,6 +34174,18 @@
           }
         }
       },
+      "CreateKbCommentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "parentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "content" : {
+            "type" : "string"
+          }
+        }
+      },
       "CreateMemberRequest" : {
         "type" : "object",
         "properties" : {
@@ -31501,6 +34233,18 @@
             "format" : "int32"
           },
           "selfCheckId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "CreatePageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "title" : {
+            "type" : "string"
+          },
+          "parentId" : {
             "type" : "integer",
             "format" : "int32"
           }
@@ -31742,6 +34486,29 @@
         },
         "required" : [ "day", "count" ]
       },
+      "DeleteImpact" : {
+        "type" : "object",
+        "properties" : {
+          "folders" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "files" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "embeddedOn" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "onPublicPage" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "folders", "files", "embeddedOn", "onPublicPage" ]
+      },
       "DeleteRequestResponse" : {
         "type" : "object",
         "properties" : {
@@ -31907,8 +34674,7 @@
           "label" : {
             "type" : "string"
           }
-        },
-        "required" : [ "label" ]
+        }
       },
       "DocumentPage" : {
         "type" : "object",
@@ -32067,6 +34833,16 @@
         },
         "required" : [ "id", "name", "description", "startTime", "endTime", "cancelled", "categoryName" ]
       },
+      "EmptyTrashResponse" : {
+        "type" : "object",
+        "properties" : {
+          "cleared" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "cleared" ]
+      },
       "EndpointDetail" : {
         "type" : "object",
         "properties" : {
@@ -32152,11 +34928,11 @@
             "format" : "int32"
           },
           "fileId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "folderId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "scope" : {
@@ -32718,8 +35494,7 @@
           "url" : {
             "type" : "string"
           }
-        },
-        "required" : [ "title", "date", "location", "url" ]
+        }
       },
       "EventPartnerPlaces" : {
         "type" : "object",
@@ -33285,8 +36060,7 @@
           "imageDisplay" : {
             "$ref" : "#/components/schemas/ExternalLinkImageDisplay"
           }
-        },
-        "required" : [ "url", "title", "description", "imageUrl", "imageDisplay" ]
+        }
       },
       "ExternalLinkImageDisplay" : {
         "type" : "string",
@@ -33344,8 +36118,7 @@
           "descriptionOverride" : {
             "type" : "string"
           }
-        },
-        "required" : [ "title", "date", "location", "description", "ctaText", "ctaUrl", "eventUid", "descriptionOverride" ]
+        }
       },
       "FederatedEventItem" : {
         "type" : "object",
@@ -33365,6 +36138,145 @@
           }
         },
         "required" : [ "partnerId", "partnerStationName", "partnerStationUid", "event" ]
+      },
+      "FederatedKbBrowse" : {
+        "type" : "object",
+        "properties" : {
+          "folders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FederatedKbFolder"
+            }
+          },
+          "files" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FederatedKbItem"
+            }
+          },
+          "trail" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FederatedKbFolder"
+            }
+          }
+        },
+        "required" : [ "folders", "files", "trail" ]
+      },
+      "FederatedKbFolder" : {
+        "type" : "object",
+        "properties" : {
+          "remoteId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "stationUid" : {
+            "type" : "string"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "userTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "remoteId", "title", "description", "stationName", "stationUid", "partnerId", "userTypes" ]
+      },
+      "FederatedKbItem" : {
+        "type" : "object",
+        "properties" : {
+          "remoteId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "stationUid" : {
+            "type" : "string"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "userTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "remoteId", "title", "description", "stationName", "stationUid", "partnerId", "userTypes" ]
+      },
+      "FederatedNewsData" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "contentMarkdown" : {
+            "type" : "string"
+          },
+          "contentHtml" : {
+            "type" : "string"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "type" : "string"
+          },
+          "commentCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "visibilityRole" : {
+            "$ref" : "#/components/schemas/NewsVisibilityRole"
+          }
+        },
+        "required" : [ "id", "title", "contentMarkdown", "contentHtml", "authorName", "publishedAt", "commentCount", "visibilityRole" ]
+      },
+      "FederatedNewsItem" : {
+        "type" : "object",
+        "properties" : {
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerStationName" : {
+            "type" : "string"
+          },
+          "partnerStationUid" : {
+            "type" : "string"
+          },
+          "news" : {
+            "$ref" : "#/components/schemas/FederatedNewsData"
+          }
+        },
+        "required" : [ "partnerId", "partnerStationName", "partnerStationUid", "news" ]
       },
       "FederatedRegBody" : {
         "type" : "object",
@@ -33791,6 +36703,19 @@
         },
         "required" : [ "values" ]
       },
+      "FileContentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fileId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "content" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fileId", "content" ]
+      },
       "FileDownloadConfig" : {
         "type" : "object",
         "properties" : {
@@ -33803,8 +36728,66 @@
           "description" : {
             "type" : "string"
           }
+        }
+      },
+      "FileListing" : {
+        "type" : "object",
+        "properties" : {
+          "file" : {
+            "$ref" : "#/components/schemas/StationFile"
+          },
+          "inUse" : {
+            "type" : "boolean"
+          },
+          "tagIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "uploadedBy" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
         },
-        "required" : [ "url", "label", "description" ]
+        "required" : [ "file", "inUse", "tagIds", "uploadedBy" ]
+      },
+      "FileResponse" : {
+        "type" : "object",
+        "properties" : {
+          "file" : {
+            "$ref" : "#/components/schemas/KbFile"
+          },
+          "lastEditedByName" : {
+            "type" : "string"
+          },
+          "accessLevel" : {
+            "$ref" : "#/components/schemas/KbAccessLevel"
+          },
+          "accessLevelSource" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "file", "lastEditedByName", "accessLevel", "accessLevelSource" ]
+      },
+      "FileUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "iconUrl" : {
+            "type" : "string"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
       },
       "Filter" : {
         "type" : "object",
@@ -33923,6 +36906,48 @@
           }
         },
         "required" : [ "id", "name", "purpose", "archived", "ownedByCluster", "problem", "steps" ]
+      },
+      "FolderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "parentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "iconUrl" : {
+            "type" : "string"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "FolderTreeEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "parentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "level" : {
+            "$ref" : "#/components/schemas/KbAccessLevel"
+          }
+        },
+        "required" : [ "id", "parentId", "name", "level" ]
       },
       "Form" : {
         "type" : "object",
@@ -34541,8 +37566,7 @@
           "bodyOverride" : {
             "type" : "string"
           }
-        },
-        "required" : [ "formPublicUid", "headlineOverride", "bodyOverride" ]
+        }
       },
       "FoundNote" : {
         "type" : "object",
@@ -34573,8 +37597,7 @@
           "subtext" : {
             "type" : "string"
           }
-        },
-        "required" : [ "imageHash", "altText", "subtext" ]
+        }
       },
       "GenerateDatesRequest" : {
         "type" : "object",
@@ -34718,6 +37741,29 @@
           }
         },
         "required" : [ "questions", "done" ]
+      },
+      "GrantRequest" : {
+        "type" : "object",
+        "properties" : {
+          "userType" : {
+            "$ref" : "#/components/schemas/StationUserType"
+          },
+          "groupId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tagId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "level" : {
+            "$ref" : "#/components/schemas/KbAccessLevel"
+          }
+        }
       },
       "GroupDetail" : {
         "type" : "object",
@@ -34918,8 +37964,7 @@
           "ctaUrl" : {
             "type" : "string"
           }
-        },
-        "required" : [ "imageHash", "headline", "subtitle", "ctaText", "ctaUrl" ]
+        }
       },
       "HourlyStats" : {
         "type" : "object",
@@ -34980,8 +38025,7 @@
           "borderColor" : {
             "type" : "string"
           }
-        },
-        "required" : [ "imageFit", "altText", "maxHeight", "description", "cropTop", "cropRight", "cropBottom", "cropLeft", "borderRadiusPercent", "borderWidthPx", "borderColor" ]
+        }
       },
       "ImageFit" : {
         "type" : "string",
@@ -35007,8 +38051,16 @@
             "type" : "integer",
             "format" : "int32"
           }
+        }
+      },
+      "ImageUploadResponse" : {
+        "type" : "object",
+        "properties" : {
+          "imageId" : {
+            "type" : "string"
+          }
         },
-        "required" : [ "items", "columns", "aspectMode", "maxItemHeightPx" ]
+        "required" : [ "imageId" ]
       },
       "ImportProgressResponse" : {
         "type" : "object",
@@ -35971,6 +39023,10 @@
         },
         "required" : [ "jobId" ]
       },
+      "KbAccessLevel" : {
+        "type" : "string",
+        "enum" : [ "NONE", "READ", "WRITE", "MANAGE" ]
+      },
       "KbArticleConfig" : {
         "type" : "object",
         "properties" : {
@@ -35981,8 +39037,48 @@
           "fallbackTitle" : {
             "type" : "string"
           }
+        }
+      },
+      "KbFavourite" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "target" : {
+            "$ref" : "#/components/schemas/KbFavouriteTarget"
+          },
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerStationUid" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "fileType" : {
+            "type" : [ "string", "null" ]
+          },
+          "stationName" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
         },
-        "required" : [ "articleId", "fallbackTitle" ]
+        "required" : [ "id", "memberId", "target", "entryId", "partnerStationUid", "title", "fileType", "stationName", "createdAt" ]
+      },
+      "KbFavouriteTarget" : {
+        "type" : "string",
+        "enum" : [ "FILE", "FOLDER", "PARTNER_FILE", "PARTNER_FOLDER" ]
       },
       "KbFile" : {
         "type" : "object",
@@ -35996,7 +39092,7 @@
             "format" : "uuid"
           },
           "folderId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
@@ -36009,20 +39105,20 @@
             "$ref" : "#/components/schemas/KbFileType"
           },
           "mimeType" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "fileSize" : {
             "type" : "integer",
             "format" : "int64"
           },
           "iconUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "youtubeUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "linkUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
@@ -36039,11 +39135,11 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "sourceFileId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "sourceStationId" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "restrictionMode" : {
@@ -36053,21 +39149,89 @@
             "type" : "boolean"
           },
           "conversionStatus" : {
-            "$ref" : "#/components/schemas/ConversionStatus"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ConversionStatus"
+            }, {
+              "type" : "null"
+            } ]
           },
           "contentMode" : {
             "$ref" : "#/components/schemas/ContentMode"
           },
           "containerId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
         "required" : [ "id", "stationId", "folderId", "name", "description", "fileType", "mimeType", "fileSize", "iconUrl", "youtubeUrl", "linkUrl", "position", "createdBy", "createdAt", "updatedAt", "sourceFileId", "sourceStationId", "restrictionMode", "restricted", "conversionStatus", "contentMode", "containerId" ]
       },
+      "KbFileSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "folderId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "fileType" : {
+            "$ref" : "#/components/schemas/KbFileType"
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "restricted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "stationId", "folderId", "name", "description", "fileType", "updatedAt", "restricted" ]
+      },
       "KbFileType" : {
         "type" : "string",
         "enum" : [ "MARKDOWN", "PDF", "TEXT", "IMAGE", "YOUTUBE", "LINK", "PRESENTATION", "OTHER" ]
+      },
+      "KbFileVersion" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fileId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "patch" : {
+            "type" : "string"
+          },
+          "isFull" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "fileId", "patch", "isFull", "version", "createdBy", "createdAt" ]
       },
       "KbFolder" : {
         "type" : "object",
@@ -36081,7 +39245,7 @@
             "format" : "uuid"
           },
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
@@ -36091,7 +39255,7 @@
             "type" : "string"
           },
           "iconUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
@@ -36115,6 +39279,178 @@
           }
         },
         "required" : [ "id", "stationId", "parentId", "name", "description", "iconUrl", "position", "createdBy", "createdAt", "updatedAt", "restrictionMode", "restricted" ]
+      },
+      "KbGrant" : {
+        "type" : "object",
+        "properties" : {
+          "userType" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationUserType"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "groupId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "tagId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "level" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/KbAccessLevel"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "userType", "groupId", "tagId", "memberId", "level" ]
+      },
+      "KbReach" : {
+        "type" : "string",
+        "enum" : [ "INTERNAL", "NARROW", "FEDERATED", "PUBLIC" ]
+      },
+      "KbRefusalReason" : {
+        "type" : "string",
+        "enum" : [ "NO_PERMISSION", "NAME_TAKEN", "TARGET_INSIDE", "SHARE_TOO_WIDE", "NOT_FOUND" ]
+      },
+      "KbRestrictionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "userTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "groupIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "tagIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "memberIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "grants" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GrantRequest"
+            }
+          }
+        }
+      },
+      "KbRestrictionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "userTypes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StationUserType"
+            }
+          },
+          "groupIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "tagIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "memberIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "grants" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KbGrant"
+            }
+          }
+        },
+        "required" : [ "userTypes", "groupIds", "tagIds", "memberIds", "grants" ]
+      },
+      "KbTag" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "stationId", "name" ]
+      },
+      "KbTagRequest" : {
+        "type" : "object",
+        "properties" : {
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "KbVersionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isFull" : {
+            "type" : "boolean"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdByName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "version", "isFull", "createdBy", "createdByName", "createdAt" ]
       },
       "KindRequest" : {
         "type" : "object",
@@ -36148,6 +39484,15 @@
           },
           "color" : {
             "type" : "string"
+          }
+        }
+      },
+      "LandingPageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pageId" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -36344,6 +39689,24 @@
           }
         },
         "required" : [ "line", "available", "changed" ]
+      },
+      "LinkFileRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "linkUrl" : {
+            "type" : "string"
+          }
+        }
       },
       "LinkRequest" : {
         "type" : "object",
@@ -37161,8 +40524,23 @@
           "label" : {
             "type" : "string"
           }
-        },
-        "required" : [ "latitude", "longitude", "zoom", "heightPx", "label" ]
+        }
+      },
+      "MarkFavouriteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "target" : {
+            "$ref" : "#/components/schemas/KbFavouriteTarget"
+          },
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
       },
       "MarkRequest" : {
         "type" : "object",
@@ -37176,9 +40554,87 @@
         "type" : "object",
         "properties" : { }
       },
+      "MarkdownFileRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "string"
+          }
+        }
+      },
+      "MarkdownHtmlResponse" : {
+        "type" : "object",
+        "properties" : {
+          "html" : {
+            "type" : "string"
+          },
+          "markdown" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "html", "markdown" ]
+      },
       "Match" : {
         "type" : "string",
         "enum" : [ "ANY", "ALL" ]
+      },
+      "MediaFileMetaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "altText" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          }
+        }
+      },
+      "MediaFolderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "parentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "sortOrder" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "MediaPruneResult" : {
+        "type" : "object",
+        "properties" : {
+          "removed" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "removed" ]
+      },
+      "MediaTagRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "color" : {
+            "type" : "string"
+          }
+        }
       },
       "MemberAbsence" : {
         "type" : "object",
@@ -37260,7 +40716,7 @@
             "type" : "boolean"
           },
           "uploadedBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "createdAt" : {
@@ -37535,8 +40991,7 @@
               "$ref" : "#/components/schemas/ResolvedMember"
             }
           }
-        },
-        "required" : [ "title", "source", "sortBy", "showUserType", "showTag", "memberDescriptions", "memberOrder", "resolvedMembers" ]
+        }
       },
       "MemberListSortBy" : {
         "type" : "string",
@@ -37819,8 +41274,7 @@
           "showTag" : {
             "type" : "boolean"
           }
-        },
-        "required" : [ "memberUid", "blurb", "showUserType", "showTag" ]
+        }
       },
       "MemberSummary" : {
         "type" : "object",
@@ -38094,6 +41548,24 @@
         },
         "required" : [ "month", "members", "sessions" ]
       },
+      "MoveFileRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "MoveFolderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "parentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "MoveItemRequest" : {
         "type" : "object",
         "properties" : {
@@ -38102,6 +41574,46 @@
             "format" : "int32"
           }
         }
+      },
+      "MoveMediaFileRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "MovePreview" : {
+        "type" : "object",
+        "properties" : {
+          "before" : {
+            "$ref" : "#/components/schemas/KbReach"
+          },
+          "after" : {
+            "$ref" : "#/components/schemas/KbReach"
+          }
+        },
+        "required" : [ "before", "after" ]
+      },
+      "MoveResponse" : {
+        "type" : "object",
+        "properties" : {
+          "moved" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "reason" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/KbRefusalReason"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "moved", "name", "reason" ]
       },
       "MoveTicketRequest" : {
         "type" : "object",
@@ -38555,8 +42067,7 @@
         "type" : "object",
         "properties" : {
           "rows" : { }
-        },
-        "required" : [ "rows" ]
+        }
       },
       "NewClusterFlowRequest" : {
         "type" : "object",
@@ -38659,7 +42170,7 @@
             "format" : "int32"
           },
           "label" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "sortOrder" : {
             "type" : "integer",
@@ -38683,6 +42194,60 @@
           }
         },
         "required" : [ "id", "newsId", "fileId", "label", "sortOrder", "createdAt", "fileName", "mimeType", "fileSize", "contentHash" ]
+      },
+      "NewsAttachmentOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "attachmentIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "NewsAttachmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fileId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        }
+      },
+      "NewsFederationShareResponse" : {
+        "type" : "object",
+        "properties" : {
+          "shared" : {
+            "type" : "boolean"
+          },
+          "scope" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ShareScope"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "visibilityRole" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/NewsVisibilityRole"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "partnerIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "shared", "scope", "visibilityRole", "partnerIds" ]
       },
       "NewsRequest" : {
         "type" : "object",
@@ -38736,7 +42301,7 @@
             "format" : "int32"
           },
           "stationId" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "title" : {
@@ -38749,13 +42314,21 @@
             "type" : "string"
           },
           "author" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "authorName" : {
             "type" : "string"
           },
           "publishedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -38790,6 +42363,9 @@
           "commentCount" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "restricted" : {
+            "type" : "boolean"
           },
           "publicBlog" : {
             "type" : "boolean"
@@ -38826,7 +42402,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "title", "contentMarkdown", "contentHtml", "author", "authorName", "publishedAt", "createdAt", "userTypes", "groupIds", "tagIds", "memberIds", "commentCount", "publicBlog", "viewCount", "viewedByMe", "attachments", "contentMode", "rows", "describedRows", "systemEntry" ]
+        "required" : [ "id", "stationId", "title", "contentMarkdown", "contentHtml", "author", "authorName", "publishedAt", "createdAt", "userTypes", "groupIds", "tagIds", "memberIds", "commentCount", "restricted", "publicBlog", "viewCount", "viewedByMe", "attachments", "contentMode", "rows", "describedRows", "systemEntry" ]
       },
       "NewsSearchPage" : {
         "type" : "object",
@@ -38906,8 +42482,7 @@
           "newsUid" : {
             "type" : "string"
           }
-        },
-        "required" : [ "title", "date", "summary", "url", "imageUrl", "newsUid" ]
+        }
       },
       "NewsViewCountResponse" : {
         "type" : "object",
@@ -38926,7 +42501,11 @@
             "$ref" : "#/components/schemas/MemberIdentity"
           },
           "seenAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "member", "seenAt" ]
@@ -38948,6 +42527,10 @@
           }
         },
         "required" : [ "seen", "unseen" ]
+      },
+      "NewsVisibilityRole" : {
+        "type" : "string",
+        "enum" : [ "MEMBER", "TEAM", "MANAGER" ]
       },
       "NextDate" : {
         "type" : "object",
@@ -39298,8 +42881,7 @@
           "resolvedHref" : {
             "type" : "string"
           }
-        },
-        "required" : [ "pageUid", "fallbackTitle", "resolvedTitle", "resolvedHref" ]
+        }
       },
       "PageRequest" : {
         "type" : "object",
@@ -39317,6 +42899,15 @@
             "$ref" : "#/components/schemas/PageTarget"
           }
         }
+      },
+      "PageShareLinkResponse" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "token" ]
       },
       "PageTarget" : {
         "type" : "object",
@@ -39349,6 +42940,30 @@
       "PageVisibility" : {
         "type" : "string",
         "enum" : [ "DRAFT", "UNLISTED", "PUBLIC" ]
+      },
+      "PageVisibilityRequest" : {
+        "type" : "object",
+        "properties" : {
+          "visibility" : {
+            "$ref" : "#/components/schemas/PageVisibility"
+          }
+        }
+      },
+      "PagesListResponse" : {
+        "type" : "object",
+        "properties" : {
+          "pages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StationPage"
+            }
+          },
+          "landingPageId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "pages", "landingPageId" ]
       },
       "ParseResult" : {
         "type" : "object",
@@ -39386,8 +43001,7 @@
           "autoFillFromPartners" : {
             "type" : "boolean"
           }
-        },
-        "required" : [ "title", "stationUids", "autoFillFromPartners" ]
+        }
       },
       "PastEventRecapConfig" : {
         "type" : "object",
@@ -39410,8 +43024,7 @@
           "recapDescription" : {
             "type" : "string"
           }
-        },
-        "required" : [ "title", "date", "imageHash", "summary", "eventUid", "recapDescription" ]
+        }
       },
       "PdfConfig" : {
         "type" : "object",
@@ -39423,8 +43036,7 @@
             "type" : "integer",
             "format" : "int32"
           }
-        },
-        "required" : [ "url", "heightPx" ]
+        }
       },
       "Permission" : {
         "type" : "object",
@@ -39472,6 +43084,25 @@
           }
         },
         "required" : [ "eventUid", "name", "startTime", "categoryName" ]
+      },
+      "PickerPage" : {
+        "type" : "object",
+        "properties" : {
+          "pageUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "pageUid", "title", "slug", "updatedAt" ]
       },
       "Piece" : {
         "type" : "object",
@@ -39608,8 +43239,7 @@
           "showResultsAfterVote" : {
             "type" : "boolean"
           }
-        },
-        "required" : [ "formPublicUid", "showResultsAfterVote" ]
+        }
       },
       "PoolRequest" : {
         "type" : "object",
@@ -40147,11 +43777,56 @@
         },
         "required" : [ "memberId", "accountId", "email", "firstName", "lastName", "userType", "accountCreated", "membershipCreated" ]
       },
+      "PublicBlogEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "publicUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "contentHtml" : {
+            "type" : "string"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "attachments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/NewsAttachment"
+            }
+          },
+          "contentMode" : {
+            "$ref" : "#/components/schemas/ContentMode"
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          }
+        },
+        "required" : [ "id", "publicUid", "title", "contentHtml", "authorName", "publishedAt", "attachments", "contentMode", "rows" ]
+      },
       "PublicBrowseResponse" : {
         "type" : "object",
         "properties" : {
           "currentFolder" : {
-            "$ref" : "#/components/schemas/KbFolder"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/KbFolder"
+            }, {
+              "type" : "null"
+            } ]
           },
           "folders" : {
             "type" : "array",
@@ -40387,6 +44062,21 @@
         "type" : "string",
         "enum" : [ "OPEN", "NOT_PUBLISHED", "NOT_OPEN_YET", "CLOSED" ]
       },
+      "PublicKbInfo" : {
+        "type" : "object",
+        "properties" : {
+          "stationName" : {
+            "type" : "string"
+          },
+          "stationUid" : {
+            "type" : "string"
+          },
+          "stationTimezone" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "stationName", "stationUid", "stationTimezone" ]
+      },
       "PublicKbMode" : {
         "type" : "string",
         "enum" : [ "OFF", "ALLOW_ALL", "DENY_ALL" ]
@@ -40410,6 +44100,62 @@
           }
         },
         "required" : [ "mode", "stationUid" ]
+      },
+      "PublicPageSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "publicUid" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          },
+          "path" : {
+            "type" : "string"
+          },
+          "sortOrder" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "metaDescription" : {
+            "type" : [ "string", "null" ]
+          },
+          "ogImageId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "publicUid", "parentId", "title", "slug", "path", "sortOrder", "metaDescription", "ogImageId" ]
+      },
+      "PublicPartnerSummary" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : [ "string", "null" ]
+          },
+          "distanceKm" : {
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "uid", "name", "slug", "distanceKm" ]
       },
       "PublicStationInfo" : {
         "type" : "object",
@@ -40491,6 +44237,23 @@
           }
         },
         "required" : [ "responseId" ]
+      },
+      "PublicVisibilityRequest" : {
+        "type" : "object",
+        "properties" : {
+          "visible" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PublicVisibilityResponse" : {
+        "type" : "object",
+        "properties" : {
+          "visible" : {
+            "type" : [ "boolean", "null" ]
+          }
+        },
+        "required" : [ "visible" ]
       },
       "QuestionAnswerCount" : {
         "type" : "object",
@@ -40662,8 +44425,7 @@
               "format" : "int32"
             }
           }
-        },
-        "required" : [ "title", "description", "catalogIds" ]
+        }
       },
       "QuotaOrigin" : {
         "type" : "string",
@@ -40678,8 +44440,7 @@
           "attributionUrl" : {
             "type" : "string"
           }
-        },
-        "required" : [ "author", "attributionUrl" ]
+        }
       },
       "Ranking" : {
         "type" : "object",
@@ -40753,6 +44514,33 @@
       "RatingIcon" : {
         "type" : "string",
         "enum" : [ "HEART", "STAR", "THUMB_UP", "NUMBER" ]
+      },
+      "Reach" : {
+        "type" : "object",
+        "properties" : {
+          "publicly" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "federated" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "narrowly" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "publicly", "federated", "narrowly" ]
       },
       "RecentApplication" : {
         "type" : "object",
@@ -40985,6 +44773,18 @@
             "type" : "string"
           }
         }
+      },
+      "RefusedEntry" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "reason" : {
+            "$ref" : "#/components/schemas/KbRefusalReason"
+          }
+        },
+        "required" : [ "name", "reason" ]
       },
       "RegisterRequest" : {
         "type" : "object",
@@ -41282,6 +45082,36 @@
         },
         "required" : [ "registrationId", "eventId", "eventName", "eventDate", "memberId", "memberName" ]
       },
+      "RelatedFilesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fileIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "RelatedFilesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "related" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KbFile"
+            }
+          },
+          "backlinks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KbFile"
+            }
+          }
+        },
+        "required" : [ "related", "backlinks" ]
+      },
       "RemoteAttachment" : {
         "type" : "object",
         "properties" : {
@@ -41326,6 +45156,55 @@
           }
         },
         "required" : [ "event", "publicFields", "places" ]
+      },
+      "RemoteKbFile" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "fileType" : {
+            "$ref" : "#/components/schemas/KbFileType"
+          },
+          "mimeType" : {
+            "type" : [ "string", "null" ]
+          },
+          "fileSize" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "youtubeUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "linkUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "conversionStatus" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ConversionStatus"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "stationUid", "name", "description", "fileType", "mimeType", "fileSize", "youtubeUrl", "linkUrl", "createdAt", "updatedAt", "conversionStatus" ]
       },
       "RemoteMemberRegistration" : {
         "type" : "object",
@@ -41424,6 +45303,14 @@
               "type" : "integer",
               "format" : "int32"
             }
+          }
+        }
+      },
+      "ReplacePageShareLinkRequest" : {
+        "type" : "object",
+        "properties" : {
+          "currentToken" : {
+            "type" : "string"
           }
         }
       },
@@ -41684,7 +45571,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "memberUid", "displayName", "userType", "displayTag", "displayTagColor", "avatarUrl", "description" ]
+        "required" : [ "memberUid", "displayName" ]
       },
       "ResolvedResponse" : {
         "type" : "object",
@@ -41790,6 +45677,21 @@
             }
           }
         }
+      },
+      "RestoreResult" : {
+        "type" : "object",
+        "properties" : {
+          "restored" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "movedToRoot" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "restored", "name", "movedToRoot" ]
       },
       "RestrictionAudience" : {
         "type" : "object",
@@ -42155,6 +46057,34 @@
           }
         }
       },
+      "SavePageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "title" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "metaDescription" : {
+            "type" : "string"
+          },
+          "ogImageId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BlockRowRequest"
+            }
+          }
+        }
+      },
       "SavedFilter" : {
         "type" : "object",
         "properties" : {
@@ -42181,6 +46111,39 @@
           }
         },
         "required" : [ "id", "accountId", "tableType", "name", "filterData", "position" ]
+      },
+      "SearchResultItem" : {
+        "type" : "object",
+        "properties" : {
+          "file" : {
+            "$ref" : "#/components/schemas/KbFile"
+          },
+          "snippet" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "file", "snippet" ]
+      },
+      "SearchResultResponse" : {
+        "type" : "object",
+        "properties" : {
+          "file" : {
+            "$ref" : "#/components/schemas/KbFile"
+          },
+          "snippet" : {
+            "type" : "string"
+          },
+          "folderPath" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : [ "string", "null" ]
+          },
+          "sourceStationUid" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "file", "snippet", "folderPath", "stationName", "sourceStationUid" ]
       },
       "SelfCheck" : {
         "type" : "object",
@@ -43089,6 +47052,24 @@
           }
         }
       },
+      "SetNewsFederationShareRequest" : {
+        "type" : "object",
+        "properties" : {
+          "scope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "visibilityRole" : {
+            "$ref" : "#/components/schemas/NewsVisibilityRole"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
       "SetPartnerPlacesRequest" : {
         "type" : "object",
         "properties" : {
@@ -43406,7 +47387,7 @@
             "type" : "string"
           },
           "publicSlug" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
@@ -43415,13 +47396,13 @@
             "type" : "boolean"
           },
           "defaultTheme" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "defaultFeel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "customThemeColors" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "timezone" : {
             "type" : "string"
@@ -43755,8 +47736,7 @@
             "type" : "integer",
             "format" : "int32"
           }
-        },
-        "required" : [ "heightPx" ]
+        }
       },
       "StatItem" : {
         "type" : "object",
@@ -43770,8 +47750,7 @@
           "suffix" : {
             "type" : "string"
           }
-        },
-        "required" : [ "label", "value", "suffix" ]
+        }
       },
       "Station" : {
         "type" : "object",
@@ -44052,6 +48031,98 @@
         },
         "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "recurring" ]
       },
+      "StationFile" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "contentHash" : {
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "mimeType" : {
+            "type" : "string"
+          },
+          "fileSize" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "uploadedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "defaultAltText" : {
+            "type" : [ "string", "null" ]
+          },
+          "defaultDescription" : {
+            "type" : [ "string", "null" ]
+          },
+          "folderId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "pageId", "stationId", "contentHash", "fileName", "mimeType", "fileSize", "uploadedAt", "defaultAltText", "defaultDescription", "folderId" ]
+      },
+      "StationFileFolder" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "parentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "sortOrder" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "stationId", "parentId", "name", "sortOrder", "createdAt" ]
+      },
+      "StationFileTag" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "stationId", "name", "color" ]
+      },
       "StationGroupRequest" : {
         "type" : "object",
         "properties" : {
@@ -44294,7 +48365,7 @@
             "format" : "uuid"
           },
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "title" : {
@@ -44311,14 +48382,14 @@
             "format" : "int32"
           },
           "metaDescription" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "ogImageId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "ogImageHash" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "containerId" : {
             "type" : "integer",
@@ -44484,8 +48555,7 @@
               "$ref" : "#/components/schemas/StatItem"
             }
           }
-        },
-        "required" : [ "items" ]
+        }
       },
       "Status" : {
         "type" : "string",
@@ -44763,11 +48833,15 @@
             "format" : "int32"
           },
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "author" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "authorName" : {
             "type" : "string"
@@ -44827,7 +48901,11 @@
             "type" : "string"
           },
           "publishedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -44863,8 +48941,7 @@
           "body" : {
             "type" : "string"
           }
-        },
-        "required" : [ "title", "body" ]
+        }
       },
       "TableColumnsResponse" : {
         "type" : "object",
@@ -44893,8 +48970,7 @@
               "$ref" : "#/components/schemas/TabItem"
             }
           }
-        },
-        "required" : [ "items" ]
+        }
       },
       "TagEntry" : {
         "type" : "object",
@@ -44950,6 +49026,26 @@
           }
         },
         "required" : [ "id", "name", "color", "position", "itemCount" ]
+      },
+      "TagScopeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "matchingFileIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "ancestorFolderIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "matchingFileIds", "ancestorFolderIds" ]
       },
       "TagSetMembersRequest" : {
         "type" : "object",
@@ -45547,6 +49643,62 @@
           }
         }
       },
+      "TrashEntry" : {
+        "type" : "object",
+        "properties" : {
+          "folder" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "fileType" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/KbFileType"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "deletedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "deletedByName" : {
+            "type" : [ "string", "null" ]
+          },
+          "bytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "contained" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "folder", "id", "name", "description", "fileType", "deletedAt", "deletedByName", "bytes", "contained" ]
+      },
+      "TrashView" : {
+        "type" : "object",
+        "properties" : {
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrashEntry"
+            }
+          },
+          "bytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "entries", "bytes" ]
+      },
       "UnassignItemRequest" : {
         "type" : "object",
         "properties" : {
@@ -45601,8 +49753,7 @@
           "includeFederated" : {
             "type" : "boolean"
           }
-        },
-        "required" : [ "title", "items", "categoryIds", "limit", "includeFederated" ]
+        }
       },
       "UpdateAccountRequest" : {
         "type" : "object",
@@ -45649,6 +49800,14 @@
         }
       },
       "UpdateCommentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          }
+        }
+      },
+      "UpdateKbCommentRequest" : {
         "type" : "object",
         "properties" : {
           "content" : {
@@ -45923,8 +50082,7 @@
           "loop" : {
             "type" : "boolean"
           }
-        },
-        "required" : [ "autoplay", "loop" ]
+        }
       },
       "VisibilityRequest" : {
         "type" : "object",
@@ -46063,6 +50221,24 @@
           }
         },
         "required" : [ "undoUntil" ]
+      },
+      "YoutubeFileRequest" : {
+        "type" : "object",
+        "properties" : {
+          "folderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "youtubeUrl" : {
+            "type" : "string"
+          }
+        }
       }
     }
   }

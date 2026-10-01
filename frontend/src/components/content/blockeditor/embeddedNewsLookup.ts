@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {getMemberNewsTeaser, getPublicNewsTeaser, type NewsTeaser} from '@/api/news'
+import {getMemberNewsTeaser, getPublicNewsTeaser} from '@/api/news'
+import type {NewsTeaser} from '@/api/generated/schema'
 import type {BlockAudience} from '@/api/pageManage'
 import {sessionInfo} from '@/util/sessionState'
 

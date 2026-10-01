@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import KbFileSearchPicker from '@/components/input/search/KbFileSearchPicker.vue'
-import type {KbFile, SearchResult} from '@/api/knowledgeBase'
+import type {KbFile, SearchResultResponse} from '@/api/generated/schema'
 
 /**
  * The articles this one points at, and the articles pointing at it.
@@ -40,7 +40,7 @@ const showAddRelated = ref(false)
 
 const excludeIds = computed(() => [props.fileId, ...props.relatedFiles.map(file => file.id)])
 
-function onPick(result: SearchResult) {
+function onPick(result: SearchResultResponse) {
     emit('addRelated', result.file.id)
     showAddRelated.value = false
 }

@@ -5,8 +5,7 @@
  */
 import {ref} from 'vue'
 import {events} from '@/api'
-import type {EventAttachment} from '@/api/generated/schema'
-import type {StationFile} from '@/api/media'
+import type {EventAttachment, StationFile} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, type Failure, type Translate} from '@/util/failure'
 

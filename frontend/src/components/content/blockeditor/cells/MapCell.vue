@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
-import type {MapConfig} from '@/api/pageManage'
+import type {MapConfig} from '@/api/generated/schema'
 
 const props = defineProps<{
     config: MapConfig

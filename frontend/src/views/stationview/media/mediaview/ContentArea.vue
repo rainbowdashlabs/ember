@@ -12,7 +12,7 @@ import MediaPagination from './MediaPagination.vue'
 import MediaToolbar from './MediaToolbar.vue'
 import MediaBreadcrumbs from './MediaBreadcrumbs.vue'
 import BulkActionsBar from './BulkActionsBar.vue'
-import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
+import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 
 const search = defineModel<string>('search', {required: true})
 
@@ -27,8 +27,8 @@ const props = defineProps<{
   breadcrumbs: StationFileFolder[]
   activeFolder: number | null
   visibleFolders: StationFileFolder[]
-  filtered: StationFileListing[]
-  pagedFiles: StationFileListing[]
+  filtered: FileListing[]
+  pagedFiles: FileListing[]
   tags: StationFileTag[]
   stationUid: string
   currentPage: number

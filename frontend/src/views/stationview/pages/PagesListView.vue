@@ -26,8 +26,8 @@ import {
     replacePageShareLink,
     setLandingPage,
     type PageVisibilityName,
-    type StationPage,
 } from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'

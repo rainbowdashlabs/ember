@@ -19,8 +19,9 @@ import {
 import TextInput from './TextInput.vue'
 import LinkPickedChip from './linksearch/LinkPickedChip.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
-import {listPublicPages, type PublicPageSummary} from '@/api/publicPages'
-import {listMediaFiles, type StationFile, type StationFileListing} from '@/api/media'
+import {listPublicPages} from '@/api/publicPages'
+import {listMediaFiles} from '@/api/media'
+import type {FileListing, PublicPageSummary, StationFile} from '@/api/generated/schema'
 
 type LinkKind = 'page' | 'kb' | 'calendar' | 'url'
 
@@ -68,8 +69,8 @@ async function ensureLoaded() {
         const [pages, files] = await Promise.all([
             listPublicPages(props.stationUid),
             props.noFiles
-                ? Promise.resolve([] as StationFileListing[])
-                : listMediaFiles().catch(() => [] as StationFileListing[]),
+                ? Promise.resolve([] as FileListing[])
+                : listMediaFiles().catch(() => [] as FileListing[]),
         ])
         pagesCache.value = pages
         filesCache.value = files.map(l => l.file)

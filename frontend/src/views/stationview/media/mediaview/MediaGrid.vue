@@ -6,12 +6,12 @@
 <script lang="ts" setup>
 import {onBeforeUnmount, onMounted, ref} from 'vue'
 import BaseButton from '@/components/button/BaseButton.vue'
-import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
+import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import MediaGridItem from './mediagrid/MediaGridItem.vue'
 
 const props = defineProps<{
     folders: StationFileFolder[]
-    files: StationFileListing[]
+    files: FileListing[]
     tags: StationFileTag[]
     selectedIds: number[]
     stationUid: string

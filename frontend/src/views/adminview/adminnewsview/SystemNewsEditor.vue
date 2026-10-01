@@ -20,12 +20,12 @@ import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '
 import {ContentMode, type ContentModeName} from '@/api/news'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
-import type {SystemNewsEntry} from '@/api/adminNews'
+import type {SystemNewsResponse} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 
 const props = defineProps<{
   /** The entry being corrected, or null while a new one is being written. */
-  entry: SystemNewsEntry | null
+  entry: SystemNewsResponse | null
   saving: boolean
 }>()
 

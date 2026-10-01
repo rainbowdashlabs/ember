@@ -12,7 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {KbFileSummary} from '@/api/knowledgeBase'
+import type {KbFileSummary} from '@/api/generated/schema'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {useKbEntryEditor} from './useKbEntryEditor'
 

@@ -7,7 +7,7 @@
 import {ref} from 'vue'
 import KbEditFolderModal from './KbEditFolderModal.vue'
 import KbEditFileModal from './KbEditFileModal.vue'
-import type {KbFileSummary, KbFolder} from '@/api/knowledgeBase'
+import type {KbFileSummary, KbFolder} from '@/api/generated/schema'
 
 const emit = defineEmits<{
     saved: []

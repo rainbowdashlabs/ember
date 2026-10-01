@@ -5,7 +5,7 @@
  */
 import {computed, type Ref} from 'vue'
 import {getItem} from '@/api/storage'
-import type {KbFolder} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 
 /**

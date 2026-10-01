@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import type {StationFile} from '@/api/media'
+import type {StationFile} from '@/api/generated/schema'
 
 const file = defineModel<StationFile | null>({required: true})
 

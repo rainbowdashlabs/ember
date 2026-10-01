@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, watch, type Ref, type WatchSource} from 'vue'
-import type {StationFileListing} from '@/api/media'
+import type {FileListing} from '@/api/generated/schema'
 import {getItem, setItem} from '@/api/storage'
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
@@ -22,7 +22,7 @@ function loadStoredPageSize(): number {
  *
  * @param resetSources filter inputs that send the browser back to the first page when they change
  */
-export function useMediaPaging(filtered: Ref<StationFileListing[]>, resetSources: WatchSource[]) {
+export function useMediaPaging(filtered: Ref<FileListing[]>, resetSources: WatchSource[]) {
     const pageSize = ref<number>(loadStoredPageSize())
     const currentPage = ref(1)
 

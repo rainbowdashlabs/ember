@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import BaseButton from '@/components/button/BaseButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import type {StationFileFolder} from '@/api/media'
+import type {StationFileFolder} from '@/api/generated/schema'
 
 interface FolderNodeData extends StationFileFolder {
     children: FolderNodeData[]

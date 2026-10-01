@@ -5,16 +5,8 @@
  */
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { KbGrant, KbTag } from '@/api/knowledgeBase'
+import type { KbRestrictionRequest, KbRestrictionResponse, KbTag } from '@/api/generated/schema'
 import { describeFailure, type Failure } from '@/util/failure'
-
-interface RestrictionPayload {
-  userTypes: string[]
-  groupIds: number[]
-  tagIds: number[]
-  memberIds: number[]
-  grants: KbGrant[]
-}
 
 /**
  * The endpoints of one knowledge base entry kind. Files and folders carry the same audience,
@@ -23,10 +15,8 @@ interface RestrictionPayload {
  */
 export interface KbEntryApi {
   visibilityKind: 'files' | 'folders'
-  getRestrictions: (
-    id: number,
-  ) => Promise<{userTypes?: string[]; groupIds: number[]; tagIds: number[]; grants?: KbGrant[]}>
-  setRestrictions: (id: number, payload: RestrictionPayload) => Promise<unknown>
+  getRestrictions: (id: number) => Promise<KbRestrictionResponse>
+  setRestrictions: (id: number, payload: KbRestrictionRequest) => Promise<unknown>
   getTags: (id: number) => Promise<KbTag[]>
   setTags: (id: number, names: string[]) => Promise<unknown>
   update: (id: number, payload: {name: string; description: string}) => Promise<unknown>

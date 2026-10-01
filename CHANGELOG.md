@@ -95,6 +95,7 @@
 - **Editing an appointment hid its questions from the public calendar.** Saving an appointment switched off the public setting of each of its questions, so they no longer showed on the public calendar. Questions now keep their setting.
 - **Attendance fields without a default were given one.** Opening an attendance field without a default value in the template editor showed it as having one, and saving it stored an empty text, a zero or a no. The editor now shows such a field without a default.
 - **The registration limit was missing from the registrations overview.** The overview of registrations did not show how many places an appointment has. It now shows the limit beside the appointment.
+- **Restricted news entries showed no lock.** A news entry meant for only part of the station appeared without the lock that marks it. It now shows the lock in the news list and on the entry.
 
 ## v26.19.5
 

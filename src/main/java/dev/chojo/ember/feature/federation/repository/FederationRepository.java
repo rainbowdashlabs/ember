@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.PublicPartnerSummary;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -595,6 +596,4 @@ public class FederationRepository {
                 "SELECT count(*) AS cnt FROM federation_partner WHERE partner_station_id = :uid::UUID AND status = 'PENDING';",
                 call().bind("uid", stationUid, UUID_STRING));
     }
-
-    public record PublicPartnerSummary(UUID uid, String name, String slug, Double distanceKm) {}
 }

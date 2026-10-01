@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import type {StationFileFolder} from '@/api/media'
+import type {StationFileFolder} from '@/api/generated/schema'
 
 const moveOpen = defineModel<boolean>('moveOpen', {required: true})
 const deleteOpen = defineModel<boolean>('deleteOpen', {required: true})

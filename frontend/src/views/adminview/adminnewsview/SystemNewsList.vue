@@ -12,16 +12,16 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
-import type {SystemNewsEntry} from '@/api/adminNews'
+import type {SystemNewsResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{
-  entries: SystemNewsEntry[]
+  entries: SystemNewsResponse[]
 }>()
 
 const emit = defineEmits<{
-  edit: [entry: SystemNewsEntry]
-  retract: [entry: SystemNewsEntry]
+  edit: [entry: SystemNewsResponse]
+  retract: [entry: SystemNewsResponse]
 }>()
 
 const {t} = useI18n()

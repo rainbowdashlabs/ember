@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.entity;
 
 import dev.chojo.ember.feature.content.entity.ContentMode;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -16,7 +17,7 @@ import java.time.Instant;
 public record KbFileSummary(
         int id,
         int stationId,
-        Integer folderId,
+        @Nullable Integer folderId,
         String name,
         String description,
         KbFileType fileType,

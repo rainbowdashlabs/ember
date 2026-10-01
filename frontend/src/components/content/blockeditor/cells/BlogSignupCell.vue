@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {BlogSignupConfig} from '@/api/pageManage'
+import type {BlogSignupConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: BlogSignupConfig

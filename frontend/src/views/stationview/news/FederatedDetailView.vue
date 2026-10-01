@@ -15,7 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
-import type { FederatedNewsDetail } from '@/api/news'
+import type { FederatedNewsData } from '@/api/generated/schema'
 import { news } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { formatDateTime } from '@/util/format'
@@ -29,7 +29,7 @@ const newsRoutes = useNewsRoutes()
 const stationUid = ref(route.params.stationUid as string)
 const newsId = ref(Number(route.params.newsId))
 
-const { config: entry, loading, failure, reload: loadData } = useConfigPanel<FederatedNewsDetail | null>({
+const { config: entry, loading, failure, reload: loadData } = useConfigPanel<FederatedNewsData | null>({
   initial: null,
   fetch: () => news.getFederatedNews(stationUid.value, newsId.value),
 })

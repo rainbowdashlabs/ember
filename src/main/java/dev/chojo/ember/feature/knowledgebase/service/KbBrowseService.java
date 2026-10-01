@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -118,7 +119,7 @@ public class KbBrowseService {
      * whether anything may be created in it.
      */
     public record BrowseResponse(
-            KbFolder currentFolder,
+            @Nullable KbFolder currentFolder,
             List<KbFolder> folders,
             List<KbFileSummary> files,
             KbAccessLevel currentLevel,

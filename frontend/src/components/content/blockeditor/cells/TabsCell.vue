@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
-import type {TabsConfig} from '@/api/pageManage'
+import type {TabsConfig} from '@/api/generated/schema'
 import TabBar from '@/components/navigation/TabBar.vue'
 
 const props = defineProps<{

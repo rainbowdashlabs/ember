@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.media.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -22,15 +23,15 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record StationFile(
         int id,
         int pageId,
-        Integer stationId,
+        @Nullable Integer stationId,
         String contentHash,
         String fileName,
         String mimeType,
         long fileSize,
         Instant uploadedAt,
-        String defaultAltText,
-        String defaultDescription,
-        Integer folderId) {
+        @Nullable String defaultAltText,
+        @Nullable String defaultDescription,
+        @Nullable Integer folderId) {
 
     public static RowMapping<StationFile> map() {
         return row -> new StationFile(

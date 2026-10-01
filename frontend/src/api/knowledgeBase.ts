@@ -4,72 +4,52 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {ContentMode, type ContentModeName} from './news'
-import type {PageRow, SaveRowRequest} from './pageManage'
+import {ContentMode} from './news'
 import {createCrudResource, createScopedCrudResource, type NoContent} from './crud'
 import {uploadFile as uploadMultipart} from './upload'
 import type {MemberIdentity} from './types'
+import type {
+    AudienceRequest,
+    BlockRowRequest,
+    BlocksResponse,
+    BrowseResponse,
+    BulkOutcome,
+    DeleteImpact,
+    EmptyTrashResponse,
+    EntryAudience,
+    FileContentResponse,
+    FileResponse,
+    FileUpdateRequest,
+    FolderRequest,
+    FolderTreeEntry,
+    ImageUploadResponse,
+    KbFavourite,
+    KbFile,
+    KbFileSummary,
+    KbFileVersion,
+    KbFolder,
+    KbRestrictionRequest,
+    KbRestrictionResponse,
+    KbTag,
+    KbVersionResponse,
+    LinkFileRequest,
+    MarkdownFileRequest,
+    MarkdownHtmlResponse,
+    MovePreview,
+    MoveResponse,
+    PublicVisibilityResponse,
+    RelatedFilesResponse,
+    RemoteKbFile,
+    RestoreResult,
+    SearchResultResponse,
+    TagScopeResponse,
+    TrashEntry,
+    TrashView,
+    YoutubeFileRequest,
+    components,
+} from '@/api/generated/schema'
 
-export interface KbFolder {
-    id: number
-    stationId: string
-    parentId: number | null
-    name: string
-    description: string
-    iconUrl: string | null
-    position: number
-    createdBy: number
-    createdAt: string
-    updatedAt: string
-    restricted?: boolean
-}
-
-/**
- * The blocks of an article. `rows` are the blocks as written, for the editor; `describedRows` are
- * the same blocks as a reader sees them, where a picture the article says nothing about carries the
- * alt text and description of its media file.
- */
-export interface KbBlocks {
-    contentMode: ContentModeName
-    rows: PageRow[]
-    describedRows: PageRow[]
-}
-
-export interface KbFile {
-    id: number
-    stationId: string
-    folderId: number | null
-    name: string
-    description: string
-    fileType: string
-    mimeType: string | null
-    fileSize: number
-    iconUrl: string | null
-    youtubeUrl: string | null
-    linkUrl: string | null
-    position: number
-    createdBy: number
-    createdAt: string
-    updatedAt: string
-    sourceFileId: number | null
-    sourceStationId: string | null
-    restricted: boolean
-    conversionStatus: string | null
-    /** How a markdown article was written. A rich one is built from blocks. */
-    contentMode: ContentModeName
-    containerId: number | null
-}
-
-export interface KbFileVersion {
-    id: number
-    fileId: number
-    patch: string
-    isFull: boolean
-    version: number
-    createdBy: number
-    createdByName?: string
-    createdAt: string
-}
+type Schemas = components['schemas']
 
 /**
  * The file facts a federated listing carries. Partner stations only publish the
@@ -83,19 +63,11 @@ export interface SharedKbFile {
     fileType?: string
 }
 
+/** A file a partner shares, drawn in the wiki as any other file is. */
 export interface SharedFileEntry {
     file: SharedKbFile
     stationName: string
     sourceStationUid: string | null
-}
-
-/** Which partner stations one entry of this station's wiki is shared with. */
-export interface EntryAudience {
-    id: number
-    fileId: number | null
-    folderId: number | null
-    scope: string
-    partnerIds: number[]
 }
 
 export async function getAudiences(): Promise<EntryAudience[]> {
@@ -103,9 +75,7 @@ export async function getAudiences(): Promise<EntryAudience[]> {
     return res.data
 }
 
-export async function setAudience(
-    entry: {fileId?: number; folderId?: number; shared: boolean; everyStation: boolean; partnerIds: number[]},
-): Promise<void> {
+export async function setAudience(entry: AudienceRequest): Promise<void> {
     await client.put('/kb/audiences', entry)
 }
 
@@ -119,51 +89,6 @@ export interface SharedFolderEntry {
 }
 
 /**
- * How far each entry of one level reaches: the ids on the public wiki, and the ids shared beyond this
- * station without being open to everyone in it.
- */
-export interface Reach {
-    publicly: number[]
-    federated: number[]
-    narrowly: number[]
-}
-
-/**
- * A file as a folder's listing carries it: enough to draw its tile and decide what may be done with
- * it, and nothing that would cost the listing a read per file.
- *
- * <p>Its own type rather than a {@link KbFile} with fields missing, because a listing typed as the
- * whole file let a tile ask it for a stored type it never sends, and every tile quietly concluded
- * it had no picture. Opening a file fetches the whole of it.
- */
-export interface KbFileSummary {
-    id: number
-    stationId: string
-    folderId: number | null
-    name: string
-    description: string
-    fileType: string
-    updatedAt: string
-    restricted: boolean
-}
-
-export interface BrowseResponse {
-    currentFolder: KbFolder | null
-    folders: KbFolder[]
-    files: KbFileSummary[]
-    /** What the reader may do in the folder being browsed, which decides what may be created in it. */
-    currentLevel?: KbAccessLevelName
-    /** What the reader may do with each folder, keyed by folder id. */
-    folderLevels?: Record<number, KbAccessLevelName>
-    /** What the reader may do with each file, keyed by file id. */
-    fileLevels?: Record<number, KbAccessLevelName>
-    /** How far each folder reaches. */
-    folderReach?: Reach
-    /** How far each file reaches. */
-    fileReach?: Reach
-}
-
-/**
  * Tells whether a level is enough for an action, using the same order the server checks.
  */
 export function levelCovers(level: KbAccessLevelName | undefined, required: KbAccessLevelName): boolean {
@@ -172,10 +97,7 @@ export function levelCovers(level: KbAccessLevelName | undefined, required: KbAc
     return order.indexOf(level) >= order.indexOf(required)
 }
 
-export interface MarkdownHtmlResponse {
-    html: string
-    markdown: string
-}
+export type KbFileTypeName = Schemas['KbFileType']
 
 export const KbFileType = {
     MARKDOWN: 'MARKDOWN',
@@ -186,11 +108,7 @@ export const KbFileType = {
     LINK: 'LINK',
     PRESENTATION: 'PRESENTATION',
     OTHER: 'OTHER',
-} as const
-
-export type KbFileTypeName = (typeof KbFileType)[keyof typeof KbFileType]
-
-// -- Browse --
+} as const satisfies Record<KbFileTypeName, KbFileTypeName>
 
 export async function browse(folderId?: number | null): Promise<BrowseResponse> {
     const params = folderId != null ? {folderId} : {}
@@ -198,39 +116,16 @@ export async function browse(folderId?: number | null): Promise<BrowseResponse> 
     return res.data
 }
 
-export interface FileResponse {
-    file: KbFile
-    lastEditedByName: string | null
-    /** What the reader may do with this file. */
-    accessLevel?: KbAccessLevelName
-    /** The folder whose permission decided that, when one did. */
-    accessLevelSource?: string | null
-}
-
-interface FolderCreateRequest {
-    parentId?: number | null
-    name: string
-    description?: string
-}
-
-interface NodeUpdateRequest {
-    name: string
-    description?: string
-    iconUrl?: string | null
-    position?: number
-}
-
-const folders = createCrudResource<KbFolder, FolderCreateRequest, NodeUpdateRequest>('/kb/folders')
+const folders = createCrudResource<KbFolder, FolderRequest, FolderRequest>('/kb/folders')
 
 const files = createCrudResource<
-    KbFile,
-    NodeUpdateRequest,
-    NodeUpdateRequest,
+    KbFileSummary,
+    FileUpdateRequest,
+    FileUpdateRequest,
     FileResponse,
+    KbFile,
     KbFile
 >('/kb/files')
-
-// -- Folders --
 
 export async function listFolders(parentId?: number | null): Promise<KbFolder[]> {
     return folders.list({parentId})
@@ -241,9 +136,7 @@ export const createFolder = folders.create
 export const updateFolder = folders.update
 export const deleteFolder = folders.remove
 
-// -- Files --
-
-export async function listFiles(folderId?: number | null): Promise<KbFile[]> {
+export async function listFiles(folderId?: number | null): Promise<KbFileSummary[]> {
     return files.list({folderId})
 }
 
@@ -251,44 +144,30 @@ export const getFile = files.get
 export const updateFile = files.update
 export const deleteFile = files.remove
 
-// -- File Creation --
-
-export async function createMarkdownFile(data: {
-    folderId?: number | null
-    name: string
-    description?: string
-    content?: string
-}): Promise<KbFile> {
+export async function createMarkdownFile(data: MarkdownFileRequest): Promise<KbFile> {
     const res = await client.post<KbFile>('/kb/files/markdown', data)
     return res.data
 }
 
-export async function createYoutubeFile(data: {
-    folderId?: number | null
-    name: string
-    description?: string
-    youtubeUrl: string
-}): Promise<KbFile> {
+export async function createYoutubeFile(data: YoutubeFileRequest): Promise<KbFile> {
     const res = await client.post<KbFile>('/kb/files/youtube', data)
     return res.data
 }
 
-export async function createLinkFile(data: {
-    folderId?: number | null
-    name?: string
-    description?: string
-    linkUrl: string
-}): Promise<KbFile> {
+export async function createLinkFile(data: LinkFileRequest): Promise<KbFile> {
     const res = await client.post<KbFile>('/kb/files/link', data)
     return res.data
 }
 
-export async function uploadFile(data: {
+/** What is said about a file while it is put into the wiki. */
+export interface KbUpload {
     folderId?: number | null
     name?: string
     description?: string
     file: File
-}): Promise<KbFile> {
+}
+
+export async function uploadFile(data: KbUpload): Promise<KbFile> {
     return uploadMultipart<KbFile>('/kb/files/upload', {
         file: data.file,
         name: data.name || undefined,
@@ -297,12 +176,7 @@ export async function uploadFile(data: {
     })
 }
 
-export async function importDocument(data: {
-    folderId?: number | null
-    name?: string
-    description?: string
-    file: File
-}): Promise<KbFile> {
+export async function importDocument(data: KbUpload): Promise<KbFile> {
     return uploadMultipart<KbFile>('/kb/files/import-document', {
         file: data.file,
         name: data.name || undefined,
@@ -310,8 +184,6 @@ export async function importDocument(data: {
         folderId: data.folderId != null ? String(data.folderId) : undefined,
     })
 }
-
-// -- Content --
 
 /**
  * Returns the API path (relative to the shared axios client's baseURL) at
@@ -339,8 +211,6 @@ export async function getTextContent(id: number): Promise<string> {
 export async function updateMarkdownContent(id: number, content: string): Promise<void> {
     await client.put(`/kb/files/${id}/content`, {content})
 }
-
-// -- Presentation Original --
 
 /**
  * Returns the API path (relative to the shared axios client's baseURL) for
@@ -386,10 +256,8 @@ export async function reuploadOriginal(id: number, file: File): Promise<KbFile> 
     return uploadMultipart<KbFile>(`/kb/files/${id}/original`, {file}, 'put')
 }
 
-// -- Versions --
-
-export async function listVersions(id: number): Promise<KbFileVersion[]> {
-    const res = await client.get<KbFileVersion[]>(`/kb/files/${id}/versions`)
+export async function listVersions(id: number): Promise<KbVersionResponse[]> {
+    const res = await client.get<KbVersionResponse[]>(`/kb/files/${id}/versions`)
     return res.data
 }
 
@@ -402,7 +270,7 @@ export async function revertToVersion(fileId: number, version: number): Promise<
     await client.post(`/kb/files/${fileId}/versions/${version}/revert`)
 }
 
-// -- Access Restrictions --
+export type KbAccessLevelName = Schemas['KbAccessLevel']
 
 /**
  * What a member may do with a folder or file, from nothing to everything.
@@ -412,51 +280,27 @@ export const KbAccessLevel = {
     READ: 'READ',
     WRITE: 'WRITE',
     MANAGE: 'MANAGE',
-} as const
+} as const satisfies Record<KbAccessLevelName, KbAccessLevelName>
 
-export type KbAccessLevelName = (typeof KbAccessLevel)[keyof typeof KbAccessLevel]
-
-/**
- * One audience and what it may do. A null level names an audience and leaves the level to the
- * station permission the member holds, which is what every entry carried before levels existed.
- */
-export interface KbGrant {
-    userType?: string | null
-    groupId?: number | null
-    tagId?: number | null
-    memberId?: number | null
-    level?: KbAccessLevelName | null
-}
-
-export interface KbRestrictions {
-    userTypes: string[]
-    groupIds: number[]
-    tagIds: number[]
-    memberIds: number[]
-    grants?: KbGrant[]
-}
-
-export async function getFolderRestrictions(folderId: number): Promise<KbRestrictions> {
-    const res = await client.get<KbRestrictions>(`/kb/folders/${folderId}/restrictions`)
+export async function getFolderRestrictions(folderId: number): Promise<KbRestrictionResponse> {
+    const res = await client.get<KbRestrictionResponse>(`/kb/folders/${folderId}/restrictions`)
     return res.data
 }
 
-export async function setFolderRestrictions(folderId: number, data: KbRestrictions): Promise<KbRestrictions> {
-    const res = await client.put<KbRestrictions>(`/kb/folders/${folderId}/restrictions`, data)
+export async function setFolderRestrictions(folderId: number, data: KbRestrictionRequest): Promise<KbRestrictionResponse> {
+    const res = await client.put<KbRestrictionResponse>(`/kb/folders/${folderId}/restrictions`, data)
     return res.data
 }
 
-export async function getFileRestrictions(fileId: number): Promise<KbRestrictions> {
-    const res = await client.get<KbRestrictions>(`/kb/files/${fileId}/restrictions`)
+export async function getFileRestrictions(fileId: number): Promise<KbRestrictionResponse> {
+    const res = await client.get<KbRestrictionResponse>(`/kb/files/${fileId}/restrictions`)
     return res.data
 }
 
-export async function setFileRestrictions(fileId: number, data: KbRestrictions): Promise<KbRestrictions> {
-    const res = await client.put<KbRestrictions>(`/kb/files/${fileId}/restrictions`, data)
+export async function setFileRestrictions(fileId: number, data: KbRestrictionRequest): Promise<KbRestrictionResponse> {
+    const res = await client.put<KbRestrictionResponse>(`/kb/files/${fileId}/restrictions`, data)
     return res.data
 }
-
-// -- Folder Icons --
 
 /**
  * Returns the API path (relative to the shared axios client's baseURL) for
@@ -468,14 +312,6 @@ export function folderIconUrl(folderId: number, size = 128): string {
 
 export async function uploadFolderIcon(folderId: number, file: File): Promise<void> {
     await uploadMultipart(`/kb/folders/${folderId}/icon`, {icon: file})
-}
-
-// -- Tags --
-
-export interface KbTag {
-    id: number
-    stationId: string
-    name: string
 }
 
 export async function listTags(): Promise<KbTag[]> {
@@ -498,13 +334,8 @@ export async function getFolderTags(folderId: number): Promise<KbTag[]> {
     return res.data
 }
 
-export interface TagScope {
-    matchingFileIds: number[]
-    ancestorFolderIds: number[]
-}
-
-export async function getTagScope(tagName: string): Promise<TagScope> {
-    const res = await client.get<TagScope>(`/kb/tags/${encodeURIComponent(tagName)}/scope`)
+export async function getTagScope(tagName: string): Promise<TagScopeResponse> {
+    const res = await client.get<TagScopeResponse>(`/kb/tags/${encodeURIComponent(tagName)}/scope`)
     return res.data
 }
 
@@ -513,25 +344,13 @@ export async function setFolderTags(folderId: number, tags: string[]): Promise<K
     return res.data
 }
 
-// -- Related Files --
-
-/**
- * What an article points at, and what points at it. The second list is the same rows read the other
- * way round, so a reference shows on both articles while only the one that wrote it can take it
- * away. Articles the reader may not open are left out of both lists rather than counted.
- */
-export interface RelatedFiles {
-    related: KbFile[]
-    backlinks: KbFile[]
-}
-
-export async function getRelatedFiles(fileId: number): Promise<RelatedFiles> {
-    const res = await client.get<RelatedFiles>(`/kb/files/${fileId}/related`)
+export async function getRelatedFiles(fileId: number): Promise<RelatedFilesResponse> {
+    const res = await client.get<RelatedFilesResponse>(`/kb/files/${fileId}/related`)
     return res.data
 }
 
-export async function setRelatedFiles(fileId: number, targetFileIds: number[]): Promise<RelatedFiles> {
-    const res = await client.put<RelatedFiles>(`/kb/files/${fileId}/related`, {fileIds: targetFileIds})
+export async function setRelatedFiles(fileId: number, targetFileIds: number[]): Promise<RelatedFilesResponse> {
+    const res = await client.put<RelatedFilesResponse>(`/kb/files/${fileId}/related`, {fileIds: targetFileIds})
     return res.data
 }
 
@@ -539,12 +358,12 @@ export async function setRelatedFiles(fileId: number, targetFileIds: number[]): 
  * The articles changed most recently, for the picker's state before anything has been typed into
  * it. Filtered the same way a listing is, so it never names an article the reader cannot open.
  */
-export async function listRecentFiles(limit = 10): Promise<SearchResult[]> {
-    const res = await client.get<SearchResult[]>('/kb/files/recent', {params: {limit}})
+export async function listRecentFiles(limit = 10): Promise<SearchResultResponse[]> {
+    const res = await client.get<SearchResultResponse[]>('/kb/files/recent', {params: {limit}})
     return res.data
 }
 
-// -- Moving --
+export type KbRefusalReasonName = Schemas['KbRefusalReason']
 
 /**
  * Why one entry stayed where it was. The server sends one of these rather than a sentence, so the
@@ -556,9 +375,9 @@ export const KbRefusalReason = {
     TARGET_INSIDE: 'TARGET_INSIDE',
     SHARE_TOO_WIDE: 'SHARE_TOO_WIDE',
     NOT_FOUND: 'NOT_FOUND',
-} as const
+} as const satisfies Record<KbRefusalReasonName, KbRefusalReasonName>
 
-export type KbRefusalReasonName = (typeof KbRefusalReason)[keyof typeof KbRefusalReason]
+export type KbReachName = Schemas['KbReach']
 
 /** How far an entry is read, on the one scale the wiki marks entries with. */
 export const KbReach = {
@@ -566,48 +385,10 @@ export const KbReach = {
     NARROW: 'NARROW',
     FEDERATED: 'FEDERATED',
     PUBLIC: 'PUBLIC',
-} as const
+} as const satisfies Record<KbReachName, KbReachName>
 
-export type KbReachName = (typeof KbReach)[keyof typeof KbReach]
-
-/** One folder of the tree a move picker offers, with what the reader may do in it. */
-export interface KbFolderTreeEntry {
-    id: number
-    parentId: number | null
-    name: string
-    level: KbAccessLevelName
-}
-
-export interface MoveResponse {
-    moved: boolean
-    name: string | null
-    reason: KbRefusalReasonName | null
-}
-
-/** How far an entry reaches now and how far it would reach after a move. */
-export interface MovePreview {
-    before: KbReachName
-    after: KbReachName
-}
-
-export interface RefusedEntry {
-    name: string | null
-    reason: KbRefusalReasonName
-}
-
-/**
- * What a bulk action did. {@code refused} names as many of the entries it left alone as a message
- * can carry; {@code refusedTotal} counts all of them.
- */
-export interface BulkOutcome {
-    doneFolderIds: number[]
-    doneFileIds: number[]
-    refused: RefusedEntry[]
-    refusedTotal: number
-}
-
-export async function listFolderTree(): Promise<KbFolderTreeEntry[]> {
-    const res = await client.get<KbFolderTreeEntry[]>('/kb/folders/tree')
+export async function listFolderTree(): Promise<FolderTreeEntry[]> {
+    const res = await client.get<FolderTreeEntry[]>('/kb/folders/tree')
     return res.data
 }
 
@@ -633,115 +414,62 @@ export async function getMovePreview(
     return res.data
 }
 
-export async function bulkMove(
-    selection: {folderIds: number[]; fileIds: number[]},
-    targetFolderId: number | null,
-): Promise<BulkOutcome> {
+/** The folders and files a bulk action is asked to touch. */
+export interface KbSelection {
+    folderIds: number[]
+    fileIds: number[]
+}
+
+export async function bulkMove(selection: KbSelection, targetFolderId: number | null): Promise<BulkOutcome> {
     const res = await client.post<BulkOutcome>('/kb/bulk/move', {...selection, targetFolderId})
     return res.data
 }
 
 export async function bulkTags(
-    selection: {folderIds: number[]; fileIds: number[]},
+    selection: KbSelection,
     tags: {addTags: string[]; removeTags: string[]},
 ): Promise<BulkOutcome> {
     const res = await client.post<BulkOutcome>('/kb/bulk/tags', {...selection, ...tags})
     return res.data
 }
 
-export async function bulkDelete(selection: {folderIds: number[]; fileIds: number[]}): Promise<BulkOutcome> {
+export async function bulkDelete(selection: KbSelection): Promise<BulkOutcome> {
     const res = await client.post<BulkOutcome>('/kb/bulk/delete', selection)
     return res.data
 }
 
-// -- Trash --
-
-/**
- * What a delete would really take, folder contents counted rather than ticked boxes.
- *
- * {@code embeddedOn} names the pages that carry one of the articles: a page cell holds an article
- * number with nothing behind it, so a deleted article turns into a stand-in title on a page nobody
- * thought to look at.
- */
-export interface DeleteImpact {
-    folders: number
-    files: number
-    embeddedOn: string[]
-    onPublicPage: boolean
-}
-
-/**
- * One entry of the trash. A folder stands for its whole branch: {@code contained} says how much went
- * down with it, and {@code bytes} what that branch is still holding in storage.
- */
-export interface KbTrashEntry {
-    folder: boolean
-    id: number
-    name: string
-    description: string
-    fileType: KbFileTypeName | null
-    deletedAt: string
-    deletedByName: string | null
-    bytes: number
-    contained: number
-}
-
-/** A station's trash as this reader sees it, with the storage emptying it would give back. */
-export interface KbTrashView {
-    entries: KbTrashEntry[]
-    bytes: number
-}
-
-/** What a restore did, and whether the entry had to come back at the top level. */
-export interface KbRestoreResult {
-    restored: boolean
-    name: string | null
-    movedToRoot: boolean
-}
-
-export async function getDeleteImpact(selection: {
-    folderIds: number[]
-    fileIds: number[]
-}): Promise<DeleteImpact> {
+export async function getDeleteImpact(selection: KbSelection): Promise<DeleteImpact> {
     const res = await client.post<DeleteImpact>('/kb/bulk/delete/impact', selection)
     return res.data
 }
 
-export async function listTrash(): Promise<KbTrashView> {
-    const res = await client.get<KbTrashView>('/kb/trash')
+export async function listTrash(): Promise<TrashView> {
+    const res = await client.get<TrashView>('/kb/trash')
     return res.data
 }
 
-export async function emptyTrash(): Promise<{cleared: number}> {
-    const res = await client.delete<{cleared: number}>('/kb/trash')
+export async function emptyTrash(): Promise<EmptyTrashResponse> {
+    const res = await client.delete<EmptyTrashResponse>('/kb/trash')
     return res.data
 }
 
-export async function restoreTrashed(entry: KbTrashEntry): Promise<KbRestoreResult> {
+export async function restoreTrashed(entry: TrashEntry): Promise<RestoreResult> {
     const path = entry.folder ? `/kb/trash/folders/${entry.id}/restore` : `/kb/trash/files/${entry.id}/restore`
-    const res = await client.post<KbRestoreResult>(path)
+    const res = await client.post<RestoreResult>(path)
     return res.data
 }
 
-export async function purgeTrashed(entry: KbTrashEntry): Promise<void> {
+export async function purgeTrashed(entry: TrashEntry): Promise<void> {
     const path = entry.folder ? `/kb/trash/folders/${entry.id}` : `/kb/trash/files/${entry.id}`
     await client.delete(path)
 }
-
-// -- KB Images --
-
-export interface ImageUploadResponse {
-    imageId: string
-}
-
-// -- Blocks --
 
 /**
  * The blocks a rich article is built from. A plain article answers with an empty list, so a reader
  * can ask before it knows which kind it has.
  */
-export async function getKbBlocks(fileId: number): Promise<KbBlocks> {
-    const res = await client.get<KbBlocks>(`/kb/files/${fileId}/blocks`)
+export async function getKbBlocks(fileId: number): Promise<BlocksResponse> {
+    const res = await client.get<BlocksResponse>(`/kb/files/${fileId}/blocks`)
     return res.data
 }
 
@@ -750,13 +478,13 @@ export async function getKbBlocks(fileId: number): Promise<KbBlocks> {
  * block, and the switch does not go back: the stored body is a projection of the blocks from here
  * on, which is what search, the export and the version history read.
  */
-export async function enableKbBlocks(fileId: number): Promise<KbBlocks> {
-    const res = await client.post<KbBlocks>(`/kb/files/${fileId}/blocks/enable`)
+export async function enableKbBlocks(fileId: number): Promise<BlocksResponse> {
+    const res = await client.post<BlocksResponse>(`/kb/files/${fileId}/blocks/enable`)
     return res.data
 }
 
-export async function saveKbBlocks(fileId: number, rows: SaveRowRequest[]): Promise<KbBlocks> {
-    const res = await client.put<KbBlocks>(`/kb/files/${fileId}/blocks`, {rows})
+export async function saveKbBlocks(fileId: number, rows: BlockRowRequest[]): Promise<BlocksResponse> {
+    const res = await client.put<BlocksResponse>(`/kb/files/${fileId}/blocks`, {rows})
     return res.data
 }
 
@@ -774,7 +502,7 @@ export function kbImageUrl(imageId: string, size = 1024): string {
     return `/kb/images/${imageId}?size=${size}`
 }
 
-// -- Favourites --
+export type KbFavouriteTargetName = Schemas['KbFavouriteTarget']
 
 /** What a favourite points at: a file or folder of this station, or one a partner shares. */
 export const KbFavouriteTarget = {
@@ -782,28 +510,12 @@ export const KbFavouriteTarget = {
     FOLDER: 'FOLDER',
     PARTNER_FILE: 'PARTNER_FILE',
     PARTNER_FOLDER: 'PARTNER_FOLDER',
-} as const
-
-export type KbFavouriteTargetName = (typeof KbFavouriteTarget)[keyof typeof KbFavouriteTarget]
+} as const satisfies Record<KbFavouriteTargetName, KbFavouriteTargetName>
 
 /** Something that can be marked, named the way the server tells two favourites apart. */
-export interface FavouriteEntry {
-    target: KbFavouriteTargetName
-    entryId: number
+export type FavouriteEntry = Pick<KbFavourite, 'target' | 'entryId'> & {
     /** The partner serving the entry, for the partner kinds only. */
     partnerStationUid?: string | null
-}
-
-/**
- * One of the reader's favourites. This station's entries carry their current name; a partner's
- * carry the name, kind and partner name as the partner last gave them.
- */
-export interface KbFavourite extends FavouriteEntry {
-    id: number
-    title: string
-    fileType: string | null
-    stationName: string | null
-    createdAt: string
 }
 
 export async function listFavourites(): Promise<KbFavourite[]> {
@@ -820,20 +532,8 @@ export async function unmarkFavourite(id: number): Promise<void> {
     await client.delete(`/kb/favourites/${id}`)
 }
 
-// -- Search --
-
-export interface SearchResult {
-    file: KbFile
-    snippet: string
-    folderPath: string
-    stationName: string | null
-    sourceStationUid: string | null
-}
-
-// -- Public Visibility --
-
-export async function getPublicVisibility(type: 'files' | 'folders', id: number): Promise<{ visible: boolean | null }> {
-    const res = await client.get<{ visible: boolean | null }>(`/kb/${type}/${id}/public-visibility`)
+export async function getPublicVisibility(type: 'files' | 'folders', id: number): Promise<PublicVisibilityResponse> {
+    const res = await client.get<PublicVisibilityResponse>(`/kb/${type}/${id}/public-visibility`)
     return res.data
 }
 
@@ -841,18 +541,19 @@ export async function setPublicVisibility(type: 'files' | 'folders', id: number,
     await client.put(`/kb/${type}/${id}/public-visibility`, { visible })
 }
 
-// -- Search --
-
-export async function search(query: string, options?: { tag?: string; federated?: boolean }): Promise<SearchResult[]> {
+export async function search(query: string, options?: { tag?: string; federated?: boolean }): Promise<SearchResultResponse[]> {
     const params: Record<string, string> = {q: query}
     if (options?.tag) params.tag = options.tag
     if (options?.federated === false) params.federated = 'false'
-    const res = await client.get<SearchResult[]>('/kb/search', {params})
+    const res = await client.get<SearchResultResponse[]>('/kb/search', {params})
     return res.data
 }
 
-// -- KB Comments --
-
+/**
+ * A comment under a wiki article.
+ *
+ * TODO: take the generated comment record once the comment system is reworked to say which fields it fills.
+ */
 export interface KbComment {
     id: number
     fileId: number
@@ -893,37 +594,17 @@ export const createComment = fileComments.create
 export const updateComment = comments.update
 export const deleteComment = comments.remove
 
-// -- Federated files --
-
-/**
- * The file facts a partner publishes for a single file. Folder, position, ownership and
- * restriction data stay on the owning station, so only what the viewer renders crosses over.
- */
-export interface FederatedKbFile {
-    id: number
-    stationUid: string
-    name: string
-    description: string
-    fileType: string
-    mimeType: string | null
-    fileSize: number
-    youtubeUrl: string | null
-    linkUrl: string | null
-    createdAt: string
-    updatedAt: string
-    conversionStatus: string | null
-}
-
 /**
  * Reads a knowledge-base file served by a federation partner. The partner is addressed by its
  * station UUID because the file id alone is only unique within the station that owns it.
  *
  * The result is widened to the shape the file viewer components take. The fields a partner does
  * not publish are filled with neutral values; every part of the viewer that would read them is
- * hidden for federated files.
+ * hidden for federated files. A partner cannot send blocks, so an article received from one is
+ * always plain text.
  */
 export async function getFederatedFile(stationUid: string, fileId: number): Promise<KbFile> {
-    const res = await client.get<FederatedKbFile>(`/federated/${stationUid}/kb/files/${fileId}`)
+    const res = await client.get<RemoteKbFile>(`/federated/${stationUid}/kb/files/${fileId}`)
     const file = res.data
     return {
         ...file,
@@ -934,8 +615,8 @@ export async function getFederatedFile(stationUid: string, fileId: number): Prom
         createdBy: 0,
         sourceFileId: null,
         sourceStationId: null,
+        restrictionMode: 'OR',
         restricted: false,
-        // A partner cannot send blocks, so an article received from one is always plain text.
         contentMode: ContentMode.SIMPLE,
         containerId: null,
     }
@@ -946,13 +627,9 @@ export async function getFederatedFile(stationUid: string, fileId: number): Prom
  * types carry content; everything else answers an empty string.
  */
 export async function getFederatedFileContent(stationUid: string, fileId: number): Promise<string> {
-    const res = await client.get<{fileId: number; content: string}>(
-        `/federated/${stationUid}/kb/files/${fileId}/content`,
-    )
-    return res.data.content ?? ''
+    const res = await client.get<FileContentResponse>(`/federated/${stationUid}/kb/files/${fileId}/content`)
+    return res.data.content
 }
-
-// Federated KB comments
 
 export async function listFederatedComments(stationUid: string, fileId: number): Promise<KbComment[]> {
     const res = await client.get<KbComment[]>(`/federated/${stationUid}/kb/files/${fileId}/comments`)

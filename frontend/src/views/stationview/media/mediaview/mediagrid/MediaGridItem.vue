@@ -7,7 +7,8 @@
 import BaseButton from '@/components/button/BaseButton.vue'
 import PillBadge from '@/components/badge/PillBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import {mediaPictureUrl, type StationFile, type StationFileListing, type StationFileTag} from '@/api/media'
+import {mediaPictureUrl} from '@/api/media'
+import type {FileListing, StationFile, StationFileTag} from '@/api/generated/schema'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import MediaGridItemMenu from './MediaGridItemMenu.vue'
 import {formatSize} from '@/util/format'
@@ -18,7 +19,7 @@ import {formatSize} from '@/util/format'
  * travels up to the card. The box of the tick works the same way: the tick is the control.
  */
 const props = defineProps<{
-    entry: StationFileListing
+    entry: FileListing
     index: number
     tags: StationFileTag[]
     stationUid: string
@@ -36,7 +37,7 @@ const emit = defineEmits<{
     'toggle-menu': [fileId: number]
 }>()
 
-function tagsOf(e: StationFileListing): StationFileTag[] {
+function tagsOf(e: FileListing): StationFileTag[] {
     return props.tags.filter(t => e.tagIds.includes(t.id))
 }
 

@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import NewsListItem from './NewsListItem.vue'
-import type {NewsEntry} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 import type {MemberIdentity} from '@/api/types'
 
 export interface UnifiedNewsItem {
@@ -15,13 +15,13 @@ export interface UnifiedNewsItem {
   contentHtml?: string
   authorName?: string
   author?: MemberIdentity | null
-  publishedAt?: string
+  publishedAt?: string | null
   commentCount: number
   restricted?: boolean
   publicBlog?: boolean
   stationName?: string
   stationUid?: string
-  localEntry?: NewsEntry
+  localEntry?: NewsResponse
 }
 
 defineProps<{
@@ -32,7 +32,7 @@ defineProps<{
   setNewsItemRef: (el: unknown, newsId: number) => void
   setViewBadgeRef: (el: unknown, newsId: number) => void
   onToggleComments: (item: UnifiedNewsItem) => void
-  onRequestDelete: (entry: NewsEntry) => void
+  onRequestDelete: (entry: NewsResponse) => void
 }>()
 </script>
 

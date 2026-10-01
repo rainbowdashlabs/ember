@@ -11,7 +11,9 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes.MarkdownHtmlResponse;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
@@ -36,6 +38,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,7 +165,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             tags = {"Public Knowledge Base"},
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicKbInfo.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getInfo(Context ctx) {
@@ -301,7 +304,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true)
             },
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MarkdownHtmlResponse.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getMarkdownHtml(Context ctx) {
@@ -313,6 +316,10 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         ctx.json(new MarkdownHtmlResponse(html, markdown));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/files/{id}/pdf",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void getFilePdf(Context ctx) {
         var published = resolvePublicFile(ctx);
         var file = published.file();
@@ -342,7 +349,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             tags = {"Public Knowledge Base"},
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
             queryParams = @OpenApiParam(name = "q", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SearchResultItem[].class)))
     private void search(Context ctx) {
         var station = resolveStation(ctx);
         String query = ctx.queryParam("q");
@@ -417,13 +424,13 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             summary = "List tags in the public knowledge base",
             tags = {"Public Knowledge Base"},
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void listTags(Context ctx) {
         var station = resolveStation(ctx);
         ctx.json(tagService.findTagsByStation(station.id()));
     }
 
-    public record PublicBrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
+    public record PublicBrowseResponse(@Nullable KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
 
     /**
      * What a public wiki says about the station behind it.
@@ -438,8 +445,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     public record YoutubeContentResponse(String youtubeUrl) {}
 
     public record LinkContentResponse(String linkUrl) {}
-
-    public record MarkdownHtmlResponse(String html, String markdown) {}
 
     public record SearchResultItem(KbFile file, String snippet) {}
 }

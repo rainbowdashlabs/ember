@@ -13,7 +13,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {news as newsApi} from '@/api'
-import type {NewsViewsResponse} from '@/api/news'
+import type {NewsViewsResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
