@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.form.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.javalin.openapi.OpenApiName;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -46,7 +45,6 @@ public record PageTarget(TargetKind kind, @Nullable String page) {
     }
 
     /** The three places a page can lead to. */
-    @OpenApiName("FormPageTargetKind")
     public enum TargetKind {
         /** The page below, or the end of the form after the last page. */
         NEXT,

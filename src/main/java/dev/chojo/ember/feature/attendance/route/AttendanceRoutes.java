@@ -40,7 +40,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -1527,7 +1526,6 @@ public class AttendanceRoutes implements Routes {
     /**
      * Request body for self-service absence creation, optionally targeting managed members.
      */
-    @OpenApiName("MyAbsenceRequest")
     public record MyAbsenceRequest(
             LocalDate absentFrom,
             LocalDate absentUntil,

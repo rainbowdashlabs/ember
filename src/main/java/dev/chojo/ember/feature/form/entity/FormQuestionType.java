@@ -5,12 +5,9 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
-import io.javalin.openapi.OpenApiName;
-
 /**
  * Supported question types for form questions.
  */
-@OpenApiName("FormQuestionType")
 public enum FormQuestionType {
     CHOICE(FormAnswerValue.ChoiceAnswer.class, FormQuestionConfig.Choice.class),
     TEXT(FormAnswerValue.TextAnswer.class, FormQuestionConfig.Text.class),

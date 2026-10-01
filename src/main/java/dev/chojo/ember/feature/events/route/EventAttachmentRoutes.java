@@ -21,7 +21,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -285,12 +284,10 @@ public class EventAttachmentRoutes implements Routes {
      * @param label    what a reader sees instead of the file name, or null to use the file name
      * @param internal whether the file is kept back from the room, false where nothing is said
      */
-    @OpenApiName("EventAttachmentRequest")
     public record AttachmentRequest(
             Integer fileId,
             @Nullable String label,
             @Nullable Boolean internal) {}
 
-    @OpenApiName("EventAttachmentOrderRequest")
     public record AttachmentOrderRequest(List<Integer> attachmentIds) {}
 }

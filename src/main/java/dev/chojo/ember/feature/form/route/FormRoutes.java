@@ -53,7 +53,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -1239,7 +1238,6 @@ public class FormRoutes implements Routes {
      * @param pages     the pages, in their order
      * @param questions the questions, page by page
      */
-    @OpenApiName("FormLayout")
     public record FormLayout(List<FormPage> pages, List<FormQuestion> questions) {}
 
     /**

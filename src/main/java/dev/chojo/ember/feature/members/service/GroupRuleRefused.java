@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.members.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
-import io.javalin.openapi.OpenApiName;
 
 import java.util.List;
 
@@ -60,7 +59,6 @@ public class GroupRuleRefused extends RefusalResponse {
      * @param memberName what the station calls them
      * @param groups     the names of the groups the rule is about for them
      */
-    @OpenApiName("GroupRuleConflict")
     public record Conflict(int memberId, String memberName, List<String> groups) {}
 
     /**
@@ -71,7 +69,6 @@ public class GroupRuleRefused extends RefusalResponse {
      * @param code      the code of the refusal
      * @param conflicts the members concerned
      */
-    @OpenApiName("GroupRuleRefusedBody")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Body(String error, String message, String code, List<Conflict> conflicts) {}
 }

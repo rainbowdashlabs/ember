@@ -42,9 +42,6 @@ dependencies {
     implementation(libs.bundles.logback)
     implementation(libs.slf4j)
 
-    annotationProcessor(libs.javalin.openapi.annotation)
-    implementation(libs.bundles.javalin)
-
     implementation(libs.guice)
     implementation(libs.bcrypt)
     implementation(libs.jspecify)

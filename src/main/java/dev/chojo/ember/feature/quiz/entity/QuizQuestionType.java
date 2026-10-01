@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import dev.chojo.ember.util.Json;
-import io.javalin.openapi.OpenApiName;
 import org.slf4j.Logger;
 import tools.jackson.databind.ObjectMapper;
 
@@ -14,7 +13,6 @@ import java.util.Optional;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-@OpenApiName("QuizQuestionType")
 public enum QuizQuestionType {
     MULTIPLE_CHOICE("multiple_choice", QuestionConfig.MultipleChoice.class, QuizAnswerValue.MultipleChoice.class),
     FILL_IN_THE_BLANK("fill_blank", QuestionConfig.FillInTheBlank.class, QuizAnswerValue.FillInTheBlank.class),

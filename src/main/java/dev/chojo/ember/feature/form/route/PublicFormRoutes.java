@@ -32,7 +32,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -358,7 +357,6 @@ public class PublicFormRoutes implements Routes {
      * <p>{@code CLOSED} covers a form somebody closed and one whose end date has passed alike: both
      * mean the same thing to whoever is holding the link.
      */
-    @OpenApiName("PublicFormState")
     public enum PublicFormState {
         OPEN,
         NOT_PUBLISHED,
@@ -366,7 +364,6 @@ public class PublicFormRoutes implements Routes {
         CLOSED
     }
 
-    @OpenApiName("PublicForm")
     public record PublicForm(
             String publicUid,
             String title,
@@ -403,10 +400,8 @@ public class PublicFormRoutes implements Routes {
      * @param description optional description
      * @param after       where the reader goes once the page is done
      */
-    @OpenApiName("PublicFormPage")
     public record PublicFormPage(String key, String title, String description, PageTarget after) {}
 
-    @OpenApiName("PublicFormQuestion")
     public record PublicFormQuestion(
             int id,
             FormQuestionType questionType,

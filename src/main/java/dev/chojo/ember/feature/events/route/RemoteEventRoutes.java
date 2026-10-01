@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -187,7 +186,6 @@ public class RemoteEventRoutes implements Routes {
      * @param mimeType what kind of file it is
      * @param fileSize how big it is, so a reader knows what they are asking for
      */
-    @OpenApiName("RemoteEventAttachment")
     public record RemoteAttachment(int id, String name, String fileName, String mimeType, long fileSize) {
         public static RemoteAttachment of(EventAttachment attachment) {
             return new RemoteAttachment(
@@ -203,7 +201,6 @@ public class RemoteEventRoutes implements Routes {
      * One such file with its bytes, encoded because the contract between two instances speaks JSON.
      * The name is what the partner shows, the file name what a reader saving it ends up with.
      */
-    @OpenApiName("RemoteEventAttachmentContent")
     public record RemoteAttachmentContent(
             int attachmentId, String name, String fileName, String mimeType, String base64) {}
 

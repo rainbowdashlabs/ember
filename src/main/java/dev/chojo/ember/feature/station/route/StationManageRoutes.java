@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.MailTestResponse;
 import dev.chojo.ember.feature.mail.entity.ProviderTestRequest;
-import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;

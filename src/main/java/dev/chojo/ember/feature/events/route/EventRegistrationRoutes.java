@@ -49,7 +49,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -995,14 +994,11 @@ public class EventRegistrationRoutes implements Routes {
      */
     public record EventRegistrationFieldValue(int fieldId, String value) {}
 
-    @OpenApiName("EventRegistrationFieldsRequest")
     public record RegistrationFieldsRequest(List<EventRegistrationFieldValue> fields) {}
 
-    @OpenApiName("EventRegistrationFieldDefinition")
     public record RegistrationFieldResponse(
             int id, String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
 
-    @OpenApiName("EventRegistrationFieldDefinitionsRequest")
     public record RegistrationFieldDefinitionsRequest(List<RegistrationFieldDefinition> fields) {}
 
     public record StatusUpdateRequest(RegistrationStatus status) {}

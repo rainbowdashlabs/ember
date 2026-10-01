@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
-import io.javalin.openapi.OpenApiName;
-
 /**
  * How far a form meant for people outside the station reaches.
  *
@@ -16,7 +14,6 @@ import io.javalin.openapi.OpenApiName;
  * <p>An internal form has neither reach: it is answered from inside the station and carries this
  * only because every form has a column.
  */
-@OpenApiName("FormVisibility")
 public enum FormVisibility {
     /**
      * Anybody, at the form's own stable address. This is the form put on a public page: it is

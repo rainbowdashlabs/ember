@@ -19,7 +19,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -215,7 +214,6 @@ public class InventoryTagRoutes implements Routes {
      * @param position where it sits in the list
      * @param itemCount how many things wear it
      */
-    @OpenApiName("InventoryTagResponse")
     public record TagResponse(int id, String name, @Nullable String color, int position, int itemCount) {
         static TagResponse of(InventoryTag tag, int itemCount) {
             return new TagResponse(tag.id(), tag.name(), tag.color(), tag.position(), itemCount);

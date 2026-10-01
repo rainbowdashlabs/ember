@@ -60,8 +60,6 @@ import io.javalin.http.HandlerType;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
-import io.javalin.openapi.plugin.OpenApiPlugin;
-import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
 import io.javalin.security.RouteRole;
@@ -453,7 +451,6 @@ public class ApiServer {
             config.jetty.multipartConfig.maxInMemoryFileSize(1, SizeUnit.MB);
             config.jetty.multipartConfig.maxTotalRequestSize(apiConfig.maxRequestSizeBytes(), SizeUnit.BYTES);
 
-            config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
             if (demoConfig.dev()) {
@@ -516,6 +513,8 @@ public class ApiServer {
             config.routes.beforeMatched(this::handleStationReadOnly);
 
             setupExceptionHandlers(config.routes);
+
+            config.routes.get(ApiDocumentation.PATH, ApiDocumentation.load());
 
             // Public endpoints
             config.routes.get(
@@ -913,17 +912,8 @@ public class ApiServer {
         }
     }
 
-    private void configureOpenApi(OpenApiPluginConfiguration config) {
-        config.withDocumentationPath("/docs")
-                .withDefinitionConfiguration((_, definition) -> definition.info(info -> {
-                    info.title("Ember API");
-                    info.version("1.0");
-                    info.description("Documentation for the Ember API");
-                }));
-    }
-
     private void configureSwagger(SwaggerConfiguration config) {
-        config.withDocumentationPath("/docs").withUiPath("/swagger-ui");
+        config.withDocumentationPath(ApiDocumentation.PATH).withUiPath("/swagger-ui");
     }
 
     /**

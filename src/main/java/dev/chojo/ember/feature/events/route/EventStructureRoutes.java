@@ -30,7 +30,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -477,13 +476,10 @@ public class EventStructureRoutes implements Routes {
     public record FieldDefaultEntry(
             int fieldId, String source, @Nullable String value) {}
 
-    @OpenApiName("SetEventFieldsRequest")
     public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
 
-    @OpenApiName("FieldDateValueRequest")
     public record FieldDateValueRequest(LocalDate date, String value) {}
 
-    @OpenApiName("EventFieldEntry")
     public record EventFieldEntry(
             @Nullable Integer id,
             String name,

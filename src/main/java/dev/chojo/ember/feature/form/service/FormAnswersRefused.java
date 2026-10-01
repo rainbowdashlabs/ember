@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.form.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
-import io.javalin.openapi.OpenApiName;
 
 import java.util.List;
 
@@ -67,7 +66,6 @@ public class FormAnswersRefused extends RefusalResponse {
      * @param code       the code of what was wrong
      * @param message    what was wrong, in one sentence
      */
-    @OpenApiName("FormAnswerProblem")
     public record Problem(int questionId, String pageKey, String code, String message) {
         /**
          * A problem named by a refusal.
@@ -90,7 +88,6 @@ public class FormAnswersRefused extends RefusalResponse {
      * @param code     the code of the refusal as a whole
      * @param problems what was wrong, one entry per question
      */
-    @OpenApiName("FormAnswersRefusedBody")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Body(String error, String message, String code, List<Problem> problems) {}
 }

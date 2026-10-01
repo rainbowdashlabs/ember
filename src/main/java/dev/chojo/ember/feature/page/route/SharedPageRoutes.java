@@ -20,7 +20,6 @@ import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -136,7 +135,6 @@ public class SharedPageRoutes implements Routes {
                 StationFormat.timezoneNameOf(station));
     }
 
-    @OpenApiName("SharedPage")
     public record SharedPage(SharedBrand station, StationPage page, String path, boolean ownAddressLive) {}
 
     /**
@@ -147,7 +145,6 @@ public class SharedPageRoutes implements Routes {
      * date put on whichever clock wrote it comes out differently in the two copies. The station's own
      * clock is the one both can be told to use.
      */
-    @OpenApiName("SharedPageBrand")
     public record SharedBrand(
             String stationUid,
             @Nullable String publicSlug,

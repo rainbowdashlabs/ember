@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.documents.service;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
-import io.javalin.openapi.OpenApiName;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -159,6 +158,5 @@ public class DocumentCatalogService {
      *
      * @param total how many the filters match in all, so the pages can be counted
      */
-    @OpenApiName("MemberDocumentPage")
     public record DocumentPage(List<MemberDocumentResponse> documents, int total) {}
 }
