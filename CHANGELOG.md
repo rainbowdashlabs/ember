@@ -151,6 +151,7 @@
 - **Yes answers could show as no.** In some cases a yes saved by an older version showed as no among an appointment's fields and in the answers to registration questions. Such answers now show as yes everywhere.
 - **A board number field could not hold zero.** Entering 0 into a number field of a ticket emptied the field. Zero is now kept.
 - **Registration answers ignored the question's limits.** In some cases the box for answering a number question took numbers outside its range, and a member question limited to a group or a tag offered every member, so saving then failed. The box now keeps to the range and offers only the members the question takes.
+- **Association gear kept by the association could not be opened at the station.** A piece the association lists in its own store and has sent to a station appeared in the station's lists and under its scanner, but opening it there said it was not found. The station now opens it, hands it out and reports it like any other piece it holds.
 
 ## v26.19.5
 

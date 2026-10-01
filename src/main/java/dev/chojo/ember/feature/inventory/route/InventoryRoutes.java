@@ -237,12 +237,22 @@ public class InventoryRoutes implements Routes {
         return session.clusterId();
     }
 
+    /**
+     * Refuses a piece that is neither written down in one of the caller's inventories nor held by the
+     * caller's station.
+     *
+     * <p>Held counts as much as written down: gear the association keeps in its own inventory and lends
+     * to a station is on that station's lists and under its scanner, so opening it there has to work
+     * too. What the station may then change on it is decided by the owner checks behind each route.
+     */
     private void verifyItemOwnership(int itemId, StationSession session) {
         var item = inventoryService.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE::raise);
         var inventory = inventoryService
                 .findById(item.inventoryId())
                 .orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_ITEM::raise);
-        RouteSupport.requireSameStation(session.user(), inventory.stationId());
+        if (inventory.stationId() == session.stationId()) return;
+        if (inventoryService.isHeldBy(itemId, session.stationId())) return;
+        throw Refusal.NOT_YOURS_TO_OPEN.raise();
     }
 
     /**

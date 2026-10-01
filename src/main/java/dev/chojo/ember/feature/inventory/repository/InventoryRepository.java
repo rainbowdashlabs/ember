@@ -586,6 +586,24 @@ public class InventoryRepository {
     }
 
     /**
+     * Whether a station holds one piece, by the same rule {@link #findItemsByStation(int)} lists them.
+     *
+     * @param itemId    the item
+     * @param stationId the station asking
+     * @return true when the piece is among what the station holds
+     */
+    public boolean isHeldBy(int itemId, int stationId) {
+        return SqlSupport.exists(
+                """
+                SELECT 1 FROM inventory_item ii
+                %s
+                WHERE ii.id = :item_id AND %s;""",
+                call().bind("item_id", itemId).bind(ItemCustodySql.STATION_BIND, stationId),
+                ItemCustodySql.joinInventory("ii", "i"),
+                ItemCustodySql.heldBy("ii", "i"));
+    }
+
+    /**
      * Every item a station holds, which is not the same as every item it owns.
      */
     public List<InventoryItem> findItemsByStation(int stationId) {

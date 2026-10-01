@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -409,6 +410,29 @@ class InventoryRepositoryTest extends RepositoryTestBase {
 
         inventoryRepo.delete(jackets.id());
         clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /**
+     * A piece written down in the association's own inventory and lent to a station is held by that
+     * station and by nobody else, the same way the station's lists count it.
+     */
+    @Test
+    @Order(45)
+    void isHeldBy() {
+        var home = stationRepo.create("Träger Gewahrsam");
+        var elsewhere = stationRepo.create("Fremde Wache");
+        var cluster = clusterRepo.create("Kreisverband Gewahrsam", null, home.id());
+        var pool = inventoryRepo.create(home.id(), "Jacken Gewahrsam", InventoryType.EXTERNAL, false);
+        var lent = inventoryRepo.createItem(pool.id(), "JG-1", "Jacke", null, null, ItemOwner.CLUSTER, cluster.id());
+        itemCustodyService.applyStepCustody(lent.id(), ItemCustody.AT_STATION, null, null, station.id());
+
+        assertTrue(inventoryRepo.isHeldBy(lent.id(), station.id()), "the station holding it");
+        assertFalse(inventoryRepo.isHeldBy(lent.id(), elsewhere.id()), "a station that has never seen it");
+
+        inventoryRepo.delete(pool.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(elsewhere.id());
         stationRepo.delete(home.id());
     }
 

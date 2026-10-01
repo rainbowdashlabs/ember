@@ -93,6 +93,17 @@ public class InventoryService {
         return inventoryRepository.findItemsByStation(stationId);
     }
 
+    /**
+     * Whether a station holds a piece, which is what puts it on the station's lists whoever owns it.
+     *
+     * @param itemId    the item
+     * @param stationId the station asking
+     * @return true when the station holds it
+     */
+    public boolean isHeldBy(int itemId, int stationId) {
+        return inventoryRepository.isHeldBy(itemId, stationId);
+    }
+
     public List<InventorySize> findAllSizesByStation(int stationId) {
         return inventoryRepository.findSizesByStation(stationId);
     }

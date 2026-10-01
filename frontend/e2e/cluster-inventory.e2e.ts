@@ -14,10 +14,10 @@ import {must} from './fixtures/must'
  * The cluster's own gear: where each piece is, who may change it, and which steps of a movement only the
  * cluster can answer.
  *
- * The seeder leaves two movements standing on a step the cluster owns, one return and one exchange, which
- * is what the stories about answering walk. Serial, because both ends of the same movement are read and
- * pressed in turn and two workers doing that at once would each be answering what the other just moved on
- * from.
+ * The seeder leaves two movements standing on a step the cluster owns, one return and one exchange. They are
+ * only ever read: a story that answers the cluster's step starts a movement on a piece of its own, so a retry
+ * finds the same ground the first attempt did. Serial, because both ends of the same movement are read and pressed in
+ * turn and two workers doing that at once would each be answering what the other just moved on from.
  */
 test.describe.configure({mode: 'serial'})
 
@@ -27,6 +27,49 @@ async function queue(page: Page, clusterUid: string) {
     const response = await page.request.get('/api/v1/cluster/inventory/queue', {headers})
     expect(response.ok()).toBeTruthy()
     return {headers, entries: await response.json()}
+}
+
+/**
+ * A piece the cluster owns that the station records for it and that no other story has touched.
+ *
+ * Written into the station inventory that already keeps the cluster's gear, so it is ordinary in every way
+ * except that it is this story's alone: the seeded pieces are what every other story reads and moves, and a
+ * story that sends one of them away leaves its retry and its neighbours nothing to find. A sized piece is
+ * one that can be swapped for another size, which is what an exchange needs.
+ */
+async function aPieceOfOurOwn(
+    station: Page, headers: Record<string, string>, clusterUid: string, name: string, sized = false,
+) {
+    const own = await station.request
+        .get('/api/v1/inventories', {headers})
+        .then(r => r.json())
+        .then((inventories: {id: number}[]) => new Set(inventories.map(inventory => inventory.id)))
+    const held = await station.request
+        .get('/api/v1/inventories/all-items', {headers})
+        .then(r => r.json())
+    const shelf = must((held as {ownerKind: string; ownerClusterId: number | null; sizeId: number | null;
+        inventoryId: number}[])
+        .find(item => item.ownerKind === 'CLUSTER' && !!item.ownerClusterId && (item.sizeId !== null) === sized
+            && own.has(item.inventoryId)), 'a station inventory keeping the cluster\'s gear')
+
+    const created = await station.request.post(`/api/v1/inventories/${shelf.inventoryId}/items`, {
+        headers,
+        data: {internalId: `KV-E2E-${test.info().workerIndex}-${Date.now()}`, name, sizeId: shelf.sizeId,
+            metadata: null, ownerKind: 'CLUSTER', ownerClusterId: clusterUid},
+    })
+    expect(created.ok(), 'the station records a piece the cluster owns').toBeTruthy()
+    return (await created.json()) as {id: number; inventoryId: number; sizeId: number | null}
+}
+
+/** A return the station starts on a piece, which leaves it standing on the cluster's step. */
+async function startReturn(station: Page, headers: Record<string, string>,
+    piece: {id: number; inventoryId: number}, reason: string): Promise<number> {
+    const started = await station.request.post('/api/v1/movements', {
+        headers,
+        data: {purpose: 'RETURN', outgoingItemId: piece.id, inventoryId: piece.inventoryId, reason},
+    })
+    expect(started.ok(), 'the station may send back what it holds').toBeTruthy()
+    return (await started.json()).movement.id
 }
 
 /** One movement as somebody sees it, steps and all. */
@@ -104,9 +147,16 @@ test.describe('Cluster inventory', () => {
     test('the cluster confirms the arrival the station cannot', async ({browser, request}) => {
         const page = await clusterGearManagerPage(browser, request)
         const cluster = await enterCluster(page)
-        const {headers, entries} = await queue(page, cluster.uid)
 
-        const waiting = entries.find((e: {purpose: string}) => e.purpose === 'RETURN')
+        const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        const stationHeaders = await apiHeaders(station)
+        const piece = await aPieceOfOurOwn(station, stationHeaders, cluster.uid, 'Jacke zum Zurückgeben')
+        const id = await startReturn(station, stationHeaders, piece, 'Wird nicht mehr gebraucht')
+        await station.context().close()
+
+        const {headers, entries} = await queue(page, cluster.uid)
+        const waiting = entries.find((e: {purpose: string; movementId: number}) =>
+            e.purpose === 'RETURN' && e.movementId === id)
         expect(waiting, 'a return is waiting on the cluster').toBeTruthy()
 
         const before = await movement(page, waiting.movementId, headers)
@@ -136,9 +186,40 @@ test.describe('Cluster inventory', () => {
     test('an exchange walks past the cluster only when the cluster answers', async ({browser, request}) => {
         const page = await clusterGearManagerPage(browser, request)
         const cluster = await enterCluster(page)
-        const {headers, entries} = await queue(page, cluster.uid)
 
-        const waiting = entries.find((e: {purpose: string}) => e.purpose === 'EXCHANGE')
+        const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        const stationHeaders = await apiHeaders(station)
+        const piece = await aPieceOfOurOwn(station, stationHeaders, cluster.uid, 'Jacke zum Tauschen', true)
+        const members = await station.request
+            .get('/api/v1/station-members', {headers: stationHeaders})
+            .then(r => r.json())
+        const member = must((Array.isArray(members) ? members : members.members ?? [])
+            .find((m: {userType: string}) => m.userType === 'MEMBER'), 'an ordinary member at the station')
+        const handed = await station.request.put(`/api/v1/inventory-items/${piece.id}/assign`,
+            {headers: stationHeaders, data: {memberId: member.id, memberName: null}})
+        expect(handed.ok(), 'the member wears the piece that is to be exchanged').toBeTruthy()
+
+        const started = await station.request.post('/api/v1/movements', {
+            headers: stationHeaders,
+            data: {purpose: 'EXCHANGE', memberId: member.id, outgoingItemId: piece.id,
+                inventoryId: piece.inventoryId, oldSizeId: piece.sizeId, newSizeId: piece.sizeId,
+                reason: 'Reißverschluss kaputt'},
+        })
+        expect(started.ok(), 'the station raises the exchange').toBeTruthy()
+        let walked = await started.json()
+        for (let guard = 6; guard > 0; guard -= 1) {
+            const current = walked.steps.find((s: {current: boolean}) => s.current)
+            if (!current?.actionable) break
+            const next = await station.request.post(`/api/v1/movements/${walked.movement.id}/acknowledge`,
+                {headers: stationHeaders, data: {stepId: current.id, note: ''}})
+            expect(next.ok()).toBeTruthy()
+            walked = await movement(station, walked.movement.id, stationHeaders)
+        }
+        await station.context().close()
+
+        const {headers, entries} = await queue(page, cluster.uid)
+        const waiting = entries.find((e: {purpose: string; movementId: number}) =>
+            e.purpose === 'EXCHANGE' && e.movementId === walked.movement.id)
         expect(waiting, 'an exchange is waiting on the cluster').toBeTruthy()
 
         const before = await movement(page, waiting.movementId, headers)
@@ -169,14 +250,9 @@ test.describe('Cluster inventory', () => {
         const cluster = await enterCluster(page)
         const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
 
-        const resting = must(await page.request
-            .get('/api/v1/cluster/inventory/items', {headers})
-            .then(r => r.json())
-            .then((items: {id: number; custody: string; stationUid: string}[]) =>
-                items.find(i => i.custody === 'AT_STATION')), 'gear of the cluster resting at a station')
-
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
         const stationHeaders = await apiHeaders(station)
+        const resting = await aPieceOfOurOwn(station, stationHeaders, cluster.uid, 'Jacke zum Ausgeben')
         const members = await station.request
             .get('/api/v1/station-members', {headers: stationHeaders})
             .then(r => r.json())
@@ -290,28 +366,14 @@ test.describe('Cluster inventory', () => {
      * it before rather than staying in limbo.
      */
     test('the cluster declines, with the reason readable at the station', async ({browser, request}) => {
-        const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
-        const stationHeaders = await apiHeaders(station)
-
-        const items = await station.request
-            .get('/api/v1/inventories/all-items', {headers: stationHeaders})
-            .then(r => r.json())
-        const owned = (Array.isArray(items) ? items : items.items ?? [])
-            .find((i: {ownerKind: string; ownerClusterId: number | null; custody: string}) =>
-                i.ownerKind === 'CLUSTER' && !!i.ownerClusterId && i.custody === 'AT_STATION')
-        expect(owned, 'the station holds gear the cluster owns').toBeTruthy()
-
-        const started = await station.request.post('/api/v1/movements', {
-            headers: stationHeaders,
-            data: {purpose: 'RETURN', outgoingItemId: owned.id, inventoryId: owned.inventoryId,
-                reason: 'Wird nicht mehr gebraucht'},
-        })
-        expect(started.ok()).toBeTruthy()
-        const id = (await started.json()).movement.id
-
         const page = await clusterGearManagerPage(browser, request)
         const cluster = await enterCluster(page)
         const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+
+        const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        const stationHeaders = await apiHeaders(station)
+        const owned = await aPieceOfOurOwn(station, stationHeaders, cluster.uid, 'Jacke zum Behalten')
+        const id = await startReturn(station, stationHeaders, owned, 'Wird nicht mehr gebraucht')
 
         const declined = await page.request.post(`/api/v1/movements/${id}/decline`,
             {headers, data: {reason: 'Behaltet es noch'}})
