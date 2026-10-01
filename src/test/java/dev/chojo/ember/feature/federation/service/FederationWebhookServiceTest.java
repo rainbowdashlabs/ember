@@ -81,7 +81,7 @@ class FederationWebhookServiceTest {
         when(station.name()).thenReturn("Local");
         var stations = mock(StationRepository.class);
         when(stations.findById(LOCAL_STATION_ID)).thenReturn(Optional.of(station));
-        when(stations.resolveUid(LOCAL_STATION_ID)).thenReturn(LOCAL_STATION_UID);
+        when(stations.requireUid(LOCAL_STATION_ID)).thenReturn(LOCAL_STATION_UID);
         return stations;
     }
 
