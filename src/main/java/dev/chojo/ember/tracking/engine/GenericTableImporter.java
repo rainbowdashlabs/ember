@@ -172,7 +172,10 @@ public final class GenericTableImporter {
                 Double d = toDouble(val);
                 yield d == null ? c.bind(name, (Double) null) : c.bind(name, d);
             }
-            case "bool" -> c.bind(name, asBool(val));
+            case "bool" -> {
+                Optional<Boolean> b = asBool(val);
+                yield b.isPresent() ? c.bind(name, b.get()) : c.bind(name, (Boolean) null);
+            }
             default -> c.bind(name, val.toString());
         };
     }
@@ -208,10 +211,14 @@ public final class GenericTableImporter {
         return null;
     }
 
-    private static Boolean asBool(Object val) {
-        if (val instanceof Boolean b) return b;
-        if (val instanceof String s) return Boolean.parseBoolean(s);
-        return null;
+    /**
+     * A transferred value as a boolean, or empty when it is neither a boolean nor text, which is then
+     * written as SQL {@code NULL}.
+     */
+    private static Optional<Boolean> asBool(Object val) {
+        if (val instanceof Boolean b) return Optional.of(b);
+        if (val instanceof String s) return Optional.of(Boolean.parseBoolean(s));
+        return Optional.empty();
     }
 
     /**
@@ -295,7 +302,7 @@ public final class GenericTableImporter {
             bind.put(fk.column(), new BoundValue(mapped, "int4"));
         }
 
-        for (Lookup lk : table.lookups()) {
+        for (Lookup lk : LookupSql.lookupsOf(table)) {
             if (bind.containsKey(lk.via())) continue;
             Object pickedValue = row.get(lk.emitAs());
             if (pickedValue == null) continue;
@@ -321,7 +328,7 @@ public final class GenericTableImporter {
     }
 
     private Integer tryResolveViaLookup(TableEntry table, String fkColumn, Map<String, Object> row) {
-        for (Lookup lk : table.lookups()) {
+        for (Lookup lk : LookupSql.lookupsOf(table)) {
             if (!lk.via().equals(fkColumn)) continue;
             Object pickedValue = row.get(lk.emitAs());
             if (pickedValue == null) continue;

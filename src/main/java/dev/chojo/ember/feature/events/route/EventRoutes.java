@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
@@ -400,17 +401,18 @@ public class EventRoutes implements Routes {
                 req.startTime(),
                 req.endTime(),
                 req.templateId(),
-                req.requiresRegistration() != null && req.requiresRegistration(),
+                Boolean.TRUE.equals(req.requiresRegistration()),
                 req.registrationDeadline(),
-                req.requiresConfirmation() != null && req.requiresConfirmation(),
+                Boolean.TRUE.equals(req.requiresConfirmation()),
                 req.categoryId(),
                 req.registrationLimit(),
                 req.minRegistrations(),
                 req.thresholdDays(),
                 req.registrationCloseDays());
         applyAudiences(event.id(), req);
-        if (req.templateId() != null) {
-            registrationFieldService.copyTemplateFields(req.templateId(), event.id());
+        Integer templateId = req.templateId();
+        if (templateId != null) {
+            registrationFieldService.copyTemplateFields(templateId, event.id());
         }
         var withEnd = crudService
                 .setRepeatEnd(event.id(), req.repeatUntil(), req.repeatCount())
@@ -490,9 +492,9 @@ public class EventRoutes implements Routes {
                         req.startTime(),
                         req.endTime(),
                         req.templateId(),
-                        req.requiresRegistration() != null && req.requiresRegistration(),
+                        Boolean.TRUE.equals(req.requiresRegistration()),
                         req.registrationDeadline(),
-                        req.requiresConfirmation() != null && req.requiresConfirmation(),
+                        Boolean.TRUE.equals(req.requiresConfirmation()),
                         req.categoryId(),
                         req.isPublic(),
                         req.registrationLimit(),
@@ -547,16 +549,17 @@ public class EventRoutes implements Routes {
      * case in which the caller has an opinion about it.
      */
     private void applyAudiences(int eventId, EventRequest req) {
-        var register = req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
-        restrictionService.setRestrictions(eventId, register);
-        if (req.restriction() != null) {
-            restrictionService.updateRestrictionMode(eventId, register.mode());
+        RestrictionSelection restriction = req.restriction();
+        restrictionService.setRestrictions(eventId, restriction != null ? restriction : RestrictionSelection.empty());
+        if (restriction != null) {
+            restrictionService.updateRestrictionMode(eventId, restriction.mode());
         }
 
-        var view = req.viewRestriction() != null ? req.viewRestriction() : RestrictionSelection.empty();
-        restrictionService.setViewRestrictions(eventId, view);
-        if (req.viewRestriction() != null) {
-            restrictionService.updateViewRestrictionMode(eventId, view.mode());
+        RestrictionSelection viewRestriction = req.viewRestriction();
+        restrictionService.setViewRestrictions(
+                eventId, viewRestriction != null ? viewRestriction : RestrictionSelection.empty());
+        if (viewRestriction != null) {
+            restrictionService.updateViewRestrictionMode(eventId, viewRestriction.mode());
         }
     }
 
@@ -704,13 +707,13 @@ public class EventRoutes implements Routes {
         var req = ctx.bodyAsClass(GenerateDatesRequest.class);
         var interval = new IntervalConfig(
                 req.intervalType(),
-                req.dayOfWeek() != null ? req.dayOfWeek() : 1,
+                Objects.requireNonNullElse(req.dayOfWeek(), 1),
                 LocalDate.parse(req.startDate()),
                 LocalDate.parse(req.endDate()),
                 req.startTime() != null ? LocalTime.parse(req.startTime()) : null,
                 req.endTime() != null ? LocalTime.parse(req.endTime()) : null);
-        var rows = batchEventService.generateDates(
-                session.stationId(), interval, req.ignoreBreaks() != null && req.ignoreBreaks());
+        var rows =
+                batchEventService.generateDates(session.stationId(), interval, Boolean.TRUE.equals(req.ignoreBreaks()));
         ctx.json(rows);
     }
 
@@ -727,13 +730,14 @@ public class EventRoutes implements Routes {
         if (req.rows() == null || req.rows().isEmpty()) {
             throw Refusal.BATCH_NEEDS_ROWS.raise();
         }
-        List<BatchFieldEntry> inlineFields = req.inlineFields() != null
-                ? req.inlineFields().stream()
+        var requestedInlineFields = req.inlineFields();
+        List<BatchFieldEntry> inlineFields = requestedInlineFields != null
+                ? requestedInlineFields.stream()
                         .map(f -> new BatchFieldEntry(
                                 f.name(),
                                 f.fieldType() != null ? f.fieldType() : EventFieldType.STRING,
                                 f.config() != null ? f.config() : EventFieldConfig.parse("{}"),
-                                f.overview() != null && f.overview(),
+                                Boolean.TRUE.equals(f.overview()),
                                 f.attendanceFieldId()))
                         .toList()
                 : null;

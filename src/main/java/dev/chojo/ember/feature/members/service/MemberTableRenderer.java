@@ -108,9 +108,12 @@ public class MemberTableRenderer {
      * screen behind it, so the words are put in here and only here.
      */
     private String worded(MemberTable.MemberTableHeader column, String value, String language) {
-        if (value == null || value.isBlank() || column.kind() != MemberTableColumnKind.BUILTIN) return value;
+        String key = column.key();
+        if (value == null || value.isBlank() || column.kind() != MemberTableColumnKind.BUILTIN || key == null) {
+            return value;
+        }
         boolean english = "en".equals(language);
-        return switch (column.key()) {
+        return switch (key) {
             case "registrationStatus" ->
                 switch (value) {
                     case "ACCEPTED" -> english ? "Confirmed" : "Bestätigt";

@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 
 public final class TypstCompiler {
     private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
@@ -71,7 +72,8 @@ public final class TypstCompiler {
             Path templateSource = Path.of("templates", "typst", templateName);
             Path templateFile = tempDir.resolve(templateName);
             FilePaths.createParentDirectories(templateFile);
-            Path templateDir = templateFile.getParent();
+            Path templateDir = Objects.requireNonNull(
+                    templateFile.getParent(), "the template is resolved inside the temporary directory");
 
             if (logo != null) {
                 String ext = logoExtension(logo.contentType());

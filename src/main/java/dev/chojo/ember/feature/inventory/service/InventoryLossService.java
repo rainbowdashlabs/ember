@@ -98,10 +98,11 @@ public class InventoryLossService {
     }
 
     private void requireHolds(UserSession session, InventoryItem item) {
-        if (item.assignedTo() == null || session.member() == null) {
+        Integer holder = item.assignedTo();
+        if (holder == null || session.member() == null) {
             throw Refusal.LOSS_NOT_YOURS_TO_REPORT.raise();
         }
-        if (!guardians.mayActFor(session, item.assignedTo())) {
+        if (!guardians.mayActFor(session, holder)) {
             throw Refusal.LOSS_NOT_YOURS_TO_REPORT_FOR_THEM.raise();
         }
     }

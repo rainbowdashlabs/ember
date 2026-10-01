@@ -210,11 +210,10 @@ public class ApiServer {
     private static void traceRequest(Context ctx) {
         if (ctx.method() == HandlerType.OPTIONS || !log.isTraceEnabled()) return;
         String body;
+        String contentType = ctx.contentType();
         if (isSensitivePath(ctx.path())) {
             body = "[REDACTED - contains sensitive data]";
-        } else if (ctx.contentType() == null
-                || ctx.contentType().contains("text")
-                || ctx.contentType().equals(JSON)) {
+        } else if (contentType == null || contentType.contains("text") || contentType.equals(JSON)) {
             body = ctx.body().substring(0, Math.min(ctx.body().length(), 180));
         } else {
             body = "Bytes";
@@ -323,8 +322,9 @@ public class ApiServer {
                 }
             }
         }
-        if (bodyBytes <= 0 && ctx.result() != null) {
-            bodyBytes = ctx.result().length();
+        String result = ctx.result();
+        if (bodyBytes <= 0 && result != null) {
+            bodyBytes = result.length();
         }
         return bodyBytes;
     }

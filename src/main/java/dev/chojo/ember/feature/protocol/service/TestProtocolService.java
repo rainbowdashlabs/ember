@@ -41,9 +41,11 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Test protocols, their runs, and the protocols federation partners share with a station.
@@ -98,8 +100,8 @@ public class TestProtocolService implements FederationServer {
      */
     public List<RemoteProtocolSummary> serveProtocols(ServingPartner partner) {
         return federationRepository.findProtocolShares(partner.servingStationId()).stream()
-                .filter(share -> share.protocolId() != null)
-                .flatMap(share -> findProtocol(share.protocolId()).stream())
+                .flatMap(share -> Stream.ofNullable(share.protocolId()))
+                .flatMap(protocolId -> findProtocol(protocolId).stream())
                 .filter(protocol -> protocol.stationId() == partner.servingStationId())
                 .map(protocol -> new RemoteProtocolSummary(
                         protocol.id(),
@@ -130,7 +132,7 @@ public class TestProtocolService implements FederationServer {
 
     private boolean isShared(ServingPartner partner, int protocolId) {
         return federationRepository.findProtocolShares(partner.servingStationId()).stream()
-                .anyMatch(share -> share.protocolId() != null && share.protocolId() == protocolId);
+                .anyMatch(share -> Objects.equals(share.protocolId(), protocolId));
     }
 
     // -- Protocols --

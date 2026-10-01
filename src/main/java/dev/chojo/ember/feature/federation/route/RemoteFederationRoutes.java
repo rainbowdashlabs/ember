@@ -188,7 +188,7 @@ public class RemoteFederationRoutes implements Routes {
             throw Refusal.ANNOUNCED_HOST_NOT_ALLOWED.raise();
         }
 
-        UUID remoteStationUid = UUID.fromString(ctx.header("X-Federation-Station-Id"));
+        UUID remoteStationUid = FederationSession.from(ctx).partnerStationUid();
         federationService.updateRemoteHost(remoteStationUid, req.newHost());
 
         log.info("Federation: Station {} announced host change to {}", remoteStationUid, req.newHost());

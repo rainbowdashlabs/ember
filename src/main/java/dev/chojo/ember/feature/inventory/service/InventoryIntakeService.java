@@ -81,10 +81,11 @@ public class InventoryIntakeService {
                     row.metadata() != null ? row.metadata() : InventoryItemMetadata.empty(),
                     row.ownerKind() != null ? row.ownerKind() : theUsualOwner,
                     null);
+            Integer holder = row.memberId();
             written.add(
-                    row.memberId() != null
+                    holder != null
                             ? inventoryService
-                                    .assignItem(item.id(), row.memberId(), nameOf(row.memberId()))
+                                    .assignItem(item.id(), holder, nameOf(holder))
                                     .orElse(item)
                             : item);
         }

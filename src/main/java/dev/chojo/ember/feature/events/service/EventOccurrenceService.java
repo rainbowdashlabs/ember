@@ -245,7 +245,8 @@ public class EventOccurrenceService {
         return events.stream()
                 .filter(ev -> {
                     String name = ev.name() != null ? ev.name().toLowerCase() : "";
-                    String desc = ev.description() != null ? ev.description().toLowerCase() : "";
+                    String description = ev.description();
+                    String desc = description != null ? description.toLowerCase() : "";
                     return name.contains(search) || desc.contains(search);
                 })
                 .toList();

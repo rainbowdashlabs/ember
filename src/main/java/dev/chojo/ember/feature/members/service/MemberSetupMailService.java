@@ -41,12 +41,11 @@ public class MemberSetupMailService {
      * @param member the member, already checked to belong to the caller's station
      */
     public void resend(StationMember member) {
-        if (member.accountId() == null) {
+        Integer accountId = member.accountId();
+        if (accountId == null) {
             throw Refusal.MEMBER_HAS_NO_ACCOUNT.raise();
         }
-        var account = accountRepository
-                .findById(member.accountId())
-                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL::raise);
+        var account = accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL::raise);
         if (account.setupCompletedAt() != null || accountRepository.hasChosenPassword(account.id())) {
             throw Refusal.ACCOUNT_ALREADY_SET_UP.raise();
         }

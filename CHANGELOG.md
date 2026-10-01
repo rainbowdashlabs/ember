@@ -119,6 +119,7 @@
 - **Accounts without an address read "(null)".** An account that signs in with a username and has no email address was shown as its name followed by "(null)" in the administration's account picker and when resetting its second factor. It now shows the name alone.
 - **Help examples left a permission unticked.** In the help center's examples for member, user type and group permissions, the attendance and appointment management rights the example grants showed as not granted. The examples now show them ticked.
 - **The member list never marked an incomplete profile.** Members who had left a required profile question unanswered looked the same in the member list as everyone else. They are now marked "Incomplete" beside their name, judged the same way as the reminder on their own profile.
+- **Former members could break lists and exports.** In some cases a former member whose account had been removed made the attendance report and its export, an inventory check, the gear and movement exports, a guardian's list of managed members or a profile's change history fail with an error. Such a member is now shown by name or number.
 
 ## v26.19.5
 

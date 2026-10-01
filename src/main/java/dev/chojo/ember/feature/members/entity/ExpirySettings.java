@@ -42,11 +42,12 @@ public record ExpirySettings(
      * @return the settings the field works by
      */
     public static ExpirySettings of(ProfileFieldConfig config) {
+        List<Integer> reminderDays = config.reminderDays();
         return new ExpirySettings(
                 Objects.requireNonNullElse(config.warnFromDays(), DEFAULT_WARN_FROM_DAYS),
-                config.reminderDays() == null
+                reminderDays == null
                         ? DEFAULT_REMINDER_DAYS
-                        : config.reminderDays().stream()
+                        : reminderDays.stream()
                                 .filter(Objects::nonNull)
                                 .distinct()
                                 .sorted()
@@ -66,10 +67,12 @@ public record ExpirySettings(
      * @return {@code true} where a warning or a reminder lies after the date or a repeat has no gap
      */
     public static boolean outOfRange(ProfileFieldConfig config) {
-        if (config.warnFromDays() != null && config.warnFromDays() < 0) return true;
-        if (config.repeatEveryDays() != null && config.repeatEveryDays() < 1) return true;
-        return config.reminderDays() != null
-                && config.reminderDays().stream().anyMatch(days -> days == null || days < 0);
+        Integer warnFromDays = config.warnFromDays();
+        if (warnFromDays != null && warnFromDays < 0) return true;
+        Integer repeatEveryDays = config.repeatEveryDays();
+        if (repeatEveryDays != null && repeatEveryDays < 1) return true;
+        List<Integer> reminderDays = config.reminderDays();
+        return reminderDays != null && reminderDays.stream().anyMatch(days -> days == null || days < 0);
     }
 
     /**

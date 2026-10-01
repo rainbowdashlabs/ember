@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.PageTarget;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -114,12 +115,15 @@ public final class FormPathWalker {
      */
     private static PageTarget targetOf(
             FormPage page, List<FormQuestion> questions, Map<Integer, FormAnswerValue> answers) {
-        return questions.stream()
-                .filter(question -> page.key().equals(question.pageKey()) && question.branch() != null)
-                .findFirst()
-                .flatMap(question -> pickedOption(answers.get(question.id()))
-                        .map(key -> question.branch().targetOf(key)))
-                .orElseGet(() -> PageTarget.orNext(page.after()));
+        for (FormQuestion question : questions) {
+            QuestionBranch branch = question.branch();
+            if (page.key().equals(question.pageKey()) && branch != null) {
+                return pickedOption(answers.get(question.id()))
+                        .map(branch::targetOf)
+                        .orElseGet(() -> PageTarget.orNext(page.after()));
+            }
+        }
+        return PageTarget.orNext(page.after());
     }
 
     private static Optional<String> pickedOption(FormAnswerValue value) {

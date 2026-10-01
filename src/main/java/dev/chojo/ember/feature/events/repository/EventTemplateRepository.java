@@ -140,13 +140,14 @@ public class EventTemplateRepository {
                 .single(call().bind("template_id", templateId))
                 .delete();
         for (EventTemplateFieldData f : fields) {
+            var config = f.config();
             query("""
                     INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id, default_value)
                     VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview, :public, :attendance_field_id, :default_value);""")
                     .single(call().bind("template_id", templateId)
                             .bind("name", f.name())
                             .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
-                            .bind("config", f.config() != null ? f.config().toJson() : "{}")
+                            .bind("config", config != null ? config.toJson() : "{}")
                             .bind("position", f.position())
                             .bind("overview", f.overview())
                             .bind("public", f.isPublic())

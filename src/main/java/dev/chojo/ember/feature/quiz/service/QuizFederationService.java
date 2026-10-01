@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The catalogs federation partners share with a station, and the catalogs this station shares with
@@ -95,8 +96,8 @@ public class QuizFederationService implements FederationServer {
      */
     public List<RemoteCatalogSummary> serveCatalogs(ServingPartner partner) {
         return federationRepository.findQuizShares(partner.servingStationId()).stream()
-                .filter(share -> share.catalogId() != null)
-                .flatMap(share -> catalogService.findCatalog(share.catalogId()).stream())
+                .flatMap(share -> Stream.ofNullable(share.catalogId()))
+                .flatMap(catalogId -> catalogService.findCatalog(catalogId).stream())
                 .filter(catalog -> catalog.stationId() == partner.servingStationId())
                 .map(catalog -> new RemoteCatalogSummary(
                         catalog.id(),
@@ -131,7 +132,7 @@ public class QuizFederationService implements FederationServer {
 
     private boolean isShared(ServingPartner partner, int catalogId) {
         return federationRepository.findQuizShares(partner.servingStationId()).stream()
-                .anyMatch(share -> share.catalogId() != null && share.catalogId() == catalogId);
+                .anyMatch(share -> Objects.equals(share.catalogId(), catalogId));
     }
 
     public List<SharedQuizItem> browseSharedQuiz(int stationId) {

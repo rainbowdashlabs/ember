@@ -18,6 +18,7 @@ import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -148,8 +149,9 @@ public class QuizPdfService {
      * Places the question's picture next to the template and answers with its file name, or
      * {@code null} when the question has none or it cannot be read.
      */
-    private String resolveImage(QuizQuestion question, int number, Map<String, byte[]> images) {
-        if (question.imageUrl() == null || question.imageUrl().isBlank()) return null;
+    private @Nullable String resolveImage(QuizQuestion question, int number, Map<String, byte[]> images) {
+        String imageUrl = question.imageUrl();
+        if (imageUrl == null || imageUrl.isBlank()) return null;
         var catalog = catalogRepository.findById(question.catalogId()).orElse(null);
         if (catalog == null) return null;
         var image = imageService.read(catalog.stationId(), question.id(), 0).orElse(null);
@@ -181,5 +183,10 @@ public class QuizPdfService {
      * @param body what is printed below the title, by question type
      */
     public record SheetQuestion(
-            int number, String title, String description, String points, String image, QuizSheetBody body) {}
+            int number,
+            String title,
+            String description,
+            String points,
+            @Nullable String image,
+            QuizSheetBody body) {}
 }

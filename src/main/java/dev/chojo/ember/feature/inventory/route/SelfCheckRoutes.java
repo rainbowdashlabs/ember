@@ -127,7 +127,8 @@ public class SelfCheckRoutes implements Routes {
     private void answer(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SelfCheckAnswerRequest.class);
-        if (request.answers() == null) {
+        List<AnswerBody> answers = request.answers();
+        if (answers == null) {
             throw Refusal.SELF_CHECK_WITHOUT_ANSWERS.raise();
         }
         var rows = selfCheckService.answer(
@@ -135,7 +136,7 @@ public class SelfCheckRoutes implements Routes {
                 session.stationId(),
                 session.member().id(),
                 guardian(session),
-                request.answers().stream().map(AnswerBody::toInput).toList());
+                answers.stream().map(AnswerBody::toInput).toList());
         ctx.json(rows);
     }
 
@@ -164,7 +165,9 @@ public class SelfCheckRoutes implements Routes {
     private void holdBack(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(HeldReportRequest.class);
-        if (request.kind() == null || request.itemId() == null) {
+        SelfCheckRaisedKind kind = request.kind();
+        Integer itemId = request.itemId();
+        if (kind == null || itemId == null) {
             throw Refusal.HELD_REPORT_INCOMPLETE.raise();
         }
         var held = selfCheckService.holdBack(
@@ -172,8 +175,8 @@ public class SelfCheckRoutes implements Routes {
                 session.stationId(),
                 session.member().id(),
                 guardian(session),
-                request.kind(),
-                request.itemId(),
+                kind,
+                itemId,
                 request.newSizeId(),
                 request.words());
         ctx.status(HttpStatus.CREATED).json(held);

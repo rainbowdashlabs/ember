@@ -338,7 +338,8 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        if (p.partnerPublicKey() == null || p.partnerPublicKey().isBlank()) {
+        String partnerPublicKey = p.partnerPublicKey();
+        if (partnerPublicKey == null || partnerPublicKey.isBlank()) {
             log.warn("Federation partner {} has no public key configured", p.id());
             return Optional.empty();
         }
@@ -354,7 +355,7 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        var publicKey = signingService.decodePublicKey(p.partnerPublicKey());
+        var publicKey = signingService.decodePublicKey(partnerPublicKey);
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(ctx.path(), ctx.queryString());
         boolean valid = signingService.verify(
                 ctx.method().name(),

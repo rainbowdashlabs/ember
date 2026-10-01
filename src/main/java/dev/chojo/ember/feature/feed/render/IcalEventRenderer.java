@@ -118,9 +118,8 @@ public class IcalEventRenderer {
             if (ownDeclined && managed.isEmpty()) return false;
         }
 
-        if (!event.requiresRegistration()
-                || event.registrationDeadline() == null
-                || !event.registrationDeadline().isBefore(Instant.now())) {
+        Instant deadline = event.registrationDeadline();
+        if (!event.requiresRegistration() || deadline == null || !deadline.isBefore(Instant.now())) {
             return true;
         }
 
@@ -174,8 +173,8 @@ public class IcalEventRenderer {
             if (!description.isBlank()) vevent.add(new Description(description));
         } else {
             // Compact mode: just the description plus a link so users can still open the source.
-            String description =
-                    (event.description() != null ? event.description().trim() + "\n\n" : "") + deepLink;
+            String text = event.description();
+            String description = (text != null ? text.trim() + "\n\n" : "") + deepLink;
             vevent.add(new Description(description.stripTrailing()));
         }
 
@@ -209,8 +208,9 @@ public class IcalEventRenderer {
             Context ctx) {
         var sb = new StringBuilder();
 
-        if (event.description() != null && !event.description().isBlank()) {
-            sb.append(event.description().trim()).append("\n\n");
+        String description = event.description();
+        if (description != null && !description.isBlank()) {
+            sb.append(description.trim()).append("\n\n");
         }
 
         if (event.categoryId() != null) {
@@ -242,12 +242,9 @@ public class IcalEventRenderer {
             if (event.registrationDeadline() != null) {
                 appendLine(sb, ctx.locale(), "label.deadline", formatInstant(event.registrationDeadline(), ctx));
             }
-            if (event.registrationLimit() != null) {
-                appendLine(
-                        sb,
-                        ctx.locale(),
-                        "label.limit",
-                        event.registrationLimit().toString());
+            Integer registrationLimit = event.registrationLimit();
+            if (registrationLimit != null) {
+                appendLine(sb, ctx.locale(), "label.limit", registrationLimit.toString());
             }
             var status = ctx.ownerStatusByEvent().get(event.id());
             String statusLabel = notificationText.resolveLocalized(
@@ -268,9 +265,7 @@ public class IcalEventRenderer {
             }
             if (acceptedCount > 0) {
                 String acceptedLabel = notificationText.resolveLocalized(ctx.locale(), "ical", "label.accepted", null);
-                String limit = event.registrationLimit() != null
-                        ? event.registrationLimit().toString()
-                        : "∞";
+                String limit = registrationLimit != null ? registrationLimit.toString() : "∞";
                 sb.append(acceptedLabel)
                         .append(": ")
                         .append(acceptedCount)
@@ -292,9 +287,9 @@ public class IcalEventRenderer {
         if (notice.cause() == CancellationCause.THRESHOLD) {
             return notificationText.resolveLocalized(locale, "ical", "cancelledTooFewRegistrations", null);
         }
-        if (notice.reason() != null && !notice.reason().isBlank()) {
-            return notificationText.resolveLocalized(
-                    locale, "ical", "cancelledWithReason", Map.of("reason", notice.reason()));
+        String reason = notice.reason();
+        if (reason != null && !reason.isBlank()) {
+            return notificationText.resolveLocalized(locale, "ical", "cancelledWithReason", Map.of("reason", reason));
         }
         return notificationText.resolveLocalized(locale, "ical", "cancelled", null);
     }

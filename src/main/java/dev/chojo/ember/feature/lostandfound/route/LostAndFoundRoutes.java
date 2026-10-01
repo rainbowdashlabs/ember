@@ -206,9 +206,8 @@ public class LostAndFoundRoutes implements Routes {
         requireOwnedItem(ctx, id);
         var request = ctx.bodyAsClass(ClaimRequest.class);
 
-        int claimMemberId = request.memberId() != null
-                ? request.memberId()
-                : session.member().id();
+        Integer named = request.memberId();
+        int claimMemberId = named != null ? named : session.member().id();
         if (!maySpeakFor(session, claimMemberId)) {
             throw Refusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_MAKE.raise();
         }

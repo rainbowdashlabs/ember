@@ -92,10 +92,9 @@ public class DemoAccountService {
     private List<DemoAccount> stationAccounts(Station station) {
         List<DemoAccount> accounts = new ArrayList<>();
         for (StationMember member : stationMemberRepository.findByStation(station.id())) {
-            if (member.accountId() == null) continue;
-            accountRepository
-                    .findById(member.accountId())
-                    .ifPresent(account -> accounts.add(memberAccount(account, member)));
+            Integer accountId = member.accountId();
+            if (accountId == null) continue;
+            accountRepository.findById(accountId).ifPresent(account -> accounts.add(memberAccount(account, member)));
         }
         return accounts;
     }

@@ -175,7 +175,8 @@ public class QuizGenerationService {
                 turn.category() == null ? null : turn.category().name(),
                 turn.category() == null ? null : turn.category().description(),
                 existingTitles);
-        for (int i = 0; i < entry.count(); i++) {
+        int count = Objects.requireNonNullElse(entry.count(), 0);
+        for (int i = 0; i < count; i++) {
             try {
                 for (var question : aiService.generateNextQuestion(chat, entry.quizQuestionType())) {
                     job.addResult(new GeneratedQuestionWithMeta(

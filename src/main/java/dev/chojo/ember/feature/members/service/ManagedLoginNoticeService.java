@@ -119,8 +119,10 @@ public class ManagedLoginNoticeService {
      */
     private void announce(int memberId) {
         StationMember member = memberRepository.findById(memberId).orElse(null);
-        if (member == null || member.accountId() == null) return;
-        Account account = accountRepository.findById(member.accountId()).orElse(null);
+        if (member == null) return;
+        Integer accountId = member.accountId();
+        if (accountId == null) return;
+        Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) return;
 
         var recipients = mailRecipientService.forAccount(account.id());

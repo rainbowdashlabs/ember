@@ -645,18 +645,19 @@ public class MovementFlowService {
                 .collect(Collectors.toCollection(HashSet::new));
         var choices = new LinkedHashMap<Integer, Integer>();
         for (ChosenLanding choice : chosen) {
-            if (choice.stepIndex() == null) {
+            Integer stepIndex = choice.stepIndex();
+            if (stepIndex == null) {
                 throw new BadRequestResponse("Every landing names the step it is to land on");
             }
             if (!occupied.contains(choice.stepId())) {
                 throw new BadRequestResponse("No movement of this chain stands on step %s, so it has no landing here"
                         .formatted(choice.stepId()));
             }
-            if (choice.stepIndex() < 0 || choice.stepIndex() >= replacements.size()) {
+            if (stepIndex < 0 || stepIndex >= replacements.size()) {
                 throw new BadRequestResponse("The preset writes %d steps, so step %s cannot land on step %d"
-                        .formatted(replacements.size(), choice.stepId(), choice.stepIndex()));
+                        .formatted(replacements.size(), choice.stepId(), stepIndex));
             }
-            if (choices.put(choice.stepId(), choice.stepIndex()) != null) {
+            if (choices.put(choice.stepId(), stepIndex) != null) {
                 throw new BadRequestResponse("Step %s is given two landings, and its movements can only stand on one"
                         .formatted(choice.stepId()));
             }

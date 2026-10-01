@@ -380,7 +380,8 @@ public class ClusterMemberManagementService {
      * station of the same cluster is still the same person, and that is exactly the hole this closes.
      */
     private static void requireNotSelf(StationMember member, int actorAccountId) {
-        if (member.accountId() != null && member.accountId() == actorAccountId) {
+        Integer accountId = member.accountId();
+        if (accountId != null && accountId == actorAccountId) {
             throw new ForbiddenResponse("You cannot edit your own membership from the cluster");
         }
     }

@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.IntStream;
@@ -853,7 +854,7 @@ public class ItemMovementService {
         return inventoryRepository
                 .findItemById(itemId)
                 .filter(item -> item.custody() == ItemCustody.WITH_MEMBER)
-                .filter(item -> item.assignedTo() != null && item.assignedTo() == actor.memberId())
+                .filter(item -> Objects.equals(item.assignedTo(), actor.memberId()))
                 .isPresent();
     }
 

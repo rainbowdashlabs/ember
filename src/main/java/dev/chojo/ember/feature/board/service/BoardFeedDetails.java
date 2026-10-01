@@ -48,9 +48,10 @@ public class BoardFeedDetails implements FeedDetailsContributor {
             var ticket = boardTicketService.findById(ticketId).orElse(null);
             if (ticket == null) return;
             details.putIfPresent(details.label("title", "Title"), ticket.title());
-            if (ticket.assignee() != null && ticket.assignee().name() != null) {
-                details.put(
-                        details.label("assignee", "Assignee"), ticket.assignee().name());
+            var assignee = ticket.assignee();
+            String assigneeName = assignee == null ? null : assignee.name();
+            if (assigneeName != null) {
+                details.put(details.label("assignee", "Assignee"), assigneeName);
             }
             if (ticket.priority() != null) {
                 details.put(

@@ -70,29 +70,30 @@ public class InventoryShareOverviewService {
         String artName = null;
         String itemName = null;
         String itemInternalId = null;
-        switch (share.level()) {
-            case ITEM -> {
-                var item = inventoryRepository.findItemById(share.itemId()).orElse(null);
-                if (item != null) {
-                    itemName = item.name();
-                    itemInternalId = item.internalId();
-                    inventoryName = inventoryNames.get(item.inventoryId());
-                    if (item.artId() != null) {
-                        artName = artRepository
-                                .findById(item.artId())
-                                .map(InventoryArt::name)
-                                .orElse(null);
-                    }
+        Integer sharedItem = share.itemId();
+        Integer sharedArt = share.artId();
+        if (sharedItem != null) {
+            var item = inventoryRepository.findItemById(sharedItem).orElse(null);
+            if (item != null) {
+                itemName = item.name();
+                itemInternalId = item.internalId();
+                inventoryName = inventoryNames.get(item.inventoryId());
+                Integer itemArt = item.artId();
+                if (itemArt != null) {
+                    artName = artRepository
+                            .findById(itemArt)
+                            .map(InventoryArt::name)
+                            .orElse(null);
                 }
             }
-            case ART -> {
-                var art = artRepository.findById(share.artId()).orElse(null);
-                if (art != null) {
-                    artName = art.name();
-                    inventoryName = inventoryNames.get(art.inventoryId());
-                }
+        } else if (sharedArt != null) {
+            var art = artRepository.findById(sharedArt).orElse(null);
+            if (art != null) {
+                artName = art.name();
+                inventoryName = inventoryNames.get(art.inventoryId());
             }
-            case INVENTORY -> inventoryName = inventoryNames.get(share.inventoryId());
+        } else {
+            inventoryName = inventoryNames.get(share.inventoryId());
         }
         var targets = shareService.findTargets(share.id()).stream()
                 .map(partnerId -> new SharePartner(partnerId, partnerNames.getOrDefault(partnerId, UNNAMED)))

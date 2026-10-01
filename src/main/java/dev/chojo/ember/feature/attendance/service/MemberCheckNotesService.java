@@ -171,9 +171,10 @@ public class MemberCheckNotesService {
 
     /** The size written on a piece, where its inventory keeps sizes at all. */
     private Optional<String> sizeOf(InventoryItem item) {
-        return item.sizeId() == null
+        Integer sizeId = item.sizeId();
+        return sizeId == null
                 ? Optional.empty()
-                : inventoryService.findSizeById(item.sizeId()).map(InventorySize::label);
+                : inventoryService.findSizeById(sizeId).map(InventorySize::label);
     }
 
     /**

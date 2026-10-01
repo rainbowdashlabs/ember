@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -131,6 +132,18 @@ public class DemoFederationSeeder implements DemoSeeder {
     }
 
     /**
+     * The name a member goes by, from their account, or "Admin" for a member without one.
+     */
+    private String calledName(StationMember member) {
+        Integer accountId = member.accountId();
+        if (accountId == null) return "Admin";
+        return accountRepository
+                .findById(accountId)
+                .map(a -> NameParts.of(a).called())
+                .orElse("Admin");
+    }
+
+    /**
      * Returns the next upcoming occurrence date of a recurring event. For weekly events we
      * walk forward to the next matching {@code day_of_week}; for non-weekly recurrences we
      * fall back to the event's anchor start time so the demo data still gets a sensible
@@ -140,8 +153,9 @@ public class DemoFederationSeeder implements DemoSeeder {
         ZoneId zone = StationFormat.timezoneOf(
                 stationRepository.findById(event.stationId()).orElse(null));
         var today = LocalDate.now(zone);
-        if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
-            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
+        Integer dayOfWeek = event.dayOfWeek();
+        if (event.eventType() == StationEvent.EventType.RECURRING && dayOfWeek != null) {
+            DayOfWeek target = DayOfWeek.of(dayOfWeek);
             int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
             return today.plusDays(delta == 0 ? 7 : delta);
         }
@@ -531,10 +545,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         if (reversePartner != null) {
             // Comment from primary station admin on partner's news (stored on partner station)
             var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
-            String primaryAdminName = accountRepository
-                    .findById(primaryAdmin.accountId())
-                    .map(a -> NameParts.of(a).called())
-                    .orElse("Admin");
+            String primaryAdminName = calledName(primaryAdmin);
             var pnc1 = newsFederationService.createRemoteComment(
                     partnerStation.id(),
                     partnerNews.id(),
@@ -578,10 +589,7 @@ public class DemoFederationSeeder implements DemoSeeder {
 
         // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
         var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
-        String primaryAdminName = accountRepository
-                .findById(primaryAdmin.accountId())
-                .map(a -> NameParts.of(a).called())
-                .orElse("Admin");
+        String primaryAdminName = calledName(primaryAdmin);
 
         // Find reverse partner (partner station's view of primary station)
         var reversePartnerForEvents = federationService.findPartners(partnerStation.id()).stream()

@@ -208,9 +208,10 @@ public class KbAccessService {
         }
 
         if (fileId != null) {
-            var file = repository.findAnyFileById(fileId);
-            if (file.isPresent() && file.get().folderId() != null) {
-                return canAccessFolder(memberId, file.get().folderId(), memberUserType, memberGroupIds, memberTagIds);
+            Integer fileFolderId =
+                    repository.findAnyFileById(fileId).map(KbFile::folderId).orElse(null);
+            if (fileFolderId != null) {
+                return canAccessFolder(memberId, fileFolderId, memberUserType, memberGroupIds, memberTagIds);
             }
         }
 
@@ -754,8 +755,9 @@ public class KbAccessService {
             if (!restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
-        if (folder.get().parentId() != null) {
-            return canAccessFolder(memberId, folder.get().parentId(), memberUserType, memberGroupIds, memberTagIds);
+        Integer parentId = folder.get().parentId();
+        if (parentId != null) {
+            return canAccessFolder(memberId, parentId, memberUserType, memberGroupIds, memberTagIds);
         }
 
         return true;

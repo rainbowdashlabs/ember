@@ -154,8 +154,9 @@ public class FormerMemberService {
         documentService.releaseMember(memberId);
 
         var member = memberRepository.findById(memberId).orElseThrow();
-        if (member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member.accountId();
+        if (accountId != null) {
+            var account = accountRepository.findById(accountId).orElse(null);
             String frozen = account != null ? NameParts.of(account).identified() : "";
             memberRepository.setDisplayNameAndClearAccount(memberId, frozen == null ? "" : frozen);
         }

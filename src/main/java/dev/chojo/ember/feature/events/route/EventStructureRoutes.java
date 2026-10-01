@@ -150,7 +150,7 @@ public class EventStructureRoutes implements Routes {
                         req.name(),
                         req.position(),
                         req.maxShownEvents(),
-                        req.isPublic() != null && req.isPublic(),
+                        Boolean.TRUE.equals(req.isPublic()),
                         req.color()));
     }
 
@@ -174,7 +174,7 @@ public class EventStructureRoutes implements Routes {
                 req.name(),
                 req.position(),
                 req.maxShownEvents(),
-                req.isPublic() != null && req.isPublic(),
+                Boolean.TRUE.equals(req.isPublic()),
                 req.color())) {
             throw Refusal.EVENT_CATEGORY_NOT_CHANGED.raise();
         }
@@ -376,9 +376,9 @@ public class EventStructureRoutes implements Routes {
                                 e.fieldType(),
                                 e.config(),
                                 e.value() != null ? e.value() : "",
-                                e.overview() != null && e.overview(),
+                                Boolean.TRUE.equals(e.overview()),
                                 e.attendanceFieldId(),
-                                e.isPublic() != null && e.isPublic()))
+                                Boolean.TRUE.equals(e.isPublic())))
                         .toList());
         ctx.json(eventFieldService.findByEvent(id));
     }

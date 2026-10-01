@@ -162,8 +162,8 @@ public class FormResponseExportService {
                 var value = FormAnswerValue.parse(question.formQuestionType(), answers.get(question.id()));
                 values.add(FormAnswerText.of(question, value, language));
             }
-            rows.add(new MemberTable.MemberTableRow(
-                    response.memberId() == null ? 0 : response.memberId(), List.copyOf(values)));
+            Integer memberId = response.memberId();
+            rows.add(new MemberTable.MemberTableRow(memberId == null ? 0 : memberId, List.copyOf(values)));
         }
         return new MemberTable(List.copyOf(columns), List.copyOf(rows));
     }

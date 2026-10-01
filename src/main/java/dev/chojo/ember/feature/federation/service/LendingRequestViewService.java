@@ -164,9 +164,10 @@ public class LendingRequestViewService {
 
         String itemSummary = lendingService.buildItemSummary(request.id());
 
+        LocalDate dueBack = request.requestedDateTo();
         boolean overdue = (request.status() == LendingStatus.LENT || request.status() == LendingStatus.APPROVED)
-                && request.requestedDateTo() != null
-                && request.requestedDateTo().isBefore(LocalDate.now());
+                && dueBack != null
+                && dueBack.isBefore(LocalDate.now());
 
         return new LendingRequestResponse(request, requestingName, owningName, isOwner, itemSummary, overdue);
     }
@@ -194,27 +195,30 @@ public class LendingRequestViewService {
     public List<AvailableItemDetail> availableItems(int requestId, int stationId) {
         var result = new ArrayList<AvailableItemDetail>();
         for (var ri : lendingService.findRequestItems(requestId)) {
-            if (ri.inventoryId() == null) continue;
-            var inv = inventoryRepository.findById(ri.inventoryId()).orElse(null);
+            Integer inventoryId = ri.inventoryId();
+            if (inventoryId == null) continue;
+            var inv = inventoryRepository.findById(inventoryId).orElse(null);
             if (inv == null) continue;
-            for (var item : lendingService.findAssignableItems(stationId, ri.inventoryId())) {
+            Integer preselected = ri.itemId();
+            for (var item : lendingService.findAssignableItems(stationId, inventoryId)) {
                 String sizeName = null;
-                if (item.sizeId() != null) {
-                    sizeName = inventoryRepository.findSizes(ri.inventoryId()).stream()
-                            .filter(s -> s.id() == item.sizeId())
+                Integer sizeId = item.sizeId();
+                if (sizeId != null) {
+                    sizeName = inventoryRepository.findSizes(inventoryId).stream()
+                            .filter(s -> s.id() == sizeId)
                             .map(InventorySize::label)
                             .findFirst()
                             .orElse(null);
                 }
                 result.add(new AvailableItemDetail(
                         item.id(),
-                        ri.inventoryId(),
+                        inventoryId,
                         inv.name(),
                         item.internalId(),
                         item.name(),
                         sizeName,
                         ri.id(),
-                        ri.itemId() != null && ri.itemId() == item.id()));
+                        preselected != null && preselected == item.id()));
             }
         }
         return result;
@@ -232,14 +236,16 @@ public class LendingRequestViewService {
         String senderName = null;
         boolean writtenHere =
                 stationRepository.findByUid(msg.senderStationUid()).isPresent();
-        if (!msg.isSystem() && msg.senderMemberId() != null && writtenHere) {
+        Integer senderMemberId = msg.senderMemberId();
+        if (!msg.isSystem() && senderMemberId != null && writtenHere) {
             senderName = stationMemberRepository
-                    .findById(msg.senderMemberId())
+                    .findById(senderMemberId)
                     .map(m -> {
                         if (m.displayName() != null && !m.displayName().isBlank()) return m.displayName();
-                        if (m.accountId() != null) {
+                        Integer accountId = m.accountId();
+                        if (accountId != null) {
                             return accountRepository
-                                    .findById(m.accountId())
+                                    .findById(accountId)
                                     .map(a -> NameParts.of(a).called())
                                     .orElse(null);
                         }

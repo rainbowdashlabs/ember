@@ -11,6 +11,7 @@ import dev.chojo.ember.tracking.TableEntry;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The SQL that flattens a table's {@link Lookup}s into its exported rows: one selected column and
@@ -32,8 +33,9 @@ record LookupSql(List<Lookup> lookups, List<ForeignKey> targets) {
      * @throws IllegalStateException when a lookup follows a column that has no tracked foreign key
      */
     static LookupSql of(String tableName, TableEntry table) {
+        List<Lookup> lookups = lookupsOf(table);
         List<ForeignKey> targets = new ArrayList<>();
-        for (Lookup lookup : table.lookups()) {
+        for (Lookup lookup : lookups) {
             try {
                 targets.add(table.foreignKeyFor(lookup.via()));
             } catch (IllegalStateException e) {
@@ -43,7 +45,18 @@ record LookupSql(List<Lookup> lookups, List<ForeignKey> targets) {
                         e);
             }
         }
-        return new LookupSql(table.lookups(), List.copyOf(targets));
+        return new LookupSql(lookups, List.copyOf(targets));
+    }
+
+    /**
+     * The lookups of a table. The entry turns a missing list into an empty one when it is built, so
+     * this only spells out for the reader what the record's type does not.
+     *
+     * @param table the table
+     * @return its lookups, empty when it has none
+     */
+    static List<Lookup> lookupsOf(TableEntry table) {
+        return Objects.requireNonNullElse(table.lookups(), List.of());
     }
 
     /** Appends {@code , lk<i>.<pick> AS <emitAs>} for every lookup, after the table's own columns. */

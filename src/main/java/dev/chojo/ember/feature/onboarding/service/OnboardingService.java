@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -331,25 +332,24 @@ public class OnboardingService {
         return task == OnboardingTask.GUARDIAN_USERNAME || task == OnboardingTask.GUARDIAN_PASSWORD;
     }
 
-    private Account account(StationMember member) {
-        if (member.accountId() == null) return null;
-        return accountRepository.findById(member.accountId()).orElse(null);
+    private @Nullable Account account(StationMember member) {
+        Integer accountId = member.accountId();
+        if (accountId == null) return null;
+        return accountRepository.findById(accountId).orElse(null);
     }
 
-    private String actorName(OnboardingMark mark, OnboardingLevel level) {
-        if (mark.actorId() == null) return null;
+    private @Nullable String actorName(OnboardingMark mark, OnboardingLevel level) {
+        Integer actorId = mark.actorId();
+        if (actorId == null) return null;
         return switch (level) {
             case STATION ->
                 memberRepository
-                        .findById(mark.actorId())
+                        .findById(actorId)
                         .map(this::account)
                         .map(Account::fullName)
                         .orElse(null);
             case INSTANCE ->
-                accountRepository
-                        .findById(mark.actorId())
-                        .map(Account::fullName)
-                        .orElse(null);
+                accountRepository.findById(actorId).map(Account::fullName).orElse(null);
             case MEMBER -> null;
         };
     }

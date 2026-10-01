@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -112,7 +113,9 @@ public class EventAttachmentService {
      */
     public EventAttachment attach(int eventId, int stationId, int fileId, String label, boolean internal) {
         var file = media.findFile(fileId).orElseThrow(() -> new BadRequestResponse("Unknown file"));
-        if (file.stationId() != stationId) throw new BadRequestResponse("File belongs to another station");
+        if (!Objects.equals(file.stationId(), stationId)) {
+            throw new BadRequestResponse("File belongs to another station");
+        }
         var attachment = repository.attach(eventId, fileId, blankToNull(label), internal);
         log.info(
                 "File {} attached to event {} in station {} ({})",

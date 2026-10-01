@@ -61,18 +61,20 @@ public record OccurrenceRule(
     public static Optional<OccurrenceRule> of(StationEvent event, ZoneId zone) {
         if (event.startTime() == null) return Optional.empty();
         LocalDate start = event.startTime().atZone(zone).toLocalDate();
-        DayOfWeek weekday = event.dayOfWeek() != null ? DayOfWeek.of(event.dayOfWeek()) : start.getDayOfWeek();
+        Integer dayOfWeek = event.dayOfWeek();
+        DayOfWeek weekday = dayOfWeek != null ? DayOfWeek.of(dayOfWeek) : start.getDayOfWeek();
         var anchored = new OccurrenceRule(event.eventType(), start, weekday, null);
         LocalDate first = anchored.patternOnOrAfter(start);
         var open = new OccurrenceRule(event.eventType(), first, weekday, null);
         if (event.eventType() == EventType.ONE_TIME) return Optional.of(open.endingOn(first));
 
-        if (event.repeatUntil() != null) {
-            if (event.repeatUntil().isBefore(first)) return Optional.empty();
-            return Optional.of(
-                    open.endingOn(open.patternBefore(event.repeatUntil().plusDays(1))));
+        LocalDate repeatUntil = event.repeatUntil();
+        if (repeatUntil != null) {
+            if (repeatUntil.isBefore(first)) return Optional.empty();
+            return Optional.of(open.endingOn(open.patternBefore(repeatUntil.plusDays(1))));
         }
-        if (event.repeatCount() != null) return Optional.of(open.endingOn(open.nth(event.repeatCount())));
+        Integer repeatCount = event.repeatCount();
+        if (repeatCount != null) return Optional.of(open.endingOn(open.nth(repeatCount)));
         return Optional.of(open);
     }
 

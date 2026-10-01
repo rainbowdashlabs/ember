@@ -401,13 +401,15 @@ public class LendingRepository {
     public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
         var blocks = findActiveBlocks(stationId, dateFrom, dateTo);
         for (var block : blocks) {
-            if (block.inventoryId() == null && block.itemId() == null) {
+            Integer blockedInventory = block.inventoryId();
+            Integer blockedItem = block.itemId();
+            if (blockedInventory == null && blockedItem == null) {
                 return true;
             }
-            if (block.inventoryId() != null && block.inventoryId().equals(inventoryId) && block.itemId() == null) {
+            if (blockedInventory != null && blockedInventory.equals(inventoryId) && blockedItem == null) {
                 return true;
             }
-            if (block.itemId() != null && block.itemId().equals(itemId)) {
+            if (blockedItem != null && blockedItem.equals(itemId)) {
                 return true;
             }
         }

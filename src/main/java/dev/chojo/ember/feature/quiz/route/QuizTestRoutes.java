@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -214,8 +215,8 @@ public class QuizTestRoutes implements Routes {
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.timeLimit(),
-                req.shuffle() != null && req.shuffle(),
-                req.forced() != null && req.forced(),
+                Boolean.TRUE.equals(req.shuffle()),
+                Boolean.TRUE.equals(req.forced()),
                 session.member().id());
         ctx.status(HttpStatus.CREATED).json(test);
     }
@@ -234,8 +235,8 @@ public class QuizTestRoutes implements Routes {
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.timeLimit(),
-                req.shuffle() != null && req.shuffle(),
-                req.forced() != null && req.forced(),
+                Boolean.TRUE.equals(req.shuffle()),
+                Boolean.TRUE.equals(req.forced()),
                 req.startAt(),
                 req.endAt())) {
             throw Refusal.QUIZ_TEST_NOT_CHANGED.raise();
@@ -370,12 +371,9 @@ public class QuizTestRoutes implements Routes {
                 .map(s -> new SectionEntry(
                         s.title() != null ? s.title() : "",
                         s.description() != null ? s.description() : "",
-                        s.sources() != null
-                                ? s.sources().stream()
-                                        .map(src ->
-                                                new SourceEntry(src.catalogId(), src.categoryId(), src.questionCount()))
-                                        .toList()
-                                : List.of()))
+                        Objects.requireNonNullElse(s.sources(), List.<QuizSourceRequest>of()).stream()
+                                .map(src -> new SourceEntry(src.catalogId(), src.categoryId(), src.questionCount()))
+                                .toList()))
                 .toList();
         testService.replaceSections(testId, entries);
         ctx.json(testService.findSections(testId));
@@ -407,8 +405,9 @@ public class QuizTestRoutes implements Routes {
         accessService.setRestrictions(
                 id,
                 new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
-        if (req.mode() != null) {
-            accessService.updateRestrictionMode(id, req.mode());
+        var mode = req.mode();
+        if (mode != null) {
+            accessService.updateRestrictionMode(id, mode);
         }
         ctx.json(storedRestrictions(id));
     }

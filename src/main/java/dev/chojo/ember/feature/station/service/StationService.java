@@ -335,8 +335,9 @@ public class StationService {
      * asked for an account that is not there.
      */
     private Optional<ManagerInfo> managerInfoOf(StationMember member) {
-        if (member.accountId() == null) return Optional.empty();
-        Account account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member.accountId();
+        if (accountId == null) return Optional.empty();
+        Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) return Optional.empty();
         Optional<AccountCredential> credential = accountRepository.findCredential(account.id());
         boolean accountReady = credential

@@ -133,7 +133,7 @@ public class PlaceholderService {
             cleaned.put(name.trim(), value);
         });
         try {
-            if (valueFile.getParent() != null) Files.createDirectories(valueFile.getParent());
+            FilePaths.createParentDirectories(valueFile);
             Files.writeString(
                     valueFile, MAPPER.writeValueAsString(cleaned) + System.lineSeparator(), StandardCharsets.UTF_8);
             cached = cleaned;

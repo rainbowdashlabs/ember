@@ -122,8 +122,9 @@ public class ClusterRoutes implements Routes {
         var request = ctx.bodyAsClass(ClusterRequest.class);
         clusterService.rename(cluster.id(), request.name(), request.description());
         // Absent means unchanged, so a caller that only wanted to rename does not silently rewire the mesh
-        if (request.autoFederate() != null && request.autoFederate() != cluster.autoFederate()) {
-            clusterService.setAutoFederate(cluster.id(), request.autoFederate());
+        Boolean autoFederate = request.autoFederate();
+        if (autoFederate != null && autoFederate != cluster.autoFederate()) {
+            clusterService.setAutoFederate(cluster.id(), autoFederate);
         }
         ctx.json(toResponse(
                 clusterService.findById(cluster.id()).orElseThrow(Refusal.CLUSTER_NOT_HERE_AFTER_RENAME::raise)));

@@ -62,6 +62,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -458,7 +459,7 @@ public class InventoryRoutes implements Routes {
                         request.name(),
                         request.inventoryType(),
                         request.hasSizes(),
-                        request.homogeneous() == null || request.homogeneous(),
+                        !Boolean.FALSE.equals(request.homogeneous()),
                         Glyph.of(request.icon(), request.color())));
     }
 
@@ -523,7 +524,7 @@ public class InventoryRoutes implements Routes {
         // A caller that says nothing about the kind is leaving it alone, not asking for the default.
         // Reading a missing field as "one thing in many copies" would quietly undo a drawer every time
         // somebody renamed it.
-        boolean homogeneous = request.homogeneous() == null ? current.homogeneous() : request.homogeneous();
+        boolean homogeneous = Objects.requireNonNullElse(request.homogeneous(), current.homogeneous());
         try {
             inventoryService
                     .update(
@@ -1143,7 +1144,7 @@ public class InventoryRoutes implements Routes {
         }
         requireOwnedInventory(request.inventoryId(), session);
         StationUserType userType = request.userType();
-        int groupId = request.groupId() != null ? request.groupId() : 0;
+        int groupId = Objects.requireNonNullElse(request.groupId(), 0);
         if (userType == null && groupId == 0) {
             throw Refusal.REQUIREMENT_NEEDS_SOMEBODY_TO_APPLY_TO.raise();
         }
@@ -1245,9 +1246,9 @@ public class InventoryRoutes implements Routes {
                 body.inventoryIds(),
                 body.extraFieldIds() != null ? body.extraFieldIds() : List.of(),
                 generatedBy,
-                body.showName() != null ? body.showName() : true,
-                body.showInternalId() != null ? body.showInternalId() : false,
-                body.showSize() != null ? body.showSize() : true,
+                !Boolean.FALSE.equals(body.showName()),
+                Boolean.TRUE.equals(body.showInternalId()),
+                !Boolean.FALSE.equals(body.showSize()),
                 asSpreadsheet ? CsvWriter.Separator.of(ctx.queryParam("separator")) : null);
         if (document.isEmpty()) {
             throw Refusal.MEMBER_GEAR_LIST_EMPTY.raise();

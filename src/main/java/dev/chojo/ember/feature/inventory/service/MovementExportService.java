@@ -178,9 +178,9 @@ public class MovementExportService {
             var memberExchanges = entry.getValue();
 
             var member = stationMemberRepository.findById(memberId).orElse(null);
-            var account = member != null
-                    ? accountRepository.findById(member.accountId()).orElse(null)
-                    : null;
+            Integer accountId = member != null ? member.accountId() : null;
+            var account =
+                    accountId != null ? accountRepository.findById(accountId).orElse(null) : null;
             String firstName = account != null ? account.firstName() : "";
             String lastName = account != null ? account.lastName() : "";
 

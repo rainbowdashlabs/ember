@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -127,8 +128,9 @@ public class FormResultGrouping {
     }
 
     private List<Bucket> byField(int stationId, List<Respondent> respondents, ResultGrouping grouping) {
+        Integer fieldId = grouping.fieldId();
         var field = FormRespondents.groupableFields(profileFields.findByStation(stationId)).stream()
-                .filter(candidate -> grouping.fieldId() != null && candidate.id() == grouping.fieldId())
+                .filter(candidate -> fieldId != null && candidate.id() == fieldId)
                 .findFirst()
                 .orElseThrow(() -> new BadRequestResponse("Unknown profile field to group by"));
         Function<Respondent, String> answer =
@@ -148,10 +150,9 @@ public class FormResultGrouping {
     private static List<Category> categoriesOf(ProfileField field, List<Respondent> respondents) {
         return switch (field.fieldType()) {
             case ENUM -> {
-                var options = field.config() == null || field.config().options() == null
-                        ? List.<String>of()
-                        : field.config().options();
-                yield options.stream()
+                var config = field.config();
+                List<String> options = config == null ? null : config.options();
+                yield Objects.requireNonNullElse(options, List.<String>of()).stream()
                         .map(option -> new Category(option, option))
                         .toList();
             }

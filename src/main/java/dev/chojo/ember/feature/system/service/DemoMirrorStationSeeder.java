@@ -81,12 +81,13 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
         int mirrored = 0;
         for (var userType : List.of(StationUserType.MANAGER, StationUserType.TEAM)) {
             for (StationMember jfMember : stationMemberRepository.findByStationAndUserType(jfStationId, userType)) {
-                if (jfMember.accountId() == null) continue;
+                Integer accountId = jfMember.accountId();
+                if (accountId == null) continue;
                 String email = accountRepository
-                        .findById(jfMember.accountId())
+                        .findById(accountId)
                         .map(Account::email)
                         .orElseThrow();
-                var ffMember = stationMemberRepository.create(ffStation.id(), jfMember.accountId());
+                var ffMember = stationMemberRepository.create(ffStation.id(), accountId);
                 memberLookupService.setUid(ffMember.id(), DemoUids.member(email, ffStation.id()));
                 stationMemberRepository.setUserType(ffMember.id(), userType);
                 stationMemberRepository.grantPermission(ffMember.id(), loginRole.id());

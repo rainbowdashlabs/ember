@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -184,9 +185,9 @@ public class EquipmentNeedRoutes implements Routes {
                             event.stationId(),
                             body.eventDate(),
                             target,
-                            body.quantity() == null ? 1 : body.quantity(),
-                            body.leadMinutes() == null ? EquipmentNeed.DEFAULT_LEAD_MINUTES : body.leadMinutes(),
-                            body.trailMinutes() == null ? EquipmentNeed.DEFAULT_LEAD_MINUTES : body.trailMinutes()));
+                            Objects.requireNonNullElse(body.quantity(), 1),
+                            Objects.requireNonNullElse(body.leadMinutes(), EquipmentNeed.DEFAULT_LEAD_MINUTES),
+                            Objects.requireNonNullElse(body.trailMinutes(), EquipmentNeed.DEFAULT_LEAD_MINUTES)));
         } catch (IllegalArgumentException e) {
             log.warn("A line for appointment {} was refused", event.id(), e);
             throw Refusal.EQUIPMENT_NEED_NOT_SAVED.raise();

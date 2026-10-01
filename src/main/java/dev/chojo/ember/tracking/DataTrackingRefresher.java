@@ -165,8 +165,9 @@ public final class DataTrackingRefresher {
         }
 
         // Preserve fileStores as-is - fileStores aren't auto-discoverable
+        Map<String, FileStoreEntry> existingStores = existing.fileStores();
         Map<String, FileStoreEntry> fileStores =
-                existing.fileStores() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existing.fileStores());
+                existingStores == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existingStores);
 
         String topHash = HashComputer.schemaHash(newTables);
 

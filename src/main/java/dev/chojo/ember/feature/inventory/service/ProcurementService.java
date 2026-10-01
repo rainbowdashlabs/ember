@@ -203,7 +203,7 @@ public class ProcurementService {
     private String memberName(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
-                .flatMap(member -> accountRepository.findById(member.accountId()))
+                .flatMap(member -> Optional.ofNullable(member.accountId()).flatMap(accountRepository::findById))
                 .map(account -> NameParts.of(account).called())
                 .orElse("");
     }

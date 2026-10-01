@@ -222,9 +222,10 @@ public class MovementRoutes implements Routes {
                 request.reason() != null ? request.reason() : "",
                 actorOf(session, null),
                 request.pickedItemId());
-        if (request.selfCheckId() != null) {
+        Integer selfCheckId = request.selfCheckId();
+        if (selfCheckId != null) {
             selfCheckService.recordExchange(
-                    request.selfCheckId(),
+                    selfCheckId,
                     session.stationId(),
                     session.member().id(),
                     session.hasPermission(StationPermission.MEMBER_GUARDIAN),
@@ -297,9 +298,10 @@ public class MovementRoutes implements Routes {
     private void returnEverything(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ReturnEverythingRequest.class);
-        if (request.memberId() == null) throw Refusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER.raise();
+        Integer memberId = request.memberId();
+        if (memberId == null) throw Refusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER.raise();
         var member = memberService
-                .findById(request.memberId())
+                .findById(memberId)
                 .filter(row -> row.stationId() == session.stationId())
                 .orElseThrow(Refusal.MEMBER_NOT_AT_THIS_STATION::raise);
 
@@ -706,12 +708,11 @@ public class MovementRoutes implements Routes {
                 ? null
                 : inventoryService.findItemById(movement.outgoingItemId()).orElse(null);
         var document = lossReportService.documentOf(movement.id()).orElse(null);
+        Integer noteBy = item != null ? item.lostNoteBy() : null;
         return new LossReport(
                 movement.reason(),
                 item != null ? item.lostNote() : null,
-                item != null && item.lostNoteBy() != null
-                        ? memberIdentityFactory.fromMemberId(item.lostNoteBy())
-                        : null,
+                noteBy != null ? memberIdentityFactory.fromMemberId(noteBy) : null,
                 document != null ? document.fileName() : null,
                 document != null ? document.mimeType() : null);
     }

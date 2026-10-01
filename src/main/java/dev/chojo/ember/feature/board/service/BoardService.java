@@ -153,8 +153,9 @@ public class BoardService {
         }
 
         // Delete lanes that are no longer in the list, moving their tickets first
+        Integer backlogLaneId = board.backlogLaneId();
         for (var existing : existingLanes) {
-            if (board.backlogLaneId() != null && existing.id() == board.backlogLaneId()) continue;
+            if (backlogLaneId != null && existing.id() == backlogLaneId) continue;
             if (!incomingIds.contains(existing.id())) {
                 if (fallbackLaneId != null) {
                     repository.moveTicketsFromLane(existing.id(), fallbackLaneId);

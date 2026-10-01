@@ -665,13 +665,15 @@ public class WaitingListService implements TaskSource {
         var list = repository.findById(entry.listId()).orElseThrow();
 
         int memberId = Transactions.call(() -> {
-            int member = entry.memberId() != null ? entry.memberId() : createTrialMember(entry, list.stationId());
+            Integer existing = entry.memberId();
+            int member = existing != null ? existing : createTrialMember(entry, list.stationId());
             userTypeChanges.change(member, StationUserType.TRIAL);
             stationMemberRepository
                     .findPermissionByName(StationPermission.USER)
                     .ifPresent(permission -> stationMemberRepository.grantPermission(member, permission.id()));
-            if (list.testingGroupId() != null) {
-                groupMemberships.joinAutomatically(list.testingGroupId(), member);
+            Integer testingGroupId = list.testingGroupId();
+            if (testingGroupId != null) {
+                groupMemberships.joinAutomatically(testingGroupId, member);
             }
             repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
             return member;
@@ -715,20 +717,23 @@ public class WaitingListService implements TaskSource {
         }
         var list = repository.findById(entry.listId()).orElseThrow();
 
-        if (entry.memberId() != null) {
-            if (list.testingGroupId() != null) {
-                groupMemberships.leaveAutomatically(list.testingGroupId(), entry.memberId());
+        Integer memberId = entry.memberId();
+        if (memberId != null) {
+            Integer testingGroupId = list.testingGroupId();
+            if (testingGroupId != null) {
+                groupMemberships.leaveAutomatically(testingGroupId, memberId);
             }
             stationMemberRepository
                     .findPermissionByName(StationPermission.USER)
-                    .ifPresent(role -> stationMemberRepository.revokePermission(entry.memberId(), role.id()));
-            userTypeChanges.change(entry.memberId(), StationUserType.MEMBER);
-            if (list.joinGroupId() != null) {
-                groupMemberships.joinAutomatically(list.joinGroupId(), entry.memberId());
+                    .ifPresent(role -> stationMemberRepository.revokePermission(memberId, role.id()));
+            userTypeChanges.change(memberId, StationUserType.MEMBER);
+            Integer joinGroupId = list.joinGroupId();
+            if (joinGroupId != null) {
+                groupMemberships.joinAutomatically(joinGroupId, memberId);
             }
 
             // Create guardian accounts and link them to the member
-            createGuardianAccounts(entry, list);
+            createGuardianAccounts(entry, memberId, list);
         }
 
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.JOINED, "joined_at");
@@ -748,15 +753,16 @@ public class WaitingListService implements TaskSource {
         }
 
         // Delete the linked member and its orphaned account
-        if (entry.memberId() != null) {
-            var member = stationMemberRepository.findById(entry.memberId()).orElse(null);
+        Integer memberId = entry.memberId();
+        if (memberId != null) {
+            var member = stationMemberRepository.findById(memberId).orElse(null);
             if (member != null) {
                 stationMemberRepository.delete(member.id());
-                if (member.accountId() != null) {
-                    var otherMembers = stationMemberRepository.findAllByAccountId(member.accountId());
+                Integer accountId = member.accountId();
+                if (accountId != null) {
+                    var otherMembers = stationMemberRepository.findAllByAccountId(accountId);
                     if (otherMembers.isEmpty()) {
-                        var account =
-                                accountRepository.findById(member.accountId()).orElse(null);
+                        var account = accountRepository.findById(accountId).orElse(null);
                         if (account != null && account.email() == null) {
                             accountRepository.delete(account.id());
                         }
@@ -867,11 +873,11 @@ public class WaitingListService implements TaskSource {
      * filled in is a form to fix, not a person to turn away.
      */
     public void requireOldEnoughToRegister(WaitingList list, Map<Integer, JsonNode> values) {
-        if (list.minAgeRegister() == null) return;
+        Integer minAge = list.minAgeRegister();
+        if (minAge == null) return;
         ageFromSubmitted(list.id(), values).ifPresent(age -> {
-            if (age < list.minAgeRegister()) {
-                throw new BadRequestResponse(
-                        "This list takes registrations from age %d.".formatted(list.minAgeRegister()));
+            if (age < minAge) {
+                throw new BadRequestResponse("This list takes registrations from age %d.".formatted(minAge));
             }
         });
     }
@@ -883,8 +889,9 @@ public class WaitingListService implements TaskSource {
      * and does not get one is a gap in the answers, not a reason to treat somebody as too young.
      */
     public boolean belowJoinAge(WaitingList list, Optional<Integer> age) {
-        if (list.minAgeJoin() == null) return false;
-        return age.map(years -> years < list.minAgeJoin()).orElse(false);
+        Integer minAge = list.minAgeJoin();
+        if (minAge == null) return false;
+        return age.map(years -> years < minAge).orElse(false);
     }
 
     public double evaluateScore(
@@ -1220,7 +1227,7 @@ public class WaitingListService implements TaskSource {
      * stands either way, and the link that claims it is minted by hand from the member list, at a
      * moment somebody is there to pass it on.
      */
-    private void createGuardianAccounts(WaitingListEntry entry, WaitingList list) {
+    private void createGuardianAccounts(WaitingListEntry entry, int memberId, WaitingList list) {
         int stationId = list.stationId();
         var setupMail = list.sendsMail() ? SetupMail.SEND_NOW : SetupMail.LATER;
         var guardians = repository.findGuardiansByEntry(entry.id());
@@ -1239,12 +1246,12 @@ public class WaitingListService implements TaskSource {
                             .flatMap(account ->
                                     stationMemberRepository.findByStationAndAccount(stationId, account.id()));
             if (known.isPresent()) {
-                stationMemberRepository.addManager(known.get().id(), entry.memberId());
+                stationMemberRepository.addManager(known.get().id(), memberId);
                 log.info(
                         "Guardian {} already at station {}, linked to member {}",
                         known.get().id(),
                         stationId,
-                        entry.memberId());
+                        memberId);
                 continue;
             }
 
@@ -1256,7 +1263,7 @@ public class WaitingListService implements TaskSource {
                         : accountInviteService.resolveOrCreate(
                                 stationId, address, guardian.firstname(), guardian.lastname(), setupMail);
             } catch (AccountInviteService.EmailInUseException e) {
-                log.warn("Guardian of member {} was not taken on: {} is somebody else's", entry.memberId(), address);
+                log.warn("Guardian of member {} was not taken on: {} is somebody else's", memberId, address);
                 continue;
             }
 
@@ -1266,12 +1273,8 @@ public class WaitingListService implements TaskSource {
             loginRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
             guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
 
-            stationMemberRepository.addManager(member.id(), entry.memberId());
-            log.info(
-                    "Guardian {} joined station {} and answers for member {}",
-                    member.id(),
-                    stationId,
-                    entry.memberId());
+            stationMemberRepository.addManager(member.id(), memberId);
+            log.info("Guardian {} joined station {} and answers for member {}", member.id(), stationId, memberId);
         }
     }
 

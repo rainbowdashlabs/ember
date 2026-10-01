@@ -341,11 +341,12 @@ public class EventFieldService {
         var config = field.config();
         switch (field.fieldType().constraint()) {
             case GROUP -> {
-                if (config.groupId() == null) {
+                Integer groupId = config.groupId();
+                if (groupId == null) {
                     throw new BadRequestResponse("Field is missing its group reference");
                 }
                 boolean inGroup = groupRepository.findGroupsForMember(member.id()).stream()
-                        .anyMatch(g -> g.id() == config.groupId());
+                        .anyMatch(g -> g.id() == groupId);
                 if (!inGroup) {
                     throw new ForbiddenResponse("Member is not in the required group");
                 }
@@ -359,11 +360,12 @@ public class EventFieldService {
                 }
             }
             case TAG -> {
-                if (config.tagId() == null) {
+                Integer tagId = config.tagId();
+                if (tagId == null) {
                     throw new BadRequestResponse("Field is missing its tag reference");
                 }
                 boolean hasTag =
-                        tagService.findTagsForMember(member.id()).stream().anyMatch(t -> t.id() == config.tagId());
+                        tagService.findTagsForMember(member.id()).stream().anyMatch(t -> t.id() == tagId);
                 if (!hasTag) {
                     throw new ForbiddenResponse("Member does not have the required tag");
                 }

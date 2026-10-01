@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.IntFunction;
 
 /**
@@ -106,7 +107,8 @@ public sealed interface QuizSheetBody {
         static Gaps of(QuestionConfig.FillInTheBlank config, boolean withAnswers) {
             List<String> answers = texts(config.answers());
             List<String> distractors = texts(config.distractors());
-            boolean hasText = config.text() != null && !config.text().isBlank();
+            String text = Objects.requireNonNullElse(config.text(), "");
+            boolean hasText = !text.isBlank();
             boolean hasAnswers = config.answers() != null;
             boolean wordBank = !distractors.isEmpty();
             var words = new ArrayList<>(answers);
@@ -116,7 +118,7 @@ public sealed interface QuizSheetBody {
                 if (!hasText || !hasAnswers) return new Gaps(List.of(), List.of(), answers, 0);
                 return new Gaps(
                         List.of(),
-                        split(config.text(), index -> {
+                        split(text, index -> {
                             String answer = index < answers.size() ? answers.get(index) : "?";
                             Integer number = wordBank ? words.indexOf(answer) + 1 : null;
                             return Part.gap(answer, number, MIN_GAP_WIDTH_CM);
@@ -126,16 +128,12 @@ public sealed interface QuizSheetBody {
             }
             if (wordBank) {
                 Collections.shuffle(words);
-                List<Part> parts =
-                        hasText ? split(config.text(), _ -> Part.gap(null, null, MIN_GAP_WIDTH_CM)) : List.of();
+                List<Part> parts = hasText ? split(text, _ -> Part.gap(null, null, MIN_GAP_WIDTH_CM)) : List.of();
                 return new Gaps(words, parts, answers, 0);
             }
             if (hasText && hasAnswers) {
                 return new Gaps(
-                        List.of(),
-                        split(config.text(), index -> Part.gap(null, null, widthFor(answers, index))),
-                        answers,
-                        0);
+                        List.of(), split(text, index -> Part.gap(null, null, widthFor(answers, index))), answers, 0);
             }
             return new Gaps(List.of(), List.of(), answers, hasAnswers ? answers.size() : 1);
         }

@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -292,8 +293,9 @@ public class MediaLibraryService {
             if (file.contentHash() != null) {
                 storage.delete(file.stationId(), file.contentHash());
             }
-            if (file.stationId() != null) {
-                quotaService.onFileDeleted(file.stationId(), StorageCategory.MEDIA_FILES, file.fileSize());
+            Integer stationId = file.stationId();
+            if (stationId != null) {
+                quotaService.onFileDeleted(stationId, StorageCategory.MEDIA_FILES, file.fileSize());
             }
             log.info("Media file {} deleted from station {}", fileId, file.stationId());
         }
@@ -315,7 +317,8 @@ public class MediaLibraryService {
         if (fileRepository.hasAnyUploader(fileId)) return true;
         // An instance file has no station whose content could point at it, and no member uploaded
         // it either, so this path is never walked for one.
-        if (file.stationId() != null && isReferenced(file, references.collect(file.stationId()))) return true;
+        Integer stationId = file.stationId();
+        if (stationId != null && isReferenced(file, references.collect(stationId))) return true;
         deleteFile(fileId);
         return true;
     }
@@ -458,7 +461,12 @@ public class MediaLibraryService {
     public boolean assignTag(int stationId, int fileId, int tagId) {
         var file = fileRepository.findById(fileId).orElse(null);
         var tag = metaRepository.findTag(tagId).orElse(null);
-        if (file == null || file.stationId() != stationId || tag == null || tag.stationId() != stationId) return false;
+        if (file == null
+                || !Objects.equals(file.stationId(), stationId)
+                || tag == null
+                || tag.stationId() != stationId) {
+            return false;
+        }
         metaRepository.assignTag(fileId, tagId);
         log.info("Media file {} was tagged {}", fileId, tagId);
         return true;
@@ -466,7 +474,7 @@ public class MediaLibraryService {
 
     public boolean unassignTag(int stationId, int fileId, int tagId) {
         var file = fileRepository.findById(fileId).orElse(null);
-        if (file == null || file.stationId() != stationId) return false;
+        if (file == null || !Objects.equals(file.stationId(), stationId)) return false;
         boolean unassigned = metaRepository.unassignTag(fileId, tagId);
         if (unassigned) log.info("Media file {} lost the tag {}", fileId, tagId);
         return unassigned;

@@ -18,6 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -179,12 +180,16 @@ public class StationDiscoveryService {
                 card.publicSlug(),
                 card.city(),
                 card.country(),
-                card.latitude() != null ? card.latitude().doubleValue() : null,
-                card.longitude() != null ? card.longitude().doubleValue() : null,
+                degrees(card.latitude()),
+                degrees(card.longitude()),
                 remoteClusterUid(card.clusterUid()),
                 card.clusterName(),
                 remote.instanceHost(),
                 remote.publicPageUrl());
+    }
+
+    private static @Nullable Double degrees(@Nullable BigDecimal coordinate) {
+        return coordinate == null ? null : coordinate.doubleValue();
     }
 
     private static UUID remoteClusterUid(String clusterUid) {

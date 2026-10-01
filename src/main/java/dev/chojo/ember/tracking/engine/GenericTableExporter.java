@@ -77,8 +77,9 @@ public final class GenericTableExporter {
         }
 
         var lookups = LookupSql.of(tableName, table);
-        String sql = table.customScope() != null
-                ? buildCustomScopeSql(tableName, selectableColumns, lookups, table.customScope())
+        var customScope = table.customScope();
+        String sql = customScope != null
+                ? buildCustomScopeSql(tableName, selectableColumns, lookups, customScope)
                 : buildDirectScopeSql(tableName, selectableColumns, lookups);
         return runQuery(sql, stationId, offset, limit);
     }

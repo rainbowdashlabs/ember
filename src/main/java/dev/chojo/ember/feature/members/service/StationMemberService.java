@@ -207,8 +207,9 @@ public class StationMemberService {
                 && !currentIds.contains(loginPerm.get().id());
 
         var member = memberRepository.findById(memberId).orElse(null);
-        if (addingLogin && member != null && member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member == null ? null : member.accountId();
+        if (addingLogin && accountId != null) {
+            var account = accountRepository.findById(accountId).orElse(null);
             if (account == null || account.email() == null) {
                 throw new BadRequestResponse("Cannot grant LOGIN permission: account has no email address");
             }
@@ -226,10 +227,10 @@ public class StationMemberService {
         }
 
         // If LOGIN was just granted and the account has no credentials, send onboarding email
-        if (addingLogin && authService != null && member != null && member.accountId() != null) {
-            var credential = accountRepository.findCredential(member.accountId());
+        if (addingLogin && authService != null && accountId != null) {
+            var credential = accountRepository.findCredential(accountId);
             if (credential.isEmpty()) {
-                authService.sendPasswordSetup(member.accountId());
+                authService.sendPasswordSetup(accountId);
             }
         }
 

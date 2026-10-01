@@ -253,11 +253,12 @@ public class EventSharingRoutes implements Routes {
         int partnerId = pathInt(ctx, "partnerId");
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
         var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
-        if (req.slotBudget() != null && req.slotBudget() < 0) {
+        Integer slotBudget = req.slotBudget();
+        if (slotBudget != null && slotBudget < 0) {
             throw Refusal.PLACES_CANNOT_BE_NEGATIVE.raise();
         }
-        boolean decides = req.partnerConfirms() || req.slotBudget() != null;
-        eventFederationService.setPartnerPlaces(eventId, partnerId, decides ? req.slotBudget() : null, decides);
+        boolean decides = req.partnerConfirms() || slotBudget != null;
+        eventFederationService.setPartnerPlaces(eventId, partnerId, decides ? slotBudget : null, decides);
         ctx.json(new MessageResponse("Places updated"));
     }
 

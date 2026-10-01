@@ -128,8 +128,9 @@ public class TwoFactorPolicyService {
         List<TwoFactorPolicy> stationPolicies = repository.findStationPolicies(stationId);
         Map<Integer, Account> accountById = new HashMap<>();
         for (var m : members) {
-            if (m.accountId() == null) continue;
-            accountRepository.findById(m.accountId()).ifPresent(a -> accountById.put(a.id(), a));
+            Integer accountId = m.accountId();
+            if (accountId == null) continue;
+            accountRepository.findById(accountId).ifPresent(a -> accountById.put(a.id(), a));
         }
 
         return members.stream()

@@ -41,6 +41,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * HTTP route definitions for test protocols owned by the current station. The federated consumer
@@ -215,7 +216,7 @@ public class TestProtocolRoutes implements Routes {
                         req.description() != null ? req.description() : "",
                         req.maxPoints(),
                         req.passThreshold(),
-                        req.position() != null ? req.position() : 0));
+                        Objects.requireNonNullElse(req.position(), 0)));
     }
 
     @OpenApi(
@@ -233,7 +234,7 @@ public class TestProtocolRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.maxPoints(),
                 req.passThreshold(),
-                req.position() != null ? req.position() : 0);
+                Objects.requireNonNullElse(req.position(), 0));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -262,8 +263,8 @@ public class TestProtocolRoutes implements Routes {
                         sectionId,
                         req.label(),
                         req.description() != null ? req.description() : "",
-                        req.points() != null ? req.points() : 1.0,
-                        req.position() != null ? req.position() : 0));
+                        Objects.requireNonNullElse(req.points(), 1.0),
+                        Objects.requireNonNullElse(req.position(), 0)));
     }
 
     @OpenApi(
@@ -279,8 +280,8 @@ public class TestProtocolRoutes implements Routes {
                 id,
                 req.label(),
                 req.description() != null ? req.description() : "",
-                req.points() != null ? req.points() : 1.0,
-                req.position() != null ? req.position() : 0);
+                Objects.requireNonNullElse(req.points(), 1.0),
+                Objects.requireNonNullElse(req.position(), 0));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

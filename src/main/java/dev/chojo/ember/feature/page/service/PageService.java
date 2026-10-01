@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Singleton
@@ -132,9 +133,10 @@ public class PageService {
      * so a client holding only {@code ogImageId} cannot build the image URL.
      */
     private StationPage resolveOgImageHash(StationPage page) {
-        if (page.ogImageId() == null) return page;
+        Integer ogImageId = page.ogImageId();
+        if (ogImageId == null) return page;
         return mediaLibrary
-                .findFile(page.ogImageId())
+                .findFile(ogImageId)
                 .map(file -> page.withOgImageHash(file.contentHash()))
                 .orElse(page);
     }
@@ -576,7 +578,7 @@ public class PageService {
                                 .map(StationPage::stationId)
                                 .orElse(0))
                         .stream()
-                        .filter(p -> pageId == (p.parentId() != null ? p.parentId() : 0))
+                        .filter(p -> Objects.equals(p.parentId(), pageId))
                         .toList();
 
         if (children.isEmpty()) return 0;

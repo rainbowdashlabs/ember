@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -53,7 +54,7 @@ public final class GenericGdprExporter {
         List<IdentityColumn> result = new ArrayList<>();
         Set<String> known = new java.util.HashSet<>();
         for (var c : table.columns()) known.add(c.name());
-        for (var ic : ctx.identityColumns()) {
+        for (var ic : Objects.requireNonNullElse(ctx.identityColumns(), List.<IdentityColumn>of())) {
             if (ic.type() == type && known.contains(ic.column())) result.add(ic);
         }
         return result;

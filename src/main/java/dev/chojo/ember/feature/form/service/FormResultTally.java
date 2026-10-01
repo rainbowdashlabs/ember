@@ -162,7 +162,8 @@ public final class FormResultTally {
     }
 
     private static FormQuestionTally ratings(int id, FormQuestionConfig.Rating config, List<FormAnswerValue> values) {
-        int scale = config.scale() != null && config.scale() > 0 ? config.scale() : DEFAULT_RATING_SCALE;
+        Integer configured = config.scale();
+        int scale = configured != null && configured > 0 ? configured : DEFAULT_RATING_SCALE;
         int[] counts = new int[scale];
         for (var value : values) {
             if (value instanceof FormAnswerValue.RatingAnswer(int rating) && rating >= 1 && rating <= scale) {

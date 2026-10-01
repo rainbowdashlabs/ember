@@ -246,6 +246,7 @@ public class AttendanceReportService {
                 }
             }
 
+            Integer countedMinutes = session.countedMinutes();
             var sessionData = new SessionData(
                     session.id(),
                     session.title() != null ? session.title() : "",
@@ -259,7 +260,7 @@ public class AttendanceReportService {
                     session.endTime() != null ? session.endTime().atZone(zone).toLocalTime() : null,
                     expectedCount,
                     presentCount,
-                    session.countedMinutes() != null ? session.countedMinutes() / 60.0 : null,
+                    countedMinutes != null ? countedMinutes / 60.0 : null,
                     entryDataList);
             sessionDataList.add(sessionData);
             if (ym != null) {
@@ -514,7 +515,9 @@ public class AttendanceReportService {
         return cache.computeIfAbsent(memberId, id -> {
             var member = stationMemberRepository.findById(id);
             if (member.isEmpty()) return "#" + id;
-            var account = accountRepository.findById(member.get().accountId());
+            Integer accountId = member.get().accountId();
+            if (accountId == null) return "#" + id;
+            var account = accountRepository.findById(accountId);
             if (account.isEmpty()) return "#" + id;
             Account acc = account.get();
             String name = NameParts.of(acc).official();

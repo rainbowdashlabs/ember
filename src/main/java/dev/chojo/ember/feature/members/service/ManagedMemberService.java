@@ -80,10 +80,12 @@ public class ManagedMemberService {
     }
 
     private ManagedMember toManagedMember(StationMember m) {
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
+        Integer accountId = m.accountId();
+        Account account =
+                accountId == null ? null : accountRepository.findById(accountId).orElse(null);
         String name = account != null ? NameParts.of(account).called() : "";
         String email = account != null ? account.email() : "";
-        return new ManagedMember(m.id(), m.stationId(), m.accountId(), name, email);
+        return new ManagedMember(m.id(), m.stationId(), accountId == null ? 0 : accountId, name, email);
     }
 
     private StationMember requireManaged(int guardianId, int memberId, Refusal missing) {

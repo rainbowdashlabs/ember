@@ -33,6 +33,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -98,8 +99,8 @@ public class EventExportService {
         for (var cat : eventCategories) {
             if (!categoryIds.isEmpty() && !categoryIds.contains(cat.id())) continue;
             var catEvents = expandedEvents.stream()
-                    .filter(e -> cat.id()
-                            == (e.event().categoryId() != null ? e.event().categoryId() : -1))
+                    .filter(e ->
+                            cat.id() == Objects.requireNonNullElse(e.event().categoryId(), -1))
                     .toList();
             if (catEvents.isEmpty()) continue;
             catGroups.add(new CategoryGroup(cat.name(), buildEventRows(catEvents, columns, zone, language)));
@@ -196,7 +197,10 @@ public class EventExportService {
                     case YEARLY -> english ? "Yearly" : "Jährlich";
                     case ONE_TIME -> english ? "Once" : "Einmalig";
                 };
-            case "day" -> event.dayOfWeek() != null ? dayName(event.dayOfWeek(), english) : "";
+            case "day" -> {
+                Integer dayOfWeek = event.dayOfWeek();
+                yield dayOfWeek != null ? dayName(dayOfWeek, english) : "";
+            }
             case "date" -> DATE_FMT.format(date);
             case "time" -> {
                 String start = event.startTime() != null

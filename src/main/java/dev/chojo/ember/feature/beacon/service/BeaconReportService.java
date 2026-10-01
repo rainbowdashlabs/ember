@@ -164,8 +164,9 @@ public class BeaconReportService {
      */
     private static String wordsOf(ProblemLogAppender.ProblemSnapshot entry) {
         var words = new LinkedHashSet<String>();
-        if (entry.exceptionMessage() != null && !entry.exceptionMessage().isBlank()) {
-            words.add(entry.exceptionMessage().strip());
+        String exceptionMessage = entry.exceptionMessage();
+        if (exceptionMessage != null && !exceptionMessage.isBlank()) {
+            words.add(exceptionMessage.strip());
         }
         for (String message : entry.distinctMessages()) {
             if (message != null && !message.isBlank()) words.add(message.strip());

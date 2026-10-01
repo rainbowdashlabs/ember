@@ -113,7 +113,7 @@ public class SessionInfoService {
             memberInfo = new MemberInfo(
                     session.member().id(),
                     session.stationUid() != null ? session.stationUid().toString() : null,
-                    session.member().accountId(),
+                    session.account().id(),
                     session.member().uid(),
                     nameResolver.called(session.member().id()),
                     session.member().nickname());
@@ -175,9 +175,9 @@ public class SessionInfoService {
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
-        Account account = member.accountId() != null
-                ? accountRepository.findById(member.accountId()).orElse(null)
-                : null;
+        Integer accountId = member.accountId();
+        Account account =
+                accountId != null ? accountRepository.findById(accountId).orElse(null) : null;
         String name = account != null
                 ? NameParts.of(account).called()
                 : (member.displayName() != null ? member.displayName() : "");
@@ -185,12 +185,7 @@ public class SessionInfoService {
         var managedStation = stationService.findById(member.stationId()).orElse(null);
         UUID managedStationUid = managedStation != null ? managedStation.uid() : null;
         return new ManagedMemberInfo(
-                member.id(),
-                managedStationUid,
-                member.uid(),
-                member.accountId() != null ? member.accountId() : 0,
-                name,
-                email);
+                member.id(), managedStationUid, member.uid(), accountId != null ? accountId : 0, name, email);
     }
 
     /**

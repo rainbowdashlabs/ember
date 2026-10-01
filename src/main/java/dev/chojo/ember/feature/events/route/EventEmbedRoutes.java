@@ -114,12 +114,10 @@ public class EventEmbedRoutes implements Routes {
         ctx.json(EmbeddedEvent.of(event, categoryName(event)));
     }
 
-    private String categoryName(StationEvent event) {
-        if (event.categoryId() == null) return null;
-        return categoryService
-                .findById(event.categoryId())
-                .map(EventCategory::name)
-                .orElse(null);
+    private @Nullable String categoryName(StationEvent event) {
+        Integer categoryId = event.categoryId();
+        if (categoryId == null) return null;
+        return categoryService.findById(categoryId).map(EventCategory::name).orElse(null);
     }
 
     /**

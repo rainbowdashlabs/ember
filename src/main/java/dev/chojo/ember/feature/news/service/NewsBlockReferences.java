@@ -31,10 +31,12 @@ public class NewsBlockReferences implements BlockReferences {
 
     @Override
     public void requireReachable(Integer stationId, BlockAudience audience, CellConfig config) {
-        if (!(config instanceof CellConfig.NewsTeaserConfig teaser) || teaser.newsUid() == null) return;
+        if (!(config instanceof CellConfig.NewsTeaserConfig teaser)) return;
+        String newsUid = teaser.newsUid();
+        if (newsUid == null) return;
         boolean reachable = stationId != null
                 && repository
-                        .findOpenByUid(stationId, audience, UUID.fromString(teaser.newsUid()))
+                        .findOpenByUid(stationId, audience, UUID.fromString(newsUid))
                         .isPresent();
         if (reachable) return;
         throw (audience == BlockAudience.PUBLIC

@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -186,7 +187,7 @@ public class AiRoutes implements Routes {
                     req.model(),
                     req.question(),
                     req.correctAnswer(),
-                    req.count() != null ? req.count() : 3);
+                    Objects.requireNonNullElse(req.count(), 3));
             ctx.json(new AiGenerateResponse(results));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument during AI generation", e);

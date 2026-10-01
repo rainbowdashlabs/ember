@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -201,10 +202,10 @@ public class QuizQuestionRoutes implements Routes {
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.imageUrl(),
-                req.points() != null ? req.points() : 1.0,
-                req.autoPoints() == null || req.autoPoints(),
+                Objects.requireNonNullElse(req.points(), 1.0),
+                !Boolean.FALSE.equals(req.autoPoints()),
                 req.configString(),
-                req.position() != null ? req.position() : 0)) {
+                Objects.requireNonNullElse(req.position(), 0))) {
             throw Refusal.QUIZ_QUESTION_NOT_CHANGED.raise();
         }
         questionService.findQuestion(id).ifPresentOrElse(ctx::json, () -> {

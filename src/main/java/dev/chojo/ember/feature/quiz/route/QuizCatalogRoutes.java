@@ -44,6 +44,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -175,7 +176,7 @@ public class QuizCatalogRoutes implements Routes {
                 session.stationId(),
                 req.name(),
                 req.description() != null ? req.description() : "",
-                req.trainingEnabled() != null && req.trainingEnabled(),
+                Boolean.TRUE.equals(req.trainingEnabled()),
                 CatalogMetadata.orNone(req.metadata()));
         ctx.status(HttpStatus.CREATED).json(catalog);
     }
@@ -193,7 +194,7 @@ public class QuizCatalogRoutes implements Routes {
                 id,
                 req.name(),
                 req.description() != null ? req.description() : "",
-                req.trainingEnabled() != null && req.trainingEnabled(),
+                Boolean.TRUE.equals(req.trainingEnabled()),
                 CatalogMetadata.orNone(req.metadata()))) {
             throw Refusal.QUIZ_CATALOG_NOT_CHANGED.raise();
         }
@@ -239,7 +240,7 @@ public class QuizCatalogRoutes implements Routes {
                         session.stationId(),
                         req.name(),
                         req.description() != null ? req.description() : "",
-                        req.position() != null ? req.position() : 0));
+                        Objects.requireNonNullElse(req.position(), 0)));
     }
 
     @OpenApi(
@@ -255,7 +256,7 @@ public class QuizCatalogRoutes implements Routes {
                 id,
                 req.name(),
                 req.description() != null ? req.description() : "",
-                req.position() != null ? req.position() : 0)) {
+                Objects.requireNonNullElse(req.position(), 0))) {
             throw Refusal.QUIZ_CATEGORY_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.OK).json(new QuizSuccessResponse(true));

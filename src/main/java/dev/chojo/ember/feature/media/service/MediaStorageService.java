@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.UUID;
@@ -58,7 +59,7 @@ public class MediaStorageService {
      * @param contentHash the hash
      * @return the scope, category and key the files live under
      */
-    public Location locate(Integer stationId, String contentHash) {
+    public Location locate(@Nullable Integer stationId, String contentHash) {
         if (stationId == null) {
             return new Location(new StorageScope.Instance(), StorageCategory.INSTANCE_MEDIA_FILES, contentHash);
         }
@@ -70,7 +71,7 @@ public class MediaStorageService {
      * Persists the original bytes for a (station, hash) pair, replacing an original stored under
      * another extension. Idempotent: the bytes of one hash are identical by definition.
      */
-    public void store(Integer stationId, String contentHash, byte[] data, String contentType) {
+    public void store(@Nullable Integer stationId, String contentHash, byte[] data, String contentType) {
         Location at = locate(stationId, contentHash);
         for (String key : storage.listKeys(at.scope(), at.category(), contentHash)) {
             VariantFile file = VariantFile.of(key);
@@ -87,7 +88,7 @@ public class MediaStorageService {
      * Caller is responsible for ensuring no other DB rows reference the same hash within the
      * same station.
      */
-    public void delete(Integer stationId, String contentHash) {
+    public void delete(@Nullable Integer stationId, String contentHash) {
         Location at = locate(stationId, contentHash);
         storage.deletePrefix(at.scope(), at.category(), contentHash);
     }
@@ -96,7 +97,7 @@ public class MediaStorageService {
      * Visible for tests: the absolute on-disk directory that holds the original and every variant
      * for a given (station, hash). Returns a path even when the directory does not yet exist on disk.
      */
-    public Path hashDir(Integer stationId, String contentHash) {
+    public Path hashDir(@Nullable Integer stationId, String contentHash) {
         Location at = locate(stationId, contentHash);
         return localBackend.resolve(storage.fullKey(at.scope(), at.category(), contentHash, Variant.ORIGINAL));
     }

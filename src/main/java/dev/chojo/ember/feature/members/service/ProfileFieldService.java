@@ -731,7 +731,8 @@ public class ProfileFieldService {
                 .map(c -> {
                     String memberName = stationMemberRepository
                             .findById(c.memberId())
-                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                            .flatMap(m -> Optional.ofNullable(m.accountId()))
+                            .flatMap(accountRepository::findById)
                             .map(a -> NameParts.of(a).called())
                             .orElse("");
                     return new ProfileFieldChange(
@@ -780,7 +781,9 @@ public class ProfileFieldService {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return;
 
-        var account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member.accountId();
+        var account =
+                accountId == null ? null : accountRepository.findById(accountId).orElse(null);
         String memberName = account != null ? NameParts.of(account).called() : "?";
         String fieldList = String.join(", ", fieldNames);
 

@@ -64,7 +64,8 @@ public record MemberWithName(
             MemberNameResolver nameResolver,
             boolean profileComplete) {
         var identity = identityFactory.local(m.stationId(), m.id());
-        if (m.accountId() == null) {
+        Integer accountId = m.accountId();
+        if (accountId == null) {
             return new MemberWithName(
                     m.id(),
                     m.stationId(),
@@ -81,7 +82,7 @@ public record MemberWithName(
                     m.joinDate(),
                     identity);
         }
-        var account = accountRepository.findById(m.accountId()).orElse(null);
+        var account = accountRepository.findById(accountId).orElse(null);
         String resolved = nameResolver.identified(m.id());
         String name = resolved != null ? resolved : "";
         String email = account != null ? account.email() : "";
@@ -89,7 +90,7 @@ public record MemberWithName(
         return new MemberWithName(
                 m.id(),
                 m.stationId(),
-                m.accountId(),
+                accountId,
                 name,
                 account != null ? account.firstName() : "",
                 account != null ? account.lastName() : "",

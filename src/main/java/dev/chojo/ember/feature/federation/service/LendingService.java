@@ -347,16 +347,19 @@ public class LendingService implements FederationServer {
      * @return its name, {@code "?"} where nothing names it
      */
     public String lineLabel(LendingRequestItem item) {
-        if (item.artId() != null) {
-            var art = artRepository.findById(item.artId()).map(InventoryArt::name);
+        Integer artId = item.artId();
+        if (artId != null) {
+            var art = artRepository.findById(artId).map(InventoryArt::name);
             if (art.isPresent()) return art.get();
         }
-        if (item.itemId() != null) {
-            var piece = inventoryRepository.findItemById(item.itemId()).map(InventoryItem::name);
+        Integer itemId = item.itemId();
+        if (itemId != null) {
+            var piece = inventoryRepository.findItemById(itemId).map(InventoryItem::name);
             if (piece.isPresent()) return piece.get();
         }
-        if (item.inventoryId() != null) {
-            var inventory = inventoryRepository.findById(item.inventoryId()).map(Inventory::name);
+        Integer inventoryId = item.inventoryId();
+        if (inventoryId != null) {
+            var inventory = inventoryRepository.findById(inventoryId).map(Inventory::name);
             if (inventory.isPresent()) return inventory.get();
         }
         return item.label() == null || item.label().isBlank() ? "?" : item.label();
@@ -918,9 +921,10 @@ public class LendingService implements FederationServer {
      * @return the name, {@code "?"} where nothing names it
      */
     public String inventoryName(LendingRequestItem item) {
-        if (item.inventoryId() != null) {
+        Integer inventoryId = item.inventoryId();
+        if (inventoryId != null) {
             return inventoryRepository
-                    .findById(item.inventoryId())
+                    .findById(inventoryId)
                     .map(Inventory::name)
                     .orElse("?");
         }
@@ -966,18 +970,17 @@ public class LendingService implements FederationServer {
         if (owningStation == null) return;
         var lender = lenderAt(owningStation.id());
         Instant from = request.requestedDateFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant to = request.requestedDateTo() == null
+        LocalDate until = request.requestedDateTo();
+        Instant to = until == null
                 ? EquipmentAvailabilityService.openEndAfter(from)
-                : request.requestedDateTo()
-                        .plusDays(1)
-                        .atStartOfDay(ZoneOffset.UTC)
-                        .toInstant();
+                : until.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
         for (var ri : repository.findItemsByRequest(requestId)) {
             int alreadySet = repository.findAssignedItems(ri.id()).size();
             if (alreadySet >= ri.quantity()) continue;
-            if (ri.itemId() != null) {
+            Integer namedPiece = ri.itemId();
+            if (namedPiece != null) {
                 inventoryRepository
-                        .findItemById(ri.itemId())
+                        .findItemById(namedPiece)
                         .filter(item -> isLendable(lender, item))
                         .filter(item -> isFree(owningStation.id(), LineTarget.item(item.id()), from, to))
                         .ifPresent(item -> repository.assignItem(ri.id(), item.id()));
@@ -1080,12 +1083,8 @@ public class LendingService implements FederationServer {
                     entry.availableCount(),
                     distance));
         }
-        decorated.sort((a, b) -> {
-            if (a.distanceKm() == null && b.distanceKm() == null) return 0;
-            if (a.distanceKm() == null) return 1;
-            if (b.distanceKm() == null) return -1;
-            return Double.compare(a.distanceKm(), b.distanceKm());
-        });
+        decorated.sort(Comparator.comparing(
+                AvailableInventoryEntry::distanceKm, Comparator.nullsLast(Comparator.naturalOrder())));
         return decorated;
     }
 

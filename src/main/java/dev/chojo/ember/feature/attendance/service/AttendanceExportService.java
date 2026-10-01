@@ -192,9 +192,8 @@ public class AttendanceExportService {
         data.put("title", session.title() != null ? session.title() : "Anwesenheit");
         data.put("startTime", formatDateTime(session.startTime(), zone));
         data.put("endTime", formatDateTime(session.endTime(), zone));
-        data.put(
-                "countedHours",
-                session.countedMinutes() != null ? String.format("%.1f", session.countedMinutes() / 60.0) : "");
+        Integer countedMinutes = session.countedMinutes();
+        data.put("countedHours", countedMinutes != null ? String.format("%.1f", countedMinutes / 60.0) : "");
 
         // Build field name→value map (skip member/attendance fields)
         var fieldMap = new LinkedHashMap<Integer, String>();
@@ -322,7 +321,9 @@ public class AttendanceExportService {
     private String resolveMemberName(int memberId) {
         var member = stationMemberRepository.findById(memberId);
         if (member.isEmpty()) return "#" + memberId;
-        var account = accountRepository.findById(member.get().accountId());
+        Integer accountId = member.get().accountId();
+        if (accountId == null) return "#" + memberId;
+        var account = accountRepository.findById(accountId);
         if (account.isEmpty()) return "#" + memberId;
         Account acc = account.get();
         String name = NameParts.of(acc).official();

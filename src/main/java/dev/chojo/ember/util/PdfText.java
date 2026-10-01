@@ -7,6 +7,7 @@ package dev.chojo.ember.util;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +27,7 @@ public final class PdfText {
      * @param data the PDF bytes
      * @return the extracted text, or {@code null} when the document could not be read
      */
-    public static String extract(byte[] data) {
+    public static @Nullable String extract(byte[] data) {
         try (var document = Loader.loadPDF(data)) {
             return new PDFTextStripper().getText(document);
         } catch (Exception e) {

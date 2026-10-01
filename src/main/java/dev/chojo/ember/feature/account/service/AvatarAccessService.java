@@ -94,8 +94,9 @@ public class AvatarAccessService {
                 stationMemberRepository.findByUid(targetStation.id(), memberUid).orElse(null);
         if (targetMember == null) return Optional.empty();
         if (!canSeeMemberAvatar(session, targetStation.id())) return Optional.empty();
-        if (targetMember.accountId() == null) return Optional.empty();
-        return Optional.ofNullable(accountRepository.resolveUid(targetMember.accountId()));
+        Integer accountId = targetMember.accountId();
+        if (accountId == null) return Optional.empty();
+        return Optional.ofNullable(accountRepository.resolveUid(accountId));
     }
 
     /**

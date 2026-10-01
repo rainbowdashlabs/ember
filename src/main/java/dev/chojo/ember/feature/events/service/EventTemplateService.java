@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Singleton
@@ -137,7 +138,7 @@ public class EventTemplateService {
     private void requireUsableDefaults(List<EventTemplateFieldData> fields) {
         for (var field : fields) {
             var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
-            var config = field.config() != null ? field.config() : EventFieldConfig.empty();
+            var config = Objects.requireNonNullElse(field.config(), EventFieldConfig.empty());
             var question = config.settings().withDefault(field.defaultValue()).asQuestion(field.name(), type.kind());
             QuestionCheck.defaultValue(question).ifPresent(problem -> {
                 throw new BadRequestResponse(problem.message());

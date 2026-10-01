@@ -231,8 +231,8 @@ public class SelfCheckReviewService {
      * the piece rather than the one the record had wrong.
      */
     private int swapFor(SelfCheck task, InventoryItem replacement, SelfCheckRaised waiting) {
-        Integer onBehalfOf =
-                waiting.raisedBy() == null || waiting.raisedBy() == task.memberId() ? null : waiting.raisedBy();
+        Integer raisedBy = waiting.raisedBy();
+        Integer onBehalfOf = raisedBy == null || raisedBy == task.memberId() ? null : raisedBy;
         var actor = new ItemMovementService.Actor(onBehalfOf != null ? onBehalfOf : task.memberId(), true);
         return movementService
                 .create(
@@ -304,9 +304,10 @@ public class SelfCheckReviewService {
      * may give about such a piece says only that they have not got it.
      */
     private void apply(SelfCheckRow row, SelfCheckSettlement settlement, int reviewerId) {
-        if (settlement != SelfCheckSettlement.MARKS_FOUND || row.itemId() == null) return;
-        custodyService.markFound(row.itemId());
-        log.info("Self-check row {} brought piece {} back, settled by member {}", row.id(), row.itemId(), reviewerId);
+        Integer itemId = row.itemId();
+        if (settlement != SelfCheckSettlement.MARKS_FOUND || itemId == null) return;
+        custodyService.markFound(itemId);
+        log.info("Self-check row {} brought piece {} back, settled by member {}", row.id(), itemId, reviewerId);
     }
 
     /**
@@ -424,11 +425,12 @@ public class SelfCheckReviewService {
      * different things and one of them ends the piece.
      */
     private SelfCheckRecordRemoval removalOf(SelfCheckRow row) {
-        if (row.itemId() == null || row.answer() != SelfCheckAnswer.WRONG_RECORD) {
+        Integer itemId = row.itemId();
+        if (itemId == null || row.answer() != SelfCheckAnswer.WRONG_RECORD) {
             return SelfCheckRecordRemoval.NOTHING;
         }
         return inventoryRepository
-                .findItemById(row.itemId())
+                .findItemById(itemId)
                 .map(SelfCheckReviewService::removalOf)
                 .orElse(SelfCheckRecordRemoval.NOTHING);
     }
@@ -448,8 +450,8 @@ public class SelfCheckReviewService {
      * unique and the containers share the numbering with the gear.
      */
     private SelfCheckIdentifierMatch identifierOf(SelfCheck task, SelfCheckRow row) {
-        String typed =
-                row.typedInternalId() == null ? "" : row.typedInternalId().strip();
+        String typedInternalId = row.typedInternalId();
+        String typed = typedInternalId == null ? "" : typedInternalId.strip();
         if (typed.isEmpty()) return SelfCheckIdentifierMatch.nothingTyped();
         List<SelfCheckIdentifierMatch.SelfCheckMatchedPiece> pieces =
                 inventoryRepository.findAllByInternalId(task.stationId(), typed).stream()
@@ -500,9 +502,9 @@ public class SelfCheckReviewService {
     }
 
     private SelfCheckReviewRow reviewRow(SelfCheck task, SelfCheckRow row) {
-        InventoryItem item = row.itemId() == null
-                ? null
-                : inventoryRepository.findItemById(row.itemId()).orElse(null);
+        Integer itemId = row.itemId();
+        InventoryItem item =
+                itemId == null ? null : inventoryRepository.findItemById(itemId).orElse(null);
         return new SelfCheckReviewRow(
                 row,
                 nameOf(row.answeredBy()),
@@ -522,9 +524,10 @@ public class SelfCheckReviewService {
      * it. Empty where they gave none, which is a thing the reviewer has to be able to see.
      */
     private String statedSizeOf(SelfCheckRow row) {
-        if (row.sizeId() == null) return "";
+        Integer sizeId = row.sizeId();
+        if (sizeId == null) return "";
         return inventoryRepository.findSizes(row.inventoryId()).stream()
-                .filter(size -> size.id() == row.sizeId())
+                .filter(size -> size.id() == sizeId)
                 .map(InventorySize::label)
                 .findFirst()
                 .orElse("");
@@ -533,10 +536,11 @@ public class SelfCheckReviewService {
     private List<SelfCheckRaisedView> raisedOf(SelfCheck task) {
         List<SelfCheckRaisedView> raised = new ArrayList<>();
         for (SelfCheckRaised entry : repository.findRaised(task.id())) {
-            String itemName = entry.itemId() == null
+            Integer itemId = entry.itemId();
+            String itemName = itemId == null
                     ? ""
                     : inventoryRepository
-                            .findItemById(entry.itemId())
+                            .findItemById(itemId)
                             .map(InventoryItem::name)
                             .orElse("");
             raised.add(new SelfCheckRaisedView(entry, itemName, nameOf(entry.raisedBy())));
@@ -553,7 +557,8 @@ public class SelfCheckReviewService {
      */
     private static String approvalRefusal(SelfCheck task, int reviewerId) {
         if (task.memberId() == reviewerId) return "This submission is about your own gear";
-        if (task.submittedBy() != null && task.submittedBy() == reviewerId) {
+        Integer submittedBy = task.submittedBy();
+        if (submittedBy != null && submittedBy == reviewerId) {
             return "You entered this submission yourself";
         }
         return null;
@@ -562,7 +567,8 @@ public class SelfCheckReviewService {
     private void requireArmsLength(SelfCheck task, SelfCheckRow row, int reviewerId) {
         String refusal = approvalRefusal(task, reviewerId);
         if (refusal != null) throw new ForbiddenResponse(refusal);
-        if (row.answeredBy() != null && row.answeredBy() == reviewerId) {
+        Integer answeredBy = row.answeredBy();
+        if (answeredBy != null && answeredBy == reviewerId) {
             throw new ForbiddenResponse("You entered this answer yourself");
         }
     }
@@ -589,10 +595,11 @@ public class SelfCheckReviewService {
     }
 
     private void tellTheMember(SelfCheck task, SelfCheckRow row, String reason) {
-        String itemName = row.itemId() == null
+        Integer itemId = row.itemId();
+        String itemName = itemId == null
                 ? inventoryNameOf(row.inventoryId())
                 : inventoryRepository
-                        .findItemById(row.itemId())
+                        .findItemById(itemId)
                         .map(InventoryItem::name)
                         .orElse(inventoryNameOf(row.inventoryId()));
         var data = NotificationData.of(
@@ -614,8 +621,7 @@ public class SelfCheckReviewService {
         if (memberId == null) return "";
         return Optional.of(memberId)
                 .flatMap(stationMemberRepository::findById)
-                .flatMap(member ->
-                        member.accountId() == null ? Optional.empty() : accountRepository.findById(member.accountId()))
+                .flatMap(member -> Optional.ofNullable(member.accountId()).flatMap(accountRepository::findById))
                 .map(Account::fullName)
                 .map(String::strip)
                 .orElse("");

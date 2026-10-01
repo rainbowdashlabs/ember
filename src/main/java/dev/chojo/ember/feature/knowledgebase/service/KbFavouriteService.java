@@ -137,11 +137,13 @@ public class KbFavouriteService {
      */
     public void carryOverToCopy(int memberId, int copiedFileId) {
         var copy = knowledgeBase.findFile(copiedFileId).orElse(null);
-        if (copy == null || copy.sourceFileId() == null || copy.sourceStationId() == null) return;
-        UUID sourceStation = stationRepository.resolveUid(copy.sourceStationId());
+        Integer sourceFileId = copy == null ? null : copy.sourceFileId();
+        Integer sourceStationId = copy == null ? null : copy.sourceStationId();
+        if (sourceFileId == null || sourceStationId == null) return;
+        UUID sourceStation = stationRepository.resolveUid(sourceStationId);
         if (sourceStation == null) return;
         boolean marked = repository
-                .findPartner(memberId, KbFavouriteTarget.PARTNER_FILE, sourceStation, copy.sourceFileId())
+                .findPartner(memberId, KbFavouriteTarget.PARTNER_FILE, sourceStation, sourceFileId)
                 .isPresent();
         if (marked) repository.addLocal(memberId, KbFavouriteTarget.FILE, copiedFileId);
     }

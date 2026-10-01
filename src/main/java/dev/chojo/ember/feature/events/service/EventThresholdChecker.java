@@ -73,11 +73,14 @@ public class EventThresholdChecker implements TaskSource {
     }
 
     private void checkDates(StationEvent event, StationCalendar calendar) {
+        Integer thresholdDays = event.thresholdDays();
+        Integer minRegistrations = event.minRegistrations();
+        if (thresholdDays == null || minRegistrations == null) return;
         LocalDate today = calendar.today();
-        for (var date : calendar.between(event, today, today.plusDays(event.thresholdDays()))) {
+        for (var date : calendar.between(event, today, today.plusDays(thresholdDays))) {
             if (!calendar.takesPlaceOn(event, date)) continue;
             int accepted = registrationRepository.countAccepted(event.id(), date);
-            if (accepted >= event.minRegistrations()) continue;
+            if (accepted >= minRegistrations) continue;
             if (cancellationService.cancelForTooFewRegistrations(event, date)) {
                 log.info(
                         "Cancelled {} of event {} (id={}): {} of {} registrations accepted",
@@ -85,7 +88,7 @@ public class EventThresholdChecker implements TaskSource {
                         event.name(),
                         event.id(),
                         accepted,
-                        event.minRegistrations());
+                        minRegistrations);
             }
         }
     }

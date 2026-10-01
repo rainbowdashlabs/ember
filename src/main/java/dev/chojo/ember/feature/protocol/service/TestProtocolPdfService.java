@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -152,7 +153,7 @@ public class TestProtocolPdfService {
         var rows = new ArrayList<EvaluationRow>();
         for (var sec : topSections) {
             for (var sub : sections.stream()
-                    .filter(s -> s.parentId() != null && s.parentId() == sec.id())
+                    .filter(s -> Objects.equals(s.parentId(), sec.id()))
                     .sorted(Comparator.comparingInt(TestProtocolSection::position))
                     .toList()) {
                 double subMax = secMax(sub, sections, itemsBySectionId);
@@ -220,7 +221,7 @@ public class TestProtocolPdfService {
                 .mapToDouble(TestProtocolItem::points)
                 .sum();
         double c = all.stream()
-                .filter(s -> s.parentId() != null && s.parentId() == sec.id())
+                .filter(s -> Objects.equals(s.parentId(), sec.id()))
                 .mapToDouble(s -> secMax(s, all, items))
                 .sum();
         return d + c;
@@ -229,7 +230,7 @@ public class TestProtocolPdfService {
     private double secScore(Map<Integer, Double> scores, TestProtocolSection sec, List<TestProtocolSection> all) {
         double d = scores.getOrDefault(sec.id(), 0.0);
         double c = all.stream()
-                .filter(s -> s.parentId() != null && s.parentId() == sec.id())
+                .filter(s -> Objects.equals(s.parentId(), sec.id()))
                 .mapToDouble(s -> scores.getOrDefault(s.id(), 0.0))
                 .sum();
         return d + c;
@@ -264,9 +265,10 @@ public class TestProtocolPdfService {
                 .findById(memberId)
                 .map(m -> {
                     if (m.displayName() != null && !m.displayName().isBlank()) return m.displayName();
-                    if (m.accountId() == null) return null;
+                    Integer accountId = m.accountId();
+                    if (accountId == null) return null;
                     return accountRepository
-                            .findById(m.accountId())
+                            .findById(accountId)
                             .map(a -> NameParts.of(a).official())
                             .orElse(null);
                 })

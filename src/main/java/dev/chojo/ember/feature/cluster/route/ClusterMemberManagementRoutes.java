@@ -45,6 +45,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -229,7 +230,9 @@ public class ClusterMemberManagementRoutes implements Routes {
                                 field.position(),
                                 field.width(),
                                 field.readonly(),
-                                field.role() == null ? null : field.role().name(),
+                                Optional.ofNullable(field.role())
+                                        .map(Enum::name)
+                                        .orElse(null),
                                 field.origin().name(),
                                 field.readonlyAtStation()))
                         .toList(),

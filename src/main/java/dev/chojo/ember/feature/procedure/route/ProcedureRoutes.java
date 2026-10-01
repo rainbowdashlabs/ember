@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -221,12 +222,7 @@ public class ProcedureRoutes implements Routes {
     private void setTemplateDependencies(Context ctx) {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
-        var req = ctx.bodyAsClass(DependencyRequest.class);
-        var deps = req.dependencies() != null
-                ? req.dependencies().stream()
-                        .map(d -> new int[] {d.itemId(), d.dependsOnItemId()})
-                        .toList()
-                : List.<int[]>of();
+        var deps = dependencyPairs(ctx.bodyAsClass(DependencyRequest.class));
         procedureService.setTemplateItemDependencies(tid, deps);
         ctx.status(204);
     }
@@ -239,14 +235,15 @@ public class ProcedureRoutes implements Routes {
     private void setProcedureDependencies(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
-        var req = ctx.bodyAsClass(DependencyRequest.class);
-        var deps = req.dependencies() != null
-                ? req.dependencies().stream()
-                        .map(d -> new int[] {d.itemId(), d.dependsOnItemId()})
-                        .toList()
-                : List.<int[]>of();
+        var deps = dependencyPairs(ctx.bodyAsClass(DependencyRequest.class));
         procedureService.setItemDependencies(rid, deps);
         ctx.status(204);
+    }
+
+    private static List<int[]> dependencyPairs(DependencyRequest request) {
+        return Objects.requireNonNullElse(request.dependencies(), List.<DependencyEntry>of()).stream()
+                .map(d -> new int[] {d.itemId(), d.dependsOnItemId()})
+                .toList();
     }
 
     // ── Procedure endpoints ──
@@ -340,7 +337,7 @@ public class ProcedureRoutes implements Routes {
                 req.isPublic(),
                 session.member().id(),
                 req.dueAt(),
-                req.assigneeIds() != null ? req.assigneeIds() : List.of(),
+                Objects.requireNonNullElse(req.assigneeIds(), List.of()),
                 req.eventDate() != null ? req.eventId() : null,
                 req.eventId() != null ? req.eventDate() : null);
         ctx.json(procedure);

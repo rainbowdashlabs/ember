@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -129,9 +130,7 @@ public class SelfCheckService {
      */
     private void announce(SelfCheck task, int handedOutBy) {
         var params = new NotificationParams.SelfCheckAssigned(
-                nameOf(task.memberId()),
-                nameOf(handedOutBy),
-                task.dueOn() == null ? "" : task.dueOn().toString());
+                nameOf(task.memberId()), nameOf(handedOutBy), Objects.toString(task.dueOn(), ""));
         var data = NotificationData.of(
                 params, new NotificationData.NotificationLink("inventory-self-check", Map.of("id", task.id())));
         notifier.notify(
@@ -162,7 +161,7 @@ public class SelfCheckService {
     private String nameOf(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
-                .flatMap(m -> m.accountId() == null ? Optional.empty() : accountRepository.findById(m.accountId()))
+                .flatMap(m -> Optional.ofNullable(m.accountId()).flatMap(accountRepository::findById))
                 .map(account -> NameParts.of(account).called())
                 .orElse("");
     }
@@ -310,7 +309,7 @@ public class SelfCheckService {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
                 .orElseThrow(() -> new BadRequestResponse("This piece does not exist"));
-        if (item.assignedTo() == null || item.assignedTo() != task.memberId()) {
+        if (!Objects.equals(item.assignedTo(), task.memberId())) {
             throw new BadRequestResponse("This piece is not on this member's record");
         }
         if (kind == SelfCheckRaisedKind.LOSS && item.borrowed()) {
@@ -340,7 +339,7 @@ public class SelfCheckService {
      */
     private SelfCheckRow correctedSizeRow(int taskId, int itemId) {
         return repository.findRows(taskId).stream()
-                .filter(row -> row.itemId() != null && row.itemId() == itemId)
+                .filter(row -> Integer.valueOf(itemId).equals(row.itemId()))
                 .filter(row -> row.answer() == SelfCheckAnswer.WRONG_RECORD && row.sizeId() != null)
                 .findFirst()
                 .orElseThrow(() -> new BadRequestResponse(
@@ -355,7 +354,8 @@ public class SelfCheckService {
     private void requireNothingLikeItYet(int taskId, SelfCheckRaisedKind kind, int itemId) {
         boolean already = repository.findRaised(taskId).stream()
                 .filter(raised -> raised.state() != SelfCheckRaisedState.DROPPED)
-                .anyMatch(raised -> raised.kind() == kind && raised.itemId() != null && raised.itemId() == itemId);
+                .anyMatch(raised ->
+                        raised.kind() == kind && Integer.valueOf(itemId).equals(raised.itemId()));
         if (already) {
             throw new BadRequestResponse("This has already been reported for this piece");
         }
@@ -450,7 +450,7 @@ public class SelfCheckService {
         InventoryItem item = inventoryRepository
                 .findItemById(input.itemId())
                 .orElseThrow(() -> new BadRequestResponse("This piece does not exist"));
-        if (item.assignedTo() == null || item.assignedTo() != task.memberId()) {
+        if (!Objects.equals(item.assignedTo(), task.memberId())) {
             throw new BadRequestResponse("This piece is not on this member's record");
         }
         if (input.answer() == SelfCheckAnswer.DO_NOT_HAVE_IT && !item.borrowed()) {

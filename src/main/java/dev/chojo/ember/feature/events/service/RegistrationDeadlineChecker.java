@@ -98,7 +98,9 @@ public class RegistrationDeadlineChecker implements TaskSource {
             var nextDate = next.get();
             if (calendar.isCancelled(event, nextDate)) continue;
 
-            var deadlineDate = nextDate.minusDays(event.registrationCloseDays());
+            Integer closeDays = event.registrationCloseDays();
+            if (closeDays == null) continue;
+            var deadlineDate = nextDate.minusDays(closeDays);
             if (today.isBefore(deadlineDate)) continue;
 
             var pending = registrationRepository.findPendingByEventAndDate(event.id(), nextDate);

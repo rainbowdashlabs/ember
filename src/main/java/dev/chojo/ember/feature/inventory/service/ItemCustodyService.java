@@ -172,7 +172,8 @@ public class ItemCustodyService {
             throw new BadRequestResponse(
                     "This gear belongs to a partner station. Tell them on the lending request it came in on");
         }
-        Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
+        Integer custodian = item.custodyStationId();
+        Integer holder = custodian != null ? custodian : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, item.assignedTo(), null);
         inventoryRepository.setLostNote(itemId, note, noteBy);
         log.info("Item {} marked lost (was {})", itemId, item.custody());
@@ -199,7 +200,8 @@ public class ItemCustodyService {
         }
         var item = found.get();
         closeCurrentSpell(item);
-        Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
+        Integer custodian = item.custodyStationId();
+        Integer holder = custodian != null ? custodian : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, null, null);
         log.info("Item {} came off member {}'s record and stays missing", itemId, item.assignedTo());
         return inventoryRepository.findItemById(itemId);
@@ -372,8 +374,9 @@ public class ItemCustodyService {
     }
 
     private void closeCurrentSpell(InventoryItem item) {
-        if (item.assignedTo() != null) {
-            inventoryRepository.returnHistory(item.id(), item.assignedTo());
+        Integer holder = item.assignedTo();
+        if (holder != null) {
+            inventoryRepository.returnHistory(item.id(), holder);
         }
     }
 

@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -127,7 +128,7 @@ public class DocumentService {
         String text = title;
         try {
             if ("application/pdf".equals(mimeType)) {
-                text = title + " " + PdfText.extract(data);
+                text = title + " " + Objects.requireNonNullElse(PdfText.extract(data), "");
             } else if (mimeType != null && mimeType.startsWith("text/")) {
                 text = title + " " + new String(data, StandardCharsets.UTF_8);
             }

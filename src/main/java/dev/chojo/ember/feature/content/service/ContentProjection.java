@@ -123,15 +123,15 @@ public final class ContentProjection {
     }
 
     private static String gallery(CellConfig config, Target target) {
-        if (!(config instanceof CellConfig.ImageGalleryConfig gallery) || gallery.items() == null) return "";
+        if (!(config instanceof CellConfig.ImageGalleryConfig gallery)) return "";
+        var items = gallery.items();
+        if (items == null) return "";
         var out = new ArrayList<String>();
-        for (var item : gallery.items()) {
-            if (item.imageHash() == null || item.imageHash().isBlank()) continue;
+        for (var item : items) {
+            String imageHash = item.imageHash();
+            if (imageHash == null || imageHash.isBlank()) continue;
             out.add(picture(
-                    orEmpty(item.altText()),
-                    target.fileUrl().apply(item.imageHash()),
-                    orEmpty(item.subtext()),
-                    target));
+                    orEmpty(item.altText()), target.fileUrl().apply(imageHash), orEmpty(item.subtext()), target));
         }
         return String.join("\n\n", out);
     }
@@ -146,8 +146,9 @@ public final class ContentProjection {
     private static String heroBanner(CellConfig config, Function<String, String> fileUrl) {
         if (!(config instanceof CellConfig.HeroBannerConfig hero)) return "";
         var out = new ArrayList<String>();
-        if (hero.imageHash() != null && !hero.imageHash().isBlank()) {
-            out.add("![" + orEmpty(hero.headline()) + "](" + fileUrl.apply(hero.imageHash()) + ")");
+        String imageHash = hero.imageHash();
+        if (imageHash != null && !imageHash.isBlank()) {
+            out.add("![" + orEmpty(hero.headline()) + "](" + fileUrl.apply(imageHash) + ")");
         }
         if (!orEmpty(hero.headline()).isBlank()) out.add("## " + hero.headline());
         if (!orEmpty(hero.subtitle()).isBlank()) out.add(hero.subtitle());
@@ -160,8 +161,9 @@ public final class ContentProjection {
     private static String pastEventRecap(CellConfig config, Function<String, String> fileUrl) {
         if (!(config instanceof CellConfig.PastEventRecapConfig recap)) return "";
         var out = new ArrayList<String>();
-        if (recap.imageHash() != null && !recap.imageHash().isBlank()) {
-            out.add("![" + orEmpty(recap.title()) + "](" + fileUrl.apply(recap.imageHash()) + ")");
+        String imageHash = recap.imageHash();
+        if (imageHash != null && !imageHash.isBlank()) {
+            out.add("![" + orEmpty(recap.title()) + "](" + fileUrl.apply(imageHash) + ")");
         }
         if (!orEmpty(recap.title()).isBlank()) out.add("### " + recap.title());
         if (!orEmpty(recap.date()).isBlank()) out.add(recap.date());
@@ -172,10 +174,12 @@ public final class ContentProjection {
     private static String callout(String content, CellConfig config) {
         String lead = "";
         if (config instanceof CellConfig.CalloutConfig callout) {
-            if (callout.title() != null && !callout.title().isBlank()) {
-                lead = callout.title();
-            } else if (callout.variant() != null) {
-                lead = callout.variant().name();
+            String title = callout.title();
+            var variant = callout.variant();
+            if (title != null && !title.isBlank()) {
+                lead = title;
+            } else if (variant != null) {
+                lead = variant.name();
             }
         }
         return blockquote(lead.isBlank() ? content : "**" + lead + "**\n\n" + content);
@@ -206,9 +210,11 @@ public final class ContentProjection {
     }
 
     private static String tabs(CellConfig config) {
-        if (!(config instanceof CellConfig.TabsConfig tabs) || tabs.items() == null) return "";
+        if (!(config instanceof CellConfig.TabsConfig tabs)) return "";
+        var items = tabs.items();
+        if (items == null) return "";
         var out = new ArrayList<String>();
-        for (var item : tabs.items()) {
+        for (var item : items) {
             out.add(section(item.title(), item.body()));
         }
         return String.join("\n\n", out.stream().filter(s -> !s.isBlank()).toList());
@@ -280,9 +286,11 @@ public final class ContentProjection {
     }
 
     private static String statsCounter(CellConfig config) {
-        if (!(config instanceof CellConfig.StatsCounterConfig stats) || stats.items() == null) return "";
+        if (!(config instanceof CellConfig.StatsCounterConfig stats)) return "";
+        var items = stats.items();
+        if (items == null) return "";
         var out = new ArrayList<String>();
-        for (var item : stats.items()) {
+        for (var item : items) {
             String value = (orEmpty(item.value()) + orEmpty(item.suffix())).strip();
             out.add((orEmpty(item.label()) + " " + value).strip());
         }
@@ -303,9 +311,11 @@ public final class ContentProjection {
      * same way the reader's eye would: left to right, then down.
      */
     private static String nestedRows(CellConfig config, Target target) {
-        if (!(config instanceof CellConfig.NestedRowsConfig nested) || nested.rows() == null) return "";
+        if (!(config instanceof CellConfig.NestedRowsConfig nested)) return "";
+        var rows = nested.rows();
+        if (rows == null) return "";
         var blocks = new ArrayList<String>();
-        for (JsonNode row : nested.rows()) {
+        for (JsonNode row : rows) {
             var cells = row.path("cells");
             if (!cells.isArray()) continue;
             for (JsonNode cell : cells) {

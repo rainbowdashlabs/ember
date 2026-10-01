@@ -969,7 +969,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      */
     public boolean isSharedWithPartner(FederationPartner partner, KbFile file) {
         for (var share : sharesReaching(partner.stationId(), partner.id())) {
-            if (share.fileId() != null && share.fileId() == file.id()) return true;
+            if (Integer.valueOf(file.id()).equals(share.fileId())) return true;
         }
         return isFolderSharedWithPartner(partner, file.folderId());
     }

@@ -197,13 +197,17 @@ public class InventoryCheckService {
      */
     public MemberGear readGear(int stationId, int memberId) {
         var member = stationMemberRepository.findById(memberId).orElseThrow();
-        var account = accountRepository.findById(member.accountId()).orElseThrow();
+        Integer accountId = member.accountId();
+        String name = accountId == null
+                ? member.displayName()
+                : NameParts.of(accountRepository.findById(accountId).orElseThrow())
+                        .called();
 
         var required = getRequiredItems(stationId, memberId);
         var assigned = inventoryRepository.findItemsByMember(memberId);
         var lastCheck = checkRepository.latestCheckForMember(memberId).orElse(null);
         MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
-        return new MemberGear(NameParts.of(account).called(), identity, required, assigned, lastCheck);
+        return new MemberGear(name, identity, required, assigned, lastCheck);
     }
 
     /**
@@ -398,9 +402,10 @@ public class InventoryCheckService {
                                         .map(Inventory::name)
                                         .orElse("")
                                 : "";
-                        if (item != null && item.sizeId() != null) {
+                        Integer sizeId = item != null ? item.sizeId() : null;
+                        if (item != null && sizeId != null) {
                             sizeName = inventoryRepository.findSizes(item.inventoryId()).stream()
-                                    .filter(s -> s.id() == item.sizeId())
+                                    .filter(s -> s.id() == sizeId)
                                     .map(InventorySize::label)
                                     .findFirst()
                                     .orElse(null);
@@ -571,7 +576,7 @@ public class InventoryCheckService {
     private String nameOf(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
-                .flatMap(member -> accountRepository.findById(member.accountId()))
+                .flatMap(member -> Optional.ofNullable(member.accountId()).flatMap(accountRepository::findById))
                 .map(Account::fullName)
                 .orElse("");
     }
@@ -635,7 +640,8 @@ public class InventoryCheckService {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
                 .orElseThrow(() -> new NotFoundResponse("This piece does not exist"));
-        if (item.assignedTo() == null || item.assignedTo() != memberId) {
+        Integer holder = item.assignedTo();
+        if (holder == null || holder != memberId) {
             throw new BadRequestResponse("This piece is not on this member's record");
         }
         if (item.custody() == ItemCustody.LOST) {

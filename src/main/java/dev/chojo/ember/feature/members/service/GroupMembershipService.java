@@ -360,9 +360,10 @@ public class GroupMembershipService {
 
     /** The other group of the same set each of these members is in, where they are in one. */
     private Map<Integer, MemberGroup> siblingsOf(MemberGroup group, Collection<Integer> memberIds) {
-        if (group.groupSetId() == null || memberIds.isEmpty()) return Map.of();
+        Integer groupSetId = group.groupSetId();
+        if (groupSetId == null || memberIds.isEmpty()) return Map.of();
         Map<Integer, MemberGroup> siblings = new HashMap<>();
-        groupRepository.findGroupInSet(group.groupSetId(), memberIds).forEach((memberId, groupId) -> {
+        groupRepository.findGroupInSet(groupSetId, memberIds).forEach((memberId, groupId) -> {
             if (groupId != group.id()) {
                 groupRepository.findById(groupId).ifPresent(sibling -> siblings.put(memberId, sibling));
             }

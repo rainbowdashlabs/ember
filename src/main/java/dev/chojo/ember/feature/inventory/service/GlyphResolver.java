@@ -53,7 +53,8 @@ public class GlyphResolver {
      */
     public Glyph forItem(InventoryItem item) {
         if (item == null) return new Glyph(STOCK_FALLBACK, null);
-        Optional<InventoryArt> art = item.artId() == null ? Optional.empty() : artRepository.findById(item.artId());
+        Integer artId = item.artId();
+        Optional<InventoryArt> art = artId == null ? Optional.empty() : artRepository.findById(artId);
         Optional<Inventory> inventory = inventoryRepository.findById(item.inventoryId());
         return resolve(
                 art.map(InventoryArt::icon).orElse(null),

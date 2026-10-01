@@ -110,7 +110,8 @@ public class InventoryFieldDefinitionService {
     public List<InventoryFieldDefinition> resolveForItem(InventoryItem item) {
         Map<String, InventoryFieldDefinition> byKey = new LinkedHashMap<>();
         List<InventoryFieldDefinition> levels = new ArrayList<>(repository.findInventoryLevel(item.inventoryId()));
-        if (item.artId() != null) levels.addAll(repository.findByArt(item.artId()));
+        Integer artId = item.artId();
+        if (artId != null) levels.addAll(repository.findByArt(artId));
         levels.addAll(repository.findByItem(item.id()));
         for (InventoryFieldDefinition definition : levels) {
             InventoryFieldDefinition standing = byKey.get(definition.key());

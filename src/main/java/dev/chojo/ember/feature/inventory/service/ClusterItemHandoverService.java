@@ -79,8 +79,9 @@ public class ClusterItemHandoverService {
     public int recallFromStation(int clusterId, int stationId) {
         List<InventoryItem> held = inventoryRepository.findClusterItemsHeldBy(clusterId, stationId);
         for (InventoryItem item : held) {
-            if (item.custody() == ItemCustody.IN_TRANSIT && item.custodyMovementId() != null) {
-                movementService.abandon(item.custodyMovementId(), REASON);
+            Integer movementId = item.custodyMovementId();
+            if (item.custody() == ItemCustody.IN_TRANSIT && movementId != null) {
+                movementService.abandon(movementId, REASON);
             }
             custodyService.returnToOwner(item.id());
         }

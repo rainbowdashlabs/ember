@@ -98,8 +98,9 @@ public class BoardRepository {
 
     public BoardLane enableBacklog(int boardId) {
         var existing = findById(boardId).orElseThrow();
-        if (existing.backlogLaneId() != null) {
-            return findLaneById(existing.backlogLaneId()).orElseThrow();
+        Integer backlogLaneId = existing.backlogLaneId();
+        if (backlogLaneId != null) {
+            return findLaneById(backlogLaneId).orElseThrow();
         }
         var lane = createLane(boardId, "Backlog", "#6b7280", -1);
         query("UPDATE board SET backlog_lane_id = :lane_id WHERE id = :id;")
@@ -110,11 +111,12 @@ public class BoardRepository {
 
     public void disableBacklog(int boardId) {
         var existing = findById(boardId).orElseThrow();
-        if (existing.backlogLaneId() == null) return;
+        Integer backlogLaneId = existing.backlogLaneId();
+        if (backlogLaneId == null) return;
         query("UPDATE board SET backlog_lane_id = NULL WHERE id = :id;")
                 .single(call().bind("id", boardId))
                 .update();
-        deleteLane(existing.backlogLaneId());
+        deleteLane(backlogLaneId);
     }
 
     public Optional<BoardLane> findLaneById(int laneId) {

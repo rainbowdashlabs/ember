@@ -67,6 +67,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -275,13 +276,13 @@ public class DemoClusterSeeder implements DemoSeeder {
         List<StationMember> others = otherPeople(member);
         if (!others.isEmpty()) {
             var memberManager =
-                    clusterService.addMember(cluster.id(), others.getFirst().accountId(), ClusterUserType.CLUSTER_USER);
+                    clusterService.addMember(cluster.id(), accountOf(others.getFirst()), ClusterUserType.CLUSTER_USER);
             memberService.setPermissions(
                     cluster.id(), memberManager.id(), Set.of(ClusterPermission.CLUSTER_MEMBER_MANAGER));
         }
         if (others.size() > 1) {
             var gearManager =
-                    clusterService.addMember(cluster.id(), others.get(1).accountId(), ClusterUserType.CLUSTER_USER);
+                    clusterService.addMember(cluster.id(), accountOf(others.get(1)), ClusterUserType.CLUSTER_USER);
             memberService.setGroupMembers(cluster.id(), group.id(), Set.of(gearManager.id()));
         }
         return admin;
@@ -307,12 +308,22 @@ public class DemoClusterSeeder implements DemoSeeder {
      * taking people off the front of a list without this would hand all three roles to one person.
      */
     private static List<StationMember> otherPeople(DemoStationContext station) {
-        int owner = station.adminMember().accountId();
+        int owner = accountOf(station.adminMember());
         Set<Integer> seen = new HashSet<>();
         return Stream.concat(station.members().betreuer().stream(), station.members().fortgeschritten().stream())
-                .filter(member -> member.accountId() != null && member.accountId() != owner)
-                .filter(member -> seen.add(member.accountId()))
+                .filter(member -> {
+                    Integer account = member.accountId();
+                    return account != null && account != owner && seen.add(account);
+                })
                 .toList();
+    }
+
+    /**
+     * The account of a demo member the seeder created with one, as every member {@link #otherPeople}
+     * picks and the station's administrator are.
+     */
+    private static int accountOf(StationMember member) {
+        return Objects.requireNonNull(member.accountId(), "the demo seeds this member with an account");
     }
 
     /**

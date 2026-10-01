@@ -109,9 +109,10 @@ public class CellDescriptions {
     }
 
     private CellConfig.PageLinkConfig addressedLink(Integer stationId, CellConfig.PageLinkConfig link) {
-        if (link.pageUid() == null || link.pageUid().isBlank()) return link;
+        String pageUid = link.pageUid();
+        if (pageUid == null || pageUid.isBlank()) return link;
         return pageAddressing
-                .addressOf(stationId, link.pageUid().trim())
+                .addressOf(stationId, pageUid.trim())
                 .map(address -> link.resolvedAs(address.title(), address.href()))
                 .orElse(link);
     }
@@ -177,8 +178,9 @@ public class CellDescriptions {
     }
 
     private CellConfig.ImageGalleryConfig describedGallery(Integer stationId, CellConfig.ImageGalleryConfig gallery) {
-        if (gallery.items() == null) return gallery;
-        var described = gallery.items().stream()
+        var items = gallery.items();
+        if (items == null) return gallery;
+        var described = items.stream()
                 .map(item -> {
                     var file = fileFor(stationId, item.imageHash());
                     if (file == null) return item;

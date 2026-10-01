@@ -250,8 +250,9 @@ public class InventoryContainerService {
      * {@link ContainerPath#empty()} if the item is unlocated.
      */
     public ContainerPath pathOfItem(InventoryItem item) {
-        if (item == null || item.containerId() == null) return ContainerPath.empty();
-        return containerRepository.findPath(item.containerId());
+        Integer containerId = item == null ? null : item.containerId();
+        if (containerId == null) return ContainerPath.empty();
+        return containerRepository.findPath(containerId);
     }
 
     /**

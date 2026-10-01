@@ -327,8 +327,9 @@ public class InventoryCheckRoutes implements Routes {
         var request = ctx.bodyAsClass(AssignItemRequest.class);
         String memberName = NameParts.of(session.account()).called();
         // Unassign old item if swapping
-        if (request.oldItemId() != null && request.oldItemId() > 0) {
-            inventoryService.assignItem(request.oldItemId(), null, null);
+        Integer oldItemId = request.oldItemId();
+        if (oldItemId != null && oldItemId > 0) {
+            inventoryService.assignItem(oldItemId, null, null);
         }
         inventoryService.assignItem(request.newItemId(), memberId, memberName);
         // Return refreshed check state
@@ -369,8 +370,9 @@ public class InventoryCheckRoutes implements Routes {
         var request = ctx.bodyAsClass(CreateAndAssignRequest.class);
         String memberName = NameParts.of(session.account()).called();
 
-        if (request.oldItemId() != null && request.oldItemId() > 0) {
-            inventoryService.assignItem(request.oldItemId(), null, null);
+        Integer oldItemId = request.oldItemId();
+        if (oldItemId != null && oldItemId > 0) {
+            inventoryService.assignItem(oldItemId, null, null);
         }
 
         inventoryService.createAndHandOut(request.inventoryId(), request.sizeId(), memberId, memberName);

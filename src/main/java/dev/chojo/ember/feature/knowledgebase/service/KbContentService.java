@@ -23,6 +23,7 @@ import dev.chojo.ember.util.TextDiff;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,7 +194,7 @@ public class KbContentService {
      * @param fileId the file to store for
      * @param text   the extracted text, possibly {@code null}
      */
-    public void storeExtractedText(int fileId, String text) {
+    public void storeExtractedText(int fileId, @Nullable String text) {
         if (text != null && !text.isBlank()) {
             storeText(fileId, text);
             return;
@@ -261,8 +262,9 @@ public class KbContentService {
      * The blocks a rich article is built from, in reading order.
      */
     public List<ContentRow> loadBlocks(KbFile file) {
-        if (file.containerId() == null) return List.of();
-        return blocks.loadRows(file.containerId());
+        Integer containerId = file.containerId();
+        if (containerId == null) return List.of();
+        return blocks.loadRows(containerId);
     }
 
     /**
@@ -284,11 +286,12 @@ public class KbContentService {
     public Optional<KbFile> saveBlocks(int fileId, List<ContentBlockService.RowData> rows, int updatedBy) {
         var file = repository.findFileById(fileId).orElse(null);
         if (file == null) return Optional.empty();
-        if (file.contentMode() != ContentMode.RICH || file.containerId() == null) {
+        Integer containerId = file.containerId();
+        if (file.contentMode() != ContentMode.RICH || containerId == null) {
             throw new BadRequestResponse("This article is not built from blocks");
         }
 
-        blocks.save(file.containerId(), rows, ContentBlockService.Scope.ARTICLE);
+        blocks.save(containerId, rows, ContentBlockService.Scope.ARTICLE);
         updateMarkdownContent(fileId, project(file), updatedBy);
         return repository.findFileById(fileId);
     }

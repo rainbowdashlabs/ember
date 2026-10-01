@@ -123,7 +123,8 @@ public class PublicEventRoutes implements Routes {
     private boolean isEventPublic(StationEvent event, Map<Integer, EventCategory> categoryMap) {
         if (event.restricted()) return false;
         // Tri-state: true = force public, false = force hidden, null = inherit from category
-        if (event.isPublic() != null) return event.isPublic();
+        Boolean isPublic = event.isPublic();
+        if (isPublic != null) return isPublic;
         if (event.categoryId() != null) {
             var cat = categoryMap.get(event.categoryId());
             return cat != null && cat.isPublic();
@@ -271,8 +272,9 @@ public class PublicEventRoutes implements Routes {
             vevent.add(ImmutableStatus.VEVENT_CANCELLED);
         }
 
-        if (event.description() != null && !event.description().isBlank()) {
-            vevent.add(new Description(event.description()));
+        String description = event.description();
+        if (description != null && !description.isBlank()) {
+            vevent.add(new Description(description));
         }
         if (event.categoryId() != null) {
             var cat = categoryMap.get(event.categoryId());

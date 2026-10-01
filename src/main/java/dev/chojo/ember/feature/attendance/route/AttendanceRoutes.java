@@ -1339,11 +1339,12 @@ public class AttendanceRoutes implements Routes {
 
         // Determine which members to create absences for
         var memberIds = new ArrayList<Integer>();
-        if (req.memberIds() != null && !req.memberIds().isEmpty()) {
+        List<Integer> requestedMemberIds = req.memberIds();
+        if (requestedMemberIds != null && !requestedMemberIds.isEmpty()) {
             var managed = session.hasPermission(StationPermission.MEMBER_GUARDIAN)
                     ? attendanceService.findManagedMemberIds(session.member().id())
                     : Set.<Integer>of();
-            for (int mid : req.memberIds()) {
+            for (int mid : requestedMemberIds) {
                 if (mid == session.member().id() || managed.contains(mid)) {
                     memberIds.add(mid);
                 } else {

@@ -493,12 +493,13 @@ public class AttendanceService {
                         .collect(Collectors.toSet())
                 : Set.of();
         for (var field : eventFieldRepository.findByEventOn(eventId, date)) {
-            if (field.attendanceFieldId() == null) continue;
+            Integer attendanceFieldId = field.attendanceFieldId();
+            if (attendanceFieldId == null) continue;
             if (field.value() == null || field.value().isBlank()) continue;
-            if (filled.contains(field.attendanceFieldId())) continue;
+            if (filled.contains(attendanceFieldId)) continue;
             String value = asJsonValue(field.value());
             if (value == null) continue;
-            attendanceRepository.setSessionField(sessionId, field.attendanceFieldId(), value);
+            attendanceRepository.setSessionField(sessionId, attendanceFieldId, value);
         }
     }
 
@@ -757,9 +758,8 @@ public class AttendanceService {
      * the answers it takes have to be the answers of this day rather than of the series.
      */
     private LocalDate dayOf(AttendanceSession session) {
-        var event = session.eventId() == null
-                ? null
-                : eventRepository.findById(session.eventId()).orElse(null);
+        Integer eventId = session.eventId();
+        var event = eventId == null ? null : eventRepository.findById(eventId).orElse(null);
         var zone = event == null ? ZoneId.systemDefault() : timezoneOf(event.stationId());
         return session.startTime().atZone(zone).toLocalDate();
     }
@@ -1011,8 +1011,9 @@ public class AttendanceService {
         var expected = expectedFor(session.get().templateId(), audienceOf(session.get()));
         enterExpectedMembers(sessionId, expected, existingMemberIds);
 
-        if (session.get().eventId() != null) {
-            int eventId = session.get().eventId();
+        Integer sessionEventId = session.get().eventId();
+        if (sessionEventId != null) {
+            int eventId = sessionEventId;
             takeEventFieldValues(sessionId, eventId, dayOf(session.get()), true);
             applyRegistrations(sessionId, eventId, expected);
         }
@@ -1151,10 +1152,11 @@ public class AttendanceService {
      */
     private boolean isDeclinedForSession(int sessionId, int memberId) {
         var session = attendanceRepository.findSessionById(sessionId);
-        if (session.isEmpty() || session.get().eventId() == null) return false;
+        Integer eventId = session.map(AttendanceSession::eventId).orElse(null);
+        if (eventId == null) return false;
 
         return eventRegistrationRepository
-                .findNotAttendingMemberIds(session.get().eventId(), dateOf(sessionId))
+                .findNotAttendingMemberIds(eventId, dateOf(sessionId))
                 .contains(memberId);
     }
 }

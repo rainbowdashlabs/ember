@@ -235,8 +235,8 @@ public class BeaconAdminService {
         boolean temporary = false;
         if (decision.dropScreenshot()) {
             pictureId = null;
-        } else if (decision.screenshot() != null && !decision.screenshot().isBlank()) {
-            var covered = pictures.store(decision.screenshot(), null);
+        } else if (decision.screenshot() instanceof String screenshot && !screenshot.isBlank()) {
+            var covered = pictures.store(screenshot, null);
             if (covered.isPresent()) {
                 pictureId = covered.get();
                 temporary = true;

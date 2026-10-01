@@ -80,7 +80,7 @@ public class TestProtocolRunService {
                 request.testDate() != null ? request.testDate() : LocalDate.now(),
                 createdBy);
         var named = new LinkedHashSet<Integer>();
-        if (request.memberIds() != null) named.addAll(request.memberIds());
+        named.addAll(orEmpty(request.memberIds()));
         for (String userType : orEmpty(request.userTypes())) {
             addIds(named, members.findByStationAndUserType(stationId, StationUserType.valueOf(userType)));
         }
@@ -91,7 +91,7 @@ public class TestProtocolRunService {
         return run;
     }
 
-    private static <T> List<T> orEmpty(List<T> list) {
+    private static <T> List<T> orEmpty(@Nullable List<T> list) {
         return list == null ? List.of() : list;
     }
 
@@ -116,9 +116,10 @@ public class TestProtocolRunService {
     private String fileName(StationMember member, int memberId) {
         String name = member.displayName();
         if (name == null || name.isBlank()) {
-            name = member.accountId() == null
+            Integer accountId = member.accountId();
+            name = accountId == null
                     ? "Member_" + memberId
-                    : accounts.findById(member.accountId())
+                    : accounts.findById(accountId)
                             .map(account -> NameParts.of(account).official())
                             .orElse("Member_" + memberId);
         }

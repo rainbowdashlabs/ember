@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
@@ -125,8 +126,9 @@ public class MemberNameResolver {
         var memberOpt = memberService.findById(memberId);
         if (memberOpt.isEmpty()) return NameParts.unknown();
         var member = memberOpt.get();
-        if (member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member.accountId();
+        if (accountId != null) {
+            var account = accountRepository.findById(accountId).orElse(null);
             if (account != null) {
                 return NameParts.of(account.firstName(), account.lastName(), nicknameAt(member));
             }
@@ -140,13 +142,14 @@ public class MemberNameResolver {
      * <p>A station that has switched them off keeps every nickname and reads none, so turning the
      * setting back on gives everybody their name back rather than asking them to type it again.
      */
-    private String nicknameAt(StationMember member) {
-        if (member.nickname() == null || member.nickname().isBlank()) return null;
+    private @Nullable String nicknameAt(StationMember member) {
+        String nickname = member.nickname();
+        if (nickname == null || nickname.isBlank()) return null;
         return stationRepository
                         .findById(member.stationId())
                         .map(Station::nicknamesEnabled)
                         .orElse(false)
-                ? member.nickname()
+                ? nickname
                 : null;
     }
 
@@ -284,19 +287,23 @@ public class MemberNameResolver {
         return new DisplayData(null, stationName, null, null);
     }
 
-    private String resolveNameColor(int memberId) {
+    private @Nullable String resolveNameColor(int memberId) {
         List<MemberGroup> groups = groupService.findGroupsForMember(memberId);
         return groups.stream()
-                .filter(g -> g.color() != null && !g.color().isBlank())
+                .filter(g -> hasColor(g.color()))
                 .max(Comparator.comparingInt(MemberGroup::position))
                 .map(MemberGroup::color)
                 .orElse(null);
     }
 
-    private MemberIdentity.DisplayTag resolveDisplayTag(int memberId) {
+    private static boolean hasColor(@Nullable String color) {
+        return color != null && !color.isBlank();
+    }
+
+    private MemberIdentity.@Nullable DisplayTag resolveDisplayTag(int memberId) {
         List<UserTag> tags = tagService.findTagsForMember(memberId);
         return tags.stream()
-                .filter(t -> t.visible() && t.color() != null && !t.color().isBlank())
+                .filter(t -> t.visible() && hasColor(t.color()))
                 .max(Comparator.comparingInt(UserTag::position))
                 .map(t -> new MemberIdentity.DisplayTag(t.name(), t.color()))
                 .orElse(null);
@@ -309,5 +316,8 @@ public class MemberNameResolver {
     public record ResolvedMember(MemberIdentity identity, String name) {}
 
     private record DisplayData(
-            String name, String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
+            @Nullable String name,
+            @Nullable String stationName,
+            @Nullable String nameColor,
+            MemberIdentity.@Nullable DisplayTag displayTag) {}
 }

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -187,8 +188,9 @@ public class MemberTableService {
             List<MemberTableColumn> kept, Map<Integer, ProfileField> readable) {
         var wanted = new LinkedHashMap<Integer, Map<Integer, String>>();
         for (var column : kept) {
-            if (column.kind() != MemberTableColumnKind.PROFILE_FIELD) continue;
-            collectField(column.fieldId(), readable, wanted);
+            Integer fieldId = column.fieldId();
+            if (column.kind() != MemberTableColumnKind.PROFILE_FIELD || fieldId == null) continue;
+            collectField(fieldId, readable, wanted);
         }
         return wanted;
     }
@@ -220,14 +222,16 @@ public class MemberTableService {
      * <p>The name is the older way of saying it and is still what an untouched field carries.
      * Renaming the question it counted from used to empty the age, which is why the id is preferred.
      */
-    private ProfileField ageSourceOf(ProfileField field, Map<Integer, ProfileField> readable) {
+    private @Nullable ProfileField ageSourceOf(ProfileField field, Map<Integer, ProfileField> readable) {
         if (field.fieldType() != ProfileFieldType.AGE) return null;
         var config = field.config();
         if (config == null) return null;
-        if (config.sourceFieldId() != null) return readable.get(config.sourceFieldId());
-        if (config.sourceField() == null) return null;
+        Integer sourceFieldId = config.sourceFieldId();
+        if (sourceFieldId != null) return readable.get(sourceFieldId);
+        String sourceField = config.sourceField();
+        if (sourceField == null) return null;
         return readable.values().stream()
-                .filter(candidate -> config.sourceField().equals(candidate.name()))
+                .filter(candidate -> sourceField.equals(candidate.name()))
                 .findFirst()
                 .orElse(null);
     }
@@ -239,9 +243,10 @@ public class MemberTableService {
             Map<Integer, Map<Integer, String>> values,
             Map<Integer, ProfileField> readable,
             Station station) {
+        Integer fieldId = column.fieldId();
         return switch (column.kind()) {
             case BUILTIN -> Builtin.valueOf(column.key(), member, people);
-            case PROFILE_FIELD -> profileValue(column.fieldId(), member.id(), values, readable, station);
+            case PROFILE_FIELD -> fieldId == null ? "" : profileValue(fieldId, member.id(), values, readable, station);
             case REGISTRATION_FIELD -> people.answersOf(member.id()).getOrDefault(column.fieldId(), "");
         };
     }

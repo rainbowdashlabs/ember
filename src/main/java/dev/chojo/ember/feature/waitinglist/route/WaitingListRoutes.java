@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -380,11 +381,7 @@ public class WaitingListRoutes implements Routes {
         }
         try {
             service.answerInvitation(
-                    token,
-                    request.eventId(),
-                    request.date() == null || request.date().isBlank() ? null : parseDate(request.date()),
-                    answer,
-                    request.note());
+                    token, request.eventId(), parseOptionalDate(request.date()), answer, request.note());
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("No waiting-list entry for the token answering an invitation", e);
@@ -493,12 +490,12 @@ public class WaitingListRoutes implements Routes {
                 request.name(),
                 request.description() != null ? request.description() : "",
                 request.scoringFormula(),
-                request.confirmIntervalDays() != null ? request.confirmIntervalDays() : 180,
+                Objects.requireNonNullElse(request.confirmIntervalDays(), 180),
                 request.testingGroupId(),
                 request.joinGroupId(),
-                request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
-                request.isPublic() != null && request.isPublic(),
-                request.sendsMail() == null || request.sendsMail(),
+                Objects.requireNonNullElse(request.attendanceThreshold(), 5),
+                Boolean.TRUE.equals(request.isPublic()),
+                !Boolean.FALSE.equals(request.sendsMail()),
                 request.minAgeRegister(),
                 request.minAgeJoin());
         ctx.status(HttpStatus.CREATED).json(list);
@@ -539,12 +536,12 @@ public class WaitingListRoutes implements Routes {
                         request.name(),
                         request.description() != null ? request.description() : "",
                         request.scoringFormula(),
-                        request.confirmIntervalDays() != null ? request.confirmIntervalDays() : 180,
+                        Objects.requireNonNullElse(request.confirmIntervalDays(), 180),
                         request.testingGroupId(),
                         request.joinGroupId(),
-                        request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
-                        request.isPublic() != null && request.isPublic(),
-                        request.sendsMail() == null || request.sendsMail(),
+                        Objects.requireNonNullElse(request.attendanceThreshold(), 5),
+                        Boolean.TRUE.equals(request.isPublic()),
+                        !Boolean.FALSE.equals(request.sendsMail()),
                         request.minAgeRegister(),
                         request.minAgeJoin())
                 .orElseThrow(Refusal.WAITING_LIST_NOT_CHANGED::raise);
@@ -604,10 +601,10 @@ public class WaitingListRoutes implements Routes {
                 listId,
                 request.name(),
                 request.fieldType(),
-                request.config() != null ? request.config() : WaitingListFieldConfig.EMPTY,
+                Objects.requireNonNullElse(request.config(), WaitingListFieldConfig.EMPTY),
                 request.position(),
                 request.required(),
-                request.isPublic() == null || request.isPublic());
+                !Boolean.FALSE.equals(request.isPublic()));
         ctx.status(HttpStatus.CREATED).json(field);
     }
 
@@ -626,10 +623,10 @@ public class WaitingListRoutes implements Routes {
                         fieldId,
                         request.name(),
                         request.fieldType(),
-                        request.config() != null ? request.config() : WaitingListFieldConfig.EMPTY,
+                        Objects.requireNonNullElse(request.config(), WaitingListFieldConfig.EMPTY),
                         request.position(),
                         request.required(),
-                        request.isPublic() == null || request.isPublic())
+                        !Boolean.FALSE.equals(request.isPublic()))
                 .orElseThrow(Refusal.WAITING_LIST_FIELD_NOT_CHANGED::raise);
         ctx.json(field);
     }
@@ -669,18 +666,19 @@ public class WaitingListRoutes implements Routes {
         verifyListOwnership(ctx, listId);
         var request = ctx.bodyAsClass(WaitingListInviteRequest.class);
         Instant expiresAt = null;
-        if (request.expiresAt() != null && !request.expiresAt().isBlank()) {
+        String requestedExpiry = request.expiresAt();
+        if (requestedExpiry != null && !requestedExpiry.isBlank()) {
             try {
-                expiresAt = Instant.parse(request.expiresAt());
+                expiresAt = Instant.parse(requestedExpiry);
             } catch (Exception e) {
                 // Try parsing as date only (e.g., "2026-05-30") and convert to end of day UTC
-                expiresAt = LocalDate.parse(request.expiresAt())
+                expiresAt = LocalDate.parse(requestedExpiry)
                         .atStartOfDay(ZoneOffset.UTC)
                         .toInstant()
                         .plusSeconds(86399);
             }
         }
-        var invite = service.createInvite(listId, request.maxUses() != null ? request.maxUses() : 1, expiresAt);
+        var invite = service.createInvite(listId, Objects.requireNonNullElse(request.maxUses(), 1), expiresAt);
         ctx.status(HttpStatus.CREATED).json(invite);
     }
 
@@ -857,11 +855,14 @@ public class WaitingListRoutes implements Routes {
      * <p>An appointment repeats, so the date travels with it and an invitation naming an appointment
      * without one is refused rather than silently meaning every occurrence there has ever been.
      */
-    private @Nullable WaitingListInvitation resolveInvitation(Context ctx, WaitingListInvitationRequest request) {
-        if (request == null || request.eventId() == null) return null;
+    private @Nullable WaitingListInvitation resolveInvitation(
+            Context ctx, @Nullable WaitingListInvitationRequest request) {
+        if (request == null) return null;
+        Integer eventId = request.eventId();
+        if (eventId == null) return null;
         var session = UserSession.from(ctx);
         var event = eventCrudService
-                .findById(request.eventId())
+                .findById(eventId)
                 .filter(candidate -> candidate.stationId() == session.stationId())
                 .orElseThrow(Refusal.APPOINTMENT_NOT_HERE_FOR_INVITATION::raise);
         if (!eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
@@ -870,7 +871,11 @@ public class WaitingListRoutes implements Routes {
         return new WaitingListInvitation(event.id(), parseDate(request.date()), parseTime(request.arrivalTime()));
     }
 
-    private static LocalDate parseDate(String raw) {
+    private static @Nullable LocalDate parseOptionalDate(@Nullable String raw) {
+        return raw == null || raw.isBlank() ? null : parseDate(raw);
+    }
+
+    private static LocalDate parseDate(@Nullable String raw) {
         if (raw == null || raw.isBlank()) {
             throw Refusal.INVITATION_NEEDS_A_DATE.raise();
         }
@@ -970,8 +975,9 @@ public class WaitingListRoutes implements Routes {
     }
 
     private static List<GuardianInput> guardianInputs(PublicWaitlistRegistrationRequest request) {
-        if (request.guardians() == null) return List.of();
-        return request.guardians().stream()
+        List<WaitingListGuardianRequest> guardians = request.guardians();
+        if (guardians == null) return List.of();
+        return guardians.stream()
                 .map(g -> new GuardianInput(
                         g.firstname() != null ? g.firstname() : "",
                         g.lastname() != null ? g.lastname() : "",
@@ -1022,10 +1028,12 @@ public class WaitingListRoutes implements Routes {
         int wid = pathInt(ctx, "wid");
         var list = publicLists.publicList(stationId, wid, Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION);
         var request = ctx.bodyAsClass(PublicWaitlistRegistrationRequest.class);
-        if (request.firstname() == null || request.firstname().isBlank()) {
+        String firstname = request.firstname();
+        if (firstname == null || firstname.isBlank()) {
             throw Refusal.PUBLIC_REGISTRATION_NEEDS_A_FIRST_NAME.raise();
         }
-        if (list.sendsMail() && (request.email() == null || request.email().isBlank())) {
+        String email = Objects.requireNonNullElse(request.email(), "");
+        if (list.sendsMail() && email.isBlank()) {
             throw Refusal.PUBLIC_REGISTRATION_NEEDS_AN_ADDRESS.raise();
         }
         if (answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), "list:" + wid))) {
@@ -1036,9 +1044,9 @@ public class WaitingListRoutes implements Routes {
                 ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         service.submitPublicRegistration(
                 wid,
-                request.firstname(),
+                firstname,
                 request.lastname() != null ? request.lastname() : "",
-                request.email() != null ? request.email() : "",
+                email,
                 guardianInputs(request),
                 request.values() != null ? request.values() : Map.of(),
                 request.notes(),

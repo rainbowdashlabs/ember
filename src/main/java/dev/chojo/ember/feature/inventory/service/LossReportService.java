@@ -77,8 +77,9 @@ public class LossReportService {
     public Optional<LossReportRequirement> requirementFor(int itemId) {
         return inventoryRepository
                 .findItemById(itemId)
-                .filter(item -> item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() != null)
-                .flatMap(item -> clusterRepository.findById(item.ownerClusterId()))
+                .filter(item -> item.ownerKind() == ItemOwner.CLUSTER)
+                .flatMap(item -> Optional.ofNullable(item.ownerClusterId()))
+                .flatMap(clusterRepository::findById)
                 .map(cluster -> cluster.lossReportRequires());
     }
 
@@ -100,11 +101,12 @@ public class LossReportService {
         if (item.custody() != ItemCustody.LOST) {
             throw new BadRequestResponse("This gear is not recorded as missing, so there is nothing to report");
         }
-        if (item.ownerKind() != ItemOwner.CLUSTER || item.ownerClusterId() == null) {
+        Integer ownerClusterId = item.ownerClusterId();
+        if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) {
             throw new BadRequestResponse("The station owns this gear itself, so there is nobody to report it to");
         }
         var cluster = clusterRepository
-                .findById(item.ownerClusterId())
+                .findById(ownerClusterId)
                 .orElseThrow(() -> new BadRequestResponse("The body that owns this gear is not here to answer"));
         requireEnough(cluster.lossReportRequires(), note, document);
 

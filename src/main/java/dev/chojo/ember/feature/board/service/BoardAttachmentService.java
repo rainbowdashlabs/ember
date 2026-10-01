@@ -156,7 +156,8 @@ public class BoardAttachmentService {
             }
             try {
                 Files.deleteIfExists(legacyRoot);
-                Files.deleteIfExists(legacyRoot.getParent());
+                Path legacyParent = legacyRoot.getParent();
+                if (legacyParent != null) Files.deleteIfExists(legacyParent);
             } catch (IOException e) {
                 log.debug("Legacy board-attachment root {} stays behind, empty", legacyRoot, e);
             }

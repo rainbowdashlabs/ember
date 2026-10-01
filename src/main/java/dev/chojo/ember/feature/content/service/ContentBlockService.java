@@ -162,8 +162,10 @@ public class ContentBlockService {
      * naming a block that does not exist is not a withheld one, and is left to the config parser.
      */
     private void requireNestedFits(Integer stationId, CellConfig config, Scope scope) {
-        if (!(config instanceof CellConfig.NestedRowsConfig nested) || nested.rows() == null) return;
-        for (JsonNode row : nested.rows()) {
+        if (!(config instanceof CellConfig.NestedRowsConfig nested)) return;
+        var rows = nested.rows();
+        if (rows == null) return;
+        for (JsonNode row : rows) {
             var cells = row.path("cells");
             if (!cells.isArray()) continue;
             for (JsonNode cell : cells) {

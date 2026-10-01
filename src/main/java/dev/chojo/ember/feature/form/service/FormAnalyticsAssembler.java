@@ -192,10 +192,13 @@ public class FormAnalyticsAssembler {
                         .findById(memberId)
                         .map(m -> memberIdentityFactory.local(m.stationId(), memberId))
                         .orElse(null);
-        MemberIdentity acknowledgedByIdentity = Optional.ofNullable(r.acknowledgedBy())
-                .flatMap(stationMemberRepository::findById)
-                .map(m -> memberIdentityFactory.local(m.stationId(), r.acknowledgedBy()))
-                .orElse(null);
+        Integer acknowledgedBy = r.acknowledgedBy();
+        MemberIdentity acknowledgedByIdentity = acknowledgedBy == null
+                ? null
+                : stationMemberRepository
+                        .findById(acknowledgedBy)
+                        .map(m -> memberIdentityFactory.local(m.stationId(), acknowledgedBy))
+                        .orElse(null);
         return new FormResponseEntry(
                 r.id(),
                 r.formId(),
@@ -213,7 +216,7 @@ public class FormAnalyticsAssembler {
     private String resolveMemberName(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .flatMap(m -> Optional.ofNullable(m.accountId()).flatMap(accountRepository::findById))
                 .map(a -> NameParts.of(a).called())
                 .orElse(null);
     }

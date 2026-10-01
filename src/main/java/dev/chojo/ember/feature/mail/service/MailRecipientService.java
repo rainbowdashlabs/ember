@@ -79,9 +79,10 @@ public class MailRecipientService {
         var byAddress = new LinkedHashMap<String, Recipient>();
         for (var membership : memberRepository.findByAccount(account.id())) {
             for (var manager : memberRepository.findManagers(membership.id())) {
-                if (manager.accountId() == null) continue;
+                Integer managerAccountId = manager.accountId();
+                if (managerAccountId == null) continue;
                 accountRepository
-                        .findById(manager.accountId())
+                        .findById(managerAccountId)
                         .filter(Account::hasRealEmail)
                         .ifPresent(guardian -> byAddress.putIfAbsent(
                                 guardian.email().toLowerCase(Locale.ROOT),

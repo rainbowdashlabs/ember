@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -70,7 +71,8 @@ public final class EncryptionKeyFile {
     }
 
     private String create() throws IOException {
-        Path directory = path.toAbsolutePath().getParent();
+        Path directory = Objects.requireNonNull(
+                path.toAbsolutePath().getParent(), "the key file is a file, so its absolute path has a parent");
         Files.createDirectories(directory);
         restrict(directory, OWNER_ONLY_DIRECTORY);
         String encoded = RandomTokens.base64(KEY_BYTES);

@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -401,12 +402,13 @@ public class AiService {
         try {
             return switch (quizQuestionType) {
                 case MULTIPLE_CHOICE -> {
-                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.MultipleChoice.class);
-                    yield cfg.options() != null
-                            && cfg.options().size() >= 2
-                            && cfg.options().stream().anyMatch(QuestionConfig.MultipleChoice.ChoiceOption::correct)
-                            && cfg.options().stream()
-                                    .allMatch(o -> o.text() != null && !o.text().isBlank());
+                    var options = Json.MAPPER
+                            .readValue(configJson, QuestionConfig.MultipleChoice.class)
+                            .options();
+                    yield options != null
+                            && options.size() >= 2
+                            && options.stream().anyMatch(QuestionConfig.MultipleChoice.ChoiceOption::correct)
+                            && options.stream().allMatch(o -> filled(o.text()));
                 }
                 case TRUE_FALSE -> {
                     Json.MAPPER.readValue(configJson, QuestionConfig.TrueFalse.class);
@@ -418,26 +420,22 @@ public class AiService {
                 }
                 case FILL_IN_THE_BLANK -> {
                     var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.FillInTheBlank.class);
-                    yield cfg.text() != null
-                            && !cfg.text().isBlank()
-                            && cfg.answers() != null
-                            && !cfg.answers().isEmpty();
+                    var answers = cfg.answers();
+                    yield filled(cfg.text()) && answers != null && !answers.isEmpty();
                 }
                 case CONNECT -> {
-                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.Connect.class);
-                    yield cfg.pairs() != null
-                            && cfg.pairs().size() >= 2
-                            && cfg.pairs().stream()
-                                    .allMatch(p -> p.left() != null
-                                            && !p.left().isBlank()
-                                            && p.right() != null
-                                            && !p.right().isBlank());
+                    var pairs = Json.MAPPER
+                            .readValue(configJson, QuestionConfig.Connect.class)
+                            .pairs();
+                    yield pairs != null
+                            && pairs.size() >= 2
+                            && pairs.stream().allMatch(p -> filled(p.left()) && filled(p.right()));
                 }
                 case ORDERING -> {
-                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.Ordering.class);
-                    yield cfg.items() != null
-                            && cfg.items().size() >= 2
-                            && cfg.items().stream().allMatch(i -> i != null && !i.isBlank());
+                    var items = Json.MAPPER
+                            .readValue(configJson, QuestionConfig.Ordering.class)
+                            .items();
+                    yield items != null && items.size() >= 2 && items.stream().allMatch(AiService::filled);
                 }
                 case IMAGE_TEXT -> true;
                 case ENUMERATION -> {
@@ -451,6 +449,10 @@ public class AiService {
             log.debug("Config validation failed for type {}: {}", quizQuestionType, e.getMessage());
             return false;
         }
+    }
+
+    private static boolean filled(@Nullable String text) {
+        return text != null && !text.isBlank();
     }
 
     private String chatOpenAi(String apiKey, String model, String systemPrompt, String userMessage) {

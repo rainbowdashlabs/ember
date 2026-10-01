@@ -126,8 +126,10 @@ public class FederationPartnerTransferFixupService {
         var partners = federationRepository.findPartners(stationId);
         var remote = partners.stream()
                 .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(partner ->
-                        partner.remoteHost() != null && !partner.remoteHost().isBlank())
+                .filter(partner -> {
+                    String host = partner.remoteHost();
+                    return host != null && !host.isBlank();
+                })
                 .toList();
         int skipped = partners.size() - remote.size();
         if (remote.isEmpty()) {

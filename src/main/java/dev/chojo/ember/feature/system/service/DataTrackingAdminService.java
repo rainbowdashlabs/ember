@@ -129,27 +129,25 @@ public class DataTrackingAdminService {
             newColumns.add(new ColumnEntry(col.name(), col.type(), col.nullable(), v, col.description()));
         }
 
-        TransferContext newTransfer = update.stationTransfer() != null
+        TransferContext transfer = update.stationTransfer();
+        TransferContext newTransfer = transfer != null
                 ? new TransferContext(
-                        update.stationTransfer().status(),
-                        update.stationTransfer().reason(),
-                        List.copyOf(update.stationTransfer().ignoredColumns()),
-                        update.stationTransfer().rationale())
+                        transfer.status(), transfer.reason(), copyOf(transfer.ignoredColumns()), transfer.rationale())
                 : existing.stationTransfer();
 
-        GdprExportContext newGdprExport = update.gdprExport() != null
+        GdprExportContext gdprExport = update.gdprExport();
+        GdprExportContext newGdprExport = gdprExport != null
                 ? new GdprExportContext(
-                        update.gdprExport().status(),
-                        update.gdprExport().reason(),
-                        List.copyOf(update.gdprExport().identityColumns()),
-                        List.copyOf(update.gdprExport().ignoredColumns()))
+                        gdprExport.status(),
+                        gdprExport.reason(),
+                        copyOf(gdprExport.identityColumns()),
+                        copyOf(gdprExport.ignoredColumns()))
                 : existing.gdprExport();
 
-        GdprDeletionContext newGdprDeletion = update.gdprDeletion() != null
+        GdprDeletionContext gdprDeletion = update.gdprDeletion();
+        GdprDeletionContext newGdprDeletion = gdprDeletion != null
                 ? new GdprDeletionContext(
-                        update.gdprDeletion().status(),
-                        update.gdprDeletion().reason(),
-                        List.copyOf(update.gdprDeletion().strategies()))
+                        gdprDeletion.status(), gdprDeletion.reason(), copyOf(gdprDeletion.strategies()))
                 : existing.gdprDeletion();
 
         TableEntry updated = new TableEntry(
@@ -191,6 +189,17 @@ public class DataTrackingAdminService {
                 tableName,
                 new TableUpdate(
                         null, overrides, existing.stationTransfer(), existing.gdprExport(), existing.gdprDeletion()));
+    }
+
+    /**
+     * An unmodifiable copy of a list an update may leave out, which stays left out.
+     *
+     * @param list the list from the update, or {@code null} when it was not sent
+     * @param <T>  the element type
+     * @return the copy, or {@code null} when there was no list
+     */
+    private static <T> @Nullable List<T> copyOf(@Nullable List<T> list) {
+        return list == null ? null : List.copyOf(list);
     }
 
     /**

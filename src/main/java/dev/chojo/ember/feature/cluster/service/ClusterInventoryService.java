@@ -100,8 +100,9 @@ public class ClusterInventoryService {
         for (var item : owned) {
             UUID stationUid = null;
             String stationName = null;
-            if (item.custodyStationId() != null) {
-                var station = stationRepository.findById(item.custodyStationId());
+            Integer custodyStationId = item.custodyStationId();
+            if (custodyStationId != null) {
+                var station = stationRepository.findById(custodyStationId);
                 stationUid = station.map(s -> s.uid()).orElse(null);
                 stationName = station.map(s -> s.name()).orElse(null);
             }

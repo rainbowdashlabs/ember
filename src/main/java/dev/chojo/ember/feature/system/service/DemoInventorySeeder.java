@@ -142,13 +142,14 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             if (memberItems.isEmpty()) continue;
             var item = memberItems.get(rng.nextInt(memberItems.size()));
             var reason = EXCHANGE_REASONS.get(rng.nextInt(EXCHANGE_REASONS.size()));
-            Integer newSizeId = item.sizeId();
-            var sizes = item.sizeId() != null
+            Integer currentSizeId = item.sizeId();
+            Integer newSizeId = currentSizeId;
+            var sizes = currentSizeId != null
                     ? inventoryRepository.findSizes(item.inventoryId())
                     : List.<InventorySize>of();
             int currentIdx = -1;
             for (int si = 0; si < sizes.size(); si++) {
-                if (sizes.get(si).id() == item.sizeId()) {
+                if (currentSizeId != null && sizes.get(si).id() == currentSizeId) {
                     currentIdx = si;
                     break;
                 }
@@ -516,7 +517,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
 
         int historyCount = 0;
         for (var item : allInternalItems) {
-            if (item.assignedTo() == null) continue;
+            Integer holder = item.assignedTo();
+            if (holder == null) continue;
             if (rng.nextInt(10) < 6) continue; // skip 60%
 
             int prevOwnerCount = 1 + rng.nextInt(3);
@@ -524,8 +526,10 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
 
             for (int h = 0; h < prevOwnerCount; h++) {
                 var prevOwner = allKids.get(rng.nextInt(allKids.size()));
-                var prevAccount =
-                        accountRepository.findById(prevOwner.accountId()).orElse(null);
+                Integer prevAccountId = prevOwner.accountId();
+                var prevAccount = prevAccountId == null
+                        ? null
+                        : accountRepository.findById(prevAccountId).orElse(null);
                 String prevName =
                         prevAccount != null ? NameParts.of(prevAccount).called() : "#" + prevOwner.id();
 
@@ -541,14 +545,14 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             // Current owner - given out after last return, no return date
             var currentAccount = accountRepository
                     .findById(allKids.stream()
-                            .filter(m -> m.id() == item.assignedTo())
+                            .filter(m -> m.id() == holder)
                             .findFirst()
                             .map(StationMember::accountId)
                             .orElse(0))
                     .orElse(null);
             String currentName =
-                    currentAccount != null ? NameParts.of(currentAccount).called() : "#" + item.assignedTo();
-            inventoryRepository.createHistoryWithDates(item.id(), item.assignedTo(), currentName, cursor, null);
+                    currentAccount != null ? NameParts.of(currentAccount).called() : "#" + holder;
+            inventoryRepository.createHistoryWithDates(item.id(), holder, currentName, cursor, null);
             historyCount++;
         }
 

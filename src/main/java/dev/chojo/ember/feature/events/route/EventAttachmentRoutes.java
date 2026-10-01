@@ -30,6 +30,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
@@ -208,7 +209,7 @@ public class EventAttachmentRoutes implements Routes {
                         session.stationId(),
                         request.fileId(),
                         request.label(),
-                        request.internal() != null && request.internal()));
+                        Boolean.TRUE.equals(request.internal())));
     }
 
     @OpenApi(
@@ -225,7 +226,7 @@ public class EventAttachmentRoutes implements Routes {
     private void update(Context ctx) {
         var attachment = requireOwnedAttachment(ctx);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
-        boolean internal = request.internal() != null ? request.internal() : attachment.internal();
+        boolean internal = Objects.requireNonNullElse(request.internal(), attachment.internal());
         if (!attachmentService.update(attachment.id(), request.label(), internal)) {
             throw Refusal.EVENT_FILE_NOT_CHANGED.raise();
         }

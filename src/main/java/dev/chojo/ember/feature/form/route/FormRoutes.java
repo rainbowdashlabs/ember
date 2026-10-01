@@ -67,6 +67,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -278,13 +279,13 @@ public class FormRoutes implements Routes {
                 session.stationId(),
                 req.title(),
                 req.description() != null ? req.description() : "",
-                req.shuffleQuestions() != null && req.shuffleQuestions(),
-                req.allowEdit() == null || req.allowEdit(),
-                req.forced() != null && req.forced(),
+                Boolean.TRUE.equals(req.shuffleQuestions()),
+                !Boolean.FALSE.equals(req.allowEdit()),
+                Boolean.TRUE.equals(req.forced()),
                 req.startAt(),
                 req.endAt(),
                 session.member().id(),
-                req.purpose() != null ? req.purpose() : FormPurpose.INTERNAL);
+                Objects.requireNonNullElse(req.purpose(), FormPurpose.INTERNAL));
         formService.setCompletion(form.id(), req.completionMessage(), req.completionLink(), req.completionLinkLabel());
         ctx.status(HttpStatus.CREATED).json(formService.findById(form.id()).orElse(form));
     }
@@ -325,9 +326,9 @@ public class FormRoutes implements Routes {
                 id,
                 req.title(),
                 req.description() != null ? req.description() : "",
-                req.shuffleQuestions() != null && req.shuffleQuestions(),
-                req.allowEdit() == null || req.allowEdit(),
-                req.forced() != null && req.forced(),
+                Boolean.TRUE.equals(req.shuffleQuestions()),
+                !Boolean.FALSE.equals(req.allowEdit()),
+                Boolean.TRUE.equals(req.forced()),
                 req.startAt(),
                 req.endAt())) {
             throw Refusal.FORM_NOT_HERE_ON_CHANGE.raise();
@@ -613,8 +614,8 @@ public class FormRoutes implements Routes {
                                 q.questionType(),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
-                                q.required() != null && q.required(),
-                                q.shuffle() != null && q.shuffle(),
+                                Boolean.TRUE.equals(q.required()),
+                                Boolean.TRUE.equals(q.shuffle()),
                                 q.config() != null ? q.config() : new FormQuestionConfig.Unknown(),
                                 q.branch()))
                         .toList());
@@ -655,11 +656,11 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, UserSession.from(ctx));
         var req = ctx.bodyAsClass(FormRestrictions.class);
+        var mode = req.mode();
         formService.setRestrictions(
-                id,
-                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
-        if (req.mode() != null) {
-            formService.updateRestrictionMode(id, req.mode());
+                id, new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), mode));
+        if (mode != null) {
+            formService.updateRestrictionMode(id, mode);
         }
         ctx.json(req);
     }

@@ -935,9 +935,10 @@ public class InventoryService {
      * none at all.
      */
     private Integer remappedSize(InventoryItem item, Inventory source, Inventory target) {
-        if (item.sizeId() == null || !target.hasSizes()) return null;
+        Integer sizeId = item.sizeId();
+        if (sizeId == null || !target.hasSizes()) return null;
         String label = inventoryRepository.findSizes(source.id()).stream()
-                .filter(size -> size.id() == item.sizeId())
+                .filter(size -> size.id() == sizeId)
                 .map(InventorySize::label)
                 .findFirst()
                 .orElse(null);
@@ -1061,8 +1062,9 @@ public class InventoryService {
             // Only where the owner is actually here to do it themselves. Gear kept for a body that does not
             // use Ember belongs to nobody who could ever correct a name, so refusing the station would leave
             // the record wrong for good with no way to put it right.
-            if (item.ownerKind() != ItemOwner.CLUSTER || item.ownerClusterId() == null) return;
-            if (item.ownerClusterId().equals(actingClusterId)) return;
+            Integer ownerClusterId = item.ownerClusterId();
+            if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) return;
+            if (ownerClusterId.equals(actingClusterId)) return;
             throw new ForbiddenResponse(
                     "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
         });

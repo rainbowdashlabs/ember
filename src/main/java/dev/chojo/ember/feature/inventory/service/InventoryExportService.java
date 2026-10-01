@@ -141,9 +141,9 @@ public class InventoryExportService {
         var rows = new ArrayList<Map<String, Object>>();
         for (int memberId : memberIds) {
             var member = stationMemberRepository.findById(memberId).orElse(null);
-            var account = member != null
-                    ? accountRepository.findById(member.accountId()).orElse(null)
-                    : null;
+            Integer accountId = member != null ? member.accountId() : null;
+            var account =
+                    accountId != null ? accountRepository.findById(accountId).orElse(null) : null;
             String firstName = account != null ? account.firstName() : "";
             String lastName = account != null ? account.lastName() : "";
             String name = account != null ? NameParts.of(account).official() : null;
@@ -168,16 +168,15 @@ public class InventoryExportService {
             for (var inv : selectedInventories) {
                 var items = itemsByInventory.getOrDefault(inv.id(), List.of());
                 var memberItems = items.stream()
-                        .filter(item -> item.assignedTo() != null && item.assignedTo() == memberId)
+                        .filter(item -> Integer.valueOf(memberId).equals(item.assignedTo()))
                         .toList();
                 var itemEntries = new ArrayList<ItemEntry>();
                 for (var item : memberItems) {
                     var parts = new ArrayList<String>();
                     if (showName && item.name() != null) parts.add(item.name());
-                    if (showInternalId
-                            && item.internalId() != null
-                            && !item.internalId().isEmpty()) {
-                        parts.add("(" + item.internalId() + ")");
+                    String internalId = item.internalId();
+                    if (showInternalId && internalId != null && !internalId.isEmpty()) {
+                        parts.add("(" + internalId + ")");
                     }
                     if (showSize && item.sizeId() != null) {
                         var sizeMap = inventorySizes.get(inv.id());

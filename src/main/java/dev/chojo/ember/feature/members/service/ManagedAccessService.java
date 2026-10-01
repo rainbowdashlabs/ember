@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * The access a guardian manages for the members in their care: the address the account is reached
@@ -266,10 +267,11 @@ public class ManagedAccessService {
     }
 
     private Account account(StationMember member) {
-        if (member.accountId() == null) {
+        Integer accountId = member.accountId();
+        if (accountId == null) {
             throw new BadRequestResponse("This member has no account");
         }
-        return accountRepository.findById(member.accountId()).orElseThrow(NotFoundResponse::new);
+        return accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
     }
 
     /**
@@ -289,7 +291,8 @@ public class ManagedAccessService {
                         managed.userType() == StationUserType.MEMBER || managed.userType() == StationUserType.TRIAL)
                 .filter(managed -> managed.accountId() != null)
                 .filter(managed -> hasLogin(managed.id()))
-                .flatMap(managed -> accountRepository.findById(managed.accountId()).stream()
+                .flatMap(managed -> Stream.ofNullable(managed.accountId())
+                        .flatMap(accountId -> accountRepository.findById(accountId).stream())
                         .filter(ManagedAccessService::canSignIn)
                         .map(account -> new SignInCandidate(account.id(), nameOf(managed, account))))
                 .sorted(Comparator.comparing(SignInCandidate::name, String.CASE_INSENSITIVE_ORDER))

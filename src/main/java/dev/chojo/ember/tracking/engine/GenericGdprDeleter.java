@@ -86,8 +86,9 @@ public final class GenericGdprDeleter {
     private static boolean identityMatchesColumn(TableEntry table, IdentityType type, ColumnEntry column) {
         if (!typeCanHoldIdentity(type, column)) return false;
         var ctx = table.gdprExport();
-        if (ctx == null || ctx.identityColumns().isEmpty()) return true;
-        for (IdentityColumn ic : ctx.identityColumns()) {
+        List<IdentityColumn> identityColumns = ctx == null ? null : ctx.identityColumns();
+        if (identityColumns == null || identityColumns.isEmpty()) return true;
+        for (IdentityColumn ic : identityColumns) {
             if (ic.type() == type && column.name().equals(ic.column())) return true;
         }
         return false;
@@ -152,12 +153,21 @@ public final class GenericGdprDeleter {
 
     // -- helpers -------------------------------------------------------------
 
+    /**
+     * The deletion strategies of a table whose deletion is tracked; none for a table that is not, or
+     * that declares no strategies.
+     */
+    private static List<DeletionStrategy> trackedStrategies(TableEntry table) {
+        var deletion = table.gdprDeletion();
+        if (deletion == null || deletion.status() != TrackingStatus.TRACKED) return List.of();
+        List<DeletionStrategy> strategies = deletion.strategies();
+        return strategies == null ? List.of() : strategies;
+    }
+
     private void applyUpdatesForTable(String tableName, IdentityType type, Object idVal, Report report) {
         var table = tracking.tables().get(tableName);
-        if (table == null || table.gdprDeletion() == null) return;
-        if (table.gdprDeletion().status() != TrackingStatus.TRACKED) return;
-
-        for (DeletionStrategy s : table.gdprDeletion().strategies()) {
+        if (table == null) return;
+        for (DeletionStrategy s : trackedStrategies(table)) {
             ColumnEntry col = resolveColumn(table, s.column());
             if (col == null) {
                 report.skipped.add(new SkippedOp(tableName, s.column(), s.strategy(), "column not found on table"));
@@ -179,10 +189,8 @@ public final class GenericGdprDeleter {
 
     private void applyDeletesForTable(String tableName, IdentityType type, Object idVal, Report report) {
         var table = tracking.tables().get(tableName);
-        if (table == null || table.gdprDeletion() == null) return;
-        if (table.gdprDeletion().status() != TrackingStatus.TRACKED) return;
-
-        for (DeletionStrategy s : table.gdprDeletion().strategies()) {
+        if (table == null) return;
+        for (DeletionStrategy s : trackedStrategies(table)) {
             if (s.strategy() != Strategy.DELETE_EXPLICIT) continue;
             ColumnEntry col = resolveColumn(table, s.column());
             if (col == null) {

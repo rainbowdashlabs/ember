@@ -31,10 +31,12 @@ public class EventBlockReferences implements BlockReferences {
 
     @Override
     public void requireReachable(Integer stationId, BlockAudience audience, CellConfig config) {
-        if (!(config instanceof CellConfig.FeaturedEventConfig featured) || featured.eventUid() == null) return;
+        if (!(config instanceof CellConfig.FeaturedEventConfig featured)) return;
+        String eventUid = featured.eventUid();
+        if (eventUid == null) return;
         boolean reachable = stationId != null
                 && repository
-                        .findOpenByUid(stationId, audience, UUID.fromString(featured.eventUid()))
+                        .findOpenByUid(stationId, audience, UUID.fromString(eventUid))
                         .isPresent();
         if (reachable) return;
         throw (audience == BlockAudience.PUBLIC
