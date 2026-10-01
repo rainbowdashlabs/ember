@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {AiCredentialSummary} from '@/api/ai'
+import type {AiCredentialSummary} from '@/api/generated/schema'
 
 /**
  * The field a new AI key is typed into, and what is known about the one already stored: its ending

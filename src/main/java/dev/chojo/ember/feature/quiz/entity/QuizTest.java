@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -18,11 +19,11 @@ public record QuizTest(
         String title,
         String description,
         TestStatus status,
-        Integer timeLimit,
+        @Nullable Integer timeLimit,
         boolean shuffle,
         boolean forced,
-        Instant startAt,
-        Instant endAt,
+        @Nullable Instant startAt,
+        @Nullable Instant endAt,
         int createdBy,
         Instant createdAt,
         Instant updatedAt,

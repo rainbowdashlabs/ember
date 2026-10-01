@@ -7,7 +7,8 @@ import {computed, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {forms, memberGroups, profileFields, userTags} from '@/api'
-import {ResultDimension, type FormAnalytics, type FormResultGroup, type ResultFilter, type ResultGrouping} from '@/api/forms'
+import {ResultDimension, type ResultFilterState, type ResultGroupingState} from '@/api/forms'
+import type {FormAnalytics, FormResultGroup} from '@/api/generated/schema'
 import {FieldTypes, type ProfileField} from '@/api/profileFields'
 import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
 import {useThemePaint} from '@/composables/useThemePaint'
@@ -36,8 +37,8 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
     const router = useRouter()
 
     const initial = decodeView(route.query.view)
-    const filter = ref<ResultFilter>(initial.filter)
-    const grouping = ref<ResultGrouping | null>(initial.grouping)
+    const filter = ref<ResultFilterState>(initial.filter)
+    const grouping = ref<ResultGroupingState | null>(initial.grouping)
     const groups = ref<MemberGroup[]>([])
     const tags = ref<UserTag[]>([])
     const fields = ref<ProfileField[]>([])
@@ -121,12 +122,12 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
     }
 
     /** Narrows the results to the answers of those the filter lets through. */
-    function filterBy(next: ResultFilter) {
+    function filterBy(next: ResultFilterState) {
         filter.value = next
     }
 
     /** Splits the results by the given grouping, or stops splitting them. */
-    function groupBy(next: ResultGrouping | null) {
+    function groupBy(next: ResultGroupingState | null) {
         grouping.value = next
     }
 

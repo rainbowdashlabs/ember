@@ -15,7 +15,7 @@ import type {
   WaitingListEntryWithScore,
   WaitingListField,
   WaitingListInvite,
-} from '@/api/waitingList'
+} from '@/api/generated/schema'
 import type {MemberGroup} from '@/api/types'
 import type {Failure} from '@/util/failure'
 

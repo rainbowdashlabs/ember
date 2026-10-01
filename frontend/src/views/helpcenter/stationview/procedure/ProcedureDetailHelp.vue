@@ -17,7 +17,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import ProcedureItemRow from '@/views/stationview/procedure/proceduredetailview/ProcedureItemRow.vue'
-import type {ProcedureItem} from '@/api/procedures'
+import type {ProcedureItem} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()

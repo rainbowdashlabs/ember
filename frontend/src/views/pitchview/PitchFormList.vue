@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import ManagedFormsSection from '@/views/stationview/forms/listview/ManagedFormsSection.vue'
-import type {Form} from '@/api/forms'
+import type {Form} from '@/api/generated/schema'
 
 /** The forms of a station, drawn by the application's own tile section. */
 defineProps<{

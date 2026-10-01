@@ -6,13 +6,14 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record WaitingListInvite(
-        int id, int listId, String code, int maxUses, int uses, Instant expiresAt, Instant createdAt) {
+        int id, int listId, String code, int maxUses, int uses, @Nullable Instant expiresAt, Instant createdAt) {
 
     public static RowMapping<WaitingListInvite> map() {
         return row -> new WaitingListInvite(

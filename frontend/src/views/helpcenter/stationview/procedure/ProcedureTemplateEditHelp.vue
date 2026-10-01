@@ -18,7 +18,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
-import type {ProcedureTemplateItem} from '@/api/procedures'
+import type {ProcedureTemplateItem} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

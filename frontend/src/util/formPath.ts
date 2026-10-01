@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PageTargetKind, type PageTarget} from '@/api/forms'
-import type {AnswerValue} from '@/util/formAnswers'
+import {PageTargetKind, QuestionTypes} from '@/api/forms'
+import type {FormAnswerValue, PageTarget} from '@/api/generated/schema'
 
 /** A page as the walk needs it: its key and where it leads once done. */
 export interface PathPage {
@@ -23,7 +23,7 @@ export interface PathQuestion {
 }
 
 /** The answers given so far, by question id. */
-export type PathAnswers = Record<number, AnswerValue | undefined>
+export type PathAnswers = Record<number, FormAnswerValue | undefined>
 
 function indexOf(pages: readonly PathPage[], key: string | null | undefined): number {
     return key ? pages.findIndex(page => page.key === key) : -1
@@ -48,9 +48,9 @@ function decidingQuestion(questions: readonly PathQuestion[], pageKey: string): 
 }
 
 /** The single option picked in a choice answer, which is the only answer a page can branch on. */
-function pickedOption(answer: AnswerValue | undefined): string | null {
-    const selected = answer?.selected
-    return Array.isArray(selected) && selected.length === 1 ? String(selected[0]) : null
+function pickedOption(answer: FormAnswerValue | undefined): string | null {
+    if (answer?.type !== QuestionTypes.CHOICE) return null
+    return answer.selected.length === 1 ? (answer.selected[0] ?? null) : null
 }
 
 /**

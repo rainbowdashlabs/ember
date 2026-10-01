@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,24 +46,24 @@ public final class FormResultTally {
      *
      * <p>Only the fields that belong to the question's kind are set: option counts by option key and
      * the number of "other" answers for a choice, rating counts from one star upward for a rating, a
-     * score per option key for a ranking, an average per statement key for a Likert grid (null where
-     * nobody rated that statement), and the answers themselves for text and date questions.
+     * score per option key for a ranking, an average per statement key for a Likert grid (left out
+     * where nobody rated that statement), and the answers themselves for text and date questions.
      *
      * <p>{@code reachedCount} is how many of the responses went through the question's page at all.
      * Without it a question behind a branch looks like one most people skipped: "not shown" is not
      * "not answered".
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record QuestionTally(
+    public record FormQuestionTally(
             int questionId,
             int answerCount,
-            Integer reachedCount,
-            Map<String, Integer> optionCounts,
-            Integer otherCount,
-            List<Integer> ratingCounts,
-            Map<String, Integer> rankingScores,
-            Map<String, Double> statementAverages,
-            List<String> values) {}
+            @Nullable Integer reachedCount,
+            @Nullable Map<String, Integer> optionCounts,
+            @Nullable Integer otherCount,
+            @Nullable List<Integer> ratingCounts,
+            @Nullable Map<String, Integer> rankingScores,
+            @Nullable Map<String, Double> statementAverages,
+            @Nullable List<String> values) {}
 
     /**
      * Counts every question over the answers of the given responses.
@@ -72,7 +73,7 @@ public final class FormResultTally {
      * @param responseIds the responses to count, or {@code null} for all of them
      * @return one tally per question, in the order of the questions
      */
-    public static List<QuestionTally> tally(
+    public static List<FormQuestionTally> tally(
             List<FormQuestion> questions, Collection<FormAnswer> answers, Set<Integer> responseIds) {
         return tally(questions, answers, null, responseIds);
     }
@@ -87,7 +88,7 @@ public final class FormResultTally {
      * @param responseIds the responses to count, or {@code null} for all of them
      * @return one tally per question, in the order of the questions
      */
-    public static List<QuestionTally> tally(
+    public static List<FormQuestionTally> tally(
             List<FormQuestion> questions,
             Collection<FormAnswer> answers,
             Collection<FormResponse> responses,
@@ -126,7 +127,7 @@ public final class FormResultTally {
                 .count();
     }
 
-    private static QuestionTally tally(FormQuestion question, Integer reached, List<FormAnswerValue> values) {
+    private static FormQuestionTally tally(FormQuestion question, Integer reached, List<FormAnswerValue> values) {
         var tally =
                 switch (question.config()) {
                     case FormQuestionConfig.Choice choice -> choices(question.id(), choice, values);
@@ -135,7 +136,7 @@ public final class FormResultTally {
                     case FormQuestionConfig.Likert likert -> likert(question.id(), likert, values);
                     case null, default -> listed(question.id(), values);
                 };
-        return new QuestionTally(
+        return new FormQuestionTally(
                 tally.questionId(),
                 tally.answerCount(),
                 reached,
@@ -147,7 +148,7 @@ public final class FormResultTally {
                 tally.values());
     }
 
-    private static QuestionTally choices(int id, FormQuestionConfig.Choice config, List<FormAnswerValue> values) {
+    private static FormQuestionTally choices(int id, FormQuestionConfig.Choice config, List<FormAnswerValue> values) {
         var counts = zeroPerOption(config);
         int other = 0;
         for (var value : values) {
@@ -157,10 +158,10 @@ public final class FormResultTally {
             }
             if (otherText != null && !otherText.isBlank()) other++;
         }
-        return new QuestionTally(id, values.size(), null, counts, other, null, null, null, null);
+        return new FormQuestionTally(id, values.size(), null, counts, other, null, null, null, null);
     }
 
-    private static QuestionTally ratings(int id, FormQuestionConfig.Rating config, List<FormAnswerValue> values) {
+    private static FormQuestionTally ratings(int id, FormQuestionConfig.Rating config, List<FormAnswerValue> values) {
         int scale = config.scale() != null && config.scale() > 0 ? config.scale() : DEFAULT_RATING_SCALE;
         int[] counts = new int[scale];
         for (var value : values) {
@@ -168,7 +169,7 @@ public final class FormResultTally {
                 counts[rating - 1]++;
             }
         }
-        return new QuestionTally(
+        return new FormQuestionTally(
                 id,
                 values.size(),
                 null,
@@ -180,7 +181,7 @@ public final class FormResultTally {
                 null);
     }
 
-    private static QuestionTally rankings(int id, FormQuestionConfig.Ranking config, List<FormAnswerValue> values) {
+    private static FormQuestionTally rankings(int id, FormQuestionConfig.Ranking config, List<FormAnswerValue> values) {
         var scores = zeroPerOption(config);
         for (var value : values) {
             if (!(value instanceof FormAnswerValue.RankingAnswer(List<String> order)) || order == null) continue;
@@ -189,10 +190,10 @@ public final class FormResultTally {
                 scores.computeIfPresent(order.get(rank), (k, score) -> score + points);
             }
         }
-        return new QuestionTally(id, values.size(), null, null, null, null, scores, null, null);
+        return new FormQuestionTally(id, values.size(), null, null, null, null, scores, null, null);
     }
 
-    private static QuestionTally likert(int id, FormQuestionConfig.Likert config, List<FormAnswerValue> values) {
+    private static FormQuestionTally likert(int id, FormQuestionConfig.Likert config, List<FormAnswerValue> values) {
         var sums = new LinkedHashMap<String, Double>();
         var counts = zeroPerOption(config);
         for (var value : values) {
@@ -204,12 +205,13 @@ public final class FormResultTally {
             });
         }
         var averages = new LinkedHashMap<String, Double>();
-        counts.forEach(
-                (key, count) -> averages.put(key, count == 0 ? null : Math.round(sums.get(key) / count * 10) / 10.0));
-        return new QuestionTally(id, values.size(), null, null, null, null, null, averages, null);
+        counts.forEach((key, count) -> {
+            if (count > 0) averages.put(key, Math.round(sums.get(key) / count * 10) / 10.0);
+        });
+        return new FormQuestionTally(id, values.size(), null, null, null, null, null, averages, null);
     }
 
-    private static QuestionTally listed(int id, List<FormAnswerValue> values) {
+    private static FormQuestionTally listed(int id, List<FormAnswerValue> values) {
         var listed = values.stream()
                 .map(value -> switch (value) {
                     case FormAnswerValue.TextAnswer(String text) -> text;
@@ -218,7 +220,7 @@ public final class FormResultTally {
                 })
                 .filter(text -> text != null && !text.isBlank())
                 .toList();
-        return new QuestionTally(id, values.size(), null, null, null, null, null, null, listed);
+        return new FormQuestionTally(id, values.size(), null, null, null, null, null, null, listed);
     }
 
     private static Map<String, Integer> zeroPerOption(FormQuestionConfig config) {

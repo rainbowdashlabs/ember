@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FormQuestionTally, FormResultGroup} from '@/api/forms'
+import type {FormQuestionTally, FormResultGroup} from '@/api/generated/schema'
 import type {Translate} from '@/util/failure'
 
 /**

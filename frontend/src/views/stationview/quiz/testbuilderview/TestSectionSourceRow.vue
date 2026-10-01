@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { QuizCatalog, QuizCategory } from '@/api/quiz'
+import type { QuizCatalog, QuizCategory } from '@/api/generated/schema'
 
 const catalogId = defineModel<number | null>('catalogId', {required: true})
 const categoryId = defineModel<number | null>('categoryId', {required: true})

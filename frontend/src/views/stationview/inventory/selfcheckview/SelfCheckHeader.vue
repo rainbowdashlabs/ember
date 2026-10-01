@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {formatDate} from '@/util/format'
-import {SelfCheckState, type SelfCheckSummary} from '@/api/selfChecks'
+import {SelfCheckState} from '@/api/selfChecks'
+import type {SelfCheckSummary} from '@/api/generated/schema'
 
 /** Whose gear this is about, by when it is wanted, and where the task stands. */
 defineProps<{

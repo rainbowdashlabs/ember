@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 import { entryFullName } from './entryFullName'
 
 type TransitionKind = 'testing' | 'join' | 'approve' | 'reject' | 'withdraw' | 'backToWaiting'

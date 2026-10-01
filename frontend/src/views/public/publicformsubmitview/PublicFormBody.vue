@@ -12,8 +12,7 @@ import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
 import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
 import FormDraftNote from '@/components/forms/fill/FormDraftNote.vue'
 import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
-import type {PublicForm, PublicFormPage, PublicFormQuestion} from '@/api/publicForms'
-import type {AnswerValue} from '@/util/formAnswers'
+import type {FormAnswerValue, PublicForm, PublicFormPage, PublicFormQuestion} from '@/api/generated/schema'
 import type {useFormWalk} from '@/composables/useFormWalk'
 
 const {t} = useI18n()
@@ -24,7 +23,7 @@ const {t} = useI18n()
  */
 defineProps<{
   form: PublicForm
-  answers: Record<number, AnswerValue>
+  answers: Record<number, FormAnswerValue>
   walk: ReturnType<typeof useFormWalk<PublicFormPage, PublicFormQuestion>>
   submitting: boolean
   /** A form that is not taking answers shows why and offers nothing to fill in. */

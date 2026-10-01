@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 import QuestionHeader from './QuestionHeader.vue'
 import AnswerReviewSwitch from './AnswerReviewSwitch.vue'
 import PointsField from './PointsField.vue'

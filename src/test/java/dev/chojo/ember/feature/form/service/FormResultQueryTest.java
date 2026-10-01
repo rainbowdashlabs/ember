@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
-import dev.chojo.ember.feature.form.service.FormResultQuery.FieldCondition;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Filter;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultFieldCondition;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultFilter;
 import dev.chojo.ember.feature.form.service.FormResultQuery.Match;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +30,7 @@ class FormResultQueryTest {
 
     @Test
     void anEmptyFilterLetsEverybodyThrough() {
-        var filter = new Filter(null, List.of(), null, null, null, List.of(), null, null);
+        var filter = new ResultFilter(null, List.of(), null, null, null, List.of(), null, null);
 
         assertTrue(filter.matches(YOUTH_AND_ACTIVE));
         assertTrue(filter.matches(YOUTH_ONLY));
@@ -38,8 +38,8 @@ class FormResultQueryTest {
 
     @Test
     void groupsMatchAnyOfThemOrAllOfThem() {
-        var anyOf = new Filter(null, List.of(11, 12), Match.ANY, null, null, null, null, null);
-        var allOf = new Filter(null, List.of(10, 11), Match.ALL, null, null, null, null, null);
+        var anyOf = new ResultFilter(null, List.of(11, 12), Match.ANY, null, null, null, null, null);
+        var allOf = new ResultFilter(null, List.of(10, 11), Match.ALL, null, null, null, null, null);
 
         assertTrue(anyOf.matches(YOUTH_AND_ACTIVE));
         assertFalse(anyOf.matches(YOUTH_ONLY));
@@ -49,8 +49,8 @@ class FormResultQueryTest {
 
     @Test
     void tagsMatchLikeGroups() {
-        var allOf = new Filter(null, null, null, List.of(20, 21), Match.ALL, null, null, null);
-        var anyOf = new Filter(null, null, null, List.of(20, 21), Match.ANY, null, null, null);
+        var allOf = new ResultFilter(null, null, null, List.of(20, 21), Match.ALL, null, null, null);
+        var anyOf = new ResultFilter(null, null, null, List.of(20, 21), Match.ANY, null, null, null);
 
         assertFalse(allOf.matches(YOUTH_AND_ACTIVE));
         assertTrue(anyOf.matches(YOUTH_AND_ACTIVE));
@@ -58,7 +58,7 @@ class FormResultQueryTest {
 
     @Test
     void conditionsOnDifferentAttributesMustAllHold() {
-        var filter = new Filter(List.of(StationUserType.TRIAL), List.of(10), Match.ANY, null, null, null, null, null);
+        var filter = new ResultFilter(List.of(StationUserType.TRIAL), List.of(10), Match.ANY, null, null, null, null, null);
 
         assertFalse(filter.matches(YOUTH_AND_ACTIVE), "in the group but not of the type");
         assertTrue(filter.matches(YOUTH_ONLY));
@@ -66,7 +66,7 @@ class FormResultQueryTest {
 
     @Test
     void anUnknownAgePassesNoAgeCondition() {
-        var teens = new Filter(null, null, null, null, null, null, 14, 17);
+        var teens = new ResultFilter(null, null, null, null, null, null, 14, 17);
 
         assertTrue(teens.matches(YOUTH_AND_ACTIVE));
         assertFalse(teens.matches(YOUTH_ONLY), "nothing says they are old enough");
@@ -74,26 +74,26 @@ class FormResultQueryTest {
 
     @Test
     void profileFieldsMatchByAnswerOrRange() {
-        var sizes = new Filter(
+        var sizes = new ResultFilter(
                 null,
                 null,
                 null,
                 null,
                 null,
-                List.of(new FieldCondition(30, List.of("M", "L"), null, null)),
+                List.of(new ResultFieldCondition(30, List.of("M", "L"), null, null)),
                 null,
                 null);
-        var firstAid = new Filter(
+        var firstAid = new ResultFilter(
                 null,
                 null,
                 null,
                 null,
                 null,
-                List.of(new FieldCondition(31, List.of("false"), null, null)),
+                List.of(new ResultFieldCondition(31, List.of("false"), null, null)),
                 null,
                 null);
         var years =
-                new Filter(null, null, null, null, null, List.of(new FieldCondition(32, null, 10.0, 15.0)), null, null);
+                new ResultFilter(null, null, null, null, null, List.of(new ResultFieldCondition(32, null, 10.0, 15.0)), null, null);
 
         assertTrue(sizes.matches(YOUTH_AND_ACTIVE));
         assertFalse(sizes.matches(YOUTH_ONLY), "no answer is no match");
@@ -103,8 +103,8 @@ class FormResultQueryTest {
 
     @Test
     void aRangeOnlyMatchesAnswersThatAreNumbers() {
-        var sizeAsNumber = new FieldCondition(30, null, 1.0, null);
-        var onlyUpper = new FieldCondition(32, null, null, 11.0);
+        var sizeAsNumber = new ResultFieldCondition(30, null, 1.0, null);
+        var onlyUpper = new ResultFieldCondition(32, null, null, 11.0);
 
         assertFalse(sizeAsNumber.matches("L"), "a choice is not a number");
         assertFalse(onlyUpper.matches("12"));
@@ -113,7 +113,7 @@ class FormResultQueryTest {
 
     @Test
     void anAgeBoundOnOneSideLeavesTheOtherOpen() {
-        assertTrue(new Filter(null, null, null, null, null, null, 16, null).matches(YOUTH_AND_ACTIVE));
-        assertFalse(new Filter(null, null, null, null, null, null, null, 15).matches(YOUTH_AND_ACTIVE));
+        assertTrue(new ResultFilter(null, null, null, null, null, null, 16, null).matches(YOUTH_AND_ACTIVE));
+        assertFalse(new ResultFilter(null, null, null, null, null, null, null, 15).matches(YOUTH_AND_ACTIVE));
     }
 }

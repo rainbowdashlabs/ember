@@ -11,7 +11,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {WaitingListEntryWithScore, WaitingListField} from '@/api/waitingList'
+import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 import {entryFullName} from './entryFullName'
 

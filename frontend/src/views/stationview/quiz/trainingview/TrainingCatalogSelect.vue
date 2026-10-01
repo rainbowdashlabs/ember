@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { QuizCatalog } from '@/api/quiz'
+import type { QuizCatalog } from '@/api/generated/schema'
 
 defineProps<{
   catalogs: QuizCatalog[]

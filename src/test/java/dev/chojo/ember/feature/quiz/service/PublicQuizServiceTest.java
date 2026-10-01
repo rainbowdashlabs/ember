@@ -52,7 +52,7 @@ class PublicQuizServiceTest {
         when(catalog.description()).thenReturn("d");
         when(catalogs.findPublicByStation(3)).thenReturn(List.of(catalog));
 
-        assertEquals(List.of(new PublicQuizService.PublicCatalog(1, "Knoten", "d")), service.catalogs(STATION));
+        assertEquals(List.of(new PublicQuizService.PublicQuizCatalog(1, "Knoten", "d")), service.catalogs(STATION));
     }
 
     @Test

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.quiz.service;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
-import dev.chojo.ember.feature.quiz.entity.QuestionConfig.MultipleChoice.Option;
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig.MultipleChoice.ChoiceOption;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -149,19 +149,19 @@ class QuizGenerationServiceTest {
         catalog(STATION);
         var shortOfOptions = question(
                 QuizQuestionType.MULTIPLE_CHOICE,
-                new QuestionConfig.MultipleChoice(List.of(new Option("Red", true), new Option("Blue", false)), 1));
+                new QuestionConfig.MultipleChoice(List.of(new ChoiceOption("Red", true), new ChoiceOption("Blue", false)), 1));
         when(shortOfOptions.title()).thenReturn("Colour?");
         var full = question(
                 QuizQuestionType.MULTIPLE_CHOICE,
                 new QuestionConfig.MultipleChoice(
-                        List.of(new Option("A", true), new Option("B", false), new Option("C", false)), 1));
+                        List.of(new ChoiceOption("A", true), new ChoiceOption("B", false), new ChoiceOption("C", false)), 1));
         var noRightAnswer = question(
                 QuizQuestionType.MULTIPLE_CHOICE,
-                new QuestionConfig.MultipleChoice(List.of(new Option("A", false)), 1));
+                new QuestionConfig.MultipleChoice(List.of(new ChoiceOption("A", false)), 1));
         var free = question(QuizQuestionType.FREE_ANSWER, null);
         var failing = question(
                 QuizQuestionType.MULTIPLE_CHOICE,
-                new QuestionConfig.MultipleChoice(List.of(new Option("Yes", true)), 1));
+                new QuestionConfig.MultipleChoice(List.of(new ChoiceOption("Yes", true)), 1));
         when(failing.title()).thenReturn("Broken?");
         when(questions.findQuestions(CATALOG)).thenReturn(List.of(shortOfOptions, full, noRightAnswer, free, failing));
         when(ai.generate(STATION, ACCOUNT, "claude", "key", null, "Colour?", "Red", 1))

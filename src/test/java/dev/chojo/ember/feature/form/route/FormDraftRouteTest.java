@@ -16,7 +16,7 @@ import dev.chojo.ember.feature.form.entity.FormDraft;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
-import dev.chojo.ember.feature.form.route.FormRoutes.DraftResponse;
+import dev.chojo.ember.feature.form.route.FormRoutes.FormDraftResponse;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormDirectoryService;
 import dev.chojo.ember.feature.form.service.FormRespondents;
@@ -210,7 +210,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
             var read = client.get(ownDraft(), harness.as(sessionOf(child)));
 
             assertEquals(Refusal.FORM_TAKES_NO_DRAFTS, refusalOf(kept));
-            assertNull(read(read, DraftResponse.class).draft());
+            assertNull(read(read, FormDraftResponse.class).draft());
         });
     }
 
@@ -245,7 +245,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
     }
 
     private static FormDraft draftOf(Response response) {
-        var draft = read(response, DraftResponse.class).draft();
+        var draft = read(response, FormDraftResponse.class).draft();
         assertNotNull(draft);
         return draft;
     }

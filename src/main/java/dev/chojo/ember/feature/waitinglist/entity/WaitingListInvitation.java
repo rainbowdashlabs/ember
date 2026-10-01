@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.wrapper.Row;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -27,7 +28,7 @@ import java.time.LocalTime;
  * @param arrivalTime when they were asked to be there, usually earlier than everybody else, or
  *                    {@code null} when the invitation named no time of its own
  */
-public record WaitingListInvitation(int eventId, LocalDate date, LocalTime arrivalTime) {
+public record WaitingListInvitation(int eventId, LocalDate date, @Nullable LocalTime arrivalTime) {
 
     /** Reads the invitation off an entry row, or {@code null} when the row carries none. */
     public static WaitingListInvitation from(Row row) throws SQLException {

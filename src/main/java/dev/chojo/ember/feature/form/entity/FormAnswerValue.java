@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.databind.ObjectMapper;
 
@@ -75,10 +77,11 @@ public sealed interface FormAnswerValue {
      *
      * <p>The fill screens send an answer of the right shape for every question, answered or not, so
      * this is the one place that decides what counts as not answered. Empty answers are dropped before
-     * anything is checked or stored.
+     * anything is checked or stored. It is worked out from the answer and never written with it.
      *
      * @return whether the answer is empty
      */
+    @JsonIgnore
     boolean isEmpty();
 
     /**
@@ -99,7 +102,7 @@ public sealed interface FormAnswerValue {
      * Selected option keys + optional other text.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record ChoiceAnswer(List<String> selected, String other) implements FormAnswerValue {
+    record ChoiceAnswer(List<String> selected, @Nullable String other) implements FormAnswerValue {
         @Override
         public boolean isEmpty() {
             return (selected == null || selected.isEmpty()) && blank(other);

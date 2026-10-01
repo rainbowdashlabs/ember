@@ -6,11 +6,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AuthImage from '@/components/display/AuthImage.vue'
-import type { QuizQuestion } from '@/api/quiz'
+import type { QuizQuestionRead } from '@/api/generated/schema'
 import { quiz } from '@/api'
 
 const props = defineProps<{
-  question: QuizQuestion
+  question: QuizQuestionRead
   directImageSrc?: string | null
 }>()
 

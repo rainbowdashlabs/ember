@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 import {quiz} from '@/api'
 
 const props = defineProps<{

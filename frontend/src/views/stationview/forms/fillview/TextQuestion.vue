@@ -8,7 +8,7 @@ import { computed } from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 
-type TextAnswer = { text: string }
+import type { TextAnswer } from '@/api/generated/schema'
 
 const props = defineProps<{
   config: Record<string, unknown>

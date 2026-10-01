@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -21,17 +22,17 @@ public record WaitingListEntry(
         String accessToken,
         WaitingListEntryStatus status,
         Instant confirmedAt,
-        Instant reminderSentAt,
+        @Nullable Instant reminderSentAt,
         Instant createdAt,
         String notes,
-        Integer memberId,
-        Instant invitedAt,
-        Instant testingAt,
-        Instant joinedAt,
-        Instant withdrawnAt,
+        @Nullable Integer memberId,
+        @Nullable Instant invitedAt,
+        @Nullable Instant testingAt,
+        @Nullable Instant joinedAt,
+        @Nullable Instant withdrawnAt,
         int attendanceCount,
-        WaitingListInvitation invitation,
-        WaitingListInvitationAnswer answer) {
+        @Nullable WaitingListInvitation invitation,
+        @Nullable WaitingListInvitationAnswer answer) {
 
     public static RowMapping<WaitingListEntry> map() {
         return row -> new WaitingListEntry(

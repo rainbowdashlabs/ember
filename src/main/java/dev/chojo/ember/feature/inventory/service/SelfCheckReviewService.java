@@ -44,6 +44,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -450,7 +451,7 @@ public class SelfCheckReviewService {
         String typed =
                 row.typedInternalId() == null ? "" : row.typedInternalId().strip();
         if (typed.isEmpty()) return SelfCheckIdentifierMatch.nothingTyped();
-        List<SelfCheckIdentifierMatch.Piece> pieces =
+        List<SelfCheckIdentifierMatch.SelfCheckMatchedPiece> pieces =
                 inventoryRepository.findAllByInternalId(task.stationId(), typed).stream()
                         .map(this::piece)
                         .toList();
@@ -460,8 +461,8 @@ public class SelfCheckReviewService {
         return SelfCheckIdentifierMatch.of(typed, pieces, containers);
     }
 
-    private SelfCheckIdentifierMatch.Piece piece(InventoryItem item) {
-        return new SelfCheckIdentifierMatch.Piece(
+    private SelfCheckIdentifierMatch.SelfCheckMatchedPiece piece(InventoryItem item) {
+        return new SelfCheckIdentifierMatch.SelfCheckMatchedPiece(
                 item.id(),
                 item.name(),
                 item.internalId(),
@@ -641,7 +642,7 @@ public class SelfCheckReviewService {
             SelfCheckRow row,
             String answeredByName,
             String reviewedByName,
-            InventoryItem item,
+            @Nullable InventoryItem item,
             String inventoryName,
             boolean borrowed,
             boolean recordedLost,

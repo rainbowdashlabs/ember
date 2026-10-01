@@ -10,7 +10,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type { QuizQuestion } from '@/api/quiz'
+import type { QuizQuestion } from '@/api/generated/schema'
 
 /**
  * A question of the catalogue, folded, on a phone. Its text opens the editor when pressed, which is

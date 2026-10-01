@@ -9,7 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ProtocolItemRow from './ProtocolItemRow.vue'
-import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
+import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 
 defineProps<{
   sub: TestProtocolSection

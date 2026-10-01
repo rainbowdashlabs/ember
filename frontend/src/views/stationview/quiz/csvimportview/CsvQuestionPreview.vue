@@ -10,11 +10,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import CsvQuestionCard from './CsvQuestionCard.vue'
 import {answerList, resplitAnswers, setAnswerList, toggleCorrect, type ImportDraft} from './quizCsvImport'
-import type {QuizCatalogExportCategory} from '@/api/quiz'
+import type {CatalogTransferCategory} from '@/api/generated/schema'
 
 const props = defineProps<{
   drafts: ImportDraft[]
-  categories: QuizCatalogExportCategory[]
+  categories: CatalogTransferCategory[]
   status: string
 }>()
 

@@ -11,9 +11,10 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ResultFieldConditions from './ResultFieldConditions.vue'
-import {ResultMatch, type ResultFilter, type ResultMatchName} from '@/api/forms'
+import {ResultMatch, type ResultFilterState, type ResultMatchName} from '@/api/forms'
 import type {ProfileField} from '@/api/profileFields'
 import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
+import {userTypesOf} from '@/util/stationUserTypes'
 
 /**
  * Which respondents count: by user type, groups, tags, age and profile answers.
@@ -27,11 +28,11 @@ const props = defineProps<{
   fields: ProfileField[]
 }>()
 
-const filter = defineModel<ResultFilter>({required: true})
+const filter = defineModel<ResultFilterState>({required: true})
 
 const {t} = useI18n()
 
-function patch(part: Partial<ResultFilter>) {
+function patch(part: Partial<ResultFilterState>) {
   filter.value = {...filter.value, ...part}
 }
 
@@ -41,7 +42,7 @@ const tagOptions = computed(() => props.tags.map(tag => ({value: String(tag.id),
 
 const userTypes = computed({
   get: () => filter.value.userTypes,
-  set: (values: string[]) => patch({userTypes: values}),
+  set: (values: string[]) => patch({userTypes: userTypesOf(values)}),
 })
 const groupIds = computed({
   get: () => filter.value.groupIds.map(String),
@@ -69,7 +70,7 @@ const ageTo = computed({
 })
 const conditions = computed({
   get: () => filter.value.fields,
-  set: (value: ResultFilter['fields']) => patch({fields: value}),
+  set: (value: ResultFilterState['fields']) => patch({fields: value}),
 })
 </script>
 

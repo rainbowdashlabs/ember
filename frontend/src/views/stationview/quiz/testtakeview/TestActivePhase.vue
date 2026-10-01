@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import TestQuestionCard from './TestQuestionCard.vue'
-import type { QuizTestAttemptQuestion, QuizQuestion } from '@/api/quiz'
+import type { QuizQuestionRead, QuizTestAttemptQuestion } from '@/api/generated/schema'
 
 const props = defineProps<{
   sortedQuestions: QuizTestAttemptQuestion[]
@@ -21,7 +21,7 @@ const props = defineProps<{
   timerExpired: boolean
   isFirstQuestion: boolean
   isLastQuestion: boolean
-  questionDetail: QuizQuestion
+  questionDetail: QuizQuestionRead
   config: Record<string, unknown>
   answerParsed: Record<string, unknown>
   connectLeftItems: string[]

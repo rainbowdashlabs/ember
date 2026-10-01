@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -89,5 +90,5 @@ public class TestProtocolEvaluationService {
             List<TestProtocolSection> sections,
             Map<Integer, Double> sectionMaxPoints,
             List<EvalMemberData> members,
-            Integer passThreshold) {}
+            @Nullable Integer passThreshold) {}
 }

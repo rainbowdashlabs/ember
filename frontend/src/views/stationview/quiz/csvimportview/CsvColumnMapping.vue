@@ -12,11 +12,12 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CsvColumnSelect from '@/components/csv/CsvColumnSelect.vue'
-import type {CsvMappings, QuizQuestionTypeName} from '@/api/quiz'
+import {isQuizQuestionType} from '@/api/quiz'
+import type {CsvMappingForm} from './quizCsvImport'
 import AnswerSeparatorPicker from './AnswerSeparatorPicker.vue'
 import {QUIZ_CSV_TYPES} from './quizCsvImport'
 
-const mapping = defineModel<CsvMappings>('mapping', {required: true})
+const mapping = defineModel<CsvMappingForm>('mapping', {required: true})
 
 defineProps<{
   headers: string[]
@@ -27,8 +28,7 @@ const {t} = useI18n()
 const showFurther = ref(false)
 
 function onDefaultTypeUpdate(value: string | number | null | undefined) {
-  if (value === null || value === undefined) return
-  mapping.value.defaultType = String(value) as QuizQuestionTypeName
+  if (isQuizQuestionType(value)) mapping.value.defaultType = value
 }
 </script>
 

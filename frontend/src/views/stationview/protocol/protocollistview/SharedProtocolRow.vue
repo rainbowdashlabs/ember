@@ -10,11 +10,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
-import type {SharedProtocolEntry} from '@/api/protocol'
+import type {SharedProtocolView} from '@/api/generated/schema'
 
 /** A partner's protocol, as it is offered in this station's list. */
 const props = defineProps<{
-  shared: SharedProtocolEntry
+  shared: SharedProtocolView
 }>()
 
 const emit = defineEmits<{

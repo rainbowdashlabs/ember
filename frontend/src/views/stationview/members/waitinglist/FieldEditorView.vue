@@ -11,8 +11,9 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type { WaitingList, WaitingListField, WaitingListFieldConfig } from '@/api/waitingList'
+import type { WaitingList, WaitingListField, WaitingListFieldConfig } from '@/api/generated/schema'
 import { waitingList } from '@/api'
+import { isWaitingListFieldType } from '@/api/waitingList'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
@@ -103,11 +104,12 @@ function buildConfig(): WaitingListFieldConfig {
 }
 
 const { running: savingField, failure: saveFieldFailure, run: saveField } = useAsyncAction(async () => {
-  if (!fieldName.value.trim()) return
+  const type = fieldType.value
+  if (!fieldName.value.trim() || !isWaitingListFieldType(type)) return
   failure.value = null
   const data = {
     name: fieldName.value.trim(),
-    fieldType: fieldType.value,
+    fieldType: type,
     config: buildConfig(),
     position: editingField.value?.position ?? fields.value.length,
     required: fieldRequired.value,

@@ -7,7 +7,8 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizQuestionRead} from '@/api/generated/schema'
 import { useI18n } from 'vue-i18n'
 import QuestionHeader from './questioninputcard/QuestionHeader.vue'
 import MultipleChoiceInput from './questioninputcard/MultipleChoiceInput.vue'
@@ -19,7 +20,7 @@ const tfAnswer = defineModel<boolean | null>('tfAnswer', {required: true})
 const freeAnswer = defineModel<string>('freeAnswer', {required: true})
 
 defineProps<{
-  question: QuizQuestion
+  question: QuizQuestionRead
   config: Record<string, unknown>
   disabled: boolean
   mcSelections: Set<number>

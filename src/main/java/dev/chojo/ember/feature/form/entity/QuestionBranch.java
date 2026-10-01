@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.form.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import dev.chojo.ember.util.Json;
-import io.javalin.openapi.OpenApiName;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 
@@ -25,7 +24,6 @@ import static org.slf4j.LoggerFactory.getLogger;
  *
  * @param targets the page that follows, per option key
  */
-@OpenApiName("FormQuestionBranch")
 public record QuestionBranch(@JsonValue Map<String, PageTarget> targets) {
     private static final Logger log = getLogger(QuestionBranch.class);
     private static final TypeReference<Map<String, PageTarget>> TARGETS = new TypeReference<>() {};

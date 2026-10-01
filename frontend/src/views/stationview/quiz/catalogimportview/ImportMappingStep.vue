@@ -7,9 +7,9 @@
 import {useI18n} from 'vue-i18n'
 import CsvColumnMapping from '../csvimportview/CsvColumnMapping.vue'
 import ImportStepNav from './ImportStepNav.vue'
-import type {CsvMappings} from '@/api/quiz'
+import type {CsvMappingForm} from '../csvimportview/quizCsvImport'
 
-const mapping = defineModel<CsvMappings>('mapping', {required: true})
+const mapping = defineModel<CsvMappingForm>('mapping', {required: true})
 
 defineProps<{
   headers: string[]

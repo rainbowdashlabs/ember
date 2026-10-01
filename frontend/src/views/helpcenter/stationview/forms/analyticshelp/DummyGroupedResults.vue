@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import ResultFilterBar from '@/views/stationview/forms/analyticsview/ResultFilterBar.vue'
 import GroupedChartsTab from '@/views/stationview/forms/analyticsview/GroupedChartsTab.vue'
 import {emptyFilter} from '@/views/stationview/forms/analyticsview/resultQuery'
-import {QuestionTypes, ResultDimension, type FormQuestionInfo, type FormResultGroup, type ResultFilter, type ResultGrouping} from '@/api/forms'
+import {QuestionTypes, ResultDimension, type ResultFilterState, type ResultGroupingState} from '@/api/forms'
+import type {FormQuestionInfo, FormResultGroup} from '@/api/generated/schema'
 import type {MemberGroup, UserTag} from '@/api/types'
 import {useThemePaint} from '@/composables/useThemePaint'
 import {seriesColor} from '@/util/seriesPalette'
@@ -29,14 +30,14 @@ const groups = computed<MemberGroup[]>(() => [
 ])
 const tags = computed<UserTag[]>(() => [{id: 1, stationId: 'wache', name: t('helpCenter.formsAnalytics.dummyTag')}])
 
-const filter = ref<ResultFilter>(emptyFilter())
-const grouping = ref<ResultGrouping | null>({by: ResultDimension.GROUP, fieldId: null, only: ['1', '2'], bounds: []})
+const filter = ref<ResultFilterState>(emptyFilter())
+const grouping = ref<ResultGroupingState | null>({by: ResultDimension.GROUP, fieldId: null, only: ['1', '2'], bounds: []})
 
 const questions = computed<FormQuestionInfo[]>(() => [{
   questionId: 1,
   questionType: QuestionTypes.CHOICE,
   title: t('helpCenter.formsAnalytics.dummyQuestion'),
-  config: {options: numberedOptions(
+  config: {questionType: QuestionTypes.CHOICE, options: numberedOptions(
     t('helpCenter.formsAnalytics.dummyOptionDrills'),
     t('helpCenter.formsAnalytics.dummyOptionCommunity'),
     t('helpCenter.formsAnalytics.dummyOptionTrips'),

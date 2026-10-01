@@ -20,7 +20,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import AiKeyField from './AiKeyField.vue'
-import type {AiCredentialSummary, AiModel} from '@/api/ai'
+import type {AiCredentialSummary, ModelInfo} from '@/api/generated/schema'
 import {ai as aiApi} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
@@ -33,7 +33,7 @@ const aiModel = ref('')
 const aiApiKey = ref('')
 const stored = ref<AiCredentialSummary | null>(null)
 const saveOnServer = ref(false)
-const aiModels = ref<AiModel[]>([])
+const aiModels = ref<ModelInfo[]>([])
 
 /** Whether the key stored in the account is one for the provider now chosen, and still opens. */
 const keptKey = computed(() => !!stored.value?.usable && stored.value.provider === aiProvider.value)

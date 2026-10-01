@@ -7,13 +7,13 @@ package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
-import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogInfo;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferInfo;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalogTemplate;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
-import dev.chojo.ember.feature.quiz.service.QuizImportService.DraftQuestion;
+import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvDraftQuestion;
 import dev.chojo.ember.util.Json;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,9 +115,9 @@ class QuizCatalogTemplateTest {
         assertEquals(8, draft.questions().size());
         var transfer = new CatalogTransfer(
                 CatalogTransfer.FORMAT_VERSION,
-                new CatalogInfo("Aus der Vorlage", "", false, CatalogMetadata.none()),
+                new CatalogTransferInfo("Aus der Vorlage", "", false, CatalogMetadata.none()),
                 draft.categories(),
-                draft.questions().stream().map(DraftQuestion::question).toList());
+                draft.questions().stream().map(CsvDraftQuestion::question).toList());
 
         var outcome = transferService.importInto(STATION_ID, transfer);
 

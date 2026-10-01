@@ -12,7 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ManagedFormTile from './ManagedFormTile.vue'
 import type { RouteLocationRaw } from 'vue-router'
-import type { Form } from '@/api/forms'
+import type { Form } from '@/api/generated/schema'
 import { byDate, byValue, useSortable } from '@/composables/useSortable'
 
 const props = defineProps<{

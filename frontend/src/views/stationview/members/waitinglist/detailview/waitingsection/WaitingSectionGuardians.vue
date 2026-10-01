@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 
 const props = defineProps<{
   item: WaitingListEntryWithScore

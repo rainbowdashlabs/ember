@@ -13,7 +13,8 @@ import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GuardianFields from './GuardianFields.vue'
 import DynamicFieldInput from './DynamicFieldInput.vue'
-import type { GuardianInput, WaitingListInviteInfo } from '@/api/waitingList'
+import type { GuardianInput } from '@/api/waitingList'
+import type { WaitingListInviteInfo } from '@/api/generated/schema'
 
 const props = defineProps<{
   inviteInfo: WaitingListInviteInfo

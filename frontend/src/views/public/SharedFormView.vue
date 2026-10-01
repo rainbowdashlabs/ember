@@ -15,8 +15,7 @@ import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 import {usePublicFailure} from '@/composables/usePublicFailure'
 import {apiUrl} from '@/util/apiUrl'
 import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
-import type {PublicForm} from '@/api/publicForms'
-import type {SharedBrand} from '@/api/generated/schema'
+import type {PublicForm, SharedBrand} from '@/api/generated/schema'
 
 /**
  * A form somebody was sent the link to.

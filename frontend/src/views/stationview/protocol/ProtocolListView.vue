@@ -27,7 +27,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, federation } from '@/api'
-import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
+import type { TestProtocol, SharedProtocolView } from '@/api/generated/schema'
 import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
@@ -36,7 +36,7 @@ const { hasPermission, loaded } = useSession()
 const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CONFIGURE))
 
 const protocols = ref<TestProtocol[]>([])
-const sharedProtocols = ref<SharedProtocolEntry[]>([])
+const sharedProtocols = ref<SharedProtocolView[]>([])
 
 const searchQuery = ref('')
 const showFederated = ref(true)

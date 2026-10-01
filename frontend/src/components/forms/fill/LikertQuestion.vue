@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import type { LikertAnswer } from '@/api/forms'
+import type { LikertAnswer } from '@/api/generated/schema'
 import { optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{

@@ -3,14 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuestionTypes} from '@/api/forms'
+import {QuestionTypes, type QuestionType} from '@/api/forms'
+import type {FormAnswerValue} from '@/api/generated/schema'
 import {optionsOf} from '@/util/formOptions'
-
-/**
- * An answer as the fill screens hold it: a plain record whose shape follows from the kind of question
- * it answers.
- */
-export type AnswerValue = Record<string, unknown>
 
 /**
  * The answer a question starts with, in the shape the server reads, so an unanswered question is
@@ -20,45 +15,41 @@ export type AnswerValue = Record<string, unknown>
  * @param type   the kind of question
  * @param config the question's settings, which hold a ranking's options
  */
-export function emptyAnswer(type: string, config: Record<string, unknown>): AnswerValue {
+export function emptyAnswer(type: QuestionType, config: Record<string, unknown>): FormAnswerValue {
     switch (type) {
-        case QuestionTypes.CHOICE: return {selected: [] as string[], other: ''}
-        case QuestionTypes.TEXT: return {text: ''}
-        case QuestionTypes.RATING: return {rating: 0}
-        case QuestionTypes.DATE: return {date: ''}
-        case QuestionTypes.RANKING: return {order: optionsOf(config).map(option => option.key)}
-        case QuestionTypes.LIKERT: return {ratings: {}}
-        default: return {}
+        case QuestionTypes.CHOICE: return {type, selected: [], other: ''}
+        case QuestionTypes.TEXT: return {type, text: ''}
+        case QuestionTypes.RATING: return {type, rating: 0}
+        case QuestionTypes.DATE: return {type, date: ''}
+        case QuestionTypes.RANKING: return {type, order: optionsOf(config).map(option => option.key)}
+        case QuestionTypes.LIKERT: return {type, ratings: {}}
     }
-}
-
-function blank(value: unknown): boolean {
-    return typeof value !== 'string' || value.trim() === ''
-}
-
-function none(value: unknown): boolean {
-    return !Array.isArray(value) || value.length === 0
 }
 
 /**
- * The answers as the server reads them: each marked with the kind of question it answers, which is how
- * the server tells one shape from another.
+ * An answer as it was stored, read back for the question it answers. The stored value names the kind
+ * of question where it was kept with one; a value that cannot be read, or that answers another kind of
+ * question than the question now is, starts empty instead.
  *
- * @param questions the questions answered
- * @param answers   the answers, by question id
- * @param typeOf    what kind each question is
+ * @param type   the kind of question
+ * @param config the question's settings
+ * @param stored the answer as the server keeps it
  */
-export function typedAnswers<Q extends {id: number}>(
-    questions: readonly Q[],
-    answers: Record<number, AnswerValue | undefined>,
-    typeOf: (question: Q) => string,
-): Record<number, AnswerValue> {
-    const typed: Record<number, AnswerValue> = {}
-    for (const question of questions) {
-        const value = answers[question.id]
-        if (value !== undefined) typed[question.id] = {type: typeOf(question), ...value}
+export function storedAnswer(type: QuestionType, config: Record<string, unknown>, stored: string): FormAnswerValue {
+    try {
+        const parsed = JSON.parse(stored)
+        if (typeof parsed === 'object' && parsed !== null && (parsed.type ?? type) === type) {
+            const answer: FormAnswerValue = {...parsed, type}
+            return answer
+        }
+    } catch {
+        void 0
     }
-    return typed
+    return emptyAnswer(type, config)
+}
+
+function blank(value: string | undefined): boolean {
+    return value === undefined || value.trim() === ''
 }
 
 /**
@@ -66,18 +57,16 @@ export function typedAnswers<Q extends {id: number}>(
  * date set, nothing ranked or no statement rated. The server reads answers the same way, so what is
  * empty here is what it strips before it checks and stores.
  *
- * @param type  the kind of question
- * @param value the answer, possibly none at all
+ * @param answer the answer, possibly none at all
  */
-export function isEmptyAnswer(type: string, value: AnswerValue | undefined): boolean {
-    if (!value) return true
-    switch (type) {
-        case QuestionTypes.CHOICE: return none(value.selected) && blank(value.other)
-        case QuestionTypes.TEXT: return blank(value.text)
-        case QuestionTypes.RATING: return typeof value.rating !== 'number' || value.rating < 1
-        case QuestionTypes.DATE: return blank(value.date)
-        case QuestionTypes.RANKING: return none(value.order)
-        case QuestionTypes.LIKERT: return Object.keys((value.ratings as object | undefined) ?? {}).length === 0
+export function isEmptyAnswer(answer: FormAnswerValue | undefined): boolean {
+    switch (answer?.type) {
+        case QuestionTypes.CHOICE: return answer.selected.length === 0 && blank(answer.other)
+        case QuestionTypes.TEXT: return blank(answer.text)
+        case QuestionTypes.RATING: return answer.rating < 1
+        case QuestionTypes.DATE: return blank(answer.date)
+        case QuestionTypes.RANKING: return answer.order.length === 0
+        case QuestionTypes.LIKERT: return Object.keys(answer.ratings).length === 0
         default: return true
     }
 }

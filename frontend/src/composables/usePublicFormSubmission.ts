@@ -6,8 +6,8 @@
 import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicForms } from '@/api'
-import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
-import { typedAnswers } from '@/util/formAnswers'
+import { PublicFormState } from '@/api/publicForms'
+import type { PublicForm, PublicFormQuestion } from '@/api/generated/schema'
 import { usePublicAnswers } from '@/composables/usePublicAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -59,7 +59,7 @@ export function usePublicFormSubmission(
 
   const pages = computed(() => form.value?.pages ?? [])
   const questions = computed(() => form.value?.questions ?? [])
-  const walk = useFormWalk(pages, questions, answers, question => question.questionType)
+  const walk = useFormWalk(pages, questions, answers)
   const baseline = useAnswerBaseline(answers, walk.path)
 
   /** The answers every question starts with, which alone are nothing worth keeping. */
@@ -120,9 +120,9 @@ export function usePublicFormSubmission(
     }
     const kept = readFormDraft(draftKey.value)
     if (!kept) return
-    const known = new Set(form.value.questions.map(question => question.id))
-    for (const [id, answer] of Object.entries(kept.answers)) {
-      if (known.has(Number(id))) answers.value[Number(id)] = answer
+    for (const question of form.value.questions) {
+      const answer = kept.answers[question.id]
+      if (answer?.type === question.questionType) answers.value[question.id] = answer
     }
     if (kept.path.length > 0) walk.showAt(kept.path, {})
     resumedFrom.value = new Date(kept.savedAt).toISOString()
@@ -235,9 +235,8 @@ export function usePublicFormSubmission(
   const {running: submitting, failure: sendFailure, run: runSubmit} = useAsyncAction(async () => {
     if (!form.value) return
     stopKeeping()
-    const answerMap = typedAnswers(form.value.questions, answers.value, question => question.questionType)
     const payload = {
-      answers: answerMap,
+      answers: answers.value,
       consentVersion: consentVersion.value,
       privacyVersion: privacyVersion.value,
       tosVersion: tosVersion.value,

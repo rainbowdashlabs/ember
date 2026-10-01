@@ -11,7 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TrainingQuestionCard from '@/components/quiz/TrainingQuestionCard.vue'
 import ReportQuestionModal from './ReportQuestionModal.vue'
-import type { QuizQuestion } from '@/api/quiz'
+import type { QuizQuestion } from '@/api/generated/schema'
 
 const userTfAnswer = defineModel<boolean | null>('userTfAnswer', {required: true})
 const userAnswer = defineModel<string>('userAnswer', {required: true})

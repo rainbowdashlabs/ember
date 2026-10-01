@@ -12,7 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizCatalogDetail } from '@/api/quiz'
+import type { QuizCatalogDetail } from '@/api/generated/schema'
 import { quiz, ai as aiApi } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfigPanel } from '@/composables/useConfigPanel'
@@ -81,7 +81,7 @@ async function generateQuestions(entries: GenEntry[], userPrompt: string) {
       locale: 'de',
       catalogId: catalogId.value,
       entries: entries.filter(e => e.count > 0).map(e => ({
-        questionType: e.quizQuestionType,
+        quizQuestionType: e.quizQuestionType,
         count: e.count,
         categoryId: e.categoryId,
       })),
@@ -93,7 +93,7 @@ async function generateQuestions(entries: GenEntry[], userPrompt: string) {
       for (const q of poll.questions) {
         genPreviews.value.push({
           title: q.title, config: q.config,
-          quizQuestionType: q.questionType, categoryId: q.categoryId, accepted: true,
+          quizQuestionType: q.quizQuestionType, categoryId: q.categoryId, accepted: true,
         })
       }
       if (poll.done) break
@@ -114,13 +114,13 @@ async function regenerateQuestion(index: number) {
       ...ai,
       userPrompt: null,
       locale: 'de',
-      entries: [{ questionType: prev.quizQuestionType, count: 1, categoryId: prev.categoryId }],
+      entries: [{ quizQuestionType: prev.quizQuestionType, count: 1, categoryId: prev.categoryId }],
     })
     const first = generated[0]
     if (first) {
       genPreviews.value[index] = {
         title: first.title, config: first.config,
-        quizQuestionType: first.questionType, categoryId: first.categoryId, accepted: true,
+        quizQuestionType: first.quizQuestionType, categoryId: first.categoryId, accepted: true,
       }
     }
   } catch (e: unknown) {
@@ -145,7 +145,7 @@ async function saveGeneratedQuestions() {
       await quiz.createQuestion(catalogId.value, {
         quizQuestionType: q.quizQuestionType,
         title: q.title,
-        config: q.config,
+        config: aiApi.generatedConfig(q.config),
         categoryId: q.categoryId,
       })
     }

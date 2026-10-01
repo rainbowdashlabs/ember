@@ -13,7 +13,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FormulaInput from '@/components/input/FormulaInput.vue'
 import OverviewAgeFields from './OverviewAgeFields.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { WaitingListField } from '@/api/waitingList'
+import type { WaitingListField } from '@/api/generated/schema'
 import type { MemberGroup } from '@/api/types'
 
 const name = defineModel<string>('name', { required: true })

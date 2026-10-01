@@ -1892,7 +1892,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["GenerateRequest"];
+                    "application/json": components["schemas"]["AiGenerateRequest"];
                 };
             };
             responses: {
@@ -1902,7 +1902,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["GenerateResponse"];
+                        "application/json": components["schemas"]["AiGenerateResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2038,7 +2038,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["ProviderRequest"];
+                    "application/json": components["schemas"]["AiProviderRequest"];
                 };
             };
             responses: {
@@ -2048,7 +2048,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SuccessResponse"];
+                        "application/json": components["schemas"]["AiSuccessResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2119,7 +2119,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ModelInfo"][];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -2192,7 +2194,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["PromptRequest"];
+                    "application/json": components["schemas"]["AiPromptRequest"];
                 };
             };
             responses: {
@@ -2202,7 +2204,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SuccessResponse"];
+                        "application/json": components["schemas"]["AiSuccessResponse"];
                     };
                 };
             };
@@ -16425,6 +16427,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/{stationuid}/protocols/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteProtocolDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/protocols/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocol"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/quiz/catalogs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteCatalogDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/quiz/catalogs/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalog"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/boards": {
         parameters: {
             query?: never;
@@ -17890,6 +18032,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/protocols": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedProtocolView"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/protocols/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocol"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/quiz/catalogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedQuizCatalog"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/quiz/catalogs/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalog"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/feed/token": {
         parameters: {
             query?: never;
@@ -18248,7 +18530,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FormAnalyticsDto"];
+                        "application/json": components["schemas"]["FormAnalytics"];
                     };
                 };
             };
@@ -18292,7 +18574,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FormAnalyticsDto"];
+                        "application/json": components["schemas"]["FormAnalytics"];
                     };
                 };
             };
@@ -18375,7 +18657,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DraftResponse"];
+                        "application/json": components["schemas"]["FormDraftResponse"];
                     };
                 };
             };
@@ -18392,7 +18674,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["DraftRequest"];
+                    "application/json": components["schemas"]["FormDraftRequest"];
                 };
             };
             responses: {
@@ -18458,7 +18740,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DraftResponse"];
+                        "application/json": components["schemas"]["FormDraftResponse"];
                     };
                 };
             };
@@ -18476,7 +18758,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["DraftRequest"];
+                    "application/json": components["schemas"]["FormDraftRequest"];
                 };
             };
             responses: {
@@ -18538,7 +18820,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["DuplicateRequest"];
+                    "application/json": components["schemas"]["FormDuplicateRequest"];
                 };
             };
             responses: {
@@ -18631,7 +18913,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ResponseDetailDto"];
+                        "application/json": components["schemas"]["FormResponseDetail"];
                     };
                 };
             };
@@ -18771,7 +19053,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["LayoutRequest"];
+                    "application/json": components["schemas"]["FormLayoutRequest"];
                 };
             };
             responses: {
@@ -18860,7 +19142,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["SubmitRequest"];
+                    "application/json": components["schemas"]["FormSubmitRequest"];
                 };
             };
             responses: {
@@ -18896,7 +19178,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["SubmitRequest"];
+                    "application/json": components["schemas"]["FormSubmitRequest"];
                 };
             };
             responses: {
@@ -18952,7 +19234,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ResponseDetailDto"];
+                        "application/json": components["schemas"]["FormResponseDetail"];
                     };
                 };
                 /** @description Forbidden */
@@ -18979,7 +19261,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["SubmitRequest"];
+                    "application/json": components["schemas"]["FormSubmitRequest"];
                 };
             };
             responses: {
@@ -19016,7 +19298,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["SubmitRequest"];
+                    "application/json": components["schemas"]["FormSubmitRequest"];
                 };
             };
             responses: {
@@ -19071,7 +19353,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FormResponseEntryDto"][];
+                        "application/json": components["schemas"]["FormResponseEntry"][];
                     };
                 };
             };
@@ -19096,7 +19378,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ClearedResponses"];
+                        "application/json": components["schemas"]["ClearedFormResponses"];
                     };
                 };
                 /** @description Not Found */
@@ -19141,8 +19423,41 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ResponseDetailDto"];
+                        "application/json": components["schemas"]["FormResponseDetail"];
                     };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forms/{id}/responses/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -19243,7 +19558,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ShareLinkResponse"];
+                        "application/json": components["schemas"]["FormShareLinkResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -19270,7 +19585,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["ReplaceShareLinkRequest"];
+                    "application/json": components["schemas"]["ReplaceFormShareLinkRequest"];
                 };
             };
             responses: {
@@ -19280,7 +19595,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ShareLinkResponse"];
+                        "application/json": components["schemas"]["FormShareLinkResponse"];
                     };
                 };
                 /** @description Conflict */
@@ -19320,7 +19635,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["VisibilityRequest"];
+                    "application/json": components["schemas"]["FormVisibilityRequest"];
                 };
             };
             responses: {
@@ -19330,7 +19645,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["VisibilityResponse"];
+                        "application/json": components["schemas"]["FormVisibilityResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -30246,7 +30561,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FormResponseEntryDto"][];
+                        "application/json": components["schemas"]["FormResponseEntry"][];
                     };
                 };
             };
@@ -30281,7 +30596,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ResponseDetailDto"];
+                        "application/json": components["schemas"]["FormResponseDetail"];
                     };
                 };
             };
@@ -30421,7 +30736,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FormAnalyticsDto"];
+                        "application/json": components["schemas"]["FormAnalytics"];
                     };
                 };
             };
@@ -30456,7 +30771,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FormResponseEntryDto"][];
+                        "application/json": components["schemas"]["FormResponseEntry"][];
                     };
                 };
             };
@@ -30491,7 +30806,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ResponseDetailDto"];
+                        "application/json": components["schemas"]["FormResponseDetail"];
                     };
                 };
             };
@@ -30582,6 +30897,734 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedure-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureTemplate"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProcedureTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureTemplate"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedure-templates/{tid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureTemplateDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProcedureTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureTemplate"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedure-templates/{tid}/dependencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DependencyRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedure-templates/{tid}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProcedureItemRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureTemplateItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedure-templates/{tid}/items/{iid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProcedureItemRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateProcedureRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateProcedureRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AssigneeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/assignees/{mid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/dependencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DependencyRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProcedureItemRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/items/{iid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProcedureItemRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PatchItemRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProcedureItem"][];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/for-event/{eid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -31301,6 +32344,876 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/protocols": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProtocolListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocol"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProtocolDetailResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocol"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolRunRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRun"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/{id}/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolSectionRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolSection"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolItemRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRun"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunDetailResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolRunRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRun"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRun"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{id}/evaluation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvaluationResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{id}/evaluation/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{id}/export-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{runId}/members/{memberId}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRunCheck"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolChecksRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRunCheck"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{runId}/members/{memberId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRunMember"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{runId}/members/{memberId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{runId}/members/{memberId}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRunMember"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{runId}/members/{memberId}/sections-done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{runId}/members/{memberId}/sections/{sectionId}/toggle-done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{runId}/members/{memberId}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolRunMember"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/sections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolSectionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/sections/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolItemRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestProtocolItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/{stationUid}/forms/{publicUid}": {
         parameters: {
             query?: never;
@@ -31371,7 +33284,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["PublicSubmitRequest"];
+                    "application/json": components["schemas"]["PublicFormSubmitRequest"];
                 };
             };
             responses: {
@@ -31381,7 +33294,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PublicSubmitResponse"];
+                        "application/json": components["schemas"]["PublicFormSubmitResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -32851,6 +34764,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/quiz/{stationUid}/catalogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicQuizCatalog"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/quiz/{stationUid}/random": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicQuizQuestion"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/settings/station-registration": {
         parameters: {
             query?: never;
@@ -33002,7 +34985,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["PublicSubmitRequest"];
+                    "application/json": components["schemas"]["PublicFormSubmitRequest"];
                 };
             };
             responses: {
@@ -33012,7 +34995,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PublicSubmitResponse"];
+                        "application/json": components["schemas"]["PublicFormSubmitResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -33387,6 +35370,115 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/waitlists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicWaitlistSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/waitlists/{wid}/form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicWaitlistFormResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/waitlists/{wid}/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PublicWaitlistRegistrationRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListRegistrationStatus"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -33900,7 +35992,17 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListPublicStatus"];
+                    };
+                };
+            };
         };
         put?: never;
         post?: never;
@@ -33934,7 +36036,15 @@ export interface paths {
                     "application/json": components["schemas"]["WaitingListInvitationAnswerRequest"];
                 };
             };
-            responses: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
         };
         delete?: never;
         options?: never;
@@ -33962,7 +36072,15 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
         };
         delete?: never;
         options?: never;
@@ -33990,7 +36108,15 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
         };
         delete?: never;
         options?: never;
@@ -34016,7 +36142,17 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListInviteInfo"];
+                    };
+                };
+            };
         };
         put?: never;
         post?: never;
@@ -34054,7 +36190,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["WaitingListAccessResponse"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -34065,6 +36203,1830 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/waitlist/verify/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListRegistrationStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/answers/{id}/grade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizGradeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizSuccessResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/attempts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizAttemptDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/attempts/{id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizAnswerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizSuccessResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/attempts/{id}/grade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestAttempt"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/attempts/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestAttempt"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogListResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizCatalogRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalog"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalogDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizCatalogRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalog"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogTransfer"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalog"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogImportRejected"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/{id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizQuestionRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestion"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/{id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestionReport"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/csv-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CsvDraftRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CsvDraft"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalog"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogImportRejected"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/template/{format}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCategory"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizCategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCategory"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizCategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizSuccessResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/questions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestionRead"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizQuestionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestion"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/questions/{id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizSuccessResponse"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/questions/{id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizReportRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestionReport"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/reports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizTestRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTest"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizTestRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTest"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizAccessRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizSuccessResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTest"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestAttempt"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/available-questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTest"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/export/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/export/solutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/frozen-questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FrozenQuestionDetail"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/frozen-questions/{position}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReplaceQuestionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FrozenQuestionDetail"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/frozen-questions/{position}/random": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FrozenQuestionDetail"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/generate-questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FrozenQuestionDetail"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/my-attempt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyQuizAttempt"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestRestrictions"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizTestRestrictionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestRestrictions"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizSectionDetail"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizSectionRequest"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizTestSection"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizAttemptDetail"];
+                    };
+                };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizAttemptDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/{testId}/access/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/tests/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizAvailableTest"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/training/catalogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizCatalog"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/training/catalogs/{id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -38415,7 +42377,17 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListWithCount"][];
+                    };
+                };
+            };
         };
         put?: never;
         /** Create waiting list */
@@ -38428,10 +42400,20 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["ListRequest"];
+                    "application/json": components["schemas"]["WaitingListRequest"];
                 };
             };
-            responses: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingList"];
+                    };
+                };
+            };
         };
         delete?: never;
         options?: never;
@@ -38457,7 +42439,17 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingList"];
+                    };
+                };
+            };
         };
         /** Update waiting list */
         put: {
@@ -38471,10 +42463,20 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["ListRequest"];
+                    "application/json": components["schemas"]["WaitingListRequest"];
                 };
             };
-            responses: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingList"];
+                    };
+                };
+            };
         };
         post?: never;
         /** Delete waiting list */
@@ -38488,8 +42490,658 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntryWithScore"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListEntryRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListEntryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/back-to-waiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/created-at": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListCreatedAtRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListInvitationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/testing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListField"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListFieldRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListField"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/fields/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListFieldRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListField"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListInvite"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListInviteRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListInvite"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/invites/{inviteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/visible-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListVisibleFieldsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingList"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -38690,33 +43342,55 @@ export interface components {
             totalStations: number;
         };
         AiCredentialRequest: {
-            apiKey?: string;
-            model?: string;
+            apiKey?: string | null;
+            model?: string | null;
             provider?: string;
         };
         AiCredentialSummary: {
-            keyEnding: string;
-            model: string;
-            provider: string;
+            keyEnding: string | null;
+            model: string | null;
+            provider: string | null;
             usable: boolean;
+        };
+        AiGenerateRequest: {
+            apiKey?: string | null;
+            correctAnswer?: string;
+            /** Format: int32 */
+            count?: number | null;
+            model?: string | null;
+            provider?: string | null;
+            question?: string;
+        };
+        AiGenerateResponse: {
+            answers: string[];
+        };
+        AiPromptRequest: {
+            prompt?: string | null;
+        };
+        AiProviderRequest: {
+            apiKey?: string;
+            model?: string | null;
         };
         AiSettingsResponse: {
             defaultPrompt: string;
             prompt: string;
             providers: components["schemas"]["StationAiProvider"][];
         };
+        AiSuccessResponse: {
+            success: boolean;
+        };
         AnswerBody: {
-            answer?: components["schemas"]["SelfCheckAnswer"];
+            answer?: components["schemas"]["SelfCheckAnswer"] | null;
             /** Format: int32 */
-            inventoryId?: number;
+            inventoryId?: number | null;
             /** Format: int32 */
-            itemId?: number;
-            note?: string;
+            itemId?: number | null;
+            note?: string | null;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
             /** Format: int32 */
-            slot?: number;
-            typedInternalId?: string;
+            slot?: number | null;
+            typedInternalId?: string | null;
         };
         AnswerRequest: {
             attending?: boolean;
@@ -38788,6 +43462,9 @@ export interface components {
             /** Format: int32 */
             pieces: number;
         };
+        AssigneeRequest: {
+            memberIds?: number[];
+        };
         AssignItemRequest: {
             /** Format: int32 */
             newItemId?: number;
@@ -38818,6 +43495,8 @@ export interface components {
             internal?: boolean | null;
             label?: string | null;
         };
+        /** @enum {string} */
+        AttemptStatus: "IN_PROGRESS" | "SUBMITTED" | "GRADED";
         AttendanceEntry: {
             checkIn: components["schemas"]["Instant"] | null;
             checkOut: components["schemas"]["Instant"] | null;
@@ -38976,11 +43655,11 @@ export interface components {
             overview?: boolean | null;
         };
         BatchGenerateRequest: {
-            apiKey?: string;
-            model?: string;
-            provider?: string;
+            apiKey?: string | null;
+            model?: string | null;
+            provider?: string | null;
             /** Format: int32 */
-            targetTotalOptions?: number;
+            targetTotalOptions?: number | null;
         };
         BatchResult: {
             errors: string[];
@@ -39335,6 +44014,55 @@ export interface components {
         CancelRequest: {
             reason?: string | null;
         };
+        CatalogImportRejected: {
+            problems: components["schemas"]["CatalogTransferProblem"][];
+        };
+        CatalogListResponse: {
+            catalogs: components["schemas"]["QuizCatalog"][];
+            sharedCatalogs: components["schemas"]["SharedQuizCatalog"][];
+        };
+        CatalogMetadata: {
+            author: string | null;
+            language: string | null;
+            license: string | null;
+            source: string | null;
+        };
+        CatalogTransfer: {
+            catalog: components["schemas"]["CatalogTransferInfo"];
+            categories: components["schemas"]["CatalogTransferCategory"][];
+            /** Format: int32 */
+            formatVersion: number;
+            questions: components["schemas"]["CatalogTransferQuestion"][];
+        };
+        CatalogTransferCategory: {
+            description: string;
+            key: string;
+            name: string;
+            /** Format: int32 */
+            position: number;
+        };
+        CatalogTransferInfo: {
+            description: string;
+            metadata: components["schemas"]["CatalogMetadata"];
+            name: string;
+            trainingEnabled: boolean;
+        };
+        CatalogTransferProblem: {
+            location: string;
+            message: string;
+        };
+        CatalogTransferQuestion: {
+            autoPoints: boolean;
+            categoryKey: string | null;
+            config: unknown;
+            description: string;
+            imageUrl: string | null;
+            points: number;
+            /** Format: int32 */
+            position: number;
+            quizQuestionType: string;
+            title: string;
+        };
         CategoryRequest: {
             color?: string | null;
             isPublic?: boolean | null;
@@ -39462,12 +44190,12 @@ export interface components {
         /** @enum {string} */
         CheckResult: "CONFIRMED" | "NOT_IN_POSSESSION" | "LOST" | "EXTRA";
         Choice: {
-            allowOther: boolean;
-            dropdown: boolean;
+            allowOther?: boolean;
+            dropdown?: boolean;
             /** Format: int32 */
-            multiLimit: number;
-            multiLimitType: components["schemas"]["MultiLimitType"];
-            multiSelect: boolean;
+            multiLimit?: number;
+            multiLimitType?: components["schemas"]["MultiLimitType"];
+            multiSelect?: boolean;
             options: components["schemas"]["Option"][];
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -39476,14 +44204,20 @@ export interface components {
             questionType: "CHOICE";
         };
         ChoiceAnswer: {
-            empty: boolean;
-            other: string;
+            other?: string;
             selected: string[];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             type: "CHOICE";
+        };
+        ChoiceOption: {
+            correct: boolean;
+            text: string;
+        };
+        ChoiceOptionView: {
+            text: string;
         };
         ChosenLanding: {
             /** Format: int32 */
@@ -39497,7 +44231,7 @@ export interface components {
             /** Format: int32 */
             memberId?: number;
         };
-        ClearedResponses: {
+        ClearedFormResponses: {
             /** Format: int32 */
             cleared: number;
         };
@@ -39840,6 +44574,14 @@ export interface components {
             memberId: number;
             memberName: string;
         };
+        Connect: {
+            pairs: components["schemas"]["Pair"][] | null;
+            pointsPerCorrect: number;
+        };
+        ConnectView: {
+            leftItems: string[];
+            rightItems: string[];
+        };
         ConsentChangesResponse: {
             currentConsentVersion: string;
             currentPrivacyVersion: string;
@@ -39955,15 +44697,15 @@ export interface components {
             reason?: string;
         };
         CorrectRowRequest: {
-            internalId?: string;
+            internalId?: string | null;
             /** Format: int32 */
             inventoryId?: number;
-            metadata?: components["schemas"]["InventoryItemMetadata"];
-            ownerKind?: components["schemas"]["ItemOwner"];
+            metadata?: components["schemas"]["InventoryItemMetadata"] | null;
+            ownerKind?: components["schemas"]["ItemOwner"] | null;
             /** Format: int32 */
-            pickedItemId?: number;
+            pickedItemId?: number | null;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
         };
         CountdownConfig: {
             label?: string;
@@ -40059,6 +44801,18 @@ export interface components {
             rounding?: string;
             userTypes?: components["schemas"]["StationUserType"][];
         };
+        CreateProcedureRequest: {
+            assigneeIds?: number[] | null;
+            description?: string | null;
+            dueAt?: components["schemas"]["Instant"] | null;
+            eventDate?: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            eventId?: number | null;
+            isPublic?: boolean;
+            name?: string;
+            /** Format: int32 */
+            templateId?: number | null;
+        };
         CreateProcurementRequest: {
             /** Format: int32 */
             inventoryId?: number;
@@ -40088,6 +44842,35 @@ export interface components {
             priority?: components["schemas"]["TicketPriority"];
             title?: string;
         };
+        CsvDraft: {
+            categories: components["schemas"]["CatalogTransferCategory"][];
+            questions: components["schemas"]["CsvDraftQuestion"][];
+        };
+        CsvDraftQuestion: {
+            answerSeparator: string;
+            question: components["schemas"]["CatalogTransferQuestion"];
+            rawAnswer: string;
+        };
+        CsvDraftRequest: {
+            content?: string;
+            mappings?: components["schemas"]["CsvMappings"];
+        };
+        CsvMappings: {
+            answerColumn?: string;
+            answerSeparator?: string;
+            categoryColumn?: string;
+            defaultType?: components["schemas"]["QuizQuestionType"];
+            descriptionColumn?: string;
+            distractorColumn?: string;
+            imageColumn?: string;
+            orderedRequiredColumn?: string;
+            pointsColumn?: string;
+            pointsPerCorrectColumn?: string;
+            questionColumn?: string;
+            requiredCountColumn?: string;
+            separator?: string;
+            typeColumn?: string;
+        };
         CsvRequest: {
             csv?: string;
             separator?: string;
@@ -40105,7 +44888,6 @@ export interface components {
         };
         DateAnswer: {
             date: string;
-            empty: boolean;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -40158,6 +44940,15 @@ export interface components {
         };
         DenyRequest: {
             reason?: string;
+        };
+        DependencyEntry: {
+            /** Format: int32 */
+            dependsOnItemId?: number;
+            /** Format: int32 */
+            itemId?: number;
+        };
+        DependencyRequest: {
+            dependencies?: components["schemas"]["DependencyEntry"][] | null;
         };
         /** @enum {string} */
         Dimension: "USER_TYPE" | "GROUP" | "TAG" | "FIELD" | "AGE";
@@ -40217,18 +45008,6 @@ export interface components {
             html: string;
             version: string;
         };
-        DraftRequest: {
-            answers?: {
-                [key: string]: components["schemas"]["FormAnswerValue"];
-            };
-            path?: string[];
-        };
-        DraftResponse: {
-            draft: components["schemas"]["FormDraft"];
-        };
-        DuplicateRequest: {
-            title?: string;
-        };
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
             selfEligible: boolean;
@@ -40267,6 +45046,7 @@ export interface components {
             /** Format: int32 */
             cleared: number;
         };
+        EmptyView: Record<string, never>;
         EndpointDetail: {
             avgDurationMs: number;
             method: string;
@@ -40325,6 +45105,17 @@ export interface components {
              */
             kind: "ENUM";
             options: components["schemas"]["EnumOption"][];
+        };
+        Enumeration: {
+            answers: string[] | null;
+            orderedRequired: boolean;
+            pointsPerCorrect: number;
+            /** Format: int32 */
+            requiredCount: number;
+        };
+        EnumerationView: {
+            /** Format: int32 */
+            requiredCount: number;
         };
         EnumOption: {
             label: string;
@@ -40390,6 +45181,25 @@ export interface components {
             reference: string;
             /** Format: int64 */
             retryAfterSeconds: number;
+        };
+        EvalMemberData: {
+            /** Format: int32 */
+            memberId: number;
+            sectionScores: {
+                [key: string]: number;
+            };
+            totalScore: number;
+        };
+        EvaluationResponse: {
+            members: components["schemas"]["EvalMemberData"][];
+            /** Format: int32 */
+            passThreshold: number | null;
+            protocolName: string;
+            sectionMaxPoints: {
+                [key: string]: number;
+            };
+            sections: components["schemas"]["TestProtocolSection"][];
+            testDate: components["schemas"]["LocalDate"];
         };
         EventAttachment: {
             contentHash: string;
@@ -40866,13 +45676,6 @@ export interface components {
             memberId: number;
             notificationPolledAt: components["schemas"]["Instant"];
         };
-        FieldCondition: {
-            /** Format: int32 */
-            fieldId?: number;
-            from?: number;
-            to?: number;
-            values?: string[];
-        };
         FieldConfig: components["schemas"]["BooleanConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["EnumConfig"] | components["schemas"]["NumberConfig"] | components["schemas"]["TextConfig"];
         FieldDateValueRequest: {
             date?: components["schemas"]["LocalDate"];
@@ -40955,17 +45758,19 @@ export interface components {
             /** Format: int32 */
             position?: number;
         };
-        Filter: {
+        FillInTheBlank: {
+            answers: string[] | null;
+            distractors: string[] | null;
+            pointsPerCorrect: number;
+            text: string | null;
+            useDropdown: boolean;
+        };
+        FillInTheBlankView: {
             /** Format: int32 */
-            ageFrom?: number;
-            /** Format: int32 */
-            ageTo?: number;
-            fields?: components["schemas"]["FieldCondition"][];
-            groupIds?: number[];
-            groupMatch?: components["schemas"]["Match"];
-            tagIds?: number[];
-            tagMatch?: components["schemas"]["Match"];
-            userTypes?: components["schemas"]["StationUserType"][];
+            gapCount: number;
+            text: string;
+            useDropdown: boolean;
+            wordBank: string[];
         };
         /** @enum {string} */
         FilterTableType: "MEMBERS" | "EVENTS" | "INVENTORY" | "ATTENDANCE" | "NEWS" | "FORMS" | "QUIZ";
@@ -41012,15 +45817,15 @@ export interface components {
         Form: {
             acceptingResponses: boolean;
             allowEdit: boolean;
-            closedAt: components["schemas"]["Instant"];
-            completionLink: string;
-            completionLinkLabel: string;
-            completionMessage: string;
+            closedAt: components["schemas"]["Instant"] | null;
+            completionLink: string | null;
+            completionLinkLabel: string | null;
+            completionMessage: string | null;
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             createdBy: number;
             description: string;
-            endAt: components["schemas"]["Instant"];
+            endAt: components["schemas"]["Instant"] | null;
             forced: boolean;
             /** Format: int32 */
             id: number;
@@ -41033,7 +45838,7 @@ export interface components {
             restricted: boolean;
             restrictionMode: components["schemas"]["RestrictionMode"];
             shuffleQuestions: boolean;
-            startAt: components["schemas"]["Instant"];
+            startAt: components["schemas"]["Instant"] | null;
             /** Format: uuid */
             stationId: string;
             status: components["schemas"]["FormStatus"];
@@ -41041,13 +45846,13 @@ export interface components {
             updatedAt: components["schemas"]["Instant"];
             visibility: components["schemas"]["FormVisibility"];
         };
-        FormAnalyticsDto: {
+        FormAnalytics: {
             /** Format: int32 */
             formId: number;
-            groups: components["schemas"]["ResultGroupDto"][];
+            groups: components["schemas"]["FormResultGroup"][];
             groupsOverlap: boolean;
             missingResponses: components["schemas"]["MemberIdentity"][];
-            questions: components["schemas"]["QuestionInfoDto"][];
+            questions: components["schemas"]["FormQuestionInfo"][];
             responseIds: number[];
             /** Format: int32 */
             totalResponses: number;
@@ -41077,19 +45882,36 @@ export interface components {
             path: string[];
             updatedAt: components["schemas"]["Instant"];
         };
+        FormDraftRequest: {
+            answers?: {
+                [key: string]: components["schemas"]["FormAnswerValue"];
+            };
+            path?: string[];
+        };
+        FormDraftResponse: {
+            draft: components["schemas"]["FormDraft"] | null;
+        };
+        FormDuplicateRequest: {
+            title?: string;
+        };
         FormLayout: {
             pages: components["schemas"]["FormPage"][];
             questions: components["schemas"]["FormQuestion"][];
         };
+        FormLayoutRequest: {
+            pages?: components["schemas"]["FormPageRequest"][];
+            questions?: components["schemas"]["FormQuestionRequest"][];
+        };
         FormListEntry: {
             description: string;
-            endAt: components["schemas"]["Instant"];
+            endAt: components["schemas"]["Instant"] | null;
             hasResponded: boolean;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             responseCount: number;
-            startAt: components["schemas"]["Instant"];
+            restricted: boolean;
+            startAt: components["schemas"]["Instant"] | null;
             /** Format: uuid */
             stationId: string;
             status: components["schemas"]["FormStatus"];
@@ -41107,10 +45929,16 @@ export interface components {
             position: number;
             title: string;
         };
+        FormPageRequest: {
+            after?: components["schemas"]["PageTarget"] | null;
+            description?: string | null;
+            key?: string;
+            title?: string | null;
+        };
         /** @enum {string} */
         FormPurpose: "INTERNAL" | "CONTACT" | "POLL";
         FormQuestion: {
-            branch: components["schemas"]["QuestionBranch"];
+            branch: components["schemas"]["QuestionBranch"] | null;
             config: components["schemas"]["FormQuestionConfig"];
             description: string;
             /** Format: int32 */
@@ -41134,67 +45962,118 @@ export interface components {
             RATING: components["schemas"]["Rating"];
             TEXT: components["schemas"]["Text"];
         };
+        FormQuestionInfo: {
+            config: components["schemas"]["FormQuestionConfig"];
+            /** Format: int32 */
+            questionId: number;
+            questionType: components["schemas"]["FormQuestionType"];
+            title: string;
+        };
+        FormQuestionRequest: {
+            branch?: components["schemas"]["QuestionBranch"] | null;
+            config?: components["schemas"]["FormQuestionConfig"] | null;
+            description?: string | null;
+            /** Format: int32 */
+            id?: number | null;
+            pageKey?: string | null;
+            questionType?: components["schemas"]["FormQuestionType"];
+            required?: boolean | null;
+            shuffle?: boolean | null;
+            title?: string;
+        };
+        FormQuestionTally: {
+            /** Format: int32 */
+            answerCount: number;
+            optionCounts?: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            otherCount?: number;
+            /** Format: int32 */
+            questionId: number;
+            rankingScores?: {
+                [key: string]: number;
+            };
+            ratingCounts?: number[];
+            /** Format: int32 */
+            reachedCount?: number;
+            statementAverages?: {
+                [key: string]: number;
+            };
+            values?: string[];
+        };
         /** @enum {string} */
         FormQuestionType: "CHOICE" | "TEXT" | "RATING" | "DATE" | "RANKING" | "LIKERT";
         FormRequest: {
-            allowEdit?: boolean;
-            completionLink?: string;
-            completionLinkLabel?: string;
-            completionMessage?: string;
-            description?: string;
-            endAt?: components["schemas"]["Instant"];
-            forced?: boolean;
-            purpose?: components["schemas"]["FormPurpose"];
-            shuffleQuestions?: boolean;
-            startAt?: components["schemas"]["Instant"];
+            allowEdit?: boolean | null;
+            completionLink?: string | null;
+            completionLinkLabel?: string | null;
+            completionMessage?: string | null;
+            description?: string | null;
+            endAt?: components["schemas"]["Instant"] | null;
+            forced?: boolean | null;
+            purpose?: components["schemas"]["FormPurpose"] | null;
+            shuffleQuestions?: boolean | null;
+            startAt?: components["schemas"]["Instant"] | null;
             title?: string;
         };
         FormResponse: {
-            acknowledgedAt: components["schemas"]["Instant"];
+            acknowledgedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            acknowledgedBy: number;
+            acknowledgedBy: number | null;
             /** Format: int32 */
             formId: number;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            memberId: number;
+            memberId: number | null;
             path: string[];
             submittedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            submittedBy: number;
+            submittedBy: number | null;
             /** Format: byte */
-            submitterHash: string;
+            submitterHash: string | null;
             updatedAt: components["schemas"]["Instant"];
         };
-        FormResponseEntryDto: {
-            acknowledgedAt: components["schemas"]["Instant"];
+        FormResponseDetail: {
+            answers: components["schemas"]["FormAnswer"][];
+            response: components["schemas"]["FormResponseEntry"] | null;
+        };
+        FormResponseEntry: {
+            acknowledgedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            acknowledgedBy: number;
-            acknowledgedByIdentity: components["schemas"]["MemberIdentity"];
+            acknowledgedBy: number | null;
+            acknowledgedByIdentity: components["schemas"]["MemberIdentity"] | null;
             /** Format: int32 */
             formId: number;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            memberId: number;
-            memberIdentity: components["schemas"]["MemberIdentity"];
+            memberId: number | null;
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
             submittedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            submittedBy: number;
-            submittedByName: string;
+            submittedBy: number | null;
+            submittedByName: string | null;
             updatedAt: components["schemas"]["Instant"];
         };
         FormRestrictions: {
             groupIds: number[];
-            memberIds: number[];
-            mode: components["schemas"]["RestrictionMode"];
+            memberIds: number[] | null;
+            mode: components["schemas"]["RestrictionMode"] | null;
             tagIds: number[];
             userTypes: components["schemas"]["StationUserType"][];
         };
+        FormResultGroup: {
+            key: string;
+            label: string;
+            /** Format: int32 */
+            responseCount: number;
+            tallies: components["schemas"]["FormQuestionTally"][];
+        };
         FormResultQuery: {
-            filter?: components["schemas"]["Filter"];
-            groupBy?: components["schemas"]["Grouping"];
+            filter?: components["schemas"]["ResultFilter"] | null;
+            groupBy?: components["schemas"]["ResultGrouping"] | null;
         };
         FormsCtaConfig: {
             bodyOverride?: string;
@@ -41208,14 +46087,46 @@ export interface components {
             status: components["schemas"]["FormStatus"];
             title: string;
         };
+        FormShareLinkResponse: {
+            token: string | null;
+        };
         /** @enum {string} */
         FormStatus: "DRAFT" | "OPEN" | "CLOSED";
+        FormSubmitRequest: {
+            answers?: {
+                [key: string]: components["schemas"]["FormAnswerValue"];
+            };
+        };
         /** @enum {string} */
         FormVisibility: "PUBLIC" | "UNLISTED";
+        FormVisibilityRequest: {
+            visibility?: components["schemas"]["FormVisibility"];
+        };
+        FormVisibilityResponse: {
+            form: components["schemas"]["Form"];
+            stillHeldBy: components["schemas"]["PageUsingForm"][];
+        };
         FoundNote: {
             description: string;
             /** Format: int32 */
             itemId: number;
+        };
+        FreeAnswer: {
+            answers: string[] | null;
+            /** Format: int32 */
+            lines: number;
+            pointsPerCorrect: number;
+        };
+        FreeAnswerView: {
+            /** Format: int32 */
+            lines: number;
+        };
+        FrozenQuestionDetail: {
+            /** Format: int32 */
+            position: number;
+            question: components["schemas"]["QuizQuestion"] | null;
+            /** Format: int32 */
+            sectionId: number | null;
         };
         /** @enum {string} */
         GalleryAspectMode: "SQUARE" | "PRESERVE";
@@ -41236,39 +46147,27 @@ export interface components {
         };
         GeneratedQuestionWithMeta: {
             /** Format: int32 */
-            categoryId: number;
+            categoryId: number | null;
             config: string;
             quizQuestionType: components["schemas"]["QuizQuestionType"];
             title: string;
         };
         GenerateEntry: {
             /** Format: int32 */
-            categoryId?: number;
+            categoryId?: number | null;
             /** Format: int32 */
-            count?: number;
+            count?: number | null;
             quizQuestionType?: components["schemas"]["QuizQuestionType"];
         };
         GenerateQuestionsRequest: {
-            apiKey?: string;
+            apiKey?: string | null;
             /** Format: int32 */
-            catalogId?: number;
+            catalogId?: number | null;
             entries?: components["schemas"]["GenerateEntry"][];
-            locale?: string;
-            model?: string;
-            provider?: string;
-            userPrompt?: string;
-        };
-        GenerateRequest: {
-            apiKey?: string;
-            correctAnswer?: string;
-            /** Format: int32 */
-            count?: number;
-            model?: string;
-            provider?: string;
-            question?: string;
-        };
-        GenerateResponse: {
-            answers: string[];
+            locale?: string | null;
+            model?: string | null;
+            provider?: string | null;
+            userPrompt?: string | null;
         };
         GenerationPollResponse: {
             done: boolean;
@@ -41297,13 +46196,6 @@ export interface components {
             id: number;
             name: string;
         };
-        Grouping: {
-            bounds?: number[];
-            by?: components["schemas"]["Dimension"];
-            /** Format: int32 */
-            fieldId?: number;
-            only?: string[];
-        };
         GroupRequest: {
             color?: string;
             name?: string;
@@ -41320,12 +46212,6 @@ export interface components {
         GroupSetRequest: {
             name?: string;
         };
-        GuardianRequest: {
-            email?: string;
-            firstname?: string;
-            lastname?: string;
-            phone?: string;
-        };
         HandOutRequest: {
             /** Format: int32 */
             inventoryId?: number;
@@ -41333,7 +46219,7 @@ export interface components {
             sizeId?: number;
         };
         HandOutSelfChecksRequest: {
-            dueOn?: string;
+            dueOn?: string | null;
             memberIds?: number[];
         };
         HandoverRequest: {
@@ -41341,11 +46227,11 @@ export interface components {
         };
         HeldReportRequest: {
             /** Format: int32 */
-            itemId?: number;
-            kind?: components["schemas"]["SelfCheckRaisedKind"];
+            itemId?: number | null;
+            kind?: components["schemas"]["SelfCheckRaisedKind"] | null;
             /** Format: int32 */
-            newSizeId?: number;
-            words?: string;
+            newSizeId?: number | null;
+            words?: string | null;
         };
         HeroBannerConfig: {
             ctaText?: string;
@@ -41387,6 +46273,10 @@ export interface components {
             items?: components["schemas"]["GalleryItem"][];
             /** Format: int32 */
             maxItemHeightPx?: number;
+        };
+        ImageText: {
+            answer: string;
+            imageUrl: string;
         };
         ImageUploadResponse: {
             imageId: string;
@@ -41965,10 +46855,6 @@ export interface components {
             id?: number;
             name?: string;
         };
-        LayoutRequest: {
-            pages?: components["schemas"]["PageRequest"][];
-            questions?: components["schemas"]["QuestionRequest"][];
-        };
         LegalFileEntry: {
             content: string;
             displayName: string;
@@ -41997,15 +46883,14 @@ export interface components {
              * @enum {string}
              */
             questionType: "LIKERT";
-            scaleLabels: string[];
+            scaleLabels?: string[];
             /** Format: int32 */
-            scaleMax: number;
+            scaleMax?: number;
             /** Format: int32 */
-            scaleMin: number;
+            scaleMin?: number;
             statements: components["schemas"]["Option"][];
         };
         LikertAnswer: {
-            empty: boolean;
             ratings: {
                 [key: string]: number;
             };
@@ -42040,25 +46925,6 @@ export interface components {
             next: string;
             /** Format: int32 */
             total: number;
-        };
-        ListRequest: {
-            /** Format: int32 */
-            attendanceThreshold?: number;
-            /** Format: int32 */
-            confirmIntervalDays?: number;
-            description?: string;
-            isPublic?: boolean;
-            /** Format: int32 */
-            joinGroupId?: number;
-            /** Format: int32 */
-            minAgeJoin?: number;
-            /** Format: int32 */
-            minAgeRegister?: number;
-            name?: string;
-            scoringFormula?: string;
-            sendsMail?: boolean;
-            /** Format: int32 */
-            testingGroupId?: number;
         };
         Local: {
             /**
@@ -42675,6 +47541,10 @@ export interface components {
         };
         /** @enum {string} */
         Mode: "FIXED_DELAY" | "FIXED_RATE" | "ONCE";
+        ModelInfo: {
+            id: string;
+            name: string;
+        };
         ModulesResponse: {
             clusterDeniedModules: components["schemas"]["StationModule"][];
             clusterName: string;
@@ -42812,6 +47682,14 @@ export interface components {
         };
         /** @enum {string} */
         MultiLimitType: "NONE" | "AT_MOST" | "AT_LEAST" | "EXACTLY";
+        MultipleChoice: {
+            options: components["schemas"]["ChoiceOption"][] | null;
+            pointsPerCorrect: number;
+        };
+        MultipleChoiceView: {
+            multiSelect: boolean;
+            options: components["schemas"]["ChoiceOptionView"][];
+        };
         MyAbsenceRequest: {
             absentFrom?: components["schemas"]["LocalDate"];
             absentUntil?: components["schemas"]["LocalDate"];
@@ -42843,6 +47721,7 @@ export interface components {
             sizeId: number;
             sizeName: string;
         };
+        MyQuizAttempt: components["schemas"]["NoQuizAttempt"] | components["schemas"]["QuizAttemptDetail"];
         MyRequirement: {
             /** Format: int32 */
             inventoryId: number;
@@ -43050,6 +47929,7 @@ export interface components {
         NicknameRequest: {
             nickname?: string;
         };
+        NoQuizAttempt: Record<string, never>;
         /** @enum {string} */
         NoteEntityType: "ITEM" | "EVENT" | "MEMBER";
         NoteHistoryEntryResponse: {
@@ -43152,6 +48032,13 @@ export interface components {
             key: string;
             label: string;
         };
+        Ordering: {
+            items: string[] | null;
+            pointsPerCorrect: number;
+        };
+        OrderingView: {
+            items: string[];
+        };
         OrderRequest: {
             needIds?: number[];
         };
@@ -43173,12 +48060,6 @@ export interface components {
             resolvedHref?: string;
             resolvedTitle?: string;
         };
-        PageRequest: {
-            after?: components["schemas"]["PageTarget"];
-            description?: string;
-            key?: string;
-            title?: string;
-        };
         PageShareLinkResponse: {
             token: string | null;
         };
@@ -43189,7 +48070,7 @@ export interface components {
         };
         PageTarget: {
             kind: components["schemas"]["TargetKind"];
-            page: string;
+            page?: string;
         };
         PageUsingForm: {
             /** Format: int32 */
@@ -43201,6 +48082,10 @@ export interface components {
         PageVisibility: "DRAFT" | "UNLISTED" | "PUBLIC";
         PageVisibilityRequest: {
             visibility?: components["schemas"]["PageVisibility"];
+        };
+        Pair: {
+            left: string;
+            right: string;
         };
         ParseResult: {
             headers: string[];
@@ -43218,6 +48103,10 @@ export interface components {
             recapDescription?: string;
             summary?: string;
             title?: string;
+        };
+        PatchItemRequest: {
+            checked?: boolean | null;
+            note?: string | null;
         };
         PdfConfig: {
             /** Format: int32 */
@@ -43246,16 +48135,6 @@ export interface components {
             slug: string;
             title: string;
             updatedAt: components["schemas"]["Instant"];
-        };
-        Piece: {
-            /** Format: int32 */
-            heldBy: number;
-            heldByName: string;
-            internalId: string;
-            inventoryName: string;
-            /** Format: int32 */
-            itemId: number;
-            name: string;
         };
         PlacementResponse: {
             actual: components["schemas"]["Actual"];
@@ -43336,6 +48215,93 @@ export interface components {
             /** Format: uuid */
             stationId: string;
             userRoles: string;
+        };
+        Procedure: {
+            /** Format: int32 */
+            assignedBy: number;
+            createdAt: components["schemas"]["Instant"];
+            description: string | null;
+            dueAt: components["schemas"]["Instant"] | null;
+            eventDate: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            eventId: number | null;
+            /** Format: int32 */
+            id: number;
+            isPublic: boolean;
+            name: string;
+            resolvedAt: components["schemas"]["Instant"] | null;
+            /** Format: uuid */
+            stationId: string;
+            status: components["schemas"]["ProcedureStatus"];
+            /** Format: int32 */
+            templateId: number | null;
+        };
+        ProcedureDetail: {
+            assigneeIds: number[];
+            assignees: components["schemas"]["MemberIdentity"][];
+            dependencies: number[][];
+            items: components["schemas"]["ProcedureItem"][];
+            procedure: components["schemas"]["Procedure"];
+        };
+        ProcedureItem: {
+            checked: boolean;
+            checkedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            checkedBy: number | null;
+            description: string | null;
+            /** Format: int32 */
+            id: number;
+            isPublic: boolean;
+            note: string | null;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            procedureId: number;
+            title: string;
+            userAssigned: boolean;
+        };
+        ProcedureItemRequest: {
+            description?: string | null;
+            isPublic?: boolean;
+            /** Format: int32 */
+            position?: number;
+            title?: string;
+            userAssigned?: boolean;
+        };
+        /** @enum {string} */
+        ProcedureStatus: "OPEN" | "RESOLVED";
+        ProcedureTemplate: {
+            archived: boolean;
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            createdBy: number;
+            description: string | null;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: uuid */
+            stationId: string;
+        };
+        ProcedureTemplateDetail: {
+            dependencies: number[][];
+            items: components["schemas"]["ProcedureTemplateItem"][];
+            template: components["schemas"]["ProcedureTemplate"];
+        };
+        ProcedureTemplateItem: {
+            description: string | null;
+            /** Format: int32 */
+            id: number;
+            isPublic: boolean;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            templateId: number;
+            title: string;
+            userAssigned: boolean;
+        };
+        ProcedureTemplateRequest: {
+            description?: string | null;
+            name?: string;
         };
         ProcurementResponse: {
             fulfilledAt: components["schemas"]["Instant"];
@@ -43456,8 +48422,52 @@ export interface components {
             memberId: number;
             value: string;
         };
-        PromptRequest: {
-            prompt?: string;
+        ProtocolChecksRequest: {
+            checks?: {
+                [key: string]: boolean;
+            };
+        };
+        ProtocolDetailResponse: {
+            items: components["schemas"]["TestProtocolItem"][];
+            protocol: components["schemas"]["TestProtocol"];
+            sections: components["schemas"]["TestProtocolSection"][];
+        };
+        ProtocolItemRequest: {
+            description?: string | null;
+            label?: string;
+            points?: number | null;
+            /** Format: int32 */
+            position?: number | null;
+        };
+        ProtocolListResponse: {
+            protocols: components["schemas"]["TestProtocol"][];
+            shared: components["schemas"]["SharedProtocolView"][];
+        };
+        ProtocolRequest: {
+            description?: string | null;
+            name?: string;
+            /** Format: int32 */
+            passThreshold?: number | null;
+        };
+        ProtocolRunRequest: {
+            groupIds?: number[] | null;
+            memberIds?: number[] | null;
+            name?: string;
+            tagIds?: number[] | null;
+            testDate?: components["schemas"]["LocalDate"] | null;
+            userTypes?: string[] | null;
+        };
+        ProtocolSectionRequest: {
+            description?: string | null;
+            /** Format: int32 */
+            maxPoints?: number | null;
+            name?: string;
+            /** Format: int32 */
+            parentId?: number | null;
+            /** Format: int32 */
+            passThreshold?: number | null;
+            /** Format: int32 */
+            position?: number | null;
         };
         ProviderBlock: {
             expiresAt: components["schemas"]["Instant"];
@@ -43466,10 +48476,6 @@ export interface components {
             provider: components["schemas"]["MailProviderType"];
             reason: string;
             recipientDomain: string;
-        };
-        ProviderRequest: {
-            apiKey?: string;
-            model?: string;
         };
         ProviderStanding: {
             /** Format: int32 */
@@ -43516,11 +48522,6 @@ export interface components {
             files: components["schemas"]["KbFile"][];
             folders: components["schemas"]["KbFolder"][];
         };
-        PublicCompletion: {
-            link: string;
-            linkLabel: string;
-            message: string;
-        };
         PublicEventDetail: {
             cancelled: boolean;
             cancelledDates: components["schemas"]["LocalDate"][];
@@ -43556,8 +48557,8 @@ export interface components {
             startTime: components["schemas"]["Instant"];
         };
         PublicForm: {
-            closedSince: components["schemas"]["Instant"];
-            completion: components["schemas"]["PublicCompletion"];
+            closedSince: components["schemas"]["Instant"] | null;
+            completion: components["schemas"]["PublicFormCompletion"] | null;
             description: string;
             pages: components["schemas"]["PublicFormPage"][];
             publicUid: string;
@@ -43567,6 +48568,11 @@ export interface components {
             state: components["schemas"]["PublicFormState"];
             title: string;
         };
+        PublicFormCompletion: {
+            link: string | null;
+            linkLabel: string | null;
+            message: string | null;
+        };
         PublicFormPage: {
             after: components["schemas"]["PageTarget"];
             description: string;
@@ -43574,19 +48580,31 @@ export interface components {
             title: string;
         };
         PublicFormQuestion: {
-            branch: components["schemas"]["QuestionBranch"];
+            branch: components["schemas"]["QuestionBranch"] | null;
             config: components["schemas"]["FormQuestionConfig"];
             description: string;
             /** Format: int32 */
             id: number;
             pageKey: string;
-            questionType: string;
+            questionType: components["schemas"]["FormQuestionType"];
             required: boolean;
             shuffle: boolean;
             title: string;
         };
         /** @enum {string} */
         PublicFormState: "OPEN" | "NOT_PUBLISHED" | "NOT_OPEN_YET" | "CLOSED";
+        PublicFormSubmitRequest: {
+            answers?: {
+                [key: string]: components["schemas"]["FormAnswerValue"];
+            };
+            consentVersion?: string | null;
+            privacyVersion?: string | null;
+            tosVersion?: string | null;
+        };
+        PublicFormSubmitResponse: {
+            /** Format: int32 */
+            responseId: number;
+        };
         PublicKbInfo: {
             stationName: string;
             stationTimezone: string;
@@ -43623,6 +48641,21 @@ export interface components {
             /** Format: uuid */
             uid: string;
         };
+        PublicQuizCatalog: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        PublicQuizQuestion: {
+            config: components["schemas"]["QuestionConfig"];
+            description: string;
+            /** Format: int32 */
+            id: number;
+            imageUrl: string | null;
+            questionType: components["schemas"]["QuizQuestionType"];
+            title: string;
+        };
         PublicStationInfo: {
             customThemeColors: string;
             defaultFeel: string;
@@ -43640,23 +48673,36 @@ export interface components {
             stationUid: string;
             timezone: string;
         };
-        PublicSubmitRequest: {
-            answers?: {
-                [key: string]: components["schemas"]["FormAnswerValue"];
-            };
-            consentVersion?: string;
-            privacyVersion?: string;
-            tosVersion?: string;
-        };
-        PublicSubmitResponse: {
-            /** Format: int32 */
-            responseId: number;
-        };
         PublicVisibilityRequest: {
             visible?: boolean;
         };
         PublicVisibilityResponse: {
             visible: boolean | null;
+        };
+        PublicWaitlistFormResponse: {
+            fields: components["schemas"]["WaitingListField"][];
+            listDescription: string;
+            listName: string;
+            sendsMail: boolean;
+        };
+        PublicWaitlistRegistrationRequest: {
+            consentVersion?: string | null;
+            email?: string | null;
+            firstname?: string | null;
+            guardians?: components["schemas"]["WaitingListGuardianRequest"][] | null;
+            lastname?: string | null;
+            notes?: string | null;
+            privacyVersion?: string | null;
+            tosVersion?: string | null;
+            values?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        PublicWaitlistSummary: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            name: string;
         };
         QuestionAnswerCount: {
             /** Format: int32 */
@@ -43676,52 +48722,312 @@ export interface components {
             label: string;
             type: components["schemas"]["MemberTableCellType"];
         };
-        QuestionInfoDto: {
-            config: components["schemas"]["FormQuestionConfig"];
+        QuestionConfig: components["schemas"]["Connect"] | components["schemas"]["Enumeration"] | components["schemas"]["FillInTheBlank"] | components["schemas"]["FreeAnswer"] | components["schemas"]["ImageText"] | components["schemas"]["MultipleChoice"] | components["schemas"]["Ordering"] | components["schemas"]["TrueFalse"] | components["schemas"]["Unknown"];
+        QuestionConfigByType: {
+            CONNECT: components["schemas"]["Connect"];
+            ENUMERATION: components["schemas"]["Enumeration"];
+            FILL_IN_THE_BLANK: components["schemas"]["FillInTheBlank"];
+            FREE_ANSWER: components["schemas"]["FreeAnswer"];
+            IMAGE_TEXT: components["schemas"]["ImageText"];
+            MULTIPLE_CHOICE: components["schemas"]["MultipleChoice"];
+            ORDERING: components["schemas"]["Ordering"];
+            TRUE_FALSE: components["schemas"]["TrueFalse"];
+        };
+        QuizAccessRequest: {
+            closesAt?: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            questionId: number;
-            questionType: components["schemas"]["FormQuestionType"];
+            memberId?: number;
+        };
+        QuizAnswerRequest: {
+            answer?: string;
+            /** Format: int32 */
+            questionId?: number;
+        };
+        QuizAttemptDetail: {
+            answers: components["schemas"]["QuizTestAnswer"][];
+            attempt: components["schemas"]["QuizTestAttempt"];
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            questionDetails: components["schemas"]["QuizQuestion"][] | null;
+            questions: components["schemas"]["QuizTestAttemptQuestion"][];
+        };
+        QuizAvailableTest: {
+            attemptStatus: components["schemas"]["AttemptStatus"] | null;
+            startedAt: components["schemas"]["Instant"] | null;
+            submittedAt: components["schemas"]["Instant"] | null;
+            test: components["schemas"]["QuizTest"];
+        };
+        QuizCatalog: {
+            createdAt: components["schemas"]["Instant"];
+            description: string;
+            /** Format: int32 */
+            id: number;
+            metadata: components["schemas"]["CatalogMetadata"];
+            name: string;
+            publicRender: boolean;
+            /** Format: uuid */
+            stationId: string;
+            trainingEnabled: boolean;
+            updatedAt: components["schemas"]["Instant"];
+        };
+        QuizCatalogDetail: {
+            categories: components["schemas"]["QuizCategory"][];
+            createdAt: components["schemas"]["Instant"];
+            description: string;
+            /** Format: int32 */
+            id: number;
+            metadata: components["schemas"]["CatalogMetadata"];
+            name: string;
+            /** Format: int32 */
+            questionCount: number;
+            questionTypeCounts: {
+                [key: string]: number;
+            };
+            /** Format: uuid */
+            stationId: string;
+            trainingEnabled: boolean;
+            updatedAt: components["schemas"]["Instant"];
+        };
+        QuizCatalogRequest: {
+            description?: string | null;
+            metadata?: components["schemas"]["CatalogMetadata"] | null;
+            name?: string;
+            trainingEnabled?: boolean | null;
+        };
+        QuizCategory: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            position: number;
+            /** Format: uuid */
+            stationId: string;
+        };
+        QuizCategoryRequest: {
+            description?: string | null;
+            name?: string;
+            /** Format: int32 */
+            position?: number | null;
+        };
+        QuizGradeRequest: {
+            points?: number;
+        };
+        QuizQuestion: {
+            autoPoints: boolean;
+            /** Format: int32 */
+            catalogId: number;
+            /** Format: int32 */
+            categoryId: number | null;
+            config: components["schemas"]["QuestionConfig"];
+            createdAt: components["schemas"]["Instant"];
+            description: string;
+            /** Format: int32 */
+            id: number;
+            imageUrl: string | null;
+            points: number;
+            /** Format: int32 */
+            position: number;
+            quizQuestionType: components["schemas"]["QuizQuestionType"];
             title: string;
+            updatedAt: components["schemas"]["Instant"];
         };
-        QuestionRequest: {
-            branch?: components["schemas"]["QuestionBranch"];
-            config?: components["schemas"]["FormQuestionConfig"];
-            description?: string;
+        QuizQuestionConfigView: components["schemas"]["ConnectView"] | components["schemas"]["EmptyView"] | components["schemas"]["EnumerationView"] | components["schemas"]["FillInTheBlankView"] | components["schemas"]["FreeAnswerView"] | components["schemas"]["MultipleChoiceView"] | components["schemas"]["OrderingView"];
+        QuizQuestionRead: components["schemas"]["QuizQuestion"] | components["schemas"]["QuizQuestionView"];
+        QuizQuestionReport: {
+            createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            id?: number;
-            pageKey?: string;
-            questionType?: components["schemas"]["FormQuestionType"];
-            required?: boolean;
-            shuffle?: boolean;
-            title?: string;
-        };
-        QuestionTally: {
-            /** Format: int32 */
-            answerCount: number;
-            optionCounts: {
-                [key: string]: number;
-            };
-            /** Format: int32 */
-            otherCount: number;
+            id: number;
+            note: string;
             /** Format: int32 */
             questionId: number;
-            rankingScores: {
-                [key: string]: number;
-            };
-            ratingCounts: number[];
+            reporterName: string;
+        };
+        QuizQuestionRequest: {
+            autoPoints?: boolean | null;
             /** Format: int32 */
-            reachedCount: number;
-            statementAverages: {
-                [key: string]: number;
-            };
-            values: string[];
+            categoryId?: number | null;
+            config?: unknown;
+            description?: string | null;
+            imageUrl?: string | null;
+            points?: number | null;
+            /** Format: int32 */
+            position?: number | null;
+            quizQuestionType?: components["schemas"]["QuizQuestionType"];
+            title?: string;
         };
         /** @enum {string} */
         QuizQuestionType: "MULTIPLE_CHOICE" | "FILL_IN_THE_BLANK" | "FREE_ANSWER" | "CONNECT" | "IMAGE_TEXT" | "TRUE_FALSE" | "ORDERING" | "ENUMERATION";
+        QuizQuestionView: {
+            /** Format: int32 */
+            catalogId: number;
+            /** Format: int32 */
+            categoryId: number | null;
+            config: components["schemas"]["QuizQuestionConfigView"];
+            description: string;
+            /** Format: int32 */
+            id: number;
+            imageUrl: string | null;
+            points: number;
+            /** Format: int32 */
+            position: number;
+            quizQuestionType: components["schemas"]["QuizQuestionType"];
+            title: string;
+        };
+        QuizReportRequest: {
+            note?: string;
+        };
+        QuizSectionDetail: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            position: number;
+            sources: components["schemas"]["QuizTestSectionSource"][];
+            /** Format: int32 */
+            testId: number;
+            title: string;
+        };
+        QuizSectionRequest: {
+            description?: string | null;
+            sources?: components["schemas"]["QuizSourceRequest"][] | null;
+            title?: string | null;
+        };
+        QuizSourceRequest: {
+            /** Format: int32 */
+            catalogId?: number;
+            /** Format: int32 */
+            categoryId?: number | null;
+            /** Format: int32 */
+            questionCount?: number;
+        };
+        QuizSuccessResponse: {
+            success: boolean;
+        };
         QuizTeaserConfig: {
             catalogIds?: number[];
             description?: string;
             title?: string;
+        };
+        QuizTest: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            createdBy: number;
+            description: string;
+            endAt: components["schemas"]["Instant"] | null;
+            forced: boolean;
+            /** Format: int32 */
+            id: number;
+            restricted: boolean;
+            restrictionMode: components["schemas"]["RestrictionMode"];
+            shuffle: boolean;
+            startAt: components["schemas"]["Instant"] | null;
+            /** Format: uuid */
+            stationId: string;
+            status: components["schemas"]["TestStatus"];
+            /** Format: int32 */
+            timeLimit: number | null;
+            title: string;
+            updatedAt: components["schemas"]["Instant"];
+        };
+        QuizTestAnswer: {
+            answer: string;
+            /** Format: int32 */
+            attemptId: number;
+            graded: boolean;
+            /** Format: int32 */
+            id: number;
+            points: number | null;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            questionId: number;
+            /** Format: int32 */
+            sectionId: number | null;
+        };
+        QuizTestAttempt: {
+            gradedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            gradedBy: number | null;
+            /** Format: int32 */
+            id: number;
+            maxPoints: number;
+            /** Format: int32 */
+            memberId: number;
+            startedAt: components["schemas"]["Instant"];
+            status: components["schemas"]["AttemptStatus"];
+            submittedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            testId: number;
+            totalPoints: number;
+        };
+        QuizTestAttemptQuestion: {
+            /** Format: int32 */
+            attemptId: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            questionId: number;
+            /** Format: int32 */
+            sectionId: number | null;
+        };
+        QuizTestDetail: {
+            /** Format: int32 */
+            attemptCount: number;
+            sections: components["schemas"]["QuizSectionDetail"][];
+            test: components["schemas"]["QuizTest"];
+        };
+        QuizTestRequest: {
+            description?: string | null;
+            endAt?: components["schemas"]["Instant"] | null;
+            forced?: boolean | null;
+            shuffle?: boolean | null;
+            startAt?: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            timeLimit?: number | null;
+            title?: string;
+        };
+        QuizTestRestrictions: {
+            groupIds: number[];
+            memberIds: number[];
+            mode: components["schemas"]["RestrictionMode"];
+            tagIds: number[];
+            userTypes: components["schemas"]["StationUserType"][];
+        };
+        QuizTestRestrictionsRequest: {
+            groupIds?: number[] | null;
+            memberIds?: number[] | null;
+            mode?: components["schemas"]["RestrictionMode"] | null;
+            tagIds?: number[] | null;
+            userTypes?: components["schemas"]["StationUserType"][] | null;
+        };
+        QuizTestSection: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            testId: number;
+            title: string;
+        };
+        QuizTestSectionSource: {
+            /** Format: int32 */
+            catalogId: number;
+            /** Format: int32 */
+            categoryId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            questionCount: number;
+            /** Format: int32 */
+            sectionId: number;
+        };
+        QuizTestSummary: {
+            /** Format: int32 */
+            attemptCount: number;
+            test: components["schemas"]["QuizTest"];
         };
         /** @enum {string} */
         QuotaOrigin: "CLUSTER_GRANT" | "CLUSTER_DEFAULT" | "INSTANCE_OVERRIDE" | "INSTANCE_DEFAULT" | "UNLIMITED";
@@ -43738,7 +49044,6 @@ export interface components {
             questionType: "RANKING";
         };
         RankingAnswer: {
-            empty: boolean;
             order: string[];
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -43747,17 +49052,16 @@ export interface components {
             type: "RANKING";
         };
         Rating: {
-            icon: components["schemas"]["RatingIcon"];
+            icon?: components["schemas"]["RatingIcon"];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             questionType: "RATING";
             /** Format: int32 */
-            scale: number;
+            scale?: number;
         };
         RatingAnswer: {
-            empty: boolean;
             /** Format: int32 */
             rating: number;
             /**
@@ -43860,7 +49164,7 @@ export interface components {
             reason: components["schemas"]["KbRefusalReason"];
         };
         RefuseRowRequest: {
-            reason?: string;
+            reason?: string | null;
         };
         RegisterRequest: {
             email?: string;
@@ -43985,6 +49289,11 @@ export interface components {
             mimeType: string;
             name: string;
         };
+        RemoteCatalogDetail: {
+            catalog: components["schemas"]["QuizCatalog"];
+            categories: components["schemas"]["QuizCategory"][];
+            questions: components["schemas"]["QuizQuestion"][];
+        };
         RemoteEventDetail: {
             event: components["schemas"]["SharedEvent"];
             places: components["schemas"]["RemotePlaces"] | null;
@@ -44021,6 +49330,11 @@ export interface components {
             /** Format: int32 */
             slotBudget: number | null;
         };
+        RemoteProtocolDetail: {
+            items: components["schemas"]["TestProtocolItem"][];
+            protocol: components["schemas"]["TestProtocol"];
+            sections: components["schemas"]["TestProtocolSection"][];
+        };
         Renamed: {
             from: string;
             to: string;
@@ -44039,11 +49353,15 @@ export interface components {
             laneId?: number;
             orderedIds?: number[];
         };
+        ReplaceFormShareLinkRequest: {
+            currentToken?: string | null;
+        };
         ReplacePageShareLinkRequest: {
             currentToken?: string;
         };
-        ReplaceShareLinkRequest: {
-            currentToken?: string;
+        ReplaceQuestionRequest: {
+            /** Format: int32 */
+            questionId?: number;
         };
         ReportData: {
             filterLabel: string;
@@ -44156,10 +49474,6 @@ export interface components {
             bytes: number;
             origin: components["schemas"]["QuotaOrigin"];
         };
-        ResponseDetailDto: {
-            answers: components["schemas"]["FormAnswer"][];
-            response: components["schemas"]["FormResponseEntryDto"];
-        };
         RestorePlan: {
             movements: components["schemas"]["PlannedLanding"][];
             steps: components["schemas"]["PlannedStep"][];
@@ -44202,12 +49516,31 @@ export interface components {
             tagIds?: number[];
             userTypes?: components["schemas"]["StationUserType"][];
         };
-        ResultGroupDto: {
-            key: string;
-            label: string;
+        ResultFieldCondition: {
             /** Format: int32 */
-            responseCount: number;
-            tallies: components["schemas"]["QuestionTally"][];
+            fieldId?: number;
+            from?: number | null;
+            to?: number | null;
+            values?: string[];
+        };
+        ResultFilter: {
+            /** Format: int32 */
+            ageFrom?: number | null;
+            /** Format: int32 */
+            ageTo?: number | null;
+            fields?: components["schemas"]["ResultFieldCondition"][];
+            groupIds?: number[];
+            groupMatch?: components["schemas"]["Match"];
+            tagIds?: number[];
+            tagMatch?: components["schemas"]["Match"];
+            userTypes?: components["schemas"]["StationUserType"][];
+        };
+        ResultGrouping: {
+            bounds?: number[];
+            by?: components["schemas"]["Dimension"];
+            /** Format: int32 */
+            fieldId?: number | null;
+            only?: string[];
         };
         ReturnEverythingRequest: {
             /** Format: int32 */
@@ -44241,6 +49574,19 @@ export interface components {
             uid: string;
             userType: components["schemas"]["StationUserType"];
         };
+        RunDetailResponse: {
+            members: components["schemas"]["RunMemberWithProgress"][];
+            run: components["schemas"]["TestProtocolRun"];
+        };
+        RunMemberWithProgress: {
+            member: components["schemas"]["TestProtocolRunMember"];
+            /** Format: int32 */
+            sectionsDone: number;
+            /** Format: int32 */
+            sectionsTotal: number;
+        };
+        /** @enum {string} */
+        RunStatus: "OPEN" | "CLOSED";
         S3: {
             accessKey: string;
             basePath: string;
@@ -44321,12 +49667,12 @@ export interface components {
         };
         SelfCheck: {
             /** Format: int32 */
-            checkId: number;
-            closedAt: components["schemas"]["Instant"];
-            dueOn: components["schemas"]["LocalDate"];
+            checkId: number | null;
+            closedAt: components["schemas"]["Instant"] | null;
+            dueOn: components["schemas"]["LocalDate"] | null;
             handedOutAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            handedOutBy: number;
+            handedOutBy: number | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
@@ -44334,22 +49680,22 @@ export interface components {
             state: components["schemas"]["SelfCheckState"];
             /** Format: uuid */
             stationId: string;
-            submittedAt: components["schemas"]["Instant"];
+            submittedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            submittedBy: number;
+            submittedBy: number | null;
         };
         /** @enum {string} */
         SelfCheckAnswer: "HAVE_IT" | "DO_NOT_HAVE_IT" | "TURNED_UP" | "WRONG_RECORD" | "NEVER_HAD" | "HAVE_ONE";
         SelfCheckAnswerRequest: {
-            answers?: components["schemas"]["AnswerBody"][];
+            answers?: components["schemas"]["AnswerBody"][] | null;
         };
         /** @enum {string} */
         SelfCheckIdentifierFinding: "NOTHING_TYPED" | "NO_MATCH" | "FREE" | "HELD" | "SEVERAL" | "A_CONTAINER";
         SelfCheckIdentifierMatch: {
             containers: string[];
             finding: components["schemas"]["SelfCheckIdentifierFinding"];
-            pieces: components["schemas"]["Piece"][];
-            typed: string;
+            pieces: components["schemas"]["SelfCheckMatchedPiece"][];
+            typed: string | null;
         };
         SelfCheckItem: {
             dueOn: components["schemas"]["LocalDate"] | null;
@@ -44358,24 +49704,34 @@ export interface components {
             /** Format: int32 */
             memberId: number;
         };
+        SelfCheckMatchedPiece: {
+            /** Format: int32 */
+            heldBy: number | null;
+            heldByName: string;
+            internalId: string;
+            inventoryName: string;
+            /** Format: int32 */
+            itemId: number;
+            name: string;
+        };
         SelfCheckRaised: {
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            itemId: number;
+            itemId: number | null;
             kind: components["schemas"]["SelfCheckRaisedKind"];
             /** Format: int32 */
-            movementId: number;
+            movementId: number | null;
             /** Format: int32 */
-            newSizeId: number;
+            newSizeId: number | null;
             raisedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            raisedBy: number;
+            raisedBy: number | null;
             state: components["schemas"]["SelfCheckRaisedState"];
             /** Format: int32 */
             taskId: number;
             /** Format: int32 */
-            waitsForRowId: number;
+            waitsForRowId: number | null;
             words: string;
         };
         /** @enum {string} */
@@ -44416,7 +49772,7 @@ export interface components {
             borrowed: boolean;
             identifier: components["schemas"]["SelfCheckIdentifierMatch"];
             inventoryName: string;
-            item: components["schemas"]["InventoryItem"];
+            item: components["schemas"]["InventoryItem"] | null;
             recordedLost: boolean;
             removal: components["schemas"]["SelfCheckRecordRemoval"];
             reviewedByName: string;
@@ -44428,26 +49784,26 @@ export interface components {
             answer: components["schemas"]["SelfCheckAnswer"];
             answeredAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            answeredBy: number;
+            answeredBy: number | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             inventoryId: number;
             /** Format: int32 */
-            itemId: number;
+            itemId: number | null;
             note: string;
-            reviewedAt: components["schemas"]["Instant"];
+            reviewedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            reviewedBy: number;
+            reviewedBy: number | null;
             reviewerReason: string;
             /** Format: int32 */
-            sizeId: number;
+            sizeId: number | null;
             /** Format: int32 */
-            slot: number;
+            slot: number | null;
             state: components["schemas"]["SelfCheckRowState"];
             /** Format: int32 */
             taskId: number;
-            typedInternalId: string;
+            typedInternalId: string | null;
         };
         /** @enum {string} */
         SelfCheckRowState: "OUTSTANDING" | "TAKEN" | "REFUSED";
@@ -44456,7 +49812,7 @@ export interface components {
         /** @enum {string} */
         SelfCheckState: "OPEN" | "SUBMITTED" | "DONE" | "OVERTAKEN";
         SelfCheckSummary: {
-            dueOn: components["schemas"]["LocalDate"];
+            dueOn: components["schemas"]["LocalDate"] | null;
             handedOutAt: components["schemas"]["Instant"];
             /** Format: int32 */
             id: number;
@@ -44464,12 +49820,12 @@ export interface components {
             memberId: number;
             memberName: string;
             state: components["schemas"]["SelfCheckState"];
-            submittedAt: components["schemas"]["Instant"];
+            submittedAt: components["schemas"]["Instant"] | null;
         };
         SelfCheckTask: {
             /** Format: int32 */
-            checkId: number;
-            dueOn: components["schemas"]["LocalDate"];
+            checkId: number | null;
+            dueOn: components["schemas"]["LocalDate"] | null;
             handedOutAt: components["schemas"]["Instant"];
             handedOutByName: string;
             /** Format: int32 */
@@ -44478,7 +49834,7 @@ export interface components {
             memberId: number;
             memberName: string;
             state: components["schemas"]["SelfCheckState"];
-            submittedAt: components["schemas"]["Instant"];
+            submittedAt: components["schemas"]["Instant"] | null;
         };
         SendableItem: {
             /** Format: int32 */
@@ -44765,8 +50121,21 @@ export interface components {
             path: string;
             station: components["schemas"]["SharedBrand"];
         };
-        ShareLinkResponse: {
-            token: string;
+        SharedProtocolView: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            stationName: string;
+            stationUid: string | null;
+        };
+        SharedQuizCatalog: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            stationName: string;
+            stationUid: string | null;
         };
         /** @enum {string} */
         ShareScope: "ALL_PARTNERS" | "SPECIFIC";
@@ -44924,7 +50293,7 @@ export interface components {
             apiKey: string;
             /** Format: int32 */
             id: number;
-            model: string;
+            model: string | null;
             provider: string;
             /** Format: uuid */
             stationId: string;
@@ -45242,14 +50611,6 @@ export interface components {
         StringValue: {
             value: string;
         };
-        SubmitRequest: {
-            answers?: {
-                [key: string]: components["schemas"]["FormAnswerValue"];
-            };
-        };
-        SuccessResponse: {
-            success: boolean;
-        };
         SwapNote: {
             handOverNext: boolean;
             inventoryName: string;
@@ -45435,8 +50796,87 @@ export interface components {
             register: components["schemas"]["RestrictionAudience"];
             view: components["schemas"]["RestrictionAudience"];
         };
+        TestProtocol: {
+            createdAt: components["schemas"]["Instant"];
+            description: string;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            passThreshold: number | null;
+            /** Format: uuid */
+            stationId: string;
+            updatedAt: components["schemas"]["Instant"];
+        };
+        TestProtocolItem: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            label: string;
+            points: number;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            sectionId: number;
+        };
+        TestProtocolRun: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            createdBy: number | null;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            protocolId: number;
+            /** Format: uuid */
+            stationId: string;
+            status: components["schemas"]["RunStatus"];
+            testDate: components["schemas"]["LocalDate"];
+        };
+        TestProtocolRunCheck: {
+            checked: boolean;
+            checkedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            checkedBy: number | null;
+            /** Format: int32 */
+            itemId: number;
+            /** Format: int32 */
+            runMemberId: number;
+        };
+        TestProtocolRunMember: {
+            completed: boolean;
+            /** Format: int32 */
+            id: number;
+            locked: boolean;
+            lockedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            lockedBy: number | null;
+            /** Format: int32 */
+            memberId: number;
+            /** Format: int32 */
+            runId: number;
+            totalScore: number;
+        };
+        TestProtocolSection: {
+            description: string;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            maxPoints: number | null;
+            name: string;
+            /** Format: int32 */
+            parentId: number | null;
+            /** Format: int32 */
+            passThreshold: number | null;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            protocolId: number;
+        };
+        /** @enum {string} */
+        TestStatus: "DRAFT" | "ACTIVE" | "CLOSED";
         Text: {
-            longAnswer: boolean;
+            longAnswer?: boolean;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -45444,7 +50884,6 @@ export interface components {
             questionType: "TEXT";
         };
         TextAnswer: {
-            empty: boolean;
             text: string;
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -45579,7 +51018,7 @@ export interface components {
             targetInstanceUrl: string;
         };
         TransientKeyRequest: {
-            apiKey?: string;
+            apiKey?: string | null;
         };
         TrashEntry: {
             /** Format: int64 */
@@ -45600,10 +51039,14 @@ export interface components {
             bytes: number;
             entries: components["schemas"]["TrashEntry"][];
         };
+        TrueFalse: {
+            correctAnswer: boolean;
+        };
         UnassignItemRequest: {
             /** Format: int32 */
             itemId?: number;
         };
+        Unknown: Record<string, never>;
         UpcomingEventOccurrence: {
             cancellation: components["schemas"]["CancellationNotice"] | null;
             date: components["schemas"]["LocalDate"];
@@ -45645,6 +51088,12 @@ export interface components {
         UpdatePositionRequest: {
             /** Format: int32 */
             position?: number;
+        };
+        UpdateProcedureRequest: {
+            description?: string | null;
+            dueAt?: components["schemas"]["Instant"] | null;
+            isPublic?: boolean;
+            name?: string;
         };
         UpdateRequest: {
             description?: string;
@@ -45735,34 +51184,267 @@ export interface components {
             autoplay?: boolean;
             loop?: boolean;
         };
-        VisibilityRequest: {
-            visibility?: components["schemas"]["FormVisibility"];
-        };
-        VisibilityResponse: {
-            form: components["schemas"]["Form"];
-            stillHeldBy: components["schemas"]["PageUsingForm"][];
-        };
-        WaitingListInvitationAnswerRequest: {
-            answer?: string;
-            date?: string;
+        WaitingList: {
             /** Format: int32 */
-            eventId?: number;
-            note?: string;
+            attendanceThreshold: number;
+            /** Format: int32 */
+            confirmIntervalDays: number;
+            createdAt: components["schemas"]["Instant"];
+            description: string;
+            /** Format: int32 */
+            id: number;
+            isPublic: boolean;
+            /** Format: int32 */
+            joinGroupId: number | null;
+            joinUserType: components["schemas"]["StationUserType"];
+            /** Format: int32 */
+            minAgeJoin: number | null;
+            /** Format: int32 */
+            minAgeRegister: number | null;
+            name: string;
+            scoringFormula: string | null;
+            sendsMail: boolean;
+            /** Format: uuid */
+            stationId: string;
+            /** Format: int32 */
+            testingGroupId: number | null;
+            visibleFields: number[];
         };
-        WaitingListRegisterRequest: {
-            consentVersion?: string;
-            email?: string;
+        WaitingListAccessResponse: {
+            accessToken: string;
+        };
+        /** @enum {string} */
+        WaitingListAnswer: "COMING" | "NOT_INTERESTED" | "DATE_DOES_NOT_SUIT";
+        WaitingListCreatedAtRequest: {
+            createdAt?: components["schemas"]["Instant"];
+        };
+        WaitingListEntry: {
+            accessToken: string;
+            answer: components["schemas"]["WaitingListInvitationAnswer"] | null;
+            /** Format: int32 */
+            attendanceCount: number;
+            confirmedAt: components["schemas"]["Instant"];
+            createdAt: components["schemas"]["Instant"];
+            email: string;
+            firstname: string;
+            /** Format: int32 */
+            id: number;
+            invitation: components["schemas"]["WaitingListInvitation"] | null;
+            invitedAt: components["schemas"]["Instant"] | null;
+            joinedAt: components["schemas"]["Instant"] | null;
+            lastname: string;
+            /** Format: int32 */
+            listId: number;
+            /** Format: int32 */
+            memberId: number | null;
+            notes: string;
+            parentName: string;
+            reminderSentAt: components["schemas"]["Instant"] | null;
+            status: components["schemas"]["WaitingListEntryStatus"];
+            testingAt: components["schemas"]["Instant"] | null;
+            withdrawnAt: components["schemas"]["Instant"] | null;
+        };
+        WaitingListEntryGuardian: {
+            email: string;
+            /** Format: int32 */
+            entryId: number;
+            firstname: string;
+            /** Format: int32 */
+            id: number;
+            lastname: string;
+            phone: string;
+            /** Format: int32 */
+            position: number;
+        };
+        WaitingListEntryRequest: {
+            email?: string | null;
             firstname?: string;
-            guardians?: components["schemas"]["GuardianRequest"][];
-            inviteCode?: string;
-            lastname?: string;
-            notes?: string;
-            parentName?: string;
-            privacyVersion?: string;
-            tosVersion?: string;
+            guardians?: components["schemas"]["WaitingListGuardianRequest"][] | null;
+            lastname?: string | null;
+            notes?: string | null;
+            parentName?: string | null;
             values?: {
                 [key: string]: unknown;
-            };
+            } | null;
+        };
+        /** @enum {string} */
+        WaitingListEntryStatus: "PENDING" | "WAITING" | "INVITED" | "TESTING" | "WITHDRAWN" | "JOINED";
+        WaitingListEntryValue: {
+            /** Format: int32 */
+            entryId: number;
+            /** Format: int32 */
+            fieldId: number;
+            value: unknown;
+        };
+        WaitingListEntryWithScore: {
+            /** Format: int32 */
+            age: number | null;
+            belowJoinAge: boolean;
+            entry: components["schemas"]["WaitingListEntry"];
+            guardians: components["schemas"]["WaitingListEntryGuardian"][];
+            score: number;
+            values: components["schemas"]["WaitingListEntryValue"][];
+        };
+        WaitingListField: {
+            config: components["schemas"]["WaitingListFieldConfig"];
+            fieldType: components["schemas"]["WaitingListFieldType"];
+            /** Format: int32 */
+            id: number;
+            isPublic: boolean;
+            /** Format: int32 */
+            listId: number;
+            name: string;
+            /** Format: int32 */
+            position: number;
+            required: boolean;
+        };
+        WaitingListFieldConfig: {
+            options?: string[];
+            placeholder?: string;
+        };
+        WaitingListFieldRequest: {
+            config?: components["schemas"]["WaitingListFieldConfig"] | null;
+            fieldType?: components["schemas"]["WaitingListFieldType"];
+            isPublic?: boolean | null;
+            name?: string;
+            /** Format: int32 */
+            position?: number;
+            required?: boolean;
+        };
+        /** @enum {string} */
+        WaitingListFieldType: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "ENUM" | "BIRTH_DATE";
+        WaitingListGuardianRequest: {
+            email?: string | null;
+            firstname?: string | null;
+            lastname?: string | null;
+            phone?: string | null;
+        };
+        WaitingListInvitation: {
+            arrivalTime: components["schemas"]["LocalTime"] | null;
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+        };
+        WaitingListInvitationAnswer: {
+            answer: components["schemas"]["WaitingListAnswer"];
+            answeredAt: components["schemas"]["Instant"];
+            note: string;
+        };
+        WaitingListInvitationAnswerRequest: {
+            answer?: string | null;
+            date?: string | null;
+            /** Format: int32 */
+            eventId?: number | null;
+            note?: string | null;
+        };
+        WaitingListInvitationRequest: {
+            arrivalTime?: string | null;
+            date?: string | null;
+            /** Format: int32 */
+            eventId?: number | null;
+        };
+        WaitingListInvite: {
+            code: string;
+            createdAt: components["schemas"]["Instant"];
+            expired: boolean;
+            expiresAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            listId: number;
+            /** Format: int32 */
+            maxUses: number;
+            /** Format: int32 */
+            uses: number;
+        };
+        WaitingListInviteInfo: {
+            fields: components["schemas"]["WaitingListField"][];
+            listDescription: string;
+            listName: string;
+        };
+        WaitingListInviteRequest: {
+            expiresAt?: string | null;
+            /** Format: int32 */
+            maxUses?: number | null;
+        };
+        WaitingListPublicAnswer: {
+            answer: components["schemas"]["WaitingListAnswer"];
+            answeredAt: string;
+            note: string;
+        };
+        WaitingListPublicInvitation: {
+            appointmentDate: string;
+            appointmentName: string;
+            appointmentTime: string;
+            arrivalTime: string;
+            date: string;
+            /** Format: int32 */
+            eventId: number;
+            location: string;
+        };
+        WaitingListPublicStatus: {
+            answer: components["schemas"]["WaitingListPublicAnswer"] | null;
+            confirmedAt: string;
+            /** Format: int32 */
+            confirmIntervalDays: number;
+            createdAt: string;
+            email: string;
+            fields: components["schemas"]["WaitingListField"][];
+            firstname: string;
+            guardians: components["schemas"]["WaitingListEntryGuardian"][];
+            invitation: components["schemas"]["WaitingListPublicInvitation"] | null;
+            lastname: string;
+            listName: string;
+            parentName: string;
+            /** Format: int32 */
+            position: number;
+            status: components["schemas"]["WaitingListEntryStatus"];
+            values: components["schemas"]["WaitingListEntryValue"][];
+        };
+        WaitingListRegisterRequest: {
+            consentVersion?: string | null;
+            email?: string | null;
+            firstname?: string | null;
+            guardians?: components["schemas"]["WaitingListGuardianRequest"][] | null;
+            inviteCode?: string | null;
+            lastname?: string | null;
+            notes?: string | null;
+            parentName?: string | null;
+            privacyVersion?: string | null;
+            tosVersion?: string | null;
+            values?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        WaitingListRegistrationStatus: {
+            status: string;
+        };
+        WaitingListRequest: {
+            /** Format: int32 */
+            attendanceThreshold?: number | null;
+            /** Format: int32 */
+            confirmIntervalDays?: number | null;
+            description?: string | null;
+            isPublic?: boolean | null;
+            /** Format: int32 */
+            joinGroupId?: number | null;
+            /** Format: int32 */
+            minAgeJoin?: number | null;
+            /** Format: int32 */
+            minAgeRegister?: number | null;
+            name?: string;
+            scoringFormula?: string | null;
+            sendsMail?: boolean | null;
+            /** Format: int32 */
+            testingGroupId?: number | null;
+        };
+        WaitingListVisibleFieldsRequest: {
+            fieldIds?: number[] | null;
+        };
+        WaitingListWithCount: {
+            /** Format: int32 */
+            entryCount: number;
+            list: components["schemas"]["WaitingList"];
         };
         WebhookUrl: {
             deliveryWebhookUrl: string;
@@ -45819,7 +51501,12 @@ export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStatistics = components['schemas']['AdminStatistics'];
 export type AiCredentialRequest = components['schemas']['AiCredentialRequest'];
 export type AiCredentialSummary = components['schemas']['AiCredentialSummary'];
+export type AiGenerateRequest = components['schemas']['AiGenerateRequest'];
+export type AiGenerateResponse = components['schemas']['AiGenerateResponse'];
+export type AiPromptRequest = components['schemas']['AiPromptRequest'];
+export type AiProviderRequest = components['schemas']['AiProviderRequest'];
 export type AiSettingsResponse = components['schemas']['AiSettingsResponse'];
+export type AiSuccessResponse = components['schemas']['AiSuccessResponse'];
 export type AnswerBody = components['schemas']['AnswerBody'];
 export type AnswerRequest = components['schemas']['AnswerRequest'];
 export type ApplicationDecisionRequest = components['schemas']['ApplicationDecisionRequest'];
@@ -45833,11 +51520,13 @@ export type ArtAssignRequest = components['schemas']['ArtAssignRequest'];
 export type ArtMergeRequest = components['schemas']['ArtMergeRequest'];
 export type ArtRequest = components['schemas']['ArtRequest'];
 export type ArtStock = components['schemas']['ArtStock'];
+export type AssigneeRequest = components['schemas']['AssigneeRequest'];
 export type AssignItemRequest = components['schemas']['AssignItemRequest'];
 export type AssignmentRequest = components['schemas']['AssignmentRequest'];
 export type AssignRequest = components['schemas']['AssignRequest'];
 export type AttachmentOrderRequest = components['schemas']['AttachmentOrderRequest'];
 export type AttachmentRequest = components['schemas']['AttachmentRequest'];
+export type AttemptStatus = components['schemas']['AttemptStatus'];
 export type AttendanceEntry = components['schemas']['AttendanceEntry'];
 export type AttendanceFieldConfig = components['schemas']['AttendanceFieldConfig'];
 export type AttendanceFieldType = components['schemas']['AttendanceFieldType'];
@@ -45910,6 +51599,14 @@ export type CancellationCause = components['schemas']['CancellationCause'];
 export type CancellationNotice = components['schemas']['CancellationNotice'];
 export type CancelledEventDate = components['schemas']['CancelledEventDate'];
 export type CancelRequest = components['schemas']['CancelRequest'];
+export type CatalogImportRejected = components['schemas']['CatalogImportRejected'];
+export type CatalogListResponse = components['schemas']['CatalogListResponse'];
+export type CatalogMetadata = components['schemas']['CatalogMetadata'];
+export type CatalogTransfer = components['schemas']['CatalogTransfer'];
+export type CatalogTransferCategory = components['schemas']['CatalogTransferCategory'];
+export type CatalogTransferInfo = components['schemas']['CatalogTransferInfo'];
+export type CatalogTransferProblem = components['schemas']['CatalogTransferProblem'];
+export type CatalogTransferQuestion = components['schemas']['CatalogTransferQuestion'];
 export type CategoryRequest = components['schemas']['CategoryRequest'];
 export type CategoryUsageResponse = components['schemas']['CategoryUsageResponse'];
 export type CellConfig = components['schemas']['CellConfig'];
@@ -45926,10 +51623,12 @@ export type ChecklistSummaryResponse = components['schemas']['ChecklistSummaryRe
 export type CheckResult = components['schemas']['CheckResult'];
 export type Choice = components['schemas']['Choice'];
 export type ChoiceAnswer = components['schemas']['ChoiceAnswer'];
+export type ChoiceOption = components['schemas']['ChoiceOption'];
+export type ChoiceOptionView = components['schemas']['ChoiceOptionView'];
 export type ChosenLanding = components['schemas']['ChosenLanding'];
 export type ClaimOrigin = components['schemas']['ClaimOrigin'];
 export type ClaimRequest = components['schemas']['ClaimRequest'];
-export type ClearedResponses = components['schemas']['ClearedResponses'];
+export type ClearedFormResponses = components['schemas']['ClearedFormResponses'];
 export type CloseMovementRequest = components['schemas']['CloseMovementRequest'];
 export type ClusterApplicationResponse = components['schemas']['ClusterApplicationResponse'];
 export type ClusterApplicationStatus = components['schemas']['ClusterApplicationStatus'];
@@ -45978,6 +51677,8 @@ export type CommentResponse = components['schemas']['CommentResponse'];
 export type CompleteCheckRequest = components['schemas']['CompleteCheckRequest'];
 export type CompleteContainerCheckRequest = components['schemas']['CompleteContainerCheckRequest'];
 export type Conflict = components['schemas']['Conflict'];
+export type Connect = components['schemas']['Connect'];
+export type ConnectView = components['schemas']['ConnectView'];
 export type ConsentChangesResponse = components['schemas']['ConsentChangesResponse'];
 export type ConsentStatusResponse = components['schemas']['ConsentStatusResponse'];
 export type ContactPreview = components['schemas']['ContactPreview'];
@@ -46012,10 +51713,15 @@ export type CreateMemberRequest = components['schemas']['CreateMemberRequest'];
 export type CreateMovementRequest = components['schemas']['CreateMovementRequest'];
 export type CreatePageRequest = components['schemas']['CreatePageRequest'];
 export type CreatePresetRequest = components['schemas']['CreatePresetRequest'];
+export type CreateProcedureRequest = components['schemas']['CreateProcedureRequest'];
 export type CreateProcurementRequest = components['schemas']['CreateProcurementRequest'];
 export type CreateRequest = components['schemas']['CreateRequest'];
 export type CreateTemplateRequest = components['schemas']['CreateTemplateRequest'];
 export type CreateTicketRequest = components['schemas']['CreateTicketRequest'];
+export type CsvDraft = components['schemas']['CsvDraft'];
+export type CsvDraftQuestion = components['schemas']['CsvDraftQuestion'];
+export type CsvDraftRequest = components['schemas']['CsvDraftRequest'];
+export type CsvMappings = components['schemas']['CsvMappings'];
 export type CsvRequest = components['schemas']['CsvRequest'];
 export type CsvResponse = components['schemas']['CsvResponse'];
 export type Date = components['schemas']['Date'];
@@ -46030,6 +51736,8 @@ export type DeleteRequestResponse = components['schemas']['DeleteRequestResponse
 export type DemoLoginRequest = components['schemas']['DemoLoginRequest'];
 export type DeniedModulesResponse = components['schemas']['DeniedModulesResponse'];
 export type DenyRequest = components['schemas']['DenyRequest'];
+export type DependencyEntry = components['schemas']['DependencyEntry'];
+export type DependencyRequest = components['schemas']['DependencyRequest'];
 export type Dimension = components['schemas']['Dimension'];
 export type Dimensions = components['schemas']['Dimensions'];
 export type DimensionsRequest = components['schemas']['DimensionsRequest'];
@@ -46039,9 +51747,6 @@ export type DisplayTag = components['schemas']['DisplayTag'];
 export type DividerConfig = components['schemas']['DividerConfig'];
 export type DocumentPage = components['schemas']['DocumentPage'];
 export type DocumentResponse = components['schemas']['DocumentResponse'];
-export type DraftRequest = components['schemas']['DraftRequest'];
-export type DraftResponse = components['schemas']['DraftResponse'];
-export type DuplicateRequest = components['schemas']['DuplicateRequest'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
@@ -46051,6 +51756,7 @@ export type EmailStatusCount = components['schemas']['EmailStatusCount'];
 export type EmbeddedEvent = components['schemas']['EmbeddedEvent'];
 export type EmbedReference = components['schemas']['EmbedReference'];
 export type EmptyTrashResponse = components['schemas']['EmptyTrashResponse'];
+export type EmptyView = components['schemas']['EmptyView'];
 export type EndpointDetail = components['schemas']['EndpointDetail'];
 export type EndpointStats = components['schemas']['EndpointStats'];
 export type EnrichedFederationRegistration = components['schemas']['EnrichedFederationRegistration'];
@@ -46059,12 +51765,16 @@ export type EntryResponse = components['schemas']['EntryResponse'];
 export type EntrySource = components['schemas']['EntrySource'];
 export type Enum = components['schemas']['Enum'];
 export type EnumConfig = components['schemas']['EnumConfig'];
+export type Enumeration = components['schemas']['Enumeration'];
+export type EnumerationView = components['schemas']['EnumerationView'];
 export type EnumOption = components['schemas']['EnumOption'];
 export type EnumValue = components['schemas']['EnumValue'];
 export type EquipmentClaim = components['schemas']['EquipmentClaim'];
 export type EquipmentHandover = components['schemas']['EquipmentHandover'];
 export type EquipmentNeed = components['schemas']['EquipmentNeed'];
 export type ErrorResponseWrapper = components['schemas']['ErrorResponseWrapper'];
+export type EvalMemberData = components['schemas']['EvalMemberData'];
+export type EvaluationResponse = components['schemas']['EvaluationResponse'];
 export type EventAttachment = components['schemas']['EventAttachment'];
 export type EventBreak = components['schemas']['EventBreak'];
 export type EventCategory = components['schemas']['EventCategory'];
@@ -46117,7 +51827,6 @@ export type FeedStatusResponse = components['schemas']['FeedStatusResponse'];
 export type FeedTokenResponse = components['schemas']['FeedTokenResponse'];
 export type FeedUserAgentStat = components['schemas']['FeedUserAgentStat'];
 export type FeedUseResponse = components['schemas']['FeedUseResponse'];
-export type FieldCondition = components['schemas']['FieldCondition'];
 export type FieldConfig = components['schemas']['FieldConfig'];
 export type FieldDateValueRequest = components['schemas']['FieldDateValueRequest'];
 export type FieldDefaultEntry = components['schemas']['FieldDefaultEntry'];
@@ -46134,7 +51843,8 @@ export type FileDownloadConfig = components['schemas']['FileDownloadConfig'];
 export type FileListing = components['schemas']['FileListing'];
 export type FileResponse = components['schemas']['FileResponse'];
 export type FileUpdateRequest = components['schemas']['FileUpdateRequest'];
-export type Filter = components['schemas']['Filter'];
+export type FillInTheBlank = components['schemas']['FillInTheBlank'];
+export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
 export type FlowPreview = components['schemas']['FlowPreview'];
 export type FlowProblem = components['schemas']['FlowProblem'];
@@ -46143,46 +51853,59 @@ export type FlowResponse = components['schemas']['FlowResponse'];
 export type FolderRequest = components['schemas']['FolderRequest'];
 export type FolderTreeEntry = components['schemas']['FolderTreeEntry'];
 export type Form = components['schemas']['Form'];
-export type FormAnalyticsDto = components['schemas']['FormAnalyticsDto'];
+export type FormAnalytics = components['schemas']['FormAnalytics'];
 export type FormAnswer = components['schemas']['FormAnswer'];
 export type FormAnswerValue = components['schemas']['FormAnswerValue'];
 export type FormAnswerValueByType = components['schemas']['FormAnswerValueByType'];
 export type FormDraft = components['schemas']['FormDraft'];
+export type FormDraftRequest = components['schemas']['FormDraftRequest'];
+export type FormDraftResponse = components['schemas']['FormDraftResponse'];
+export type FormDuplicateRequest = components['schemas']['FormDuplicateRequest'];
 export type FormLayout = components['schemas']['FormLayout'];
+export type FormLayoutRequest = components['schemas']['FormLayoutRequest'];
 export type FormListEntry = components['schemas']['FormListEntry'];
 export type FormPage = components['schemas']['FormPage'];
+export type FormPageRequest = components['schemas']['FormPageRequest'];
 export type FormPurpose = components['schemas']['FormPurpose'];
 export type FormQuestion = components['schemas']['FormQuestion'];
 export type FormQuestionConfig = components['schemas']['FormQuestionConfig'];
 export type FormQuestionConfigByType = components['schemas']['FormQuestionConfigByType'];
+export type FormQuestionInfo = components['schemas']['FormQuestionInfo'];
+export type FormQuestionRequest = components['schemas']['FormQuestionRequest'];
+export type FormQuestionTally = components['schemas']['FormQuestionTally'];
 export type FormQuestionType = components['schemas']['FormQuestionType'];
 export type FormRequest = components['schemas']['FormRequest'];
 export type FormResponse = components['schemas']['FormResponse'];
-export type FormResponseEntryDto = components['schemas']['FormResponseEntryDto'];
+export type FormResponseDetail = components['schemas']['FormResponseDetail'];
+export type FormResponseEntry = components['schemas']['FormResponseEntry'];
 export type FormRestrictions = components['schemas']['FormRestrictions'];
+export type FormResultGroup = components['schemas']['FormResultGroup'];
 export type FormResultQuery = components['schemas']['FormResultQuery'];
 export type FormsCtaConfig = components['schemas']['FormsCtaConfig'];
 export type FormSearchResult = components['schemas']['FormSearchResult'];
+export type FormShareLinkResponse = components['schemas']['FormShareLinkResponse'];
 export type FormStatus = components['schemas']['FormStatus'];
+export type FormSubmitRequest = components['schemas']['FormSubmitRequest'];
 export type FormVisibility = components['schemas']['FormVisibility'];
+export type FormVisibilityRequest = components['schemas']['FormVisibilityRequest'];
+export type FormVisibilityResponse = components['schemas']['FormVisibilityResponse'];
 export type FoundNote = components['schemas']['FoundNote'];
+export type FreeAnswer = components['schemas']['FreeAnswer'];
+export type FreeAnswerView = components['schemas']['FreeAnswerView'];
+export type FrozenQuestionDetail = components['schemas']['FrozenQuestionDetail'];
 export type GalleryAspectMode = components['schemas']['GalleryAspectMode'];
 export type GalleryItem = components['schemas']['GalleryItem'];
 export type GenerateDatesRequest = components['schemas']['GenerateDatesRequest'];
 export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestionWithMeta'];
 export type GenerateEntry = components['schemas']['GenerateEntry'];
 export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsRequest'];
-export type GenerateRequest = components['schemas']['GenerateRequest'];
-export type GenerateResponse = components['schemas']['GenerateResponse'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
 export type GrantRequest = components['schemas']['GrantRequest'];
 export type GroupDetail = components['schemas']['GroupDetail'];
 export type GroupEntry = components['schemas']['GroupEntry'];
-export type Grouping = components['schemas']['Grouping'];
 export type GroupRequest = components['schemas']['GroupRequest'];
 export type GroupRulesRequest = components['schemas']['GroupRulesRequest'];
 export type GroupSetRequest = components['schemas']['GroupSetRequest'];
-export type GuardianRequest = components['schemas']['GuardianRequest'];
 export type HandOutRequest = components['schemas']['HandOutRequest'];
 export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksRequest'];
 export type HandoverRequest = components['schemas']['HandoverRequest'];
@@ -46192,6 +51915,7 @@ export type HourlyStats = components['schemas']['HourlyStats'];
 export type ImageConfig = components['schemas']['ImageConfig'];
 export type ImageFit = components['schemas']['ImageFit'];
 export type ImageGalleryConfig = components['schemas']['ImageGalleryConfig'];
+export type ImageText = components['schemas']['ImageText'];
 export type ImageUploadResponse = components['schemas']['ImageUploadResponse'];
 export type ImportProgressResponse = components['schemas']['ImportProgressResponse'];
 export type ImportRequest = components['schemas']['ImportRequest'];
@@ -46261,7 +51985,6 @@ export type LaneAssignee = components['schemas']['LaneAssignee'];
 export type LaneAssigneeValue = components['schemas']['LaneAssigneeValue'];
 export type LanePreset = components['schemas']['LanePreset'];
 export type LaneRequest = components['schemas']['LaneRequest'];
-export type LayoutRequest = components['schemas']['LayoutRequest'];
 export type LegalFileEntry = components['schemas']['LegalFileEntry'];
 export type LegalImportRequest = components['schemas']['LegalImportRequest'];
 export type LegalImportResponse = components['schemas']['LegalImportResponse'];
@@ -46273,7 +51996,6 @@ export type LinkFileRequest = components['schemas']['LinkFileRequest'];
 export type LinkRequest = components['schemas']['LinkRequest'];
 export type LinkType = components['schemas']['LinkType'];
 export type ListKeysResponse = components['schemas']['ListKeysResponse'];
-export type ListRequest = components['schemas']['ListRequest'];
 export type Local = components['schemas']['Local'];
 export type LocalBookmarkRequest = components['schemas']['LocalBookmarkRequest'];
 export type LocalChecklistItemRequest = components['schemas']['LocalChecklistItemRequest'];
@@ -46361,6 +52083,7 @@ export type MessageResponse = components['schemas']['MessageResponse'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
 export type MissingStepsResponse = components['schemas']['MissingStepsResponse'];
 export type Mode = components['schemas']['Mode'];
+export type ModelInfo = components['schemas']['ModelInfo'];
 export type ModulesResponse = components['schemas']['ModulesResponse'];
 export type MonitoringCounts = components['schemas']['MonitoringCounts'];
 export type MonthSummary = components['schemas']['MonthSummary'];
@@ -46379,8 +52102,11 @@ export type MovePreview = components['schemas']['MovePreview'];
 export type MoveResponse = components['schemas']['MoveResponse'];
 export type MoveTicketRequest = components['schemas']['MoveTicketRequest'];
 export type MultiLimitType = components['schemas']['MultiLimitType'];
+export type MultipleChoice = components['schemas']['MultipleChoice'];
+export type MultipleChoiceView = components['schemas']['MultipleChoiceView'];
 export type MyAbsenceRequest = components['schemas']['MyAbsenceRequest'];
 export type MyInventoryItem = components['schemas']['MyInventoryItem'];
+export type MyQuizAttempt = components['schemas']['MyQuizAttempt'];
 export type MyRequirement = components['schemas']['MyRequirement'];
 export type NeedCoverage = components['schemas']['NeedCoverage'];
 export type NeedRequest = components['schemas']['NeedRequest'];
@@ -46409,6 +52135,7 @@ export type NewsVisibilityRole = components['schemas']['NewsVisibilityRole'];
 export type NextDate = components['schemas']['NextDate'];
 export type NextMemberResponse = components['schemas']['NextMemberResponse'];
 export type NicknameRequest = components['schemas']['NicknameRequest'];
+export type NoQuizAttempt = components['schemas']['NoQuizAttempt'];
 export type NoteEntityType = components['schemas']['NoteEntityType'];
 export type NoteHistoryEntryResponse = components['schemas']['NoteHistoryEntryResponse'];
 export type NoteResponse = components['schemas']['NoteResponse'];
@@ -46423,26 +52150,28 @@ export type OnboardingStatus = components['schemas']['OnboardingStatus'];
 export type OnboardingTaskState = components['schemas']['OnboardingTaskState'];
 export type OnboardingTaskView = components['schemas']['OnboardingTaskView'];
 export type Option = components['schemas']['Option'];
+export type Ordering = components['schemas']['Ordering'];
+export type OrderingView = components['schemas']['OrderingView'];
 export type OrderRequest = components['schemas']['OrderRequest'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
 export type PageLinkConfig = components['schemas']['PageLinkConfig'];
-export type PageRequest = components['schemas']['PageRequest'];
 export type PageShareLinkResponse = components['schemas']['PageShareLinkResponse'];
 export type PagesListResponse = components['schemas']['PagesListResponse'];
 export type PageTarget = components['schemas']['PageTarget'];
 export type PageUsingForm = components['schemas']['PageUsingForm'];
 export type PageVisibility = components['schemas']['PageVisibility'];
 export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest'];
+export type Pair = components['schemas']['Pair'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
 export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig'];
+export type PatchItemRequest = components['schemas']['PatchItemRequest'];
 export type PdfConfig = components['schemas']['PdfConfig'];
 export type Permission = components['schemas']['Permission'];
 export type PermissionNode = components['schemas']['PermissionNode'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
-export type Piece = components['schemas']['Piece'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
 export type PlannedStep = components['schemas']['PlannedStep'];
@@ -46454,6 +52183,15 @@ export type PresetResponse = components['schemas']['PresetResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeResult = components['schemas']['ProbeResult'];
 export type ProblemReport = components['schemas']['ProblemReport'];
+export type Procedure = components['schemas']['Procedure'];
+export type ProcedureDetail = components['schemas']['ProcedureDetail'];
+export type ProcedureItem = components['schemas']['ProcedureItem'];
+export type ProcedureItemRequest = components['schemas']['ProcedureItemRequest'];
+export type ProcedureStatus = components['schemas']['ProcedureStatus'];
+export type ProcedureTemplate = components['schemas']['ProcedureTemplate'];
+export type ProcedureTemplateDetail = components['schemas']['ProcedureTemplateDetail'];
+export type ProcedureTemplateItem = components['schemas']['ProcedureTemplateItem'];
+export type ProcedureTemplateRequest = components['schemas']['ProcedureTemplateRequest'];
 export type ProcurementResponse = components['schemas']['ProcurementResponse'];
 export type ProfileField = components['schemas']['ProfileField'];
 export type ProfileFieldAssignment = components['schemas']['ProfileFieldAssignment'];
@@ -46465,39 +52203,80 @@ export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldType = components['schemas']['ProfileFieldType'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
-export type PromptRequest = components['schemas']['PromptRequest'];
+export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
+export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
+export type ProtocolItemRequest = components['schemas']['ProtocolItemRequest'];
+export type ProtocolListResponse = components['schemas']['ProtocolListResponse'];
+export type ProtocolRequest = components['schemas']['ProtocolRequest'];
+export type ProtocolRunRequest = components['schemas']['ProtocolRunRequest'];
+export type ProtocolSectionRequest = components['schemas']['ProtocolSectionRequest'];
 export type ProviderBlock = components['schemas']['ProviderBlock'];
-export type ProviderRequest = components['schemas']['ProviderRequest'];
 export type ProviderStanding = components['schemas']['ProviderStanding'];
 export type ProvisionedMemberResponse = components['schemas']['ProvisionedMemberResponse'];
 export type PublicBlogEntry = components['schemas']['PublicBlogEntry'];
 export type PublicBrowseResponse = components['schemas']['PublicBrowseResponse'];
-export type PublicCompletion = components['schemas']['PublicCompletion'];
 export type PublicEventDetail = components['schemas']['PublicEventDetail'];
 export type PublicEventResponse = components['schemas']['PublicEventResponse'];
 export type PublicForm = components['schemas']['PublicForm'];
+export type PublicFormCompletion = components['schemas']['PublicFormCompletion'];
 export type PublicFormPage = components['schemas']['PublicFormPage'];
 export type PublicFormQuestion = components['schemas']['PublicFormQuestion'];
 export type PublicFormState = components['schemas']['PublicFormState'];
+export type PublicFormSubmitRequest = components['schemas']['PublicFormSubmitRequest'];
+export type PublicFormSubmitResponse = components['schemas']['PublicFormSubmitResponse'];
 export type PublicKbInfo = components['schemas']['PublicKbInfo'];
 export type PublicKbMode = components['schemas']['PublicKbMode'];
 export type PublicKbRequest = components['schemas']['PublicKbRequest'];
 export type PublicKbResponse = components['schemas']['PublicKbResponse'];
 export type PublicPageSummary = components['schemas']['PublicPageSummary'];
 export type PublicPartnerSummary = components['schemas']['PublicPartnerSummary'];
+export type PublicQuizCatalog = components['schemas']['PublicQuizCatalog'];
+export type PublicQuizQuestion = components['schemas']['PublicQuizQuestion'];
 export type PublicStationInfo = components['schemas']['PublicStationInfo'];
-export type PublicSubmitRequest = components['schemas']['PublicSubmitRequest'];
-export type PublicSubmitResponse = components['schemas']['PublicSubmitResponse'];
 export type PublicVisibilityRequest = components['schemas']['PublicVisibilityRequest'];
 export type PublicVisibilityResponse = components['schemas']['PublicVisibilityResponse'];
+export type PublicWaitlistFormResponse = components['schemas']['PublicWaitlistFormResponse'];
+export type PublicWaitlistRegistrationRequest = components['schemas']['PublicWaitlistRegistrationRequest'];
+export type PublicWaitlistSummary = components['schemas']['PublicWaitlistSummary'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
-export type QuestionInfoDto = components['schemas']['QuestionInfoDto'];
-export type QuestionRequest = components['schemas']['QuestionRequest'];
-export type QuestionTally = components['schemas']['QuestionTally'];
+export type QuestionConfig = components['schemas']['QuestionConfig'];
+export type QuestionConfigByType = components['schemas']['QuestionConfigByType'];
+export type QuizAccessRequest = components['schemas']['QuizAccessRequest'];
+export type QuizAnswerRequest = components['schemas']['QuizAnswerRequest'];
+export type QuizAttemptDetail = components['schemas']['QuizAttemptDetail'];
+export type QuizAvailableTest = components['schemas']['QuizAvailableTest'];
+export type QuizCatalog = components['schemas']['QuizCatalog'];
+export type QuizCatalogDetail = components['schemas']['QuizCatalogDetail'];
+export type QuizCatalogRequest = components['schemas']['QuizCatalogRequest'];
+export type QuizCategory = components['schemas']['QuizCategory'];
+export type QuizCategoryRequest = components['schemas']['QuizCategoryRequest'];
+export type QuizGradeRequest = components['schemas']['QuizGradeRequest'];
+export type QuizQuestion = components['schemas']['QuizQuestion'];
+export type QuizQuestionConfigView = components['schemas']['QuizQuestionConfigView'];
+export type QuizQuestionRead = components['schemas']['QuizQuestionRead'];
+export type QuizQuestionReport = components['schemas']['QuizQuestionReport'];
+export type QuizQuestionRequest = components['schemas']['QuizQuestionRequest'];
 export type QuizQuestionType = components['schemas']['QuizQuestionType'];
+export type QuizQuestionView = components['schemas']['QuizQuestionView'];
+export type QuizReportRequest = components['schemas']['QuizReportRequest'];
+export type QuizSectionDetail = components['schemas']['QuizSectionDetail'];
+export type QuizSectionRequest = components['schemas']['QuizSectionRequest'];
+export type QuizSourceRequest = components['schemas']['QuizSourceRequest'];
+export type QuizSuccessResponse = components['schemas']['QuizSuccessResponse'];
 export type QuizTeaserConfig = components['schemas']['QuizTeaserConfig'];
+export type QuizTest = components['schemas']['QuizTest'];
+export type QuizTestAnswer = components['schemas']['QuizTestAnswer'];
+export type QuizTestAttempt = components['schemas']['QuizTestAttempt'];
+export type QuizTestAttemptQuestion = components['schemas']['QuizTestAttemptQuestion'];
+export type QuizTestDetail = components['schemas']['QuizTestDetail'];
+export type QuizTestRequest = components['schemas']['QuizTestRequest'];
+export type QuizTestRestrictions = components['schemas']['QuizTestRestrictions'];
+export type QuizTestRestrictionsRequest = components['schemas']['QuizTestRestrictionsRequest'];
+export type QuizTestSection = components['schemas']['QuizTestSection'];
+export type QuizTestSectionSource = components['schemas']['QuizTestSectionSource'];
+export type QuizTestSummary = components['schemas']['QuizTestSummary'];
 export type QuotaOrigin = components['schemas']['QuotaOrigin'];
 export type QuoteConfig = components['schemas']['QuoteConfig'];
 export type Ranking = components['schemas']['Ranking'];
@@ -46535,17 +52314,20 @@ export type RegistrationUpdateItem = components['schemas']['RegistrationUpdateIt
 export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
 export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
+export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
 export type RemoteEventDetail = components['schemas']['RemoteEventDetail'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
+export type RemoteProtocolDetail = components['schemas']['RemoteProtocolDetail'];
 export type Renamed = components['schemas']['Renamed'];
 export type ReorderCategoriesRequest = components['schemas']['ReorderCategoriesRequest'];
 export type ReorderChecklistRequest = components['schemas']['ReorderChecklistRequest'];
 export type ReorderColumnsRequest = components['schemas']['ReorderColumnsRequest'];
 export type ReorderRequest = components['schemas']['ReorderRequest'];
+export type ReplaceFormShareLinkRequest = components['schemas']['ReplaceFormShareLinkRequest'];
 export type ReplacePageShareLinkRequest = components['schemas']['ReplacePageShareLinkRequest'];
-export type ReplaceShareLinkRequest = components['schemas']['ReplaceShareLinkRequest'];
+export type ReplaceQuestionRequest = components['schemas']['ReplaceQuestionRequest'];
 export type ReportData = components['schemas']['ReportData'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type RequeuedMails = components['schemas']['RequeuedMails'];
@@ -46559,7 +52341,6 @@ export type ResolvedMember = components['schemas']['ResolvedMember'];
 export type ResolvedResponse = components['schemas']['ResolvedResponse'];
 export type ResolvedTarget = components['schemas']['ResolvedTarget'];
 export type ResolvedValueResponse = components['schemas']['ResolvedValueResponse'];
-export type ResponseDetailDto = components['schemas']['ResponseDetailDto'];
 export type RestorePlan = components['schemas']['RestorePlan'];
 export type RestoreRequest = components['schemas']['RestoreRequest'];
 export type RestoreResult = components['schemas']['RestoreResult'];
@@ -46568,9 +52349,14 @@ export type RestrictionMode = components['schemas']['RestrictionMode'];
 export type RestrictionRequest = components['schemas']['RestrictionRequest'];
 export type RestrictionResponse = components['schemas']['RestrictionResponse'];
 export type RestrictionSelection = components['schemas']['RestrictionSelection'];
-export type ResultGroupDto = components['schemas']['ResultGroupDto'];
+export type ResultFieldCondition = components['schemas']['ResultFieldCondition'];
+export type ResultFilter = components['schemas']['ResultFilter'];
+export type ResultGrouping = components['schemas']['ResultGrouping'];
 export type ReturnEverythingRequest = components['schemas']['ReturnEverythingRequest'];
 export type RichMember = components['schemas']['RichMember'];
+export type RunDetailResponse = components['schemas']['RunDetailResponse'];
+export type RunMemberWithProgress = components['schemas']['RunMemberWithProgress'];
+export type RunStatus = components['schemas']['RunStatus'];
 export type S3 = components['schemas']['S3'];
 export type S3Request = components['schemas']['S3Request'];
 export type S3Summary = components['schemas']['S3Summary'];
@@ -46585,6 +52371,7 @@ export type SelfCheckAnswerRequest = components['schemas']['SelfCheckAnswerReque
 export type SelfCheckIdentifierFinding = components['schemas']['SelfCheckIdentifierFinding'];
 export type SelfCheckIdentifierMatch = components['schemas']['SelfCheckIdentifierMatch'];
 export type SelfCheckItem = components['schemas']['SelfCheckItem'];
+export type SelfCheckMatchedPiece = components['schemas']['SelfCheckMatchedPiece'];
 export type SelfCheckRaised = components['schemas']['SelfCheckRaised'];
 export type SelfCheckRaisedKind = components['schemas']['SelfCheckRaisedKind'];
 export type SelfCheckRaisedState = components['schemas']['SelfCheckRaisedState'];
@@ -46641,7 +52428,8 @@ export type SftpSummary = components['schemas']['SftpSummary'];
 export type SharedBrand = components['schemas']['SharedBrand'];
 export type SharedEvent = components['schemas']['SharedEvent'];
 export type SharedPage = components['schemas']['SharedPage'];
-export type ShareLinkResponse = components['schemas']['ShareLinkResponse'];
+export type SharedProtocolView = components['schemas']['SharedProtocolView'];
+export type SharedQuizCatalog = components['schemas']['SharedQuizCatalog'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type Simple = components['schemas']['Simple'];
@@ -46697,8 +52485,6 @@ export type StepResponse = components['schemas']['StepResponse'];
 export type StepState = components['schemas']['StepState'];
 export type StepSubject = components['schemas']['StepSubject'];
 export type StringValue = components['schemas']['StringValue'];
-export type SubmitRequest = components['schemas']['SubmitRequest'];
-export type SuccessResponse = components['schemas']['SuccessResponse'];
 export type SwapNote = components['schemas']['SwapNote'];
 export type SwitchBlocker = components['schemas']['SwitchBlocker'];
 export type SwitchBlockerKind = components['schemas']['SwitchBlockerKind'];
@@ -46725,6 +52511,13 @@ export type TemplateFieldRequest = components['schemas']['TemplateFieldRequest']
 export type TemplateGroupEntry = components['schemas']['TemplateGroupEntry'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
+export type TestProtocol = components['schemas']['TestProtocol'];
+export type TestProtocolItem = components['schemas']['TestProtocolItem'];
+export type TestProtocolRun = components['schemas']['TestProtocolRun'];
+export type TestProtocolRunCheck = components['schemas']['TestProtocolRunCheck'];
+export type TestProtocolRunMember = components['schemas']['TestProtocolRunMember'];
+export type TestProtocolSection = components['schemas']['TestProtocolSection'];
+export type TestStatus = components['schemas']['TestStatus'];
 export type Text = components['schemas']['Text'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
@@ -46749,7 +52542,9 @@ export type TransferStatusResponse = components['schemas']['TransferStatusRespon
 export type TransientKeyRequest = components['schemas']['TransientKeyRequest'];
 export type TrashEntry = components['schemas']['TrashEntry'];
 export type TrashView = components['schemas']['TrashView'];
+export type TrueFalse = components['schemas']['TrueFalse'];
 export type UnassignItemRequest = components['schemas']['UnassignItemRequest'];
+export type Unknown = components['schemas']['Unknown'];
 export type UpcomingEventOccurrence = components['schemas']['UpcomingEventOccurrence'];
 export type UpcomingEventsConfig = components['schemas']['UpcomingEventsConfig'];
 export type UpdateAccountRequest = components['schemas']['UpdateAccountRequest'];
@@ -46759,6 +52554,7 @@ export type UpdateCommentRequest = components['schemas']['UpdateCommentRequest']
 export type UpdateKbCommentRequest = components['schemas']['UpdateKbCommentRequest'];
 export type UpdateNoteRequest = components['schemas']['UpdateNoteRequest'];
 export type UpdatePositionRequest = components['schemas']['UpdatePositionRequest'];
+export type UpdateProcedureRequest = components['schemas']['UpdateProcedureRequest'];
 export type UpdateRequest = components['schemas']['UpdateRequest'];
 export type UpdateRequirementRequest = components['schemas']['UpdateRequirementRequest'];
 export type UpdateStationRequest = components['schemas']['UpdateStationRequest'];
@@ -46771,10 +52567,36 @@ export type ValueEntry = components['schemas']['ValueEntry'];
 export type VerifyRequest = components['schemas']['VerifyRequest'];
 export type VersionResponse = components['schemas']['VersionResponse'];
 export type VideoConfig = components['schemas']['VideoConfig'];
-export type VisibilityRequest = components['schemas']['VisibilityRequest'];
-export type VisibilityResponse = components['schemas']['VisibilityResponse'];
+export type WaitingList = components['schemas']['WaitingList'];
+export type WaitingListAccessResponse = components['schemas']['WaitingListAccessResponse'];
+export type WaitingListAnswer = components['schemas']['WaitingListAnswer'];
+export type WaitingListCreatedAtRequest = components['schemas']['WaitingListCreatedAtRequest'];
+export type WaitingListEntry = components['schemas']['WaitingListEntry'];
+export type WaitingListEntryGuardian = components['schemas']['WaitingListEntryGuardian'];
+export type WaitingListEntryRequest = components['schemas']['WaitingListEntryRequest'];
+export type WaitingListEntryStatus = components['schemas']['WaitingListEntryStatus'];
+export type WaitingListEntryValue = components['schemas']['WaitingListEntryValue'];
+export type WaitingListEntryWithScore = components['schemas']['WaitingListEntryWithScore'];
+export type WaitingListField = components['schemas']['WaitingListField'];
+export type WaitingListFieldConfig = components['schemas']['WaitingListFieldConfig'];
+export type WaitingListFieldRequest = components['schemas']['WaitingListFieldRequest'];
+export type WaitingListFieldType = components['schemas']['WaitingListFieldType'];
+export type WaitingListGuardianRequest = components['schemas']['WaitingListGuardianRequest'];
+export type WaitingListInvitation = components['schemas']['WaitingListInvitation'];
+export type WaitingListInvitationAnswer = components['schemas']['WaitingListInvitationAnswer'];
 export type WaitingListInvitationAnswerRequest = components['schemas']['WaitingListInvitationAnswerRequest'];
+export type WaitingListInvitationRequest = components['schemas']['WaitingListInvitationRequest'];
+export type WaitingListInvite = components['schemas']['WaitingListInvite'];
+export type WaitingListInviteInfo = components['schemas']['WaitingListInviteInfo'];
+export type WaitingListInviteRequest = components['schemas']['WaitingListInviteRequest'];
+export type WaitingListPublicAnswer = components['schemas']['WaitingListPublicAnswer'];
+export type WaitingListPublicInvitation = components['schemas']['WaitingListPublicInvitation'];
+export type WaitingListPublicStatus = components['schemas']['WaitingListPublicStatus'];
 export type WaitingListRegisterRequest = components['schemas']['WaitingListRegisterRequest'];
+export type WaitingListRegistrationStatus = components['schemas']['WaitingListRegistrationStatus'];
+export type WaitingListRequest = components['schemas']['WaitingListRequest'];
+export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
+export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];

@@ -30,7 +30,8 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
-import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
+import type { TestProtocol, TestProtocolRun } from '@/api/generated/schema'
+import { RunStatus } from '@/api/protocol'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import { formatDate, todayIsoDate } from '@/util/format'
 
@@ -132,7 +133,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
               <div class="font-medium">{{ run.name }}</div>
               <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }}, {{ formatDate(run.testDate) }}</div>
             </div>
-            <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
+            <SuccessBadge v-if="run.status === RunStatus.CLOSED">{{ t('protocol.closed') }}</SuccessBadge>
             <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>
           </NeutralContainer>
         </RowLink>

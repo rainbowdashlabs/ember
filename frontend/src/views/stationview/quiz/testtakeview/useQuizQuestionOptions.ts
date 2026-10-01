@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import {QuizQuestionTypes, type QuizQuestion, type QuizTestAttemptQuestion} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizQuestionRead, QuizTestAttemptQuestion} from '@/api/generated/schema'
 import { shuffle } from '@/util/shuffle'
 
 /**
@@ -13,7 +14,7 @@ import { shuffle } from '@/util/shuffle'
  */
 export function useQuizQuestionOptions(
     currentQuestion: Ref<QuizTestAttemptQuestion | null>,
-    currentQuestionDetail: Ref<QuizQuestion | null>,
+    currentQuestionDetail: Ref<QuizQuestionRead | null>,
 ) {
   const displayOrders = ref<Map<string, number[]>>(new Map())
 
@@ -26,14 +27,14 @@ export function useQuizQuestionOptions(
 
   const currentConfig = computed<Record<string, unknown>>(() => {
     if (!currentQuestionDetail.value) return {}
-    return currentQuestionDetail.value.config ?? {}
+    return currentQuestionDetail.value.config
   })
 
   const mcDisplayOrder = computed<number[]>(() => {
     if (!currentQuestion.value || !currentQuestionDetail.value) return []
     if (currentQuestionDetail.value.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) return []
-    const opts = (currentQuestionDetail.value.config?.options as unknown[]) ?? []
-    return getDisplayOrder(`mc-${currentQuestion.value.questionId}`, opts.length)
+    const opts = currentConfig.value.options
+    return getDisplayOrder(`mc-${currentQuestion.value.questionId}`, Array.isArray(opts) ? opts.length : 0)
   })
 
   const connectLeftItems = computed<string[]>(() => {

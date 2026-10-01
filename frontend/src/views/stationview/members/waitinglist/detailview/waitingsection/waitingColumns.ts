@@ -3,12 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {
-    WaitingListEntryStatus,
-    WaitingListFieldTypes,
-    type WaitingListEntryWithScore,
-    type WaitingListField,
-} from '@/api/waitingList'
+import {WaitingListEntryStatus, WaitingListFieldTypes} from '@/api/waitingList'
+import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'
 import {ColumnTypes, columnTypeOf, toCellValue, type CellValue, type TableColumn} from '@/components/table/tableColumn'
 
 type Row = WaitingListEntryWithScore

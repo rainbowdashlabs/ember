@@ -15,6 +15,7 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,8 +131,8 @@ public class QuizGenerationService {
         }
         if (options == null || options.isEmpty() || options.size() >= targetTotal) return false;
         var correctParts = options.stream()
-                .filter(QuestionConfig.MultipleChoice.Option::correct)
-                .map(QuestionConfig.MultipleChoice.Option::text)
+                .filter(QuestionConfig.MultipleChoice.ChoiceOption::correct)
+                .map(QuestionConfig.MultipleChoice.ChoiceOption::text)
                 .toList();
         if (correctParts.isEmpty()) return false;
         var newAnswers = aiService.generate(
@@ -144,7 +145,7 @@ public class QuizGenerationService {
                 String.join(", ", correctParts),
                 targetTotal - options.size());
         var updatedOptions = new ArrayList<>(options);
-        newAnswers.forEach(answer -> updatedOptions.add(new QuestionConfig.MultipleChoice.Option(answer, false)));
+        newAnswers.forEach(answer -> updatedOptions.add(new QuestionConfig.MultipleChoice.ChoiceOption(answer, false)));
         String config =
                 Json.MAPPER.writeValueAsString(new QuestionConfig.MultipleChoice(updatedOptions, pointsPerCorrect));
         questionService.updateQuestion(
@@ -214,24 +215,29 @@ public class QuizGenerationService {
             QuizCategory category) {}
 
     public record GenerateQuestionsRequest(
-            String provider,
-            String apiKey,
-            String model,
-            String userPrompt,
-            String locale,
-            Integer catalogId,
+            @Nullable String provider,
+            @Nullable String apiKey,
+            @Nullable String model,
+            @Nullable String userPrompt,
+            @Nullable String locale,
+            @Nullable Integer catalogId,
             List<GenerateEntry> entries) {}
 
-    public record GenerateEntry(QuizQuestionType quizQuestionType, Integer count, Integer categoryId) {
+    public record GenerateEntry(
+            QuizQuestionType quizQuestionType, @Nullable Integer count, @Nullable Integer categoryId) {
         boolean asksForQuestions() {
             return quizQuestionType != null && count != null && count >= 1;
         }
     }
 
-    public record BatchGenerateRequest(String provider, String apiKey, String model, Integer targetTotalOptions) {}
+    public record BatchGenerateRequest(
+            @Nullable String provider,
+            @Nullable String apiKey,
+            @Nullable String model,
+            @Nullable Integer targetTotalOptions) {}
 
     public record GeneratedQuestionWithMeta(
-            String title, String config, QuizQuestionType quizQuestionType, Integer categoryId) {}
+            String title, String config, QuizQuestionType quizQuestionType, @Nullable Integer categoryId) {}
 
     public record GenerationPollResponse(List<GeneratedQuestionWithMeta> questions, boolean done) {}
 

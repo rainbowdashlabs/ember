@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
+import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import type {PitchEvaluation, PitchGrading} from './pitchTypes'
 

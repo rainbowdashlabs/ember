@@ -12,7 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ProtocolItemRow from './ProtocolItemRow.vue'
 import ProtocolSubsectionBlock from './ProtocolSubsectionBlock.vue'
-import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
+import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 
 const props = defineProps<{
   section: TestProtocolSection

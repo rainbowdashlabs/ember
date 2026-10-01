@@ -12,13 +12,15 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService.EvaluationResponse;
 import dev.chojo.ember.feature.protocol.service.TestProtocolGuards;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolRunService;
-import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.RunRequest;
+import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.ProtocolRunRequest;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService.SharedProtocolView;
 import dev.chojo.ember.util.DocumentName;
@@ -26,9 +28,15 @@ import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -126,12 +134,22 @@ public class TestProtocolRoutes implements Routes {
                 StationPermission.PROTOCOL_TESTER);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProtocolListResponse.class)))
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
         var protocols = service.findProtocols(session.stationId());
         ctx.json(new ProtocolListResponse(protocols, service.browseSharedProtocolViews(session.stationId())));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocol.class)))
     private void createProtocol(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(ProtocolRequest.class);
@@ -144,6 +162,11 @@ public class TestProtocolRoutes implements Routes {
                         req.passThreshold()));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/{id}",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProtocolDetailResponse.class)))
     private void getProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var protocol = guards.requireProtocol(ctx, id);
@@ -152,6 +175,11 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(new ProtocolDetailResponse(protocol, sections, allItems));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocol.class)))
     private void updateProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, id);
@@ -163,6 +191,7 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(service.findProtocol(id).orElseThrow(Refusal.PROTOCOL_NOT_HERE_AFTER_CHANGE::raise));
     }
 
+    @OpenApi(path = "/api/v1/protocols/{id}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void deleteProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, id);
@@ -170,10 +199,15 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/{id}/sections",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolSectionRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocolSection.class)))
     private void createSection(Context ctx) {
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, protocolId);
-        var req = ctx.bodyAsClass(SectionRequest.class);
+        var req = ctx.bodyAsClass(ProtocolSectionRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(service.createSection(
                         protocolId,
@@ -185,10 +219,15 @@ public class TestProtocolRoutes implements Routes {
                         req.position() != null ? req.position() : 0));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/sections/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolSectionRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void updateSection(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireSection(ctx, id);
-        var req = ctx.bodyAsClass(SectionRequest.class);
+        var req = ctx.bodyAsClass(ProtocolSectionRequest.class);
         service.updateSection(
                 id,
                 req.name(),
@@ -199,6 +238,10 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/sections/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteSection(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireSection(ctx, id);
@@ -206,10 +249,15 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/sections/{id}/items",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolItemRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocolItem.class)))
     private void createItem(Context ctx) {
         int sectionId = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireSection(ctx, sectionId);
-        var req = ctx.bodyAsClass(ItemRequest.class);
+        var req = ctx.bodyAsClass(ProtocolItemRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(service.createItem(
                         sectionId,
@@ -219,10 +267,15 @@ public class TestProtocolRoutes implements Routes {
                         req.position() != null ? req.position() : 0));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/items/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolItemRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void updateItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireItem(ctx, id);
-        var req = ctx.bodyAsClass(ItemRequest.class);
+        var req = ctx.bodyAsClass(ProtocolItemRequest.class);
         service.updateItem(
                 id,
                 req.label(),
@@ -232,6 +285,10 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/items/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireItem(ctx, id);
@@ -239,20 +296,34 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRun[].class)))
     private void listRuns(Context ctx) {
         var session = UserSession.from(ctx);
         var runs = service.findRuns(session.stationId());
         ctx.json(runs);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/{id}/runs",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolRunRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocolRun.class)))
     private void createRun(Context ctx) {
         var session = UserSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, protocolId);
-        var run = runs.start(protocolId, session.stationId(), session.member().id(), ctx.bodyAsClass(RunRequest.class));
+        var run = runs.start(
+                protocolId, session.stationId(), session.member().id(), ctx.bodyAsClass(ProtocolRunRequest.class));
         ctx.status(HttpStatus.CREATED).json(run);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RunDetailResponse.class)))
     private void getRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
@@ -266,14 +337,23 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(new RunDetailResponse(run, membersWithProgress));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolRunRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRun.class)))
     private void updateRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
-        var req = ctx.bodyAsClass(RunRequest.class);
+        var req = ctx.bodyAsClass(ProtocolRunRequest.class);
         service.updateRun(id, req.name(), req.testDate() != null ? req.testDate() : LocalDate.now());
         ctx.json(service.findRun(id).orElseThrow(Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CHANGE::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{id}/close",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRun.class)))
     private void closeRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
@@ -281,6 +361,10 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(service.findRun(id).orElseThrow(Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CLOSING::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
@@ -288,6 +372,11 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/lock",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
     private void lockMember(Context ctx) {
         var session = UserSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
@@ -300,6 +389,11 @@ public class TestProtocolRoutes implements Routes {
                 .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_LOCKING::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/unlock",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
     private void unlockMember(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -309,6 +403,11 @@ public class TestProtocolRoutes implements Routes {
                 .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/checks",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunCheck[].class)))
     private void getChecks(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -316,16 +415,27 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(service.findChecks(runId, memberId));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/checks",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolChecksRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunCheck[].class)))
     private void saveChecks(Context ctx) {
         var session = UserSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        var req = ctx.bodyAsClass(ChecksRequest.class);
+        var req = ctx.bodyAsClass(ProtocolChecksRequest.class);
         var run = guards.requireRun(ctx, runId);
         service.saveChecks(runId, memberId, req.checks(), session.member().id(), run.protocolId());
         ctx.json(service.findChecks(runId, memberId));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/complete",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
     private void completeMember(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -335,6 +445,10 @@ public class TestProtocolRoutes implements Routes {
                 .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/sections-done",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getSectionsDone(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -342,6 +456,10 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(service.findDoneSections(runId, memberId));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/sections/{sectionId}/toggle-done",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void toggleSectionDone(Context ctx) {
         var session = UserSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
@@ -353,11 +471,19 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(service.findDoneSections(runId, memberId));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{id}/evaluation",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EvaluationResponse.class)))
     private void getEvaluation(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(evaluations.evaluate(guards.requireRun(ctx, id)));
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{id}/export-all",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void exportAllZip(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
@@ -369,6 +495,10 @@ public class TestProtocolRoutes implements Routes {
         ctx.result(archive);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{id}/evaluation/export",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void exportEvaluationPdf(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
@@ -380,6 +510,10 @@ public class TestProtocolRoutes implements Routes {
         ctx.result(pdf);
     }
 
+    @OpenApi(
+            path = "/api/v1/protocols/runs/{runId}/members/{memberId}/export",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void exportMemberPdf(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -405,21 +539,45 @@ public class TestProtocolRoutes implements Routes {
         return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 
-    private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolView> shared) {}
+    /**
+     * The station's own protocols and the ones its federation partners share with it.
+     */
+    public record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolView> shared) {}
 
-    public record ProtocolRequest(String name, String description, Integer passThreshold) {}
+    /**
+     * A protocol as it is created or changed.
+     *
+     * @param description what the protocol is about, or {@code null} for none
+     * @param passThreshold the share of points needed to pass, or {@code null} for no threshold
+     */
+    public record ProtocolRequest(String name, @Nullable String description, @Nullable Integer passThreshold) {}
 
-    public record SectionRequest(
-            Integer parentId,
+    /**
+     * A section of a protocol as it is created or changed.
+     *
+     * @param parentId the section it stands in, or {@code null} for a top-level section; ignored on a change
+     * @param position where it stands among its siblings, or {@code null} for first
+     */
+    public record ProtocolSectionRequest(
+            @Nullable Integer parentId,
             String name,
-            String description,
-            Integer maxPoints,
-            Integer passThreshold,
-            Integer position) {}
+            @Nullable String description,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
+            @Nullable Integer position) {}
 
-    public record ItemRequest(String label, String description, Double points, Integer position) {}
+    /**
+     * A checkbox of a section as it is created or changed.
+     *
+     * @param points what ticking it is worth, or {@code null} for one point
+     */
+    public record ProtocolItemRequest(
+            String label, @Nullable String description, @Nullable Double points, @Nullable Integer position) {}
 
-    public record ChecksRequest(Map<Integer, Boolean> checks) {}
+    /**
+     * The ticked state of the checkboxes of one member's sheet, by checkbox id.
+     */
+    public record ProtocolChecksRequest(Map<Integer, Boolean> checks) {}
 
     public record ProtocolDetailResponse(
             TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}

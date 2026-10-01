@@ -9,7 +9,8 @@ import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageAfterSelect from './PageAfterSelect.vue'
-import { PageTargetKind, type PageTarget } from '@/api/forms'
+import { PageTargetKind } from '@/api/forms'
+import type { PageTarget } from '@/api/generated/schema'
 import { optionsOf } from '@/util/formOptions'
 import { withoutKey } from '@/util/record'
 import { canDecide, type FormLayoutEditor } from '../useFormLayout'
@@ -54,7 +55,7 @@ function titleOf(id: string): string {
 }
 
 function targetOf(optionKey: string): PageTarget {
-  return deciding.value?.branch?.[optionKey] ?? { kind: PageTargetKind.NEXT, page: null }
+  return deciding.value?.branch?.[optionKey] ?? { kind: PageTargetKind.NEXT }
 }
 
 function setTarget(optionKey: string, target: PageTarget) {

@@ -28,9 +28,9 @@ import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalytics;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntry;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseDetail;
 import dev.chojo.ember.feature.form.service.FormAnswersRefused;
 import dev.chojo.ember.feature.form.service.FormDirectoryService;
 import dev.chojo.ember.feature.form.service.FormDirectoryService.FormListEntry;
@@ -60,6 +60,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -383,7 +384,7 @@ public class FormRoutes implements Routes {
                     + " the start and end dates and the status are not. The copy is always a draft.",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DuplicateRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormDuplicateRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = Form.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -393,7 +394,7 @@ public class FormRoutes implements Routes {
         var session = UserSession.from(ctx);
         requireOwnedForm(id, session);
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_COPYING_FORM.raise();
-        var request = ctx.bodyAsClass(DuplicateRequest.class);
+        var request = ctx.bodyAsClass(FormDuplicateRequest.class);
         if (request.title() == null || request.title().isBlank()) throw Refusal.FORM_COPY_NEEDS_A_TITLE.raise();
         var copy = formService
                 .duplicate(id, request.title().trim(), session.member().id())
@@ -406,8 +407,7 @@ public class FormRoutes implements Routes {
      *
      * @param title the copy's title
      */
-    @OpenApiName("FormDuplicateRequest")
-    public record DuplicateRequest(String title) {}
+    public record FormDuplicateRequest(String title) {}
 
     @OpenApi(
             path = "/api/v1/forms/{id}/visibility",
@@ -415,22 +415,22 @@ public class FormRoutes implements Routes {
             summary = "How far a public form reaches",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = VisibilityRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormVisibilityRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = VisibilityResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormVisibilityResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, UserSession.from(ctx));
-        var request = ctx.bodyAsClass(VisibilityRequest.class);
+        var request = ctx.bodyAsClass(FormVisibilityRequest.class);
         if (request.visibility() == null) {
             throw Refusal.FORM_REACH_NOT_SAID.raise();
         }
         if (!formService.setVisibility(id, request.visibility())) {
             throw Refusal.FORM_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
-        ctx.json(new VisibilityResponse(
+        ctx.json(new FormVisibilityResponse(
                 formService.findById(id).orElseThrow(Refusal.FORM_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise),
                 pageService.pagesStrandedBy(form, request.visibility())));
     }
@@ -439,11 +439,9 @@ public class FormRoutes implements Routes {
      * @param stillHeldBy the pages that put the form on themselves and stopped offering it with the
      *                    change, answered rather than refused so an editor can tidy them
      */
-    @OpenApiName("FormVisibilityResponse")
-    public record VisibilityResponse(Form form, List<PageUsingForm> stillHeldBy) {}
+    public record FormVisibilityResponse(Form form, List<PageUsingForm> stillHeldBy) {}
 
-    @OpenApiName("ClearedFormResponses")
-    public record ClearedResponses(int cleared) {}
+    public record ClearedFormResponses(int cleared) {}
 
     /**
      * The link this form is sent with, minted the first time it is asked for so a form nobody sends
@@ -456,7 +454,7 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareLinkResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormShareLinkResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getShareLink(Context ctx) {
@@ -464,7 +462,7 @@ public class FormRoutes implements Routes {
         var session = UserSession.from(ctx);
         var form = requireOwnedForm(id, session);
         requireSendableByLink(form);
-        ctx.json(new ShareLinkResponse(formService.shareLink(id).orElse(null)));
+        ctx.json(new FormShareLinkResponse(formService.shareLink(id).orElse(null)));
     }
 
     /**
@@ -489,19 +487,19 @@ public class FormRoutes implements Routes {
             summary = "Replace the link a form is sent with",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReplaceShareLinkRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReplaceFormShareLinkRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareLinkResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormShareLinkResponse.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void replaceShareLink(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, UserSession.from(ctx));
-        var request = ctx.bodyAsClass(ReplaceShareLinkRequest.class);
+        var request = ctx.bodyAsClass(ReplaceFormShareLinkRequest.class);
         var replaced = formService
                 .replaceShareLink(id, request.currentToken())
                 .orElseThrow(Refusal.FORM_LINK_ALREADY_REPLACED::raise);
-        ctx.json(new ShareLinkResponse(replaced));
+        ctx.json(new FormShareLinkResponse(replaced));
     }
 
     @OpenApi(
@@ -529,13 +527,13 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             description = "The form and its questions stay as they are, so it can be asked again.",
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ClearedResponses.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ClearedFormResponses.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void clearResponses(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, UserSession.from(ctx));
-        ctx.json(new ClearedResponses(formService.clearResponses(id)));
+        ctx.json(new ClearedFormResponses(formService.clearResponses(id)));
     }
 
     // -- Questions --
@@ -590,7 +588,7 @@ public class FormRoutes implements Routes {
                             + " Pages are kept by their key the same way.",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LayoutRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormLayoutRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormLayout.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -598,10 +596,10 @@ public class FormRoutes implements Routes {
     private void setQuestions(Context ctx) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, UserSession.from(ctx));
-        var layout = ctx.bodyAsClass(LayoutRequest.class);
-        var questions = layout.questions() == null ? List.<QuestionRequest>of() : layout.questions();
-        var pages = layout.pages() == null ? List.<PageRequest>of() : layout.pages();
-        if (questions.stream().map(QuestionRequest::questionType).anyMatch(t -> !t.allowedFor(form.purpose()))) {
+        var layout = ctx.bodyAsClass(FormLayoutRequest.class);
+        var questions = layout.questions() == null ? List.<FormQuestionRequest>of() : layout.questions();
+        var pages = layout.pages() == null ? List.<FormPageRequest>of() : layout.pages();
+        if (questions.stream().map(FormQuestionRequest::questionType).anyMatch(t -> !t.allowedFor(form.purpose()))) {
             throw Refusal.QUESTIONS_NOT_FOR_THIS_KIND_OF_FORM.raise();
         }
         formService.saveLayout(
@@ -675,7 +673,7 @@ public class FormRoutes implements Routes {
             summary = "Get my response to a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseDetail.class)))
     private void getMyResponse(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
@@ -694,7 +692,7 @@ public class FormRoutes implements Routes {
                 @OpenApiParam(name = "memberId", type = Integer.class, required = true)
             },
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseDetail.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getMemberResponse(Context ctx) {
@@ -714,7 +712,7 @@ public class FormRoutes implements Routes {
         ctx.json(formService
                 .findResponse(formId, memberId)
                 .map(response -> analyticsAssembler.getResponseDetail(formId, response.id()))
-                .orElseGet(() -> new ResponseDetailDto(null, List.of())));
+                .orElseGet(() -> new FormResponseDetail(null, List.of())));
     }
 
     @OpenApi(
@@ -747,7 +745,7 @@ public class FormRoutes implements Routes {
             summary = "Submit a response to a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SubmitRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = FormResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -764,7 +762,7 @@ public class FormRoutes implements Routes {
         if (formService.hasResponded(id, session.member().id())) {
             throw Refusal.FORM_ANSWER_ALREADY_ON_FILE.raise();
         }
-        var req = ctx.bodyAsClass(SubmitRequest.class);
+        var req = ctx.bodyAsClass(FormSubmitRequest.class);
         try {
             var response = formService.submitResponse(
                     id, session.member().id(), session.member().id(), req.answers());
@@ -780,7 +778,7 @@ public class FormRoutes implements Routes {
             summary = "Update my response to a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SubmitRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -794,7 +792,7 @@ public class FormRoutes implements Routes {
         if (!formService.canMemberAccess(id, session.member().id())) {
             throw Refusal.FORM_NOT_YOURS_TO_CHANGE_ANSWER.raise();
         }
-        var req = ctx.bodyAsClass(SubmitRequest.class);
+        var req = ctx.bodyAsClass(FormSubmitRequest.class);
         try {
             var response = formService.submitResponse(
                     id, session.member().id(), session.member().id(), req.answers());
@@ -813,7 +811,7 @@ public class FormRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true),
                 @OpenApiParam(name = "memberId", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SubmitRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = FormResponse.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -831,7 +829,7 @@ public class FormRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true),
                 @OpenApiParam(name = "memberId", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SubmitRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -869,7 +867,7 @@ public class FormRoutes implements Routes {
         } else if (!form.allowEdit()) {
             throw Refusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER.raise();
         }
-        var req = ctx.bodyAsClass(SubmitRequest.class);
+        var req = ctx.bodyAsClass(FormSubmitRequest.class);
         try {
             var response =
                     formService.submitResponse(id, memberId, session.member().id(), req.answers());
@@ -922,11 +920,11 @@ public class FormRoutes implements Routes {
             summary = "The half-filled form kept for the caller, if any",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DraftResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormDraftResponse.class)))
     private void getDraft(Context ctx) {
         int id = pathInt(ctx, "id");
         int memberId = draftingMember(ctx, id);
-        ctx.json(new DraftResponse(formService.findDraft(id, memberId).orElse(null)));
+        ctx.json(new FormDraftResponse(formService.findDraft(id, memberId).orElse(null)));
     }
 
     @OpenApi(
@@ -935,7 +933,7 @@ public class FormRoutes implements Routes {
             summary = "Keep what the caller filled in so far, to continue later",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DraftRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormDraftRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void saveDraft(Context ctx) {
         int id = pathInt(ctx, "id");
@@ -965,11 +963,11 @@ public class FormRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true),
                 @OpenApiParam(name = "memberId", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DraftResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormDraftResponse.class)))
     private void getDraftFor(Context ctx) {
         int id = pathInt(ctx, "id");
         int memberId = managedDraftMember(ctx, id);
-        ctx.json(new DraftResponse(formService.findDraft(id, memberId).orElse(null)));
+        ctx.json(new FormDraftResponse(formService.findDraft(id, memberId).orElse(null)));
     }
 
     @OpenApi(
@@ -981,7 +979,7 @@ public class FormRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true),
                 @OpenApiParam(name = "memberId", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DraftRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormDraftRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void saveDraftFor(Context ctx) {
         int id = pathInt(ctx, "id");
@@ -1038,7 +1036,7 @@ public class FormRoutes implements Routes {
     private void keepDraft(Context ctx, int formId, int memberId, int savedBy) {
         var form = requireOwnedForm(formId, UserSession.from(ctx));
         if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_DRAFTS.raise();
-        var request = ctx.bodyAsClass(DraftRequest.class);
+        var request = ctx.bodyAsClass(FormDraftRequest.class);
         formService.saveDraft(formId, memberId, savedBy, request.answers(), request.path());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -1049,16 +1047,14 @@ public class FormRoutes implements Routes {
      * @param answers the answers so far, by question id, in the shape a sent answer has
      * @param path    the pages visited so far, the page to continue on last
      */
-    @OpenApiName("FormDraftRequest")
-    public record DraftRequest(Map<Integer, FormAnswerValue> answers, List<String> path) {}
+    public record FormDraftRequest(Map<Integer, FormAnswerValue> answers, List<String> path) {}
 
     /**
      * The draft kept, where there is one.
      *
      * @param draft the draft, or {@code null} where nothing is kept
      */
-    @OpenApiName("FormDraftResponse")
-    public record DraftResponse(FormDraft draft) {}
+    public record FormDraftResponse(@Nullable FormDraft draft) {}
 
     // -- Analytics --
 
@@ -1068,7 +1064,7 @@ public class FormRoutes implements Routes {
             summary = "Get form analytics",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalyticsDto.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalytics.class)))
     private void getAnalytics(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1090,7 +1086,7 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormResultQuery.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalyticsDto.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalytics.class)))
     private void queryAnalytics(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1102,6 +1098,10 @@ public class FormRoutes implements Routes {
     }
 
     /** The answers as a spreadsheet or as a sheet, which until now could only be had as the former. */
+    @OpenApi(
+            path = "/api/v1/forms/{id}/responses/export",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void exportResponses(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1133,7 +1133,7 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntryDto[].class)))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
     private void listResponses(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1150,7 +1150,7 @@ public class FormRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true),
                 @OpenApiParam(name = "responseId", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseDetail.class)))
     private void getResponseDetail(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int formId = pathInt(ctx, "id");
@@ -1177,16 +1177,16 @@ public class FormRoutes implements Routes {
      */
     public record FormRequest(
             String title,
-            String description,
-            Boolean shuffleQuestions,
-            Boolean allowEdit,
-            Boolean forced,
-            Instant startAt,
-            Instant endAt,
-            FormPurpose purpose,
-            String completionMessage,
-            String completionLink,
-            String completionLinkLabel) {}
+            @Nullable String description,
+            @Nullable Boolean shuffleQuestions,
+            @Nullable Boolean allowEdit,
+            @Nullable Boolean forced,
+            @Nullable Instant startAt,
+            @Nullable Instant endAt,
+            @Nullable FormPurpose purpose,
+            @Nullable String completionMessage,
+            @Nullable String completionLink,
+            @Nullable String completionLinkLabel) {}
 
     /**
      * One question of a form as the editor saves it.
@@ -1201,16 +1201,16 @@ public class FormRoutes implements Routes {
      * @param config       type-specific configuration as JSON string
      * @param branch       where the page leads per option picked, for the question that decides it
      */
-    public record QuestionRequest(
-            Integer id,
-            String pageKey,
+    public record FormQuestionRequest(
+            @Nullable Integer id,
+            @Nullable String pageKey,
             FormQuestionType questionType,
             String title,
-            String description,
-            Boolean required,
-            Boolean shuffle,
-            FormQuestionConfig config,
-            QuestionBranch branch) {}
+            @Nullable String description,
+            @Nullable Boolean required,
+            @Nullable Boolean shuffle,
+            @Nullable FormQuestionConfig config,
+            @Nullable QuestionBranch branch) {}
 
     /**
      * One page of a form as the editor saves it.
@@ -1220,8 +1220,8 @@ public class FormRoutes implements Routes {
      * @param description optional description
      * @param after       where the reader goes once the page is done; the next page where not given
      */
-    @OpenApiName("FormPageRequest")
-    public record PageRequest(String key, String title, String description, PageTarget after) {}
+    public record FormPageRequest(
+            String key, @Nullable String title, @Nullable String description, @Nullable PageTarget after) {}
 
     /**
      * The pages and questions of a form as the editor saves them, each list in its order.
@@ -1229,8 +1229,7 @@ public class FormRoutes implements Routes {
      * @param pages     the pages, at least one
      * @param questions the questions, each naming the page it stands on
      */
-    @OpenApiName("FormLayoutRequest")
-    public record LayoutRequest(List<PageRequest> pages, List<QuestionRequest> questions) {}
+    public record FormLayoutRequest(List<FormPageRequest> pages, List<FormQuestionRequest> questions) {}
 
     /**
      * The pages and questions of a form as stored.
@@ -1252,22 +1251,21 @@ public class FormRoutes implements Routes {
             List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
-            List<Integer> memberIds,
-            RestrictionMode mode) {}
+            @Nullable List<Integer> memberIds,
+            @Nullable RestrictionMode mode) {}
 
     /**
      * Request body for submitting or updating a form response.
      *
      * @param answers map of question ID to answer value (JSON string)
      */
-    @OpenApiName("FormSubmitRequest")
-    public record SubmitRequest(Map<Integer, FormAnswerValue> answers) {}
+    public record FormSubmitRequest(Map<Integer, FormAnswerValue> answers) {}
 
-    public record VisibilityRequest(FormVisibility visibility) {}
+    public record FormVisibilityRequest(FormVisibility visibility) {}
 
-    public record ShareLinkResponse(String token) {}
+    public record FormShareLinkResponse(@Nullable String token) {}
 
-    public record ReplaceShareLinkRequest(String currentToken) {}
+    public record ReplaceFormShareLinkRequest(@Nullable String currentToken) {}
 
     /**
      * Response indicating which members (self and managed) are eligible to respond to a form.

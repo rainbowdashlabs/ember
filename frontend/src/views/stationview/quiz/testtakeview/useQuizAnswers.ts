@@ -5,7 +5,7 @@
  */
 import { computed, onUnmounted, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { QuizAttemptDetail, QuizQuestion } from '@/api/quiz'
+import type { QuizAttemptDetail, QuizQuestionRead } from '@/api/generated/schema'
 import { quiz } from '@/api'
 import { defaultAnswerFor } from './quizAnswerDefaults'
 import { moveWithin } from '@/util/reorder'
@@ -61,7 +61,7 @@ export function useQuizAnswers(
     try { return JSON.parse(currentAnswer.value || '{}') } catch { return {} }
   })
 
-  function hydrate(detail: QuizAttemptDetail, questionDetails: Map<number, QuizQuestion>) {
+  function hydrate(detail: QuizAttemptDetail, questionDetails: Map<number, QuizQuestionRead>) {
     for (const ans of detail.answers) {
       answers.value.set(ans.questionId, ans.answer)
     }

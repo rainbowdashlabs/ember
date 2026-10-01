@@ -6,7 +6,8 @@
 import {computed, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {followingPage, longestFrom, type PathPage, type PathQuestion} from '@/util/formPath'
-import {isEmptyAnswer, type AnswerValue} from '@/util/formAnswers'
+import {isEmptyAnswer} from '@/util/formAnswers'
+import type {FormAnswerValue} from '@/api/generated/schema'
 import {answerProblemsOf, placeProblems} from '@/util/answerProblems'
 
 /** A question as the walk needs it: where it stands, where it leads, and whether it must be answered. */
@@ -28,13 +29,11 @@ export interface WalkQuestion extends PathQuestion {
  * @param pages     the form's pages, in their order
  * @param questions the form's questions, page by page and in the order this reader sees them
  * @param answers   the answers given so far, by question id
- * @param typeOf    what kind a question is, which decides when its answer counts as empty
  */
 export function useFormWalk<P extends PathPage, Q extends WalkQuestion>(
     pages: Ref<P[]>,
     questions: Ref<Q[]>,
-    answers: Ref<Record<number, AnswerValue>>,
-    typeOf: (question: Q) => string,
+    answers: Ref<Record<number, FormAnswerValue>>,
 ) {
     const {t} = useI18n()
 
@@ -90,7 +89,7 @@ export function useFormWalk<P extends PathPage, Q extends WalkQuestion>(
     function checkCurrent(): boolean {
         const missing: Record<number, string> = {}
         for (const question of currentQuestions.value) {
-            if (question.required && isEmptyAnswer(typeOf(question), answers.value[question.id])) {
+            if (question.required && isEmptyAnswer(answers.value[question.id])) {
                 missing[question.id] = t('forms.fill.required')
             }
         }

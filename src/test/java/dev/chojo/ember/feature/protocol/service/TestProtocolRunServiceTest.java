@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
-import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.RunRequest;
+import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.ProtocolRunRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -73,7 +73,10 @@ class TestProtocolRunServiceTest {
         when(tags.findMembers(8)).thenReturn(List.of(member(9, 6, "foreign", null)));
 
         var run = service.start(
-                1, 3, 11, new RunRequest("Herbst", DAY, List.of(1), List.of("MEMBER"), List.of(7), List.of(8)));
+                1,
+                3,
+                11,
+                new ProtocolRunRequest("Herbst", DAY, List.of(1), List.of("MEMBER"), List.of(7), List.of(8)));
 
         assertEquals(RUN, run);
         verify(protocols).createRun(1, 3, "Herbst", DAY, 11);
@@ -82,7 +85,7 @@ class TestProtocolRunServiceTest {
 
     @Test
     void aRunNamingNobodyIsStartedTodayAndLeftEmpty() {
-        service.start(1, 3, 11, new RunRequest("Herbst", null, null, null, null, null));
+        service.start(1, 3, 11, new ProtocolRunRequest("Herbst", null, null, null, null, null));
 
         verify(protocols).createRun(eq(1), eq(3), eq("Herbst"), eq(LocalDate.now()), eq(11));
         verify(protocols, never()).addRunMembers(anyInt(), any());

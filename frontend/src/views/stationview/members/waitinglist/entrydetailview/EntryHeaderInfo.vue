@@ -11,7 +11,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vue'
-import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 import { formatDateTime } from '@/util/format'
 
 defineProps<{

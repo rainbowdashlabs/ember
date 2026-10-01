@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {QuizCatalog, SharedCatalogEntry} from '@/api/quiz'
+import type {QuizCatalog, SharedQuizCatalog} from '@/api/generated/schema'
 import { quiz, federation } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -30,7 +30,7 @@ const { loaded } = useSession()
 const { isMobile } = useBreakpoint()
 
 const catalogs = ref<QuizCatalog[]>([])
-const sharedCatalogs = ref<SharedCatalogEntry[]>([])
+const sharedCatalogs = ref<SharedQuizCatalog[]>([])
 
 const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
   const response = await quiz.listCatalogs()

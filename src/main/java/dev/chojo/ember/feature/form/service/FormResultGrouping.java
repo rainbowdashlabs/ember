@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Grouping;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -74,7 +74,7 @@ public class FormResultGrouping {
      * Whether a respondent can be in more than one group of this grouping, so the groups can add up
      * to more responses than there are.
      */
-    public static boolean overlaps(Grouping grouping) {
+    public static boolean overlaps(ResultGrouping grouping) {
         return grouping != null
                 && (grouping.by() == FormResultQuery.Dimension.GROUP || grouping.by() == FormResultQuery.Dimension.TAG);
     }
@@ -87,7 +87,7 @@ public class FormResultGrouping {
      * @param grouping    what to split them by
      * @return the groups, in display order
      */
-    public List<Bucket> split(int stationId, List<Respondent> respondents, Grouping grouping) {
+    public List<Bucket> split(int stationId, List<Respondent> respondents, ResultGrouping grouping) {
         if (grouping == null || grouping.by() == null) throw new BadRequestResponse("Nothing to group by");
         var buckets =
                 switch (grouping.by()) {
@@ -126,7 +126,7 @@ public class FormResultGrouping {
         return limited(buckets, grouping.only());
     }
 
-    private List<Bucket> byField(int stationId, List<Respondent> respondents, Grouping grouping) {
+    private List<Bucket> byField(int stationId, List<Respondent> respondents, ResultGrouping grouping) {
         var field = FormRespondents.groupableFields(profileFields.findByStation(stationId)).stream()
                 .filter(candidate -> grouping.fieldId() != null && candidate.id() == grouping.fieldId())
                 .findFirst()

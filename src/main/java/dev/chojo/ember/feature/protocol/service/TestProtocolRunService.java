@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +72,7 @@ public class TestProtocolRunService {
      * @param stationId  the station starting the run
      * @param createdBy  the member starting it
      */
-    public TestProtocolRun start(int protocolId, int stationId, int createdBy, RunRequest request) {
+    public TestProtocolRun start(int protocolId, int stationId, int createdBy, ProtocolRunRequest request) {
         var run = protocols.createRun(
                 protocolId,
                 stationId,
@@ -154,11 +155,20 @@ public class TestProtocolRunService {
         zip.closeEntry();
     }
 
-    public record RunRequest(
+    /**
+     * A run as it is started or renamed. Renaming reads only the name and the date.
+     *
+     * @param testDate the day of the test, or {@code null} for today
+     * @param memberIds the members to test, or {@code null} for none named directly
+     * @param userTypes the kinds of member whose members are tested, or {@code null} for none
+     * @param groupIds the groups whose members are tested, or {@code null} for none
+     * @param tagIds the tags whose members are tested, or {@code null} for none
+     */
+    public record ProtocolRunRequest(
             String name,
-            LocalDate testDate,
-            List<Integer> memberIds,
-            List<String> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds) {}
+            @Nullable LocalDate testDate,
+            @Nullable List<Integer> memberIds,
+            @Nullable List<String> userTypes,
+            @Nullable List<Integer> groupIds,
+            @Nullable List<Integer> tagIds) {}
 }

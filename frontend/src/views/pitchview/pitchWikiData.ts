@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {QuizCatalog} from '@/api/quiz'
+import type {QuizCatalog} from '@/api/generated/schema'
 import type {KbItem} from '@/views/stationview/knowledge/knowledgebaseview/useKbItems'
 
 /**
@@ -38,6 +38,7 @@ function catalog(id: number, name: string, description: string): QuizCatalog {
         name,
         description,
         trainingEnabled: true,
+        publicRender: false,
         metadata: {language: null, source: null, author: null, license: null},
         createdAt: '',
         updatedAt: '',

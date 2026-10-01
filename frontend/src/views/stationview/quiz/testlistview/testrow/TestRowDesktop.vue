@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TestStatusBadges from './TestStatusBadges.vue'
 import TestRowActions from './TestRowActions.vue'
-import type {QuizTest} from '@/api/quiz'
+import type {QuizTest} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /** A test sheet on a wide screen, where its name, its dates and what can be done with it share a line. */

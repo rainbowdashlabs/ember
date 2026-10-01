@@ -372,9 +372,9 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .description("Die vier Grundaufgaben der Feuerwehr")
                 .config(new QuestionConfig.MultipleChoice(
                         List.of(
-                                new QuestionConfig.MultipleChoice.Option("Retten, Löschen, Bergen, Schützen", true),
-                                new QuestionConfig.MultipleChoice.Option("Räumen, Löschen, Bauen, Sichern", false),
-                                new QuestionConfig.MultipleChoice.Option("Retten, Leiten, Bergen, Senden", false)),
+                                new QuestionConfig.MultipleChoice.ChoiceOption("Retten, Löschen, Bergen, Schützen", true),
+                                new QuestionConfig.MultipleChoice.ChoiceOption("Räumen, Löschen, Bauen, Sichern", false),
+                                new QuestionConfig.MultipleChoice.ChoiceOption("Retten, Leiten, Bergen, Senden", false)),
                         1))
                 .build());
         quizService.createQuestion(CreateQuestionCommand.builder(

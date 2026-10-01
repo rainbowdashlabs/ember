@@ -14,7 +14,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import {QuizTestStatus, type FrozenQuestionDetail, type QuizQuestion, type QuizTestDetail} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {FrozenQuestionDetail, QuizQuestion, QuizTestDetail} from '@/api/generated/schema'
 
 defineProps<{
   test: QuizTestDetail['test']

@@ -7,13 +7,8 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ai, quiz, util} from '@/api'
 import {loadAiCredentials} from '@/util/aiCredentials'
-import {
-    QuizQuestionTypes,
-    type CatalogMetadata,
-    type CatalogTransferProblem,
-    type QuizCatalogExport,
-    type QuizCatalogExportCategory,
-} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {CatalogMetadata, CatalogTransfer, CatalogTransferCategory, CatalogTransferProblem} from '@/api/generated/schema'
 import {createQuizCsvMapping, type ImportDraft} from '../csvimportview/quizCsvImport'
 import {NO_METADATA, readCatalogFile, toTransfer, usedCategories} from './catalogImport'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -52,7 +47,7 @@ export function useCatalogImport(catalogId: () => number | null) {
     const mapping = ref(createQuizCsvMapping([]))
 
     const drafts = ref<ImportDraft[]>([])
-    const categories = ref<QuizCatalogExportCategory[]>([])
+    const categories = ref<CatalogTransferCategory[]>([])
 
     const catalogName = ref('')
     const catalogDescription = ref('')
@@ -100,7 +95,7 @@ export function useCatalogImport(catalogId: () => number | null) {
         problems.value = []
     }
 
-    function loadFromFile(transfer: QuizCatalogExport) {
+    function loadFromFile(transfer: CatalogTransfer) {
         categories.value = transfer.categories ?? []
         drafts.value = (transfer.questions ?? []).map(question => ({
             question,

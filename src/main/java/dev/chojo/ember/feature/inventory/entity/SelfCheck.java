@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -30,14 +31,14 @@ public record SelfCheck(
         int id,
         int stationId,
         int memberId,
-        Integer handedOutBy,
+        @Nullable Integer handedOutBy,
         Instant handedOutAt,
-        LocalDate dueOn,
+        @Nullable LocalDate dueOn,
         SelfCheckState state,
-        Instant submittedAt,
-        Integer submittedBy,
-        Instant closedAt,
-        Integer checkId) {
+        @Nullable Instant submittedAt,
+        @Nullable Integer submittedBy,
+        @Nullable Instant closedAt,
+        @Nullable Integer checkId) {
 
     /**
      * The columns every read of this table selects, in the order the mapping expects them.

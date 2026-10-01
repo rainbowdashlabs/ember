@@ -11,7 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
-import type {TestProtocol} from '@/api/protocol'
+import type {TestProtocol} from '@/api/generated/schema'
 
 /** One of the station's own protocols, opening the protocol it names. */
 const props = defineProps<{

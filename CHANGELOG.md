@@ -99,6 +99,13 @@
 - **Restricted news entries showed no lock.** A news entry meant for only part of the station appeared without the lock that marks it. It now shows the lock in the news list and on the entry.
 - **New appointment categories forgot some settings.** A new category was saved without its limit of shown appointments and without its public setting, so both had to be set again afterwards. They are now saved with the category.
 - **Editing an appointment category could change its order.** Saving a category moved it to the top of the list. It now keeps its place.
+- **Restricted forms showed no lock in the list of forms to answer.** A form put to only part of the station appeared there without the lock that marks it. It now shows the lock.
+- **Saving a filter on the member list failed.** Saving the current filters of the member list under a name ended in an error, so nothing was kept. The filter is now saved and offered again like any other.
+- **Steps of a procedure template could not depend on each other.** Adding or removing a dependency between two steps of a procedure template was refused, so templates never carried one. Dependencies are now saved, and each step shows the steps it waits for.
+- **Procedure template steps lost their order.** Steps added to or edited in a procedure template were all stored at the top of the list, so their order could change after every edit. A new step now goes to the end and an edited step stays where it was.
+- **A cleared step note came back.** Emptying the note of a step in a procedure kept the old note. Clearing it now removes it.
+- **Generating quiz questions with AI failed.** Asking the AI for new questions for a catalog, or for a new version of selected questions, failed, and questions that did arrive were saved without their answers. Generated questions now arrive and are saved complete.
+- **Free-text and picture questions showed no answer.** In a quiz catalog opened read-only, free-text and picture questions showed no correct answer. They now list the accepted answers like every other kind of question.
 
 ## v26.19.5
 

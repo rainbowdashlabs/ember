@@ -21,7 +21,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
-import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
+import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 import type { StationMember } from '@/api/types'
 import { reportCaughtError } from '@/util/devErrorReporter'
 

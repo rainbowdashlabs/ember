@@ -22,6 +22,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The AI provider key a person keeps for themselves, under their account settings.
@@ -97,5 +98,5 @@ public class AccountAiCredentialRoutes implements Routes {
      * @param model    the model to ask by default, blank for the provider's default
      * @param apiKey   the key, blank to keep the stored one
      */
-    public record AiCredentialRequest(String provider, String model, String apiKey) {}
+    public record AiCredentialRequest(String provider, @Nullable String model, @Nullable String apiKey) {}
 }

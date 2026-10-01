@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Where a catalog's questions came from. A catalog is exported to a file, handed to another
  * station and imported there, and without this it arrives anonymous: the receiving station
@@ -18,7 +20,8 @@ package dev.chojo.ember.feature.quiz.entity;
  * @param author   who wrote them
  * @param license  the terms they may be used under
  */
-public record CatalogMetadata(String language, String source, String author, String license) {
+public record CatalogMetadata(
+        @Nullable String language, @Nullable String source, @Nullable String author, @Nullable String license) {
     private static final CatalogMetadata NONE = new CatalogMetadata(null, null, null, null);
 
     public CatalogMetadata {

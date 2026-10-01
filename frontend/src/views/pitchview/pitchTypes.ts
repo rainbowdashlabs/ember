@@ -3,22 +3,19 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry, ContentRow, StationPage} from '@/api/generated/schema'
+import type {
+    AttendanceEntry, ContentRow, EvaluationResponse, Form, FormAnswerValue, FormQuestion, FormQuestionInfo,
+    FormResultGroup, ProcedureItem, ProcedureTemplateItem, QuizCatalog, StationPage, TestProtocolItem,
+    TestProtocolSection, WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
+} from '@/api/generated/schema'
 import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {CheckResult} from '@/api/inventoryCheck'
 import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
-import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
-import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
 import type {UserSettings} from '@/api/userSettings'
 import type {ActiveSession} from '@/api/session'
-import type {
-    WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
-} from '@/api/waitingList'
-import type {ProcedureItem, ProcedureTemplateItem} from '@/api/procedures'
-import type {QuizCatalog} from '@/api/quiz'
 import type {KbItem} from '@/views/stationview/knowledge/knowledgebaseview/useKbItems'
 import type {BoardLabel, BoardLane, BoardTicket} from '@/api/boards'
 import type {Comment} from '@/api/comments'
@@ -217,7 +214,7 @@ export interface PitchWaitlist {
 /** A form being filled in: its questions and the answers already given. */
 export interface PitchForm {
     questions: FormQuestion[]
-    answers: Record<number, Record<string, unknown>>
+    answers: Record<number, FormAnswerValue>
 }
 
 /** The evaluation of a form: the charts per question, and who has not answered yet. */

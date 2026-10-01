@@ -19,9 +19,9 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import FormSentNotice from '@/components/forms/fill/FormSentNotice.vue'
 import FillPages from './fillview/FillPages.vue'
-import type {EligibleMembers, Form, FormPage, FormQuestion} from '@/api/forms'
+import type {EligibleMembers, Form, FormAnswerValue, FormPage, FormQuestion} from '@/api/generated/schema'
 import { forms } from '@/api'
-import { emptyAnswer, typedAnswers, type AnswerValue } from '@/util/formAnswers'
+import { emptyAnswer, storedAnswer } from '@/util/formAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useFormWalk } from '@/composables/useFormWalk'
 import { useAnswerBaseline } from '@/composables/useAnswerBaseline'
@@ -49,10 +49,10 @@ const pageTitle = computed(() => form.value
 
 const pages = ref<FormPage[]>([])
 const questions = ref<FormQuestion[]>([])
-const answers = ref<Record<number, AnswerValue>>({})
+const answers = ref<Record<number, FormAnswerValue>>({})
 const hasExistingResponse = ref(false)
 
-const walk = useFormWalk(pages, questions, answers, question => question.formQuestionType)
+const walk = useFormWalk(pages, questions, answers)
 
 const selectedMemberId = ref<number | null>(null)
 const eligibility = ref<EligibleMembers | null>(null)
@@ -134,11 +134,8 @@ async function loadExistingResponse() {
       hasExistingResponse.value = true
       initAnswerDefaults()
       for (const answer of response.answers) {
-        try {
-          answers.value[answer.questionId] = JSON.parse(answer.value)
-        } catch {
-          answers.value[answer.questionId] = {}
-        }
+        const question = questions.value.find(q => q.id === answer.questionId)
+        if (question) answers.value[question.id] = storedAnswer(question.formQuestionType, question.config, answer.value)
       }
     } else {
       initAnswerDefaults()
@@ -198,11 +195,9 @@ watch(selectedMemberId, async () => {
 })
 
 const {failure: submitFailure, run: send} = useAsyncAction(async () => {
-  const answerMap = typedAnswers(questions.value, answers.value, question => question.formQuestionType)
-
   try {
     await draft.settled()
-    await sendAnswers(answerMap)
+    await sendAnswers(answers.value)
   } catch (e) {
     walk.showRefused(e)
     throw e
@@ -219,7 +214,7 @@ const {failure: submitFailure, run: send} = useAsyncAction(async () => {
 const displayFailure = computed(() => submitFailure.value ?? failure.value ?? priorAnswerFailure.value)
 
 /** Sends the answers as a first answer or a correction, for the reader or the member in their care. */
-async function sendAnswers(answerMap: Record<number, AnswerValue>) {
+async function sendAnswers(answerMap: Record<number, FormAnswerValue>) {
   const memberId = effectiveMemberId.value
   const data = { answers: answerMap }
   if (memberId) {

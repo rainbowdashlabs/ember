@@ -14,7 +14,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TimeInput from '@/components/input/datetime/TimeInput.vue'
 import OccurrenceSearchPicker from '@/components/input/search/OccurrenceSearchPicker.vue'
 import type {EventOccurrenceRef} from '@/api/events'
-import type {WaitingListEntryWithScore} from '@/api/waitingList'
+import type {WaitingListEntryWithScore} from '@/api/generated/schema'
 import {entryFullName} from './entryFullName'
 
 /**

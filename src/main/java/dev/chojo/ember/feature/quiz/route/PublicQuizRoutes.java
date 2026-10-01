@@ -8,7 +8,13 @@ package dev.chojo.ember.feature.quiz.route;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.quiz.service.PublicQuizService;
+import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicQuizCatalog;
+import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicQuizQuestion;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -61,10 +67,18 @@ public class PublicQuizRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/public/quiz/{stationUid}/catalogs",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicQuizCatalog[].class)))
     private void listPublicCatalogs(Context ctx) {
         ctx.json(quiz.catalogs(stationUid(ctx)));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/quiz/{stationUid}/random",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicQuizQuestion.class)))
     private void randomQuestion(Context ctx) {
         var station = stationUid(ctx);
         String catalogsParam = ctx.queryParam("catalogs");

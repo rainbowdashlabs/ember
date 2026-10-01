@@ -18,9 +18,15 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -98,24 +104,38 @@ public class ProcedureRoutes implements Routes {
 
     // ── Template endpoints ──
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplate[].class)))
     private void listTemplates(Context ctx) {
         var session = UserSession.from(ctx);
         boolean includeArchived = "true".equals(ctx.queryParam("archived"));
         ctx.json(procedureService.findTemplatesByStation(session.stationId(), includeArchived));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates/{tid}",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplateDetail.class)))
     private void getTemplate(Context ctx) {
         int tid = pathInt(ctx, "tid");
         var template =
                 requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var items = procedureService.findTemplateItems(tid);
         var deps = procedureService.findTemplateItemDependencies(tid);
-        ctx.json(new TemplateDetail(template, items, deps));
+        ctx.json(new ProcedureTemplateDetail(template, items, deps));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureTemplateRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplate.class)))
     private void createTemplate(Context ctx) {
         var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(TemplateRequest.class);
+        var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.PROCEDURE_TEMPLATE_NEEDS_A_NAME.raise();
         ctx.json(procedureService.createTemplate(
                 session.stationId(),
@@ -124,16 +144,25 @@ public class ProcedureRoutes implements Routes {
                 session.member().id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates/{tid}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureTemplateRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplate.class)))
     private void updateTemplate(Context ctx) {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
-        var req = ctx.bodyAsClass(TemplateRequest.class);
+        var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.PROCEDURE_TEMPLATE_RENAME_NEEDS_A_NAME.raise();
         procedureService.updateTemplate(tid, req.name(), req.description()).ifPresentOrElse(ctx::json, () -> {
             throw Refusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_CHANGE.raise();
         });
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates/{tid}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void archiveTemplate(Context ctx) {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
@@ -141,20 +170,31 @@ public class ProcedureRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates/{tid}/items",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplateItem.class)))
     private void createTemplateItem(Context ctx) {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
-        var req = ctx.bodyAsClass(ItemRequest.class);
+        var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw Refusal.PROCEDURE_TEMPLATE_STEP_NEEDS_A_TITLE.raise();
         ctx.json(procedureService.createTemplateItem(
                 tid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position()));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates/{tid}/items/{iid}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void updateTemplateItem(Context ctx) {
         requireOwnedOrNotFound(
                 ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
         int iid = pathInt(ctx, "iid");
-        var req = ctx.bodyAsClass(ItemRequest.class);
+        var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (!procedureService.updateTemplateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
             throw Refusal.PROCEDURE_TEMPLATE_STEP_NOT_HERE_TO_CHANGE.raise();
@@ -162,6 +202,10 @@ public class ProcedureRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates/{tid}/items/{iid}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteTemplateItem(Context ctx) {
         requireOwnedOrNotFound(
                 ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
@@ -170,6 +214,11 @@ public class ProcedureRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedure-templates/{tid}/dependencies",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DependencyRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void setTemplateDependencies(Context ctx) {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
@@ -183,6 +232,11 @@ public class ProcedureRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/dependencies",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DependencyRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void setProcedureDependencies(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
@@ -198,6 +252,10 @@ public class ProcedureRoutes implements Routes {
 
     // ── Procedure endpoints ──
 
+    @OpenApi(
+            path = "/api/v1/procedures",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
     private void listProcedures(Context ctx) {
         var session = UserSession.from(ctx);
         String statusParam = ctx.queryParam("status");
@@ -219,6 +277,10 @@ public class ProcedureRoutes implements Routes {
      * What has already been prepared for one date of one appointment, so a second press of the
      * button that made it offers the list rather than a copy of it.
      */
+    @OpenApi(
+            path = "/api/v1/procedures/for-event/{eid}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
     private void listProceduresForOccurrence(Context ctx) {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eid");
@@ -233,6 +295,10 @@ public class ProcedureRoutes implements Routes {
         ctx.json(procedureService.findProceduresByOccurrence(session.stationId(), eventId, eventDate));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureDetail.class)))
     private void getProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
@@ -258,6 +324,11 @@ public class ProcedureRoutes implements Routes {
         ctx.json(new ProcedureDetail(procedure, items, deps, assigneeIds, assignees));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateProcedureRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
     private void createProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateProcedureRequest.class);
@@ -276,6 +347,11 @@ public class ProcedureRoutes implements Routes {
         ctx.json(procedure);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateProcedureRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
     private void updateProcedure(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
@@ -286,6 +362,7 @@ public class ProcedureRoutes implements Routes {
         ctx.json(procedureService.findProcedureById(rid).orElseThrow(Refusal.PROCEDURE_NOT_HERE_AFTER_CHANGE::raise));
     }
 
+    @OpenApi(path = "/api/v1/procedures/{rid}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void deleteProcedure(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
@@ -293,6 +370,10 @@ public class ProcedureRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/resolve",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
     private void resolveProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
@@ -304,6 +385,10 @@ public class ProcedureRoutes implements Routes {
                 procedureService.findProcedureById(rid).orElseThrow(Refusal.PROCEDURE_NOT_HERE_AFTER_RESOLVING::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/reopen",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
     private void reopenProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
@@ -317,6 +402,11 @@ public class ProcedureRoutes implements Routes {
 
     // ── Assignee endpoints ──
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/assignees",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssigneeRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void addAssignees(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
@@ -327,6 +417,10 @@ public class ProcedureRoutes implements Routes {
         ctx.json(procedureService.findAssigneeIds(rid));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/assignees/{mid}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void removeAssignee(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
@@ -337,19 +431,29 @@ public class ProcedureRoutes implements Routes {
 
     // ── Item endpoints ──
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/items",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureItem.class)))
     private void addItem(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
-        var req = ctx.bodyAsClass(ItemRequest.class);
+        var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw Refusal.PROCEDURE_STEP_NEEDS_A_TITLE.raise();
         ctx.json(procedureService.createItem(
                 rid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position()));
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/items/{iid}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void editItem(Context ctx) {
         requireOwnedOrNotFound(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
         int iid = pathInt(ctx, "iid");
-        var req = ctx.bodyAsClass(ItemRequest.class);
+        var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (!procedureService.updateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
             throw Refusal.PROCEDURE_STEP_NOT_HERE_TO_CHANGE.raise();
@@ -357,6 +461,10 @@ public class ProcedureRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/items/{iid}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteItem(Context ctx) {
         requireOwnedOrNotFound(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
         int iid = pathInt(ctx, "iid");
@@ -364,6 +472,11 @@ public class ProcedureRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/items/{iid}",
+            methods = HttpMethod.PATCH,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PatchItemRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureItem[].class)))
     private void patchItem(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
@@ -405,37 +518,73 @@ public class ProcedureRoutes implements Routes {
 
     // ── Request/Response records ──
 
-    public record TemplateRequest(String name, String description) {}
+    /**
+     * A procedure template as it is created or renamed.
+     *
+     * @param description what the template is for, or {@code null} for nothing
+     */
+    public record ProcedureTemplateRequest(String name, @Nullable String description) {}
 
-    public record TemplateDetail(
+    /**
+     * A template with its steps and the order they depend on each other in.
+     *
+     * @param dependencies pairs of step ids: the step first, the step it waits for second
+     */
+    public record ProcedureTemplateDetail(
             ProcedureTemplate template, List<ProcedureTemplateItem> items, List<int[]> dependencies) {}
 
-    public record ItemRequest(String title, String description, boolean isPublic, boolean userAssigned, int position) {}
+    /**
+     * A step of a template or a procedure as it is added or changed.
+     *
+     * @param description what the step asks for, or {@code null} for nothing
+     */
+    public record ProcedureItemRequest(
+            String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {}
 
     public record DependencyEntry(int itemId, int dependsOnItemId) {}
 
-    public record DependencyRequest(List<DependencyEntry> dependencies) {}
+    /**
+     * Every dependency between the steps, replacing the ones there were.
+     *
+     * @param dependencies the dependencies, or {@code null} for none
+     */
+    public record DependencyRequest(@Nullable List<DependencyEntry> dependencies) {}
 
     /**
-     * @param eventId   the appointment the procedure is being prepared for, or {@code null}
-     * @param eventDate the one occurrence of that appointment. Both are recorded only when both are
-     *                  given: an appointment without a date names every occurrence it has ever had
+     * @param templateId  the template whose steps the procedure starts with, or {@code null} for none
+     * @param description what the procedure is about, or {@code null} for nothing
+     * @param dueAt       when it is due, or {@code null} for no date
+     * @param assigneeIds the members it is handed to, or {@code null} for nobody yet
+     * @param eventId     the appointment the procedure is being prepared for, or {@code null}
+     * @param eventDate   the one occurrence of that appointment. Both are recorded only when both are
+     *                    given: an appointment without a date names every occurrence it has ever had
      */
     public record CreateProcedureRequest(
-            Integer templateId,
+            @Nullable Integer templateId,
             String name,
-            String description,
+            @Nullable String description,
             boolean isPublic,
-            Instant dueAt,
-            List<Integer> assigneeIds,
-            Integer eventId,
-            LocalDate eventDate) {}
+            @Nullable Instant dueAt,
+            @Nullable List<Integer> assigneeIds,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate) {}
 
-    public record UpdateProcedureRequest(String name, String description, boolean isPublic, Instant dueAt) {}
+    /**
+     * @param description what the procedure is about, or {@code null} for nothing
+     * @param dueAt       when it is due, or {@code null} for no date
+     */
+    public record UpdateProcedureRequest(
+            String name, @Nullable String description, boolean isPublic, @Nullable Instant dueAt) {}
 
     public record AssigneeRequest(List<Integer> memberIds) {}
 
-    public record PatchItemRequest(Boolean checked, String note) {}
+    /**
+     * What a member changes on one step: its tick, its note, or both.
+     *
+     * @param checked the tick, or {@code null} to leave it
+     * @param note    the note, or {@code null} to leave it
+     */
+    public record PatchItemRequest(@Nullable Boolean checked, @Nullable String note) {}
 
     public record ProcedureDetail(
             Procedure procedure,

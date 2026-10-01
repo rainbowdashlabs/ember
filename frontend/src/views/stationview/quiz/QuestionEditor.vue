@@ -16,7 +16,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import ImageUploadField from './ImageUploadField.vue'
-import {QuizQuestionTypes, type QuizCategory, type QuizQuestionTypeName} from '@/api/quiz'
+import {isQuizQuestionType, QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
+import type {QuizCategory} from '@/api/generated/schema'
 import McConfigEditor from './McConfigEditor.vue'
 import TfConfigEditor from './TfConfigEditor.vue'
 import FillBlankConfigEditor from './FillBlankConfigEditor.vue'
@@ -112,8 +113,7 @@ watch(calculatedPoints, (val) => {
 })
 
 function onTypeChange(val: string | number | null | undefined) {
-  if (!val) return
-  questionType.value = String(val) as QuizQuestionTypeName
+  if (isQuizQuestionType(val)) questionType.value = val
 }
 </script>
 

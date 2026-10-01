@@ -99,6 +99,13 @@
 - **Eingeschränkte Neuigkeiten zeigten kein Schloss.** Eine Neuigkeit, die nur für einen Teil der Wache bestimmt ist, erschien ohne das Schloss, das sie kennzeichnet. Sie zeigt es jetzt in der Liste der Neuigkeiten und beim Eintrag.
 - **Neue Terminkategorien vergaßen Einstellungen.** Eine neue Kategorie wurde ohne die Zahl der angezeigten Termine und ohne ihre Einstellung „öffentlich“ gespeichert, sodass beides danach noch einmal gesetzt werden musste. Beides wird jetzt mit der Kategorie gespeichert.
 - **Das Bearbeiten einer Terminkategorie konnte ihre Reihenfolge ändern.** Beim Speichern rückte eine Kategorie an den Anfang der Liste. Sie behält jetzt ihren Platz.
+- **Eingeschränkte Formulare zeigten kein Schloss in der Liste zum Ausfüllen.** Ein Formular, das nur einem Teil der Wache gestellt ist, erschien dort ohne das Schloss, das es kennzeichnet. Es zeigt es jetzt.
+- **Speichern eines Filters in der Mitgliederliste schlug fehl.** Wer die aktuellen Filter der Mitgliederliste unter einem Namen speichern wollte, bekam einen Fehler, und nichts wurde gespeichert. Der Filter wird jetzt gespeichert und wie jeder andere wieder angeboten.
+- **Schritte einer Ablaufvorlage konnten nicht aufeinander warten.** Eine Abhängigkeit zwischen zwei Schritten einer Ablaufvorlage hinzuzufügen oder zu entfernen wurde abgelehnt, deshalb hatte keine Vorlage je eine. Abhängigkeiten werden jetzt gespeichert, und jeder Schritt zeigt, auf welche Schritte er wartet.
+- **Schritte einer Ablaufvorlage verloren ihre Reihenfolge.** Neu angelegte oder bearbeitete Schritte einer Ablaufvorlage landeten alle am Anfang der Liste, sodass sich die Reihenfolge nach jeder Änderung verschieben konnte. Ein neuer Schritt kommt jetzt ans Ende, ein bearbeiteter bleibt an seinem Platz.
+- **Eine geleerte Notiz an einem Schritt kam zurück.** Wer die Notiz eines Schritts in einem Ablauf leerte, behielt die alte Notiz. Leeren entfernt sie jetzt.
+- **Quizfragen mit KI zu erzeugen schlug fehl.** Neue Fragen für einen Katalog oder eine neue Fassung ausgewählter Fragen von der KI anzufordern schlug fehl, und Fragen, die doch ankamen, wurden ohne ihre Antworten gespeichert. Erzeugte Fragen kommen jetzt an und werden vollständig gespeichert.
+- **Freitext- und Bildfragen zeigten keine Antwort.** In einem nur lesbar geöffneten Quizkatalog zeigten Freitext- und Bildfragen keine richtige Antwort. Sie nennen jetzt wie alle anderen Fragearten die akzeptierten Antworten.
 
 ## v26.19.5
 

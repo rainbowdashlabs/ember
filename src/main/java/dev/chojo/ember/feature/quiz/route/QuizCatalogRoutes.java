@@ -11,24 +11,33 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalogTemplate;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogTransferService;
-import dev.chojo.ember.feature.quiz.service.QuizCatalogTransferService.TransferProblem;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogTransferService.CatalogTransferProblem;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService.SharedQuizCatalog;
 import dev.chojo.ember.feature.quiz.service.QuizImportService;
+import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvDraft;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -109,12 +118,20 @@ public class QuizCatalogRoutes implements Routes {
      * with either catalog-view or result-read permission: the test detail page resolves
      * catalog names by id, and a reviewer evaluating attempts holds only the latter.
      */
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CatalogListResponse.class)))
     private void listCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
         var catalogs = catalogService.findCatalogs(session.stationId());
         ctx.json(new CatalogListResponse(catalogs, federationService.browseSharedCatalogs(session.stationId())));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalogDetail.class)))
     private void getCatalog(Context ctx) {
         int id = pathInt(ctx, "id");
         catalogService
@@ -127,7 +144,7 @@ public class QuizCatalogRoutes implements Routes {
                             for (var q : questions) {
                                 typeCounts.merge(q.quizQuestionType().name(), 1, Integer::sum);
                             }
-                            ctx.json(new CatalogDetail(
+                            ctx.json(new QuizCatalogDetail(
                                     catalog.id(),
                                     catalog.stationId(),
                                     catalog.name(),
@@ -145,9 +162,14 @@ public class QuizCatalogRoutes implements Routes {
                         });
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizCatalogRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizCatalog.class)))
     private void createCatalog(Context ctx) {
         var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(CatalogRequest.class);
+        var req = ctx.bodyAsClass(QuizCatalogRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATALOG_NEEDS_A_NAME.raise();
         var catalog = catalogService.createCatalog(
                 session.stationId(),
@@ -158,10 +180,15 @@ public class QuizCatalogRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(catalog);
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizCatalogRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalog.class)))
     private void updateCatalog(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, id);
-        var req = ctx.bodyAsClass(CatalogRequest.class);
+        var req = ctx.bodyAsClass(QuizCatalogRequest.class);
         if (!catalogService.updateCatalog(
                 id,
                 req.name(),
@@ -175,6 +202,10 @@ public class QuizCatalogRoutes implements Routes {
         });
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteCatalog(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, id);
@@ -185,14 +216,23 @@ public class QuizCatalogRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/categories",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCategory[].class)))
     private void listCategories(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(catalogService.findCategories(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/categories",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizCategoryRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizCategory.class)))
     private void createCategory(Context ctx) {
         var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(CategoryRequest.class);
+        var req = ctx.bodyAsClass(QuizCategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(catalogService.createCategory(
@@ -202,10 +242,15 @@ public class QuizCatalogRoutes implements Routes {
                         req.position() != null ? req.position() : 0));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/categories/{id}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizCategoryRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizSuccessResponse.class)))
     private void updateCategory(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCategory(ctx, id);
-        var req = ctx.bodyAsClass(CategoryRequest.class);
+        var req = ctx.bodyAsClass(QuizCategoryRequest.class);
         if (!catalogService.updateCategory(
                 id,
                 req.name(),
@@ -216,6 +261,10 @@ public class QuizCatalogRoutes implements Routes {
         ctx.status(HttpStatus.OK).json(new QuizSuccessResponse(true));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/categories/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteCategory(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCategory(ctx, id);
@@ -226,11 +275,19 @@ public class QuizCatalogRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/training/catalogs",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalog[].class)))
     private void listTrainingCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(catalogService.findTrainingCatalogs(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/training/catalogs/{id}/questions",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizQuestion[].class)))
     private void getTrainingQuestions(Context ctx) {
         int catalogId = pathInt(ctx, "id");
         var catalog = guards.requireOwnedCatalog(ctx, catalogId);
@@ -238,6 +295,10 @@ public class QuizCatalogRoutes implements Routes {
         ctx.json(questionService.findQuestions(catalogId));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/{id}/export",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CatalogTransfer.class)))
     private void exportCatalog(Context ctx) {
         var catalog = guards.requireOwnedCatalog(ctx, pathInt(ctx, "id"));
         ctx.json(transferService.export(catalog));
@@ -248,12 +309,19 @@ public class QuizCatalogRoutes implements Routes {
      * every problem at once and creates nothing, so the person correcting it sees the whole list
      * rather than the first line that failed.
      */
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/import",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizCatalog.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = CatalogImportRejected.class))
+            })
     private void importCatalog(Context ctx) {
         var session = UserSession.from(ctx);
         var transfer = transferService.read(ctx.bodyAsClass(JsonNode.class));
         var outcome = transferService.importInto(session.stationId(), transfer);
         if (!outcome.problems().isEmpty()) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(new ImportRejected(outcome.problems()));
+            ctx.status(HttpStatus.BAD_REQUEST).json(new CatalogImportRejected(outcome.problems()));
             return;
         }
         ctx.status(HttpStatus.CREATED).json(outcome.catalog());
@@ -263,12 +331,19 @@ public class QuizCatalogRoutes implements Routes {
      * Adds the questions of an uploaded file to a catalog that already exists. Refused the same way
      * and for the same reasons as creating one, except that the file need not name a catalog.
      */
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/{id}/import",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalog.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = CatalogImportRejected.class))
+            })
     private void appendToCatalog(Context ctx) {
         var catalog = guards.requireOwnedCatalog(ctx, pathInt(ctx, "id"));
         var transfer = transferService.read(ctx.bodyAsClass(JsonNode.class));
         var outcome = transferService.appendTo(catalog, transfer);
         if (!outcome.problems().isEmpty()) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(new ImportRejected(outcome.problems()));
+            ctx.status(HttpStatus.BAD_REQUEST).json(new CatalogImportRejected(outcome.problems()));
             return;
         }
         ctx.json(outcome.catalog());
@@ -279,6 +354,11 @@ public class QuizCatalogRoutes implements Routes {
      * The wizard shows what came out, lets it be corrected, and sends the result back to one of the
      * two import endpoints, so what was confirmed on screen is what is created.
      */
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/csv-draft",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CsvDraftRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CsvDraft.class)))
     private void draftFromCsv(Context ctx) {
         var request = ctx.bodyAsClass(CsvDraftRequest.class);
         if (request.content() == null || request.content().isBlank()) {
@@ -294,6 +374,10 @@ public class QuizCatalogRoutes implements Routes {
      * prose about what the fields mean.
      */
     @StationFree("the parameter is a file format, not a row; the example file is the same for every station")
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/template/{format}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void downloadTemplate(Context ctx) {
         var template = QuizCatalogTemplate.byFormat(ctx.pathParam("format"));
         if (template == null) throw Refusal.QUIZ_TEMPLATE_FORMAT_UNKNOWN.raise();
@@ -305,12 +389,16 @@ public class QuizCatalogRoutes implements Routes {
                 .result(template.read());
     }
 
-    public record CatalogRequest(String name, String description, Boolean trainingEnabled, CatalogMetadata metadata) {}
+    public record QuizCatalogRequest(
+            String name,
+            @Nullable String description,
+            @Nullable Boolean trainingEnabled,
+            @Nullable CatalogMetadata metadata) {}
 
     /**
      * @param problems every reason the uploaded file was refused
      */
-    public record ImportRejected(List<TransferProblem> problems) {}
+    public record CatalogImportRejected(List<CatalogTransferProblem> problems) {}
 
     /**
      * @param content  the decoded sheet
@@ -318,9 +406,9 @@ public class QuizCatalogRoutes implements Routes {
      */
     public record CsvDraftRequest(String content, CsvMappings mappings) {}
 
-    public record CategoryRequest(String name, String description, Integer position) {}
+    public record QuizCategoryRequest(String name, @Nullable String description, @Nullable Integer position) {}
 
-    public record CatalogDetail(
+    public record QuizCatalogDetail(
             int id,
             int stationId,
             String name,
@@ -333,5 +421,5 @@ public class QuizCatalogRoutes implements Routes {
             Instant createdAt,
             Instant updatedAt) {}
 
-    private record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedQuizCatalog> sharedCatalogs) {}
+    public record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedQuizCatalog> sharedCatalogs) {}
 }

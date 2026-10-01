@@ -12,7 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ResultFilterControls from './ResultFilterControls.vue'
 import ResultGroupingControls from './ResultGroupingControls.vue'
-import type {ResultFilter, ResultGrouping} from '@/api/forms'
+import type {ResultFilterState, ResultGroupingState} from '@/api/forms'
 import type {ProfileField} from '@/api/profileFields'
 import type {MemberGroup, UserTag} from '@/api/types'
 
@@ -28,8 +28,8 @@ defineProps<{
   querying: boolean
 }>()
 
-const filter = defineModel<ResultFilter>('filter', {required: true})
-const grouping = defineModel<ResultGrouping | null>('grouping', {required: true})
+const filter = defineModel<ResultFilterState>('filter', {required: true})
+const grouping = defineModel<ResultGroupingState | null>('grouping', {required: true})
 
 const emit = defineEmits<{
   reset: []

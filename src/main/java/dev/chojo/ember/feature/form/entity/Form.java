@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.form.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -23,9 +24,9 @@ public record Form(
         boolean shuffleQuestions,
         boolean allowEdit,
         boolean forced,
-        Instant startAt,
-        Instant endAt,
-        Instant closedAt,
+        @Nullable Instant startAt,
+        @Nullable Instant endAt,
+        @Nullable Instant closedAt,
         int createdBy,
         Instant createdAt,
         Instant updatedAt,
@@ -36,9 +37,9 @@ public record Form(
         FormVisibility visibility,
         UUID publicUid,
         int responseCount,
-        String completionMessage,
-        String completionLink,
-        String completionLinkLabel) {
+        @Nullable String completionMessage,
+        @Nullable String completionLink,
+        @Nullable String completionLinkLabel) {
 
     public static RowMapping<Form> map() {
         return row -> new Form(

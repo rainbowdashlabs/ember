@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { ProcedureTemplateItem } from '@/api/procedures'
+import type { ProcedureTemplateItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 

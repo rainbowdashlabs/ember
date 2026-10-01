@@ -23,7 +23,8 @@ import {
   DONUT_CENTER,
   DONUT_RADIUS,
 } from '@/util/chartLayout'
-import {QuestionTypes, type FormQuestionInfo, type FormQuestionTally, type FormResultGroup} from '@/api/forms'
+import {QuestionTypes} from '@/api/forms'
+import type {FormQuestionInfo, FormQuestionTally, FormResultGroup} from '@/api/generated/schema'
 import {questionConfig, tallyIn} from './groupedResults'
 import {optionsOf} from '@/util/formOptions'
 import {formatDate} from '@/util/format'

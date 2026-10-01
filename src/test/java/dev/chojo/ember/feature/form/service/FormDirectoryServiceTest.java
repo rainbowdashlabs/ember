@@ -32,6 +32,17 @@ class FormDirectoryServiceTest {
             Form.FormStatus status,
             FormPurpose purpose,
             FormVisibility visibility) {
+        return form(id, stationId, title, status, purpose, visibility, false);
+    }
+
+    private static Form form(
+            int id,
+            int stationId,
+            String title,
+            Form.FormStatus status,
+            FormPurpose purpose,
+            FormVisibility visibility,
+            boolean restricted) {
         return new Form(
                 id,
                 stationId,
@@ -49,7 +60,7 @@ class FormDirectoryServiceTest {
                 null,
                 null,
                 null,
-                false,
+                restricted,
                 purpose,
                 visibility,
                 UUID.nameUUIDFromBytes(("f" + id).getBytes()),
@@ -86,6 +97,18 @@ class FormDirectoryServiceTest {
                 available.stream().map(FormDirectoryService.FormListEntry::id).toList());
         assertTrue(available.getFirst().hasResponded());
         assertEquals(7, available.get(1).responseCount());
+    }
+
+    @Test
+    void aFormPutToPartOfTheStationIsListedAsRestricted() {
+        var restricted = form(6, 3, "Nur Jugend", Form.FormStatus.OPEN, FormPurpose.INTERNAL, FormVisibility.PUBLIC, true);
+        when(forms.findByStationForMember(3, 11, false)).thenReturn(List.of(open(1), restricted));
+
+        var available = directory.available(3, 11, false, List.of());
+
+        assertEquals(
+                List.of(false, true),
+                available.stream().map(FormDirectoryService.FormListEntry::restricted).toList());
     }
 
     @Test

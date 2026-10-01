@@ -6,13 +6,20 @@
 package dev.chojo.ember.feature.protocol.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record TestProtocolRunMember(
-        int id, int runId, int memberId, Integer lockedBy, Instant lockedAt, boolean completed, double totalScore) {
+        int id,
+        int runId,
+        int memberId,
+        @Nullable Integer lockedBy,
+        @Nullable Instant lockedAt,
+        boolean completed,
+        double totalScore) {
 
     public static RowMapping<TestProtocolRunMember> map() {
         return row -> new TestProtocolRunMember(

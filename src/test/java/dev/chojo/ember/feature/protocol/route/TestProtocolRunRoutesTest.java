@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService.Ev
 import dev.chojo.ember.feature.protocol.service.TestProtocolGuards;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolRunService;
-import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.RunRequest;
+import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.ProtocolRunRequest;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,7 +76,11 @@ class TestProtocolRunRoutesTest {
 
         assertEquals(201, answer.code());
         verify(runs)
-                .start(1, STATION, TestSessions.MEMBER_ID, new RunRequest("Herbst", DAY, List.of(4), null, null, null));
+                .start(
+                        1,
+                        STATION,
+                        TestSessions.MEMBER_ID,
+                        new ProtocolRunRequest("Herbst", DAY, List.of(4), null, null, null));
     }
 
     @Test

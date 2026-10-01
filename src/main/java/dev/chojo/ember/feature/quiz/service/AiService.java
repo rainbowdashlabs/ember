@@ -404,7 +404,7 @@ public class AiService {
                     var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.MultipleChoice.class);
                     yield cfg.options() != null
                             && cfg.options().size() >= 2
-                            && cfg.options().stream().anyMatch(QuestionConfig.MultipleChoice.Option::correct)
+                            && cfg.options().stream().anyMatch(QuestionConfig.MultipleChoice.ChoiceOption::correct)
                             && cfg.options().stream()
                                     .allMatch(o -> o.text() != null && !o.text().isBlank());
                 }

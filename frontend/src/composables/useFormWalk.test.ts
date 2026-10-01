@@ -6,7 +6,7 @@
 import {nextTick, ref} from 'vue'
 import {describe, expect, it, vi} from 'vitest'
 import type {PathPage} from '@/util/formPath'
-import type {AnswerValue} from '@/util/formAnswers'
+import type {FormAnswerValue} from '@/api/generated/schema'
 import {useFormWalk, type WalkQuestion} from './useFormWalk'
 
 vi.mock('vue-i18n', async (original) => ({
@@ -14,26 +14,26 @@ vi.mock('vue-i18n', async (original) => ({
     useI18n: () => ({t: (key: string) => key}),
 }))
 
-const next = {kind: 'NEXT' as const, page: null}
+const next = {kind: 'NEXT' as const}
 
 function page(key: string, after: PathPage['after'] = next): PathPage {
     return {key, after}
 }
 
-interface Question extends WalkQuestion {
-    type: string
-}
-
 /** A form asking whether somebody comes: yes leads to what they bring, no skips to the end. */
 function comingForm() {
-    const pages = ref<PathPage[]>([page('ask'), page('bring', {kind: 'SUBMIT', page: null}), page('why')])
-    const questions = ref<Question[]>([
-        {id: 1, pageKey: 'ask', required: true, type: 'CHOICE', branch: {yes: {kind: 'PAGE', page: 'bring'}, no: {kind: 'PAGE', page: 'why'}}},
-        {id: 2, pageKey: 'bring', required: false, type: 'TEXT'},
-        {id: 3, pageKey: 'why', required: false, type: 'TEXT'},
+    const pages = ref<PathPage[]>([page('ask'), page('bring', {kind: 'SUBMIT'}), page('why')])
+    const questions = ref<WalkQuestion[]>([
+        {id: 1, pageKey: 'ask', required: true, branch: {yes: {kind: 'PAGE', page: 'bring'}, no: {kind: 'PAGE', page: 'why'}}},
+        {id: 2, pageKey: 'bring', required: false},
+        {id: 3, pageKey: 'why', required: false},
     ])
-    const answers = ref<Record<number, AnswerValue>>({1: {selected: [], other: ''}, 2: {text: ''}, 3: {text: ''}})
-    const walk = useFormWalk(pages, questions, answers, question => question.type)
+    const answers = ref<Record<number, FormAnswerValue>>({
+        1: {type: 'CHOICE', selected: [], other: ''},
+        2: {type: 'TEXT', text: ''},
+        3: {type: 'TEXT', text: ''},
+    })
+    const walk = useFormWalk(pages, questions, answers)
     return {pages, questions, answers, walk}
 }
 
@@ -49,7 +49,7 @@ describe('useFormWalk', () => {
         expect(walk.next()).toBe(false)
         expect(walk.errors.value[1]).toBe('forms.fill.required')
 
-        answers.value[1] = {selected: ['no'], other: ''}
+        answers.value[1] = {type: 'CHOICE', selected: ['no'], other: ''}
         expect(walk.next()).toBe(true)
 
         expect(walk.current.value).toBe('why')
@@ -59,7 +59,7 @@ describe('useFormWalk', () => {
 
     it('goes back to the page the reader came from', () => {
         const {answers, walk} = comingForm()
-        answers.value[1] = {selected: ['no'], other: ''}
+        answers.value[1] = {type: 'CHOICE', selected: ['no'], other: ''}
         walk.next()
 
         walk.back()
@@ -70,7 +70,7 @@ describe('useFormWalk', () => {
 
     it('keeps a page it was put on right after the pages arrived', async () => {
         const pages = ref<PathPage[]>([])
-        const walk = useFormWalk(pages, ref<Question[]>([]), ref({}), question => question.type)
+        const walk = useFormWalk(pages, ref<WalkQuestion[]>([]), ref({}))
 
         pages.value = [page('p0'), page('p1')]
         walk.showAt(['p0', 'p1'], {})
@@ -82,7 +82,7 @@ describe('useFormWalk', () => {
 
     it('stays where it is when the same pages arrive again, and starts over when they change', async () => {
         const {pages, answers, walk} = comingForm()
-        answers.value[1] = {selected: ['yes'], other: ''}
+        answers.value[1] = {type: 'CHOICE', selected: ['yes'], other: ''}
         walk.next()
 
         pages.value = pages.value.map(existing => ({...existing}))
@@ -99,7 +99,7 @@ describe('useFormWalk', () => {
         const {answers, walk} = comingForm()
 
         expect(walk.progress.value).toBeCloseTo(1 / 2)
-        answers.value[1] = {selected: ['yes'], other: ''}
+        answers.value[1] = {type: 'CHOICE', selected: ['yes'], other: ''}
         walk.next()
 
         expect(walk.progress.value).toBe(1)

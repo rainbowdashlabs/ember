@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
+import type {Form, FormQuestion, FormQuestionConfig, FormQuestionInfo, FormResultGroup} from '@/api/generated/schema'
 import type {MemberIdentity} from '@/api/types'
 import type {PitchForm, PitchFormAnalytics} from './pitchTypes'
 import {numberedOptions} from '@/util/formOptions'
@@ -22,8 +22,11 @@ function form(id: number, title: string, description: string, status: Form['stat
               responseCount: number, rest: Partial<Form> = {}): Form {
     return {
         id, stationId: 'wache', title, description, status, shuffleQuestions: false, allowEdit: true,
+        forced: false, startAt: null, endAt: null, closedAt: null, acceptingResponses: status === 'OPEN',
         createdBy: 1, createdAt: days(-20), updatedAt: days(-2), lastActivityAt: days(-1),
-        purpose: 'INTERNAL', visibility: 'PUBLIC', publicUid: `uid-${id}`, responseCount, ...rest,
+        restrictionMode: 'AND', restricted: false, purpose: 'INTERNAL', visibility: 'PUBLIC',
+        publicUid: `uid-${id}`, responseCount, completionMessage: null, completionLink: null,
+        completionLinkLabel: null, ...rest,
     }
 }
 
@@ -35,27 +38,27 @@ export const FORMS: Form[] = [
 
 const CAMPS = numberedOptions('Zeltlager', 'Berufsfeuerwehrtag', 'Kreisjugendtag')
 
-function question(id: number, type: FormQuestion['formQuestionType'], title: string,
-                  config: Record<string, unknown>, rest: Partial<FormQuestion> = {}): FormQuestion {
+function question(id: number, title: string, config: FormQuestionConfig, rest: Partial<FormQuestion> = {}): FormQuestion {
     return {
-        id, formId: 1, position: id, pageKey: 'p0', formQuestionType: type, title, description: '',
-        required: false, shuffle: false, config, ...rest,
+        id, formId: 1, position: id, pageKey: 'p0', formQuestionType: config.questionType, title, description: '',
+        required: false, shuffle: false, config, branch: null, ...rest,
     }
 }
 
 export const FORM_QUESTIONS: FormQuestion[] = [
-    question(1, 'CHOICE', 'Woran hast du teilgenommen?',
-        {options: CAMPS, multiSelect: true, allowOther: true},
+    question(1, 'Woran hast du teilgenommen?',
+        {questionType: 'CHOICE', options: CAMPS, multiSelect: true, allowOther: true},
         {required: true}),
-    question(2, 'RATING', 'Wie hat dir das Lager insgesamt gefallen?', {scale: 5, icon: 'STAR'},
+    question(2, 'Wie hat dir das Lager insgesamt gefallen?', {questionType: 'RATING', scale: 5, icon: 'STAR'},
         {required: true}),
-    question(3, 'RANKING', 'Bring die Programmpunkte in deine Reihenfolge',
-        {options: numberedOptions('Nachtwanderung', 'Wasserspiele', 'Lagerfeuer', 'Geländespiel')}),
-    question(4, 'LIKERT', 'Wie sehr stimmst du zu?',
+    question(3, 'Bring die Programmpunkte in deine Reihenfolge',
+        {questionType: 'RANKING', options: numberedOptions('Nachtwanderung', 'Wasserspiele', 'Lagerfeuer', 'Geländespiel')}),
+    question(4, 'Wie sehr stimmst du zu?',
         {
+            questionType: 'LIKERT',
             statements: numberedOptions('Das Essen war gut', 'Die Zelte waren in Ordnung', 'Es war genug Freizeit'),
             scaleMin: 1, scaleMax: 5,
-            labels: ['gar nicht', 'wenig', 'teils', 'ziemlich', 'völlig'],
+            scaleLabels: ['gar nicht', 'wenig', 'teils', 'ziemlich', 'völlig'],
         }),
 ]
 
@@ -63,21 +66,21 @@ export const FORM_QUESTIONS: FormQuestion[] = [
 export const FORM_FILL: PitchForm = {
     questions: FORM_QUESTIONS,
     answers: {
-        1: {selected: ['o0', 'o2'], other: ''},
-        2: {rating: 4},
-        3: {order: ['o2', 'o0', 'o3', 'o1']},
-        4: {ratings: {o0: 5, o1: 3, o2: 4}},
+        1: {type: 'CHOICE', selected: ['o0', 'o2'], other: ''},
+        2: {type: 'RATING', rating: 4},
+        3: {type: 'RANKING', order: ['o2', 'o0', 'o3', 'o1']},
+        4: {type: 'LIKERT', ratings: {o0: 5, o1: 3, o2: 4}},
     },
 }
 
 const QUESTIONS: FormQuestionInfo[] = [
     {
         questionId: 1, questionType: 'CHOICE', title: 'Woran hast du teilgenommen?',
-        config: {options: CAMPS, allowOther: true},
+        config: {questionType: 'CHOICE', options: CAMPS, allowOther: true},
     },
     {
         questionId: 2, questionType: 'RATING', title: 'Wie hat dir das Lager insgesamt gefallen?',
-        config: {scale: 5},
+        config: {questionType: 'RATING', scale: 5},
     },
 ]
 

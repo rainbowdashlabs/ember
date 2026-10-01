@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -18,17 +19,18 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record QuizQuestion(
         int id,
         int catalogId,
-        Integer categoryId,
+        @Nullable Integer categoryId,
         QuizQuestionType quizQuestionType,
         String title,
         String description,
-        String imageUrl,
+        @Nullable String imageUrl,
         double points,
         boolean autoPoints,
         QuestionConfig config,
         int position,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt)
+        implements QuizQuestionRead {
 
     /**
      * Reads a question as another instance serves it. The config's shape follows from the question

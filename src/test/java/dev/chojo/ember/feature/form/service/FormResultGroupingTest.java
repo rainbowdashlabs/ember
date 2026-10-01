@@ -9,7 +9,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
 import dev.chojo.ember.feature.form.service.FormResultGrouping.Bucket;
 import dev.chojo.ember.feature.form.service.FormResultQuery.Dimension;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Grouping;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -71,7 +71,7 @@ class FormResultGroupingTest {
     @Test
     void byUserTypeInTheOrderOfTheTypes() {
         var buckets = split(
-                new Grouping(Dimension.USER_TYPE, null, null, null),
+                new ResultGrouping(Dimension.USER_TYPE, null, null, null),
                 person(1, StationUserType.MEMBER),
                 person(2, StationUserType.TRIAL),
                 person(3, StationUserType.MEMBER),
@@ -85,7 +85,7 @@ class FormResultGroupingTest {
     @Test
     void aMemberOfTwoGroupsCountsInBothAndOneOfNoneCountsApart() {
         var buckets = split(
-                new Grouping(Dimension.GROUP, null, null, null),
+                new ResultGrouping(Dimension.GROUP, null, null, null),
                 inGroups(1, YOUTH, ACTIVE),
                 inGroups(2, ACTIVE),
                 inGroups(3));
@@ -94,15 +94,15 @@ class FormResultGroupingTest {
         assertEquals("Jugend", buckets.getFirst().label());
         assertEquals(Set.of(1, 2), buckets.get(1).ids());
         assertEquals(Set.of(3), buckets.get(2).ids());
-        assertTrue(FormResultGrouping.overlaps(new Grouping(Dimension.GROUP, null, null, null)));
-        assertFalse(FormResultGrouping.overlaps(new Grouping(Dimension.AGE, null, null, null)));
+        assertTrue(FormResultGrouping.overlaps(new ResultGrouping(Dimension.GROUP, null, null, null)));
+        assertFalse(FormResultGrouping.overlaps(new ResultGrouping(Dimension.AGE, null, null, null)));
     }
 
     @Test
     void choosingTwoGroupsShowsExactlyThoseEvenWhenOneIsEmpty() {
         var only = List.of(String.valueOf(YOUTH), String.valueOf(OFFICERS));
         var buckets = split(
-                new Grouping(Dimension.GROUP, null, only, null), inGroups(1, YOUTH), inGroups(2, ACTIVE), inGroups(3));
+                new ResultGrouping(Dimension.GROUP, null, only, null), inGroups(1, YOUTH), inGroups(2, ACTIVE), inGroups(3));
 
         assertEquals(only, keys(buckets), "comparing two groups must not quietly turn into looking at one");
         assertTrue(buckets.get(1).ids().isEmpty());
@@ -110,7 +110,7 @@ class FormResultGroupingTest {
 
     @Test
     void byTag() {
-        var buckets = split(new Grouping(Dimension.TAG, null, null, null), tagged(1, DRIVER), tagged(2));
+        var buckets = split(new ResultGrouping(Dimension.TAG, null, null, null), tagged(1, DRIVER), tagged(2));
 
         assertEquals(List.of(String.valueOf(DRIVER), FormResultGrouping.NONE), keys(buckets));
         assertEquals("Fahrer", buckets.getFirst().label());
@@ -119,7 +119,7 @@ class FormResultGroupingTest {
     @Test
     void ageBracketsEndOneBelowTheNextBound() {
         var buckets = split(
-                new Grouping(Dimension.AGE, null, null, null),
+                new ResultGrouping(Dimension.AGE, null, null, null),
                 aged(1, 13),
                 aged(2, 14),
                 aged(3, 17),
@@ -135,7 +135,7 @@ class FormResultGroupingTest {
 
     @Test
     void theReaderChoosesTheBrackets() {
-        var buckets = split(new Grouping(Dimension.AGE, null, null, List.of(30, 16)), aged(1, 15), aged(2, 40));
+        var buckets = split(new ResultGrouping(Dimension.AGE, null, null, List.of(30, 16)), aged(1, 15), aged(2, 40));
 
         assertEquals(List.of("< 16", "30+"), keys(buckets));
     }
@@ -143,7 +143,7 @@ class FormResultGroupingTest {
     @Test
     void aChoiceFieldGroupsByItsOptionsAndKeepsAnAnswerNoLongerOffered() {
         var buckets = split(
-                new Grouping(Dimension.FIELD, SHIRT, null, null),
+                new ResultGrouping(Dimension.FIELD, SHIRT, null, null),
                 answered(1, SHIRT, "L"),
                 answered(2, SHIRT, "XXL"),
                 answered(3, SHIRT, "M"),
@@ -155,7 +155,7 @@ class FormResultGroupingTest {
     @Test
     void aYesNoFieldGroupsByItsAnswer() {
         var buckets = split(
-                new Grouping(Dimension.FIELD, FIRST_AID, null, null),
+                new ResultGrouping(Dimension.FIELD, FIRST_AID, null, null),
                 answered(1, FIRST_AID, "true"),
                 answered(2, FIRST_AID, "false"));
 
@@ -165,12 +165,12 @@ class FormResultGroupingTest {
     @Test
     void aNumberFieldGroupsByValueOrByBrackets() {
         var byValue = split(
-                new Grouping(Dimension.FIELD, YEARS, null, null),
+                new ResultGrouping(Dimension.FIELD, YEARS, null, null),
                 answered(1, YEARS, "10"),
                 answered(2, YEARS, "2"),
                 answered(3, YEARS, "10"));
         var byBracket = split(
-                new Grouping(Dimension.FIELD, YEARS, null, List.of(5)),
+                new ResultGrouping(Dimension.FIELD, YEARS, null, List.of(5)),
                 answered(1, YEARS, "10"),
                 answered(2, YEARS, "2"));
 
@@ -180,12 +180,12 @@ class FormResultGroupingTest {
 
     @Test
     void aFieldThatCannotBeGroupedIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> split(new Grouping(Dimension.FIELD, 40, null, null)));
-        assertThrows(BadRequestResponse.class, () -> split(new Grouping(Dimension.FIELD, 999, null, null)));
-        assertThrows(BadRequestResponse.class, () -> split(new Grouping(null, null, null, null)));
+        assertThrows(BadRequestResponse.class, () -> split(new ResultGrouping(Dimension.FIELD, 40, null, null)));
+        assertThrows(BadRequestResponse.class, () -> split(new ResultGrouping(Dimension.FIELD, 999, null, null)));
+        assertThrows(BadRequestResponse.class, () -> split(new ResultGrouping(null, null, null, null)));
     }
 
-    private List<Bucket> split(Grouping by, Respondent... respondents) {
+    private List<Bucket> split(ResultGrouping by, Respondent... respondents) {
         return grouping.split(STATION, List.of(respondents), by);
     }
 

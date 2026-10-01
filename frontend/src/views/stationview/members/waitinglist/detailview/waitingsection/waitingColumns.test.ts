@@ -5,7 +5,8 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {WaitingListFieldTypes, type WaitingListEntryWithScore, type WaitingListField} from '@/api/waitingList'
+import {WaitingListFieldTypes} from '@/api/waitingList'
+import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'
 import {sortValueOf} from '@/components/table/columnFilter'
 import {BIRTH_DATE_KEY, fieldIdOfColumn, waitingColumns} from './waitingColumns'
 

@@ -19,7 +19,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import BatchActionModal from './BatchActionModal.vue'
-import type { QuizCategory, QuizQuestion, QuizQuestionReport } from '@/api/quiz'
+import type { QuizCategory, QuizQuestion, QuizQuestionReport } from '@/api/generated/schema'
 import { quiz } from '@/api'
 import type { Failure } from '@/util/failure'
 

@@ -5,13 +5,15 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {QuestionTypes, type FormQuestionInfo, type FormQuestionTally, type FormResultGroup} from '@/api/forms'
+import {QuestionTypes, type QuestionType} from '@/api/forms'
+import type {FormQuestionInfo, FormQuestionTally, FormResultGroup} from '@/api/generated/schema'
 import {averageRating, formatValue, matrixOf} from './groupedResults'
 import {groupedBarOption, type GroupSeries} from './groupedChart'
 import {numberedOptions} from '@/util/formOptions'
+import {questionConfigOf} from '../builderview/questionDefaults'
 
-function question(questionType: string, config: Record<string, unknown>): FormQuestionInfo {
-    return {questionId: 1, questionType, title: 'Frage', config}
+function question(questionType: QuestionType, config: Record<string, unknown>): FormQuestionInfo {
+    return {questionId: 1, questionType, title: 'Frage', config: questionConfigOf(questionType, config)}
 }
 
 function group(key: string, tally: Omit<FormQuestionTally, 'questionId'>): FormResultGroup {
@@ -65,7 +67,7 @@ describe('groupedResults', () => {
 
     it('averages Likert statements by statement key', () => {
         const likert = question(QuestionTypes.LIKERT, {statements: numberedOptions('Essen', '')})
-        const matrix = matrixOf(likert, [group('x', {answerCount: 2, statementAverages: {o0: 4.5, o1: null}})], '')!
+        const matrix = matrixOf(likert, [group('x', {answerCount: 2, statementAverages: {o0: 4.5}})], '')!
 
         expect(matrix.rows).toEqual(['Essen', 'Option 2'])
         expect(matrix.values).toEqual([[4.5], [null]])

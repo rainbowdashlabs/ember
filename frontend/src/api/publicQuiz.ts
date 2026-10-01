@@ -4,29 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-
-/**
- * Picker shape for catalogs marked {@code public_render = true}. Backs the QUIZ_TEASER cell
- * editor and the renderer alike.
- */
-export interface PublicQuizCatalog {
-    id: number
-    name: string
-    description: string | null
-}
-
-/**
- * Single random question payload. The {@code config} object is opaquely typed because every
- * question variant carries different fields; the renderer dispatches on {@code questionType}.
- */
-export interface PublicQuizQuestion {
-    id: number
-    questionType: string
-    title: string
-    description: string | null
-    imageUrl: string | null
-    config: Record<string, unknown>
-}
+import type {PublicQuizCatalog, PublicQuizQuestion} from './generated/schema'
 
 export async function listPublicCatalogs(stationUid: string): Promise<PublicQuizCatalog[]> {
     const res = await client.get<PublicQuizCatalog[]>(`/public/quiz/${stationUid}/catalogs`)

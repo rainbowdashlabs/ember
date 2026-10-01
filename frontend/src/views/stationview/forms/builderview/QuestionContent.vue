@@ -7,7 +7,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FormOptionsEditor from './FormOptionsEditor.vue'
-import { QuestionTypes, type FormOption } from '@/api/forms'
+import { QuestionTypes } from '@/api/forms'
+import type { Option } from '@/api/generated/schema'
 import { optionsOf, type OptionField } from '@/util/formOptions'
 import type { QuestionDraft } from './types'
 
@@ -33,7 +34,7 @@ const content = computed<{field: OptionField, label: string, addLabel: string} |
   }
 })
 
-function update(field: OptionField, items: FormOption[]) {
+function update(field: OptionField, items: Option[]) {
   question.value.config[field] = items
 }
 </script>

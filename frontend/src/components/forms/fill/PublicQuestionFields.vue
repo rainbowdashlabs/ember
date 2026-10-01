@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
@@ -11,8 +12,8 @@ import PublicChoiceQuestion from './PublicChoiceQuestion.vue'
 import RatingQuestion from './RatingQuestion.vue'
 import RankingQuestion from './RankingQuestion.vue'
 import LikertQuestion from './LikertQuestion.vue'
-import type {PublicFormQuestion} from '@/api/publicForms'
-import {QuestionTypes, type ChoiceAnswer, type LikertAnswer, type RankingAnswer} from '@/api/forms'
+import {QuestionTypes} from '@/api/forms'
+import type {FormAnswerValue, PublicFormQuestion} from '@/api/generated/schema'
 
 /**
  * The fields one question of a public form is answered with.
@@ -25,18 +26,13 @@ import {QuestionTypes, type ChoiceAnswer, type LikertAnswer, type RankingAnswer}
  * <p>Rating, ranking and Likert write into the answer they are handed rather than replacing it,
  * which is what the station's own fill screen has always relied on. That is why they take the answer
  * and give nothing back, while text, date and choice report what was typed or picked.
- */
-interface TextAnswer { text: string }
-interface DateAnswer { date: string }
-interface RatingAnswer { rating: number }
-
-/**
- * Answers travel as plain records, because which shape one has follows from the question type beside
- * it and no single type can say that. Each branch below reads the shape its own question guarantees.
+ *
+ * <p>Every answer names the kind of question it answers, so the field drawn is the one its answer
+ * is shaped for.
  */
 const props = defineProps<{
   question: PublicFormQuestion
-  answer: Record<string, unknown> | undefined
+  answer: FormAnswerValue | undefined
 }>()
 
 const emit = defineEmits<{
@@ -45,54 +41,35 @@ const emit = defineEmits<{
   'toggle-choice': [optionKey: string]
 }>()
 
-/**
- * The answer read as the shape its own question type guarantees. One place that narrows, so the
- * template says which kind of question it is drawing and nothing else.
- */
-function shaped<T>(): T {
-  return (props.answer ?? {}) as T
-}
-
-function textValue(): string {
-  return shaped<Partial<TextAnswer>>().text ?? ''
-}
-
-function dateValue(): string {
-  return shaped<Partial<DateAnswer>>().date ?? ''
-}
+const longAnswer = computed(() => props.question.config.questionType === QuestionTypes.TEXT && !!props.question.config.longAnswer)
 </script>
 
 <template>
-    <template v-if="question.questionType === QuestionTypes.TEXT">
-        <TextAreaInput v-if="question.config.longAnswer"
-                       :model-value="textValue()"
+    <template v-if="answer?.type === QuestionTypes.TEXT">
+        <TextAreaInput v-if="longAnswer"
+                       :model-value="answer.text"
                        @update:model-value="(v?: string) => emit('update:text', v ?? '')"/>
         <TextInput v-else
-                   :model-value="textValue()"
+                   :model-value="answer.text"
                    @update:model-value="(v?: string) => emit('update:text', v ?? '')"/>
     </template>
-
-    <template v-else-if="question.questionType === QuestionTypes.DATE">
-        <DateInput :model-value="dateValue()"
+    <template v-else-if="answer?.type === QuestionTypes.DATE">
+        <DateInput :model-value="answer.date"
                    @update:model-value="(v?: string) => emit('update:date', v ?? '')"/>
     </template>
-
-    <template v-else-if="question.questionType === QuestionTypes.CHOICE">
+    <template v-else-if="answer?.type === QuestionTypes.CHOICE">
         <PublicChoiceQuestion
             :question="question"
-            :answer="shaped<ChoiceAnswer>()"
+            :answer="answer"
             @toggle="(key: string) => emit('toggle-choice', key)"/>
     </template>
-
-    <template v-else-if="question.questionType === QuestionTypes.RATING">
-        <RatingQuestion :config="question.config" :model-value="shaped<RatingAnswer>()"/>
+    <template v-else-if="answer?.type === QuestionTypes.RATING">
+        <RatingQuestion :config="question.config" :model-value="answer"/>
     </template>
-
-    <template v-else-if="question.questionType === QuestionTypes.RANKING">
-        <RankingQuestion :config="question.config" :model-value="shaped<RankingAnswer>()"/>
+    <template v-else-if="answer?.type === QuestionTypes.RANKING">
+        <RankingQuestion :config="question.config" :model-value="answer"/>
     </template>
-
-    <template v-else-if="question.questionType === QuestionTypes.LIKERT">
-        <LikertQuestion :config="question.config" :model-value="shaped<LikertAnswer>()"/>
+    <template v-else-if="answer?.type === QuestionTypes.LIKERT">
+        <LikertQuestion :config="question.config" :model-value="answer"/>
     </template>
 </template>

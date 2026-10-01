@@ -31,6 +31,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -207,7 +208,7 @@ public class SelfCheckRoutes implements Routes {
                 task.submittedAt());
     }
 
-    public record HandOutSelfChecksRequest(List<Integer> memberIds, String dueOn) {}
+    public record HandOutSelfChecksRequest(List<Integer> memberIds, @Nullable String dueOn) {}
 
     /**
      * A report the member wants that must not go out while the record it names is wrong.
@@ -217,9 +218,13 @@ public class SelfCheckRoutes implements Routes {
      * @param newSizeId the size a swap asks for, which a loss does not carry
      * @param words     the note on a loss, the reason on a swap
      */
-    public record HeldReportRequest(SelfCheckRaisedKind kind, Integer itemId, Integer newSizeId, String words) {}
+    public record HeldReportRequest(
+            @Nullable SelfCheckRaisedKind kind,
+            @Nullable Integer itemId,
+            @Nullable Integer newSizeId,
+            @Nullable String words) {}
 
-    public record SelfCheckAnswerRequest(List<AnswerBody> answers) {}
+    public record SelfCheckAnswerRequest(@Nullable List<AnswerBody> answers) {}
 
     /**
      * One answer as it arrives over the wire.
@@ -233,13 +238,13 @@ public class SelfCheckRoutes implements Routes {
      * @param sizeId          the size they gave for such a piece, which they may leave out
      */
     public record AnswerBody(
-            Integer itemId,
-            Integer inventoryId,
-            Integer slot,
-            SelfCheckAnswer answer,
-            String note,
-            String typedInternalId,
-            Integer sizeId) {
+            @Nullable Integer itemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer slot,
+            @Nullable SelfCheckAnswer answer,
+            @Nullable String note,
+            @Nullable String typedInternalId,
+            @Nullable Integer sizeId) {
         SelfCheckAnswerInput toInput() {
             return new SelfCheckAnswerInput(itemId, inventoryId, slot, answer, note, typedInternalId, sizeId);
         }
@@ -249,10 +254,10 @@ public class SelfCheckRoutes implements Routes {
             int id,
             int memberId,
             String memberName,
-            LocalDate dueOn,
+            @Nullable LocalDate dueOn,
             SelfCheckState state,
             Instant handedOutAt,
-            Instant submittedAt) {}
+            @Nullable Instant submittedAt) {}
 
     /**
      * A task as the person answering it reads it.

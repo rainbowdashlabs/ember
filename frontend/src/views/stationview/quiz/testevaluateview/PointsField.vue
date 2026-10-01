@@ -8,7 +8,7 @@ import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 
 const props = defineProps<{
   question: QuizQuestion

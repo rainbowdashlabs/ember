@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
@@ -111,11 +112,11 @@ class FormResultTallyTest {
 
         var tally = only(question, answers, null);
 
-        assertEquals(
-                List.of("o0", "o1", "o2"), List.copyOf(tally.statementAverages().keySet()));
+        assertEquals(List.of("o0", "o1"), List.copyOf(tally.statementAverages().keySet()));
         assertEquals(4.7, tally.statementAverages().get("o0"));
         assertEquals(3.5, tally.statementAverages().get("o1"));
-        assertNull(tally.statementAverages().get("o2"), "a statement nobody rated has no average rather than zero");
+        assertFalse(
+                tally.statementAverages().containsKey("o2"), "a statement nobody rated has no average rather than zero");
     }
 
     @Test
@@ -216,7 +217,7 @@ class FormResultTallyTest {
         return new FormResponse(id, 1, id, id, null, null, null, null, null, path);
     }
 
-    private static FormResultTally.QuestionTally only(
+    private static FormResultTally.FormQuestionTally only(
             FormQuestion question, List<FormAnswer> answers, Set<Integer> responses) {
         return FormResultTally.tally(List.of(question), answers, responses).getFirst();
     }

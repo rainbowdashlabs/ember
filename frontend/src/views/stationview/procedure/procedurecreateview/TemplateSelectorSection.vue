@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {ProcedureTemplate} from '@/api/procedures'
+import type {ProcedureTemplate} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

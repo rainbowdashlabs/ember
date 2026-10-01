@@ -28,9 +28,11 @@ import {quiz, ai} from '@/api'
 import {type AiCredentials, loadAiCredentials} from '@/util/aiCredentials'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
+import {isQuizQuestionOf, QuizQuestionTypes, type QuizQuestionOf} from '@/api/quiz'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+
+type MultipleChoiceQuestion = QuizQuestionOf<typeof QuizQuestionTypes.MULTIPLE_CHOICE>
 
 const {t} = useI18n()
 const route = useRoute()
@@ -81,9 +83,9 @@ const phase = ref<'config' | 'review'>('config')
 // Save phase
 const savedCount = ref(0)
 
-async function buildReviewItem(q: QuizQuestion, credentials: AiCredentials): Promise<ReviewQuestion | null> {
-  const config = q.config ?? {}
-  const options: { text: string; correct: boolean }[] = (config.options as { text: string; correct: boolean }[]) || []
+async function buildReviewItem(q: MultipleChoiceQuestion, credentials: AiCredentials): Promise<ReviewQuestion | null> {
+  const config = q.config
+  const options = config.options ?? []
   const correctAnswers = options.filter(o => o.correct).map(o => o.text)
   if (correctAnswers.length === 0) return null
 
@@ -133,7 +135,7 @@ async function generate() {
       return
     }
     const questions = await quiz.listQuestions(catalogId.value)
-    const mcQuestions = questions.filter(q => q.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE)
+    const mcQuestions = questions.filter((q): q is MultipleChoiceQuestion => isQuizQuestionOf(q, QuizQuestionTypes.MULTIPLE_CHOICE))
     let done = 0
 
     for (const q of mcQuestions) {

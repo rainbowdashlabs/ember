@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type { QuizCategory } from '@/api/quiz'
+import type { QuizCategory } from '@/api/generated/schema'
 
 const type = defineModel<string>('type', {required: true})
 const category = defineModel<string>('category', {required: true})

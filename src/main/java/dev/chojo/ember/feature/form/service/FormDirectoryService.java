@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -76,7 +77,8 @@ public class FormDirectoryService {
                 form.startAt(),
                 form.endAt(),
                 forms.countResponses(form.id()),
-                forms.hasResponded(form.id(), memberId));
+                forms.hasResponded(form.id(), memberId),
+                form.restricted());
     }
 
     /**
@@ -128,6 +130,8 @@ public class FormDirectoryService {
 
     /**
      * A form a member can answer, with whether they already have.
+     *
+     * @param restricted whether the form is put to only part of the station, which the list marks with a lock
      */
     public record FormListEntry(
             int id,
@@ -135,8 +139,9 @@ public class FormDirectoryService {
             String title,
             String description,
             Form.FormStatus status,
-            Instant startAt,
-            Instant endAt,
+            @Nullable Instant startAt,
+            @Nullable Instant endAt,
             int responseCount,
-            boolean hasResponded) {}
+            boolean hasResponded,
+            boolean restricted) {}
 }

@@ -328,7 +328,7 @@ class QuizCatalogTransferServiceTest {
         assertEquals(
                 List.of("catalog.name", "questions[0]", "questions[1]", "questions[2]", "questions[3]"),
                 outcome.problems().stream()
-                        .map(QuizCatalogTransferService.TransferProblem::location)
+                        .map(QuizCatalogTransferService.CatalogTransferProblem::location)
                         .sorted()
                         .toList());
         verify(catalogService, never()).createCatalog(anyInt(), anyString(), anyString(), anyBoolean(), any());
@@ -339,7 +339,7 @@ class QuizCatalogTransferServiceTest {
     void refusesAFileWrittenForALaterVersion() {
         var transfer = new CatalogTransfer(
                 CatalogTransfer.FORMAT_VERSION + 1,
-                new CatalogTransfer.CatalogInfo("Zukunft", "", false, CatalogMetadata.none()),
+                new CatalogTransfer.CatalogTransferInfo("Zukunft", "", false, CatalogMetadata.none()),
                 List.of(),
                 List.of());
 

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {CatalogTransferProblem} from '@/api/quiz'
+import type {CatalogTransferProblem} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 /**

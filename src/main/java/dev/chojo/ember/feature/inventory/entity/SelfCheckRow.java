@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -38,19 +39,19 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record SelfCheckRow(
         int id,
         int taskId,
-        Integer itemId,
+        @Nullable Integer itemId,
         int inventoryId,
-        Integer slot,
+        @Nullable Integer slot,
         SelfCheckAnswer answer,
         String note,
-        String typedInternalId,
-        Integer sizeId,
-        Integer answeredBy,
+        @Nullable String typedInternalId,
+        @Nullable Integer sizeId,
+        @Nullable Integer answeredBy,
         Instant answeredAt,
         SelfCheckRowState state,
         String reviewerReason,
-        Integer reviewedBy,
-        Instant reviewedAt) {
+        @Nullable Integer reviewedBy,
+        @Nullable Instant reviewedAt) {
 
     /**
      * The columns every read of this table selects, in the order the mapping expects them.

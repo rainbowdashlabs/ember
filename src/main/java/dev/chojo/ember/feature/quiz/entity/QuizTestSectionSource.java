@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
-public record QuizTestSectionSource(int id, int sectionId, int catalogId, Integer categoryId, int questionCount) {
+public record QuizTestSectionSource(
+        int id, int sectionId, int catalogId, @Nullable Integer categoryId, int questionCount) {
 
     public static RowMapping<QuizTestSectionSource> map() {
         return row -> new QuizTestSectionSource(

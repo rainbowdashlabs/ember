@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.procedure.entity;
 
 import de.chojo.sadu.mapper.annotation.MappingProvider;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,17 +24,17 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record Procedure(
         int id,
         int stationId,
-        Integer templateId,
+        @Nullable Integer templateId,
         String name,
-        String description,
+        @Nullable String description,
         boolean isPublic,
         ProcedureStatus status,
         int assignedBy,
-        Instant dueAt,
+        @Nullable Instant dueAt,
         Instant createdAt,
-        Instant resolvedAt,
-        Integer eventId,
-        LocalDate eventDate) {
+        @Nullable Instant resolvedAt,
+        @Nullable Integer eventId,
+        @Nullable LocalDate eventDate) {
 
     @MappingProvider("")
     public static RowMapping<Procedure> map() {

@@ -8,9 +8,16 @@ package dev.chojo.ember.feature.protocol.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.protocol.entity.TestProtocol;
+import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes.RemoteProtocolDetail;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolService.SharedProtocolView;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -49,11 +56,19 @@ public class FederatedTestProtocolRoutes implements Routes {
                 StationPermission.PROTOCOL_MANAGER);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/protocols",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SharedProtocolView[].class)))
     private void federatedBrowseProtocols(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(service.browseSharedProtocolViews(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/protocols/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RemoteProtocolDetail.class)))
     private void federatedGetProtocol(Context ctx) {
         var session = UserSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
@@ -61,6 +76,14 @@ public class FederatedTestProtocolRoutes implements Routes {
         ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/protocols/{id}/copy",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocol.class)))
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/protocols/{id}/copy",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocol.class)))
     private void federatedCopyProtocol(Context ctx) {
         var session = UserSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();

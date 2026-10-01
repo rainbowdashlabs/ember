@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import BaseButton from '@/components/button/BaseButton.vue'
-import type { TestProtocolItem } from '@/api/protocol'
+import type { TestProtocolItem } from '@/api/generated/schema'
 
 defineProps<{
   item: TestProtocolItem

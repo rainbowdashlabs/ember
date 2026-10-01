@@ -8,7 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type { ChoiceAnswer } from '@/api/forms'
+import type { ChoiceAnswer } from '@/api/generated/schema'
 import { optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{

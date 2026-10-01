@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.procedure.entity;
 
 import de.chojo.sadu.mapper.annotation.MappingProvider;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -16,14 +17,14 @@ public record ProcedureItem(
         int id,
         int procedureId,
         String title,
-        String description,
-        String note,
+        @Nullable String description,
+        @Nullable String note,
         boolean isPublic,
         boolean userAssigned,
         int position,
         boolean checked,
-        Instant checkedAt,
-        Integer checkedBy) {
+        @Nullable Instant checkedAt,
+        @Nullable Integer checkedBy) {
 
     @MappingProvider("")
     public static RowMapping<ProcedureItem> map() {

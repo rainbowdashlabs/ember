@@ -27,7 +27,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
-import type { TemplateDetail, ProcedureTemplateItem } from '@/api/procedures'
+import type { ProcedureTemplateDetail, ProcedureTemplateItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -36,7 +36,7 @@ const { hasPermission, loaded } = useSession()
 
 const canManage = computed(() => hasPermission(StationPermission.PROCEDURE_MANAGER))
 
-const detail = ref<TemplateDetail | null>(null)
+const detail = ref<ProcedureTemplateDetail | null>(null)
 
 const templateId = computed(() => Number(route.params.id))
 
@@ -119,6 +119,15 @@ function openEditItemModal(item: ProcedureTemplateItem) {
   showItemModal.value = true
 }
 
+/**
+ * Where a new step goes: after every step the template has. The server stores the position it is
+ * given and orders the steps by it, so a step sent without one would stand anywhere among the first.
+ */
+function nextPosition(): number {
+  const positions = detail.value?.items.map(item => item.position) ?? []
+  return positions.length === 0 ? 0 : Math.max(...positions) + 1
+}
+
 async function handleSaveItem() {
   if (!itemTitle.value.trim()) return
   await writeThenReload(async () => {
@@ -128,6 +137,7 @@ async function handleSaveItem() {
         description: itemDescription.value || undefined,
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
+        position: editingItem.value.position,
       })
     } else {
       await procedures.createTemplateItem(templateId.value, {
@@ -135,6 +145,7 @@ async function handleSaveItem() {
         description: itemDescription.value || undefined,
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
+        position: nextPosition(),
       })
     }
     showItemModal.value = false
@@ -145,9 +156,12 @@ async function handleDeleteItem(itemId: number) {
   await writeThenReload(() => procedures.deleteTemplateItem(templateId.value, itemId))
 }
 
+/** The dependencies of the template, one entry per step and the step it waits for. */
+const dependencies = computed(() => procedures.dependencyEntries(detail.value?.dependencies ?? []))
+
+/** The steps the given step waits for. */
 function getDepsForItem(itemId: number): number[] {
-  if (!detail.value) return []
-  return detail.value.dependencies.filter(d => d[1] === itemId).map(d => d[0])
+  return dependencies.value.filter(d => d.itemId === itemId).map(d => d.dependsOnItemId)
 }
 
 function getItemById(itemId: number): ProcedureTemplateItem | undefined {
@@ -162,16 +176,17 @@ function openDepModal(item: ProcedureTemplateItem) {
 
 async function addDependency() {
   if (!depTargetItem.value || depSelectedId.value == null || !detail.value) return
-  const newDeps = [...detail.value.dependencies, [depSelectedId.value, depTargetItem.value.id]]
+  const newDeps = [...dependencies.value, {itemId: depTargetItem.value.id, dependsOnItemId: depSelectedId.value}]
   await writeThenReload(async () => {
     await procedures.setTemplateDependencies(templateId.value, newDeps)
     depSelectedId.value = null
   })
 }
 
-async function removeDependency(fromId: number, toId: number) {
+/** Stops the step from waiting for the given one. */
+async function removeDependency(depId: number, itemId: number) {
   if (!detail.value) return
-  const newDeps = detail.value.dependencies.filter(d => !(d[0] === fromId && d[1] === toId))
+  const newDeps = dependencies.value.filter(d => !(d.itemId === itemId && d.dependsOnItemId === depId))
   await writeThenReload(() => procedures.setTemplateDependencies(templateId.value, newDeps))
 }
 

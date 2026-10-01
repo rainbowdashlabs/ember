@@ -87,7 +87,7 @@ describe('useUnsavedLayout', () => {
 
     it('offers the kept questions back, and a question added then gets an id of its own', () => {
         const kept: PageDraft[] = [{
-            key: 'p0', title: '', description: '', after: {kind: 'NEXT', page: null},
+            key: 'p0', title: '', description: '', after: {kind: 'NEXT'},
             questions: [unsavedQuestion('temp-1'), unsavedQuestion('temp-2'), unsavedQuestion('temp-3')],
         }]
         saveDraft(KEY, kept)

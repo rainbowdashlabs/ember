@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import DateInput from '@/components/input/datetime/DateInput.vue'
 
-type DateAnswer = { date: string }
+import type { DateAnswer } from '@/api/generated/schema'
 
 const answer = defineModel<DateAnswer>({ required: true })
 </script>

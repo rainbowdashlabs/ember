@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import EvaluationMemberHeader from './EvaluationMemberHeader.vue'
 import EvaluationSectionRows from './EvaluationSectionRows.vue'
 import EvaluationTotalRow from './EvaluationTotalRow.vue'
-import type { EvaluationResponse, TestProtocolSection } from '@/api/protocol'
+import type { EvaluationResponse, TestProtocolSection } from '@/api/generated/schema'
 import type { StationMember } from '@/api/types'
 
 const props = defineProps<{

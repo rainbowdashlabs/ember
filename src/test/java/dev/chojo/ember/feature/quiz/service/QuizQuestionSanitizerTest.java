@@ -95,12 +95,12 @@ class QuizQuestionSanitizerTest {
     void multipleChoiceDropsCorrectMarkerAndReportsSingleSelect() {
         var config = new QuestionConfig.MultipleChoice(
                 List.of(
-                        new QuestionConfig.MultipleChoice.Option("A", true),
-                        new QuestionConfig.MultipleChoice.Option("B", false)),
+                        new QuestionConfig.MultipleChoice.ChoiceOption("A", true),
+                        new QuestionConfig.MultipleChoice.ChoiceOption("B", false)),
                 1);
 
         var view = assertInstanceOf(
-                QuizQuestionConfigView.MultipleChoice.class,
+                QuizQuestionConfigView.MultipleChoiceView.class,
                 sanitizer.sanitizeConfig(QuizQuestionType.MULTIPLE_CHOICE, config));
 
         assertEquals(2, view.options().size());
@@ -115,8 +115,8 @@ class QuizQuestionSanitizerTest {
     void multipleChoiceReportsMultiSelectWhenMoreThanOneOptionIsCorrect() {
         var config = new QuestionConfig.MultipleChoice(
                 List.of(
-                        new QuestionConfig.MultipleChoice.Option("A", true),
-                        new QuestionConfig.MultipleChoice.Option("B", true)),
+                        new QuestionConfig.MultipleChoice.ChoiceOption("A", true),
+                        new QuestionConfig.MultipleChoice.ChoiceOption("B", true)),
                 1);
 
         assertEquals(
@@ -159,7 +159,7 @@ class QuizQuestionSanitizerTest {
                 "The capital is _ and _", List.of("Paris", "Berlin"), List.of("Rome"), true, 1);
 
         var view = assertInstanceOf(
-                QuizQuestionConfigView.FillInTheBlank.class,
+                QuizQuestionConfigView.FillInTheBlankView.class,
                 sanitizer.sanitizeConfig(QuizQuestionType.FILL_IN_THE_BLANK, config));
 
         assertEquals(List.of("Paris", "Berlin", "Rome"), view.wordBank());

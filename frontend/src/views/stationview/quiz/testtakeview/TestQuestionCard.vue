@@ -6,10 +6,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import QuestionInputCard from '@/components/quiz/questioncard/QuestionInputCard.vue'
-import type { QuizQuestion } from '@/api/quiz'
+import type { QuizQuestionRead } from '@/api/generated/schema'
 
 const props = defineProps<{
-  questionDetail: QuizQuestion
+  questionDetail: QuizQuestionRead
   config: Record<string, unknown>
   answerParsed: Record<string, unknown>
   connectLeftItems: string[]

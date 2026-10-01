@@ -10,7 +10,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import {QuizTestStatus, type QuizTest} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {QuizTest} from '@/api/generated/schema'
 
 /** What a test sheet says about itself beside its name: who may sit it, where it stands, whether it was. */
 defineProps<{

@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {QuestionKinds, questionKindOf} from '@/util/questions'
-import type { WaitingListField } from '@/api/waitingList'
+import type { WaitingListField } from '@/api/generated/schema'
 
 const props = defineProps<{
   field: WaitingListField

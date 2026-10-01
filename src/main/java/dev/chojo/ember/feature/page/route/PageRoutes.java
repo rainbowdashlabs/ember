@@ -17,9 +17,9 @@ import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalytics;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntry;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseDetail;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -164,7 +164,7 @@ public class PageRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/pages/polls/forms/{id}/analytics",
             methods = HttpMethod.GET,
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalyticsDto.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalytics.class)))
     private void getFormAnalytics(Context ctx, FormPurpose expected) {
         var form = resolvePagePublicForm(ctx, expected);
         ctx.json(formAnalyticsAssembler.buildAnalytics(form.id()));
@@ -174,12 +174,12 @@ public class PageRoutes implements Routes {
             path = "/api/v1/pages/polls/forms/{id}/responses",
             methods = HttpMethod.GET,
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntryDto[].class)))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
     @OpenApi(
             path = "/api/v1/pages/forms/{id}/responses",
             methods = HttpMethod.GET,
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntryDto[].class)))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
     private void listFormResponses(Context ctx, FormPurpose expected) {
         var form = resolvePagePublicForm(ctx, expected);
         ctx.json(formAnalyticsAssembler.listResponses(form.id()));
@@ -188,11 +188,11 @@ public class PageRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/pages/polls/forms/{id}/responses/{responseId}",
             methods = HttpMethod.GET,
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseDetail.class)))
     @OpenApi(
             path = "/api/v1/pages/forms/{id}/responses/{responseId}",
             methods = HttpMethod.GET,
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseDetail.class)))
     private void getFormResponseDetail(Context ctx, FormPurpose expected) {
         var form = resolvePagePublicForm(ctx, expected);
         int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();

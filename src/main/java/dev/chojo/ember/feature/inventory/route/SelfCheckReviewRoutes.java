@@ -26,6 +26,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -186,26 +187,26 @@ public class SelfCheckReviewRoutes implements Routes {
      */
     public record CorrectRowRequest(
             int inventoryId,
-            Integer pickedItemId,
-            Integer sizeId,
-            ItemOwner ownerKind,
-            String internalId,
-            InventoryItemMetadata metadata) {
+            @Nullable Integer pickedItemId,
+            @Nullable Integer sizeId,
+            @Nullable ItemOwner ownerKind,
+            @Nullable String internalId,
+            @Nullable InventoryItemMetadata metadata) {
         ItemCorrection toCorrection() {
             return new ItemCorrection(inventoryId, null, pickedItemId, sizeId, ownerKind, internalId, metadata);
         }
     }
 
-    public record RefuseRowRequest(String reason) {}
+    public record RefuseRowRequest(@Nullable String reason) {}
 
     public record SelfCheckTask(
             int id,
             int memberId,
             String memberName,
-            LocalDate dueOn,
+            @Nullable LocalDate dueOn,
             SelfCheckState state,
             Instant handedOutAt,
-            Instant submittedAt,
+            @Nullable Instant submittedAt,
             String handedOutByName,
-            Integer checkId) {}
+            @Nullable Integer checkId) {}
 }

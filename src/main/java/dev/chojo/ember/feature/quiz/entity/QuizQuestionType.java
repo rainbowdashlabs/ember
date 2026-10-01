@@ -46,6 +46,13 @@ public enum QuizQuestionType {
     }
 
     /**
+     * Returns the {@link QuestionConfig} variant the config of questions of this type is read into.
+     */
+    public Class<? extends QuestionConfig> configClass() {
+        return configClass;
+    }
+
+    /**
      * Returns the {@link QuizAnswerValue} variant that answers to questions of this
      * type deserialize into.
      */

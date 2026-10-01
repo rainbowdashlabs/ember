@@ -4,52 +4,35 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-
-export interface AiProviderConfig {
-    id: number
-    stationId: string
-    provider: string
-    apiKey: string
-    model: string | null
-}
-
-export interface AiSettings {
-    providers: AiProviderConfig[]
-    prompt: string
-    defaultPrompt: string
-}
-
-export interface AiModel {
-    id: string
-    name: string
-}
+import type {
+    AiCredentialRequest,
+    AiCredentialSummary,
+    AiGenerateRequest,
+    AiGenerateResponse,
+    AiPromptRequest,
+    AiProviderRequest,
+    AiSettingsResponse,
+    BatchGenerateRequest,
+    BatchResult,
+    GeneratedQuestionWithMeta,
+    GenerateQuestionsRequest,
+    GenerationPollResponse,
+    JobIdResponse,
+    ModelInfo,
+    TransientKeyRequest,
+} from './generated/schema'
 
 /**
  * What a person may see of their own AI key: never the key itself, only which provider and model it
  * is for and its last four characters. {@code usable} is false where no key is stored, or where the
  * stored one no longer opens and has to be entered again.
  */
-export interface AiCredentialSummary {
-    provider: string | null
-    model: string | null
-    usable: boolean
-    keyEnding: string | null
-}
-
 export async function getAiCredential(): Promise<AiCredentialSummary> {
     const res = await client.get<AiCredentialSummary>('/account/ai-credential')
     return res.data
 }
 
-/**
- * Saves the person's own key, encrypted on the server. Without a key the stored one is kept, which
- * works for the provider it was stored for.
- */
-export async function saveAiCredential(data: {
-    provider: string
-    model?: string | null
-    apiKey?: string | null
-}): Promise<AiCredentialSummary> {
+export async function saveAiCredential(data: AiCredentialRequest): Promise<AiCredentialSummary> {
     const res = await client.put<AiCredentialSummary>('/account/ai-credential', data)
     return res.data
 }
@@ -58,88 +41,49 @@ export async function deleteAiCredential(): Promise<void> {
     await client.delete('/account/ai-credential')
 }
 
-export async function getSettings(): Promise<AiSettings> {
-    const res = await client.get<AiSettings>('/ai/settings')
+export async function getSettings(): Promise<AiSettingsResponse> {
+    const res = await client.get<AiSettingsResponse>('/ai/settings')
     return res.data
 }
 
 export async function savePrompt(prompt: string): Promise<void> {
-    await client.put('/ai/settings/prompt', { prompt })
+    const request: AiPromptRequest = {prompt}
+    await client.put('/ai/settings/prompt', request)
 }
 
 export async function saveProvider(provider: string, apiKey: string, model?: string | null): Promise<void> {
-    await client.put(`/ai/providers/${provider}`, { apiKey, model })
+    const request: AiProviderRequest = {apiKey, model}
+    await client.put(`/ai/providers/${provider}`, request)
 }
 
 export async function deleteProvider(provider: string): Promise<void> {
     await client.delete(`/ai/providers/${provider}`)
 }
 
-export async function fetchModels(provider: string, apiKey?: string | null): Promise<AiModel[]> {
-    const res = await client.post<AiModel[]>(`/ai/providers/${provider}/models`, { apiKey: apiKey ?? null })
+export async function fetchModels(provider: string, apiKey?: string | null): Promise<ModelInfo[]> {
+    const request: TransientKeyRequest = {apiKey: apiKey ?? null}
+    const res = await client.post<ModelInfo[]>(`/ai/providers/${provider}/models`, request)
     return res.data
 }
 
-export async function generate(data: {
-    provider: string
-    apiKey?: string | null
-    model?: string | null
-    question: string
-    correctAnswer: string
-    count?: number
-}): Promise<string[]> {
-    const res = await client.post<{ answers: string[] }>('/ai/generate', data)
+export async function generate(data: AiGenerateRequest): Promise<string[]> {
+    const res = await client.post<AiGenerateResponse>('/ai/generate', data)
     return res.data.answers
 }
 
-export interface GenerateEntry {
-    questionType: string
-    count: number
-    categoryId?: number | null
-}
-
-export interface GeneratedQuestion {
-    title: string
-    config: string
-    questionType: string
-    categoryId: number | null
-}
-
-export async function startGenerateQuestions(data: {
-    provider: string
-    apiKey?: string | null
-    model?: string | null
-    userPrompt?: string | null
-    locale?: string | null
-    catalogId?: number | null
-    entries: GenerateEntry[]
-}): Promise<string> {
-    const res = await client.post<{ jobId: string }>('/ai/generate-questions', data)
+export async function startGenerateQuestions(data: GenerateQuestionsRequest): Promise<string> {
+    const res = await client.post<JobIdResponse>('/ai/generate-questions', data)
     return res.data.jobId
 }
 
-export interface GenerationPollResult {
-    questions: GeneratedQuestion[]
-    done: boolean
-}
-
-export async function pollGenerateQuestions(jobId: string): Promise<GenerationPollResult> {
-    const res = await client.get<GenerationPollResult>(`/ai/generate-questions/${jobId}`)
+export async function pollGenerateQuestions(jobId: string): Promise<GenerationPollResponse> {
+    const res = await client.get<GenerationPollResponse>(`/ai/generate-questions/${jobId}`)
     return res.data
 }
 
-/** @deprecated Use startGenerateQuestions + pollGenerateQuestions instead */
-export async function generateQuestions(data: {
-    provider: string
-    apiKey?: string | null
-    model?: string | null
-    userPrompt?: string | null
-    locale?: string | null
-    catalogId?: number | null
-    entries: GenerateEntry[]
-}): Promise<GeneratedQuestion[]> {
+export async function generateQuestions(data: GenerateQuestionsRequest): Promise<GeneratedQuestionWithMeta[]> {
     const jobId = await startGenerateQuestions(data)
-    const allQuestions: GeneratedQuestion[] = []
+    const allQuestions: GeneratedQuestionWithMeta[] = []
     while (true) {
         await new Promise(r => setTimeout(r, 2000))
         const poll = await pollGenerateQuestions(jobId)
@@ -149,12 +93,21 @@ export async function generateQuestions(data: {
     return allQuestions
 }
 
-export async function batchGenerate(catalogId: number, data: {
-    provider: string
-    apiKey?: string | null
-    model?: string | null
-    targetTotalOptions?: number
-}): Promise<{ generatedCount: number; errors: string[] }> {
-    const res = await client.post<{ generatedCount: number; errors: string[] }>(`/ai/batch-generate/${catalogId}`, data)
+/**
+ * The settings of a generated question, which the generator hands over as JSON text. Saving a
+ * question takes them as an object: sent as text they would be stored as a string and read back as
+ * no settings at all.
+ */
+export function generatedConfig(config: string): Record<string, unknown> {
+    try {
+        const parsed: unknown = JSON.parse(config)
+        return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? {...parsed} : {}
+    } catch {
+        return {}
+    }
+}
+
+export async function batchGenerate(catalogId: number, data: BatchGenerateRequest): Promise<BatchResult> {
+    const res = await client.post<BatchResult>(`/ai/batch-generate/${catalogId}`, data)
     return res.data
 }

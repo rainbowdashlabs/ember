@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -545,5 +546,6 @@ public class TestProtocolService implements FederationServer {
      * station UUID addresses the serving station on the federated read routes and is null when the
      * partnership behind it can no longer be resolved.
      */
-    public record SharedProtocolView(int id, String name, String description, String stationName, String stationUid) {}
+    public record SharedProtocolView(
+            int id, String name, String description, String stationName, @Nullable String stationUid) {}
 }

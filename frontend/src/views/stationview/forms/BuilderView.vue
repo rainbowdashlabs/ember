@@ -28,13 +28,15 @@ import { useFormLayout } from './builderview/useFormLayout'
 import { useUnsavedLayout } from './builderview/useUnsavedLayout'
 import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
 import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
-import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type Form, type FormPurposeName, type FormQuestion, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
+import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type FormPurposeName, type FormVisibilityName, type QuestionType} from '@/api/forms'
+import type {Form, FormQuestion, PageUsingForm} from '@/api/generated/schema'
 import { optionKeysOf } from '@/util/formOptions'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 import { instantToLocalInput } from '@/util/format'
 import { isOfferableLink } from '@/util/completionLink'
+import { userTypesOf } from '@/util/stationUserTypes'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -248,10 +250,11 @@ const limits = useInstantSave(
     async selection => {
       if (!formId.value || !answeredByMembers.value) return
       await forms.setRestrictions(formId.value, {
-        userTypes: selection.userTypes,
+        userTypes: userTypesOf(selection.userTypes),
         groupIds: selection.groupIds,
         tagIds: selection.tagIds,
         memberIds: selection.memberIds,
+        mode: null,
       })
     })
 
@@ -373,10 +376,11 @@ async function save() {
     await limits.flush()
     if (answeredByMembers.value && !formId.value) {
       await forms.setRestrictions(id, {
-        userTypes: restriction.value.userTypes,
+        userTypes: userTypesOf(restriction.value.userTypes),
         groupIds: restriction.value.groupIds,
         tagIds: restriction.value.tagIds,
         memberIds: restriction.value.memberIds,
+        mode: null,
       })
     }
     unsaved.settle()

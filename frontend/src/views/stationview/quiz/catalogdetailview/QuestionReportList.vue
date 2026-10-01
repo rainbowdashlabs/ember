@@ -11,7 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {formatDateTime} from '@/util/format'
 import {quiz} from '@/api'
-import type {QuizQuestionReport} from '@/api/quiz'
+import type {QuizQuestionReport} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 defineProps<{

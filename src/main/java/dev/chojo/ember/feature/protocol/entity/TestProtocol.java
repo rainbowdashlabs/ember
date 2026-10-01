@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.protocol.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -16,7 +17,7 @@ public record TestProtocol(
         int stationId,
         String name,
         String description,
-        Integer passThreshold,
+        @Nullable Integer passThreshold,
         Instant createdAt,
         Instant updatedAt) {
 

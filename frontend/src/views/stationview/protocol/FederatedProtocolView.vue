@@ -19,7 +19,7 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import type {ProtocolDetailResponse} from '@/api/protocol'
+import type {RemoteProtocolDetail} from '@/api/generated/schema'
 import {federation, protocol} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
@@ -31,7 +31,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: detail, loading, failure, reload} = useConfigPanel<ProtocolDetailResponse | null>({
+const {config: detail, loading, failure, reload} = useConfigPanel<RemoteProtocolDetail | null>({
     initial: null,
     fetch: () => protocol.getFederatedProtocol(props.stationUid, props.protocolId),
 })

@@ -15,7 +15,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
-import type {FrozenQuestionDetail, QuizCatalog, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/quiz'
+import type {FrozenQuestionDetail, QuizCatalog, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/generated/schema'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -23,6 +23,7 @@ import TestDetailBody from './testdetailview/TestDetailBody.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { instantToLocalInput } from '@/util/format'
 import { describeFailure } from '@/util/failure'
+import { userTypesOf } from '@/util/stationUserTypes'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -57,6 +58,8 @@ const allTags = ref<UserTag[]>([])
 const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
+/** The members the test is put to by name, which this screen does not edit and sends back as read. */
+const keptMemberIds = ref<number[]>([])
 const restrictionsDirty = ref(false)
 
 interface PendingConfirm {
@@ -133,6 +136,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
     selectedUserTypes.value = restrictions.userTypes ?? []
     selectedGroupIds.value = restrictions.groupIds ?? []
     selectedTagIds.value = restrictions.tagIds ?? []
+    keptMemberIds.value = restrictions.memberIds
     restrictionsDirty.value = false
   }
 }, {autoLoad: loaded.value})
@@ -236,9 +240,10 @@ async function saveRestrictions() {
   failure.value = null
   try {
     await quiz.setRestrictions(testId.value, {
-      userTypes: selectedUserTypes.value,
+      userTypes: userTypesOf(selectedUserTypes.value),
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
+      memberIds: keptMemberIds.value,
     })
     restrictionsDirty.value = false
   } catch (e) { failure.value = describeFailure(e, t) }

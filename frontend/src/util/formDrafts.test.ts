@@ -18,9 +18,9 @@ describe('formDrafts', () => {
     it('keeps and forgets the answers of one form', () => {
         localStorage.setItem('storage_consent', 'accepted')
 
-        saveFormDraft('station/form', {answers: {1: {text: 'halb'}}, path: ['p0', 'p1']})
+        saveFormDraft('station/form', {answers: {1: {type: 'TEXT', text: 'halb'}}, path: ['p0', 'p1']})
 
-        expect(readFormDraft('station/form')).toMatchObject({answers: {1: {text: 'halb'}}, path: ['p0', 'p1']})
+        expect(readFormDraft('station/form')).toMatchObject({answers: {1: {type: 'TEXT', text: 'halb'}}, path: ['p0', 'p1']})
         expect(readFormDraft('another')).toBeNull()
         clearFormDraft('station/form')
         expect(readFormDraft('station/form')).toBeNull()

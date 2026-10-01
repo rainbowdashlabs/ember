@@ -18,7 +18,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AnalyticsHeader from '@/views/stationview/forms/analyticsview/AnalyticsHeader.vue'
 import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
 import {useResultView} from '@/views/stationview/forms/analyticsview/useResultView'
-import {FormAnalyticsBase, FormPurpose, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
+import {FormAnalyticsBase, FormPurpose, type FormAnalyticsBaseName} from '@/api/forms'
+import type {Form, FormAnalytics, FormAnswer, FormResponseEntry} from '@/api/generated/schema'
 import type { ProfileField } from '@/api/profileFields'
 import { forms, profileFields, stationMembers } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -68,7 +69,7 @@ const pageTitle = computed(() => form.value
     ? t('pages.forms-analytics.titleNamed', {name: form.value.title})
     : t('pages.forms-analytics.title'))
 const analytics = ref<FormAnalytics | null>(null)
-const responses = ref<FormResponse[]>([])
+const responses = ref<FormResponseEntry[]>([])
 const memberNames = ref<Map<number, string>>(new Map())
 const memberAccountIds = ref<Map<number, number>>(new Map())
 

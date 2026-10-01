@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
-import type {WaitingListField} from '@/api/waitingList'
+import type {WaitingListField} from '@/api/generated/schema'
 import {QuestionKinds, questionKindOf} from '@/util/questions'
 
 /**

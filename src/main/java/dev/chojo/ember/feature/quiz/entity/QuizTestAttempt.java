@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -17,9 +18,9 @@ public record QuizTestAttempt(
         int memberId,
         AttemptStatus status,
         Instant startedAt,
-        Instant submittedAt,
-        Instant gradedAt,
-        Integer gradedBy,
+        @Nullable Instant submittedAt,
+        @Nullable Instant gradedAt,
+        @Nullable Integer gradedBy,
         double totalPoints,
         double maxPoints) {
 

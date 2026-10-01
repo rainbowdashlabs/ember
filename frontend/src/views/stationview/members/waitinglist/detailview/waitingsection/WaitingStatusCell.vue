@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vue'
-import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 
 /** Where somebody on the list stands: their status, their answer to an invitation, and whether they are still too young. */
 defineProps<{

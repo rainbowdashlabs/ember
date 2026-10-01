@@ -10,7 +10,7 @@ import CsvQuestionPreview from '../csvimportview/CsvQuestionPreview.vue'
 import NewCatalogFields from './NewCatalogFields.vue'
 import ImportStepNav from './ImportStepNav.vue'
 import type {ImportDraft} from '../csvimportview/quizCsvImport'
-import type {QuizCatalogExportCategory} from '@/api/quiz'
+import type {CatalogTransferCategory} from '@/api/generated/schema'
 
 const name = defineModel<string>('name', {required: true})
 const description = defineModel<string>('description', {required: true})
@@ -18,7 +18,7 @@ const trainingEnabled = defineModel<boolean>('trainingEnabled', {required: true}
 
 const props = defineProps<{
   drafts: ImportDraft[]
-  categories: QuizCatalogExportCategory[]
+  categories: CatalogTransferCategory[]
   appending: boolean
   status: string
   loading: boolean

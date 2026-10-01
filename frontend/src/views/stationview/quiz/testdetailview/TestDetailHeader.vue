@@ -15,7 +15,8 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import {QuizTestStatus, type QuizTestDetail} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {QuizTestDetail} from '@/api/generated/schema'
 import { quiz } from '@/api'
 
 const props = defineProps<{

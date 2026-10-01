@@ -16,7 +16,7 @@ import TestSubmitModal from './testtakeview/TestSubmitModal.vue'
 import { useQuizAnswers } from './testtakeview/useQuizAnswers'
 import { useQuizTimer } from './testtakeview/useQuizTimer'
 import { useQuizQuestionOptions } from './testtakeview/useQuizQuestionOptions'
-import type { QuizAttemptDetail, QuizTest, QuizQuestion } from '@/api/quiz'
+import type { QuizAttemptDetail, QuizQuestionRead, QuizTest } from '@/api/generated/schema'
 import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
@@ -32,7 +32,7 @@ const testId = computed(() => Number(route.params.id))
 
 const attemptDetail = ref<QuizAttemptDetail | null>(null)
 const test = ref<QuizTest | null>(null)
-const questionData = ref<Map<number, QuizQuestion>>(new Map())
+const questionData = ref<Map<number, QuizQuestionRead>>(new Map())
 
 const currentIndex = ref(0)
 const submitted = ref(false)
@@ -137,7 +137,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   let detail: QuizAttemptDetail
   try {
     const existing = await quiz.getMyAttempt(testId.value)
-    if (existing.attempt && existing.attempt.id) {
+    if (quiz.hasAttempt(existing)) {
       detail = existing
     } else {
       detail = await quiz.startAttempt(testId.value)
@@ -154,7 +154,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   const testDetail = await quiz.getTest(testId.value)
   test.value = testDetail.test
 
-  const qMap = new Map<number, QuizQuestion>()
+  const qMap = new Map<number, QuizQuestionRead>()
   const questionIds = [...new Set(detail.questions.map(q => q.questionId))]
   const questionPromises = questionIds.map(async (qId) => {
     try {

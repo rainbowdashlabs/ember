@@ -16,7 +16,7 @@ import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/
 import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
 import type {EditableItem} from '@/composables/useProcedureForm'
-import type {ProcedureTemplate} from '@/api/procedures'
+import type {ProcedureTemplate} from '@/api/generated/schema'
 import type {MemberCompletion} from '@/api/stationMembers'
 
 const {t} = useI18n()
@@ -24,7 +24,7 @@ const {t} = useI18n()
 const TEMPLATES: ProcedureTemplate[] = [
   {
     id: 1,
-    stationId: 1,
+    stationId: '00000000-0000-0000-0000-000000000001',
     name: 'Aufnahme neues Mitglied',
     description: null,
     archived: false,

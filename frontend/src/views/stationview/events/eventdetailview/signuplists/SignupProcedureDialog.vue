@@ -14,7 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupProcedureForm from './SignupProcedureForm.vue'
-import type {Procedure, ProcedureTemplate} from '@/api/procedures'
+import type {Procedure, ProcedureTemplate} from '@/api/generated/schema'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 import type {Failure} from '@/util/failure'
 

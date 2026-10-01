@@ -22,7 +22,7 @@ import type {
   WaitingListEntryWithScore,
   WaitingListField,
   WaitingListInvite,
-} from '@/api/waitingList'
+} from '@/api/generated/schema'
 import {StationPermission, type MemberGroup} from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'

@@ -7,13 +7,20 @@ package dev.chojo.ember.feature.procedure.entity;
 
 import de.chojo.sadu.mapper.annotation.MappingProvider;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record ProcedureTemplate(
-        int id, int stationId, String name, String description, boolean archived, int createdBy, Instant createdAt) {
+        int id,
+        int stationId,
+        String name,
+        @Nullable String description,
+        boolean archived,
+        int createdBy,
+        Instant createdAt) {
 
     @MappingProvider("")
     public static RowMapping<ProcedureTemplate> map() {

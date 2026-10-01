@@ -6,7 +6,7 @@
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { waitingList } from '@/api'
-import type { WaitingListInvite } from '@/api/waitingList'
+import type { WaitingListInvite } from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { describeFailure, type Failure } from '@/util/failure'
 

@@ -9,7 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ResultFilterBar from './ResultFilterBar.vue'
 import MissingResponsesPanel from './MissingResponsesPanel.vue'
 import AnalyticsTabs from './AnalyticsTabs.vue'
-import type {Form, FormAnalytics, FormResponse} from '@/api/forms'
+import type {Form, FormAnalytics, FormResponseEntry} from '@/api/generated/schema'
 import type {MemberIdentity} from '@/api/types'
 
 /**
@@ -27,8 +27,8 @@ defineProps<{
   view: ReturnType<typeof import('./useResultView').useResultView>
   groupable: boolean
   groupNames: string[]
-  visibleResponses: FormResponse[]
-  currentResponse: FormResponse | null
+  visibleResponses: FormResponseEntry[]
+  currentResponse: FormResponseEntry | null
   currentResponseIndex: number
   loadingResponse: boolean
   getAnswerForQuestion: (questionId: number) => string

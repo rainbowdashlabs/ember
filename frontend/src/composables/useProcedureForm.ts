@@ -6,7 +6,8 @@
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { procedures, stationMembers } from '@/api'
-import type { ProcedureTemplate, TemplateDetail } from '@/api/procedures'
+import type { ProcedureItemRequest, ProcedureTemplate, ProcedureTemplateDetail } from '@/api/generated/schema'
+import type { StepDependency } from '@/api/procedures'
 import type { MemberCompletion } from '@/api/stationMembers'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
@@ -58,7 +59,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
 
   const templates = ref<ProcedureTemplate[]>([])
   const selectedTemplateId = ref<number | null>(null)
-  const templateDetail = ref<TemplateDetail | null>(null)
+  const templateDetail = ref<ProcedureTemplateDetail | null>(null)
 
   const members = ref<MemberCompletion[]>([])
   const selectedAssigneeIds = ref<number[]>([])
@@ -75,7 +76,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
    */
   function toEditableItems(
     source: {id: number; title: string; description?: string | null; isPublic: boolean; userAssigned: boolean; position: number}[],
-    dependencies: [number, number][],
+    dependencies: number[][],
     keepIds: boolean,
   ): EditableItem[] {
     const realToTemp = new Map<number, number>()
@@ -93,9 +94,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         dependsOn: [],
       }
     })
-    for (const [itemId, dependsOnId] of dependencies) {
+    for (const {itemId, dependsOnItemId} of procedures.dependencyEntries(dependencies)) {
       const itemTempId = realToTemp.get(itemId)
-      const depTempId = realToTemp.get(dependsOnId)
+      const depTempId = realToTemp.get(dependsOnItemId)
       if (itemTempId == null || depTempId == null) continue
       editable.find(i => i.tempId === itemTempId)?.dependsOn.push(depTempId)
     }
@@ -198,7 +199,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items.value = items.value.map((current, i) => (i === index ? item : current))
   }
 
-  function itemPayload(item: EditableItem, position: number) {
+  function itemPayload(item: EditableItem, position: number): ProcedureItemRequest {
     return {
       title: item.title,
       description: item.description || undefined,
@@ -209,7 +210,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   }
 
   function buildDependencies(tempToReal: Map<number, number>) {
-    const deps: { itemId: number; dependsOnItemId: number }[] = []
+    const deps: StepDependency[] = []
     for (const item of items.value) {
       const realId = tempToReal.get(item.tempId)
       if (!realId) continue

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -142,11 +143,11 @@ public sealed interface FormQuestionConfig {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record Choice(
             List<Option> options,
-            Boolean multiSelect,
-            Boolean dropdown,
-            Boolean allowOther,
-            MultiLimitType multiLimitType,
-            Integer multiLimit)
+            @Nullable Boolean multiSelect,
+            @Nullable Boolean dropdown,
+            @Nullable Boolean allowOther,
+            @Nullable MultiLimitType multiLimitType,
+            @Nullable Integer multiLimit)
             implements FormQuestionConfig {
         @Override
         public List<Option> keyedOptions() {
@@ -196,13 +197,13 @@ public sealed interface FormQuestionConfig {
      * Free text question.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Text(Boolean longAnswer) implements FormQuestionConfig {}
+    record Text(@Nullable Boolean longAnswer) implements FormQuestionConfig {}
 
     /**
      * Rating question with scale and icon.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Rating(Integer scale, RatingIcon icon) implements FormQuestionConfig {
+    record Rating(@Nullable Integer scale, @Nullable RatingIcon icon) implements FormQuestionConfig {
         @Override
         public List<String> validate(FormAnswerValue value) {
             if (!(value instanceof FormAnswerValue.RatingAnswer(int rating))) return List.of("Expected rating answer");
@@ -252,7 +253,11 @@ public sealed interface FormQuestionConfig {
      * Likert scale with statements and scale range.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Likert(List<Option> statements, Integer scaleMin, Integer scaleMax, List<String> scaleLabels)
+    record Likert(
+            List<Option> statements,
+            @Nullable Integer scaleMin,
+            @Nullable Integer scaleMax,
+            @Nullable List<String> scaleLabels)
             implements FormQuestionConfig {
         @Override
         public List<Option> keyedOptions() {

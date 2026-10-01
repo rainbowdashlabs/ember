@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.form.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.javalin.openapi.OpenApiName;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Where a reader goes from a page: on to the page below, to a page further down named by its key, or
@@ -15,9 +16,8 @@ import io.javalin.openapi.OpenApiName;
  * @param kind which of the three it is
  * @param page the key of the page gone to, set only for {@link TargetKind#PAGE}
  */
-@OpenApiName("FormPageTarget")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record PageTarget(TargetKind kind, String page) {
+public record PageTarget(TargetKind kind, @Nullable String page) {
     /** On to the page below, or the end of the form where there is none. */
     public static final PageTarget NEXT = new PageTarget(TargetKind.NEXT, null);
 

@@ -11,7 +11,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TrainingQuestionCard from '@/components/quiz/TrainingQuestionCard.vue'
 import * as publicQuiz from '@/api/publicQuiz'
-import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@/api/quiz'
+import {isQuizQuestionOf, QuizQuestionTypes} from '@/api/quiz'
+import type {PublicQuizQuestion, QuizQuestion} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 
 /**
@@ -30,7 +31,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const question = ref<publicQuiz.PublicQuizQuestion | null>(null)
+const question = ref<PublicQuizQuestion | null>(null)
 const loading = ref(false)
 const error = ref(false)
 const showAnswer = ref(false)
@@ -65,19 +66,34 @@ function resetUserInput() {
     connectRightOrder.value = []
 }
 
-function initQuestionState(q: publicQuiz.PublicQuizQuestion) {
-    const cfg = q.config ?? {}
-    if (q.questionType === QuizQuestionTypes.MULTIPLE_CHOICE) {
-        const opts = (cfg.options as unknown[]) ?? []
-        mcDisplayOrder.value = shuffle(opts.map((_, i) => i))
+function initQuestionState(q: QuizQuestion) {
+    if (isQuizQuestionOf(q, QuizQuestionTypes.MULTIPLE_CHOICE)) {
+        mcDisplayOrder.value = shuffle((q.config.options ?? []).map((_, i) => i))
     }
-    if (q.questionType === QuizQuestionTypes.ORDERING) {
-        const items = (cfg.items as string[]) ?? []
-        userOrderItems.value = shuffle(items.map((_, i) => i))
-    } else if (q.questionType === QuizQuestionTypes.CONNECT) {
+    if (isQuizQuestionOf(q, QuizQuestionTypes.ORDERING)) {
+        userOrderItems.value = shuffle((q.config.items ?? []).map((_, i) => i))
+    } else if (isQuizQuestionOf(q, QuizQuestionTypes.CONNECT)) {
         userConnectPairs.value = {}
-        const pairs = (cfg.pairs as {left: string; right: string}[]) ?? []
-        connectRightOrder.value = shuffle(pairs.map((_, i) => i))
+        connectRightOrder.value = shuffle((q.config.pairs ?? []).map((_, i) => i))
+    }
+}
+
+/** The public question in the shape the training card draws, with nothing to score it by. */
+function asQuizQuestion(q: PublicQuizQuestion): QuizQuestion {
+    return {
+        id: q.id,
+        catalogId: 0,
+        categoryId: null,
+        quizQuestionType: q.questionType,
+        title: q.title,
+        description: q.description,
+        imageUrl: q.imageUrl,
+        points: 0,
+        autoPoints: false,
+        config: q.config,
+        position: 0,
+        createdAt: '',
+        updatedAt: '',
     }
 }
 
@@ -92,7 +108,7 @@ async function loadQuestion() {
     try {
         const next = await publicQuiz.getRandomPublicQuestion(props.stationUid, props.catalogIds)
         question.value = next
-        initQuestionState(next)
+        initQuestionState(asQuizQuestion(next))
     } catch {
         question.value = null
         error.value = true
@@ -104,25 +120,7 @@ async function loadQuestion() {
 onMounted(loadQuestion)
 watch(() => [props.stationUid, JSON.stringify(props.catalogIds ?? [])], loadQuestion)
 
-const adaptedQuestion = computed<QuizQuestion | null>(() => {
-    const q = question.value
-    if (!q) return null
-    return {
-        id: q.id,
-        catalogId: 0,
-        categoryId: null,
-        quizQuestionType: q.questionType as QuizQuestionTypeName,
-        title: q.title,
-        description: q.description ?? '',
-        imageUrl: q.imageUrl,
-        points: 0,
-        autoPoints: false,
-        config: q.config,
-        position: 0,
-        createdAt: '',
-        updatedAt: '',
-    }
-})
+const adaptedQuestion = computed<QuizQuestion | null>(() => (question.value ? asQuizQuestion(question.value) : null))
 
 function toggleMcOption(idx: number) {
     if (showAnswer.value) return

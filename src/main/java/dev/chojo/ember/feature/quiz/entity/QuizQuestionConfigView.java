@@ -21,25 +21,25 @@ public sealed interface QuizQuestionConfigView {
     /**
      * Config for types whose renderer needs nothing beyond the question itself.
      */
-    record Empty() implements QuizQuestionConfigView {}
+    record EmptyView() implements QuizQuestionConfigView {}
 
     /**
      * @param options     the selectable options, stripped of their correct marker
      * @param multiSelect whether more than one option is correct, so the renderer can
      *                    offer checkboxes instead of radio buttons
      */
-    record MultipleChoice(List<Option> options, boolean multiSelect) implements QuizQuestionConfigView {
+    record MultipleChoiceView(List<ChoiceOptionView> options, boolean multiSelect) implements QuizQuestionConfigView {
 
         /**
          * @param text the option label
          */
-        public record Option(String text) {}
+        public record ChoiceOptionView(String text) {}
     }
 
     /**
      * @param lines the number of answer lines to render
      */
-    record FreeAnswer(int lines) implements QuizQuestionConfigView {}
+    record FreeAnswerView(int lines) implements QuizQuestionConfigView {}
 
     /**
      * @param text        the gapped text
@@ -48,7 +48,7 @@ public sealed interface QuizQuestionConfigView {
      * @param gapCount    the number of gaps to fill
      * @param useDropdown whether gaps are filled from a dropdown instead of typed
      */
-    record FillInTheBlank(String text, List<String> wordBank, int gapCount, boolean useDropdown)
+    record FillInTheBlankView(String text, List<String> wordBank, int gapCount, boolean useDropdown)
             implements QuizQuestionConfigView {}
 
     /**
@@ -56,15 +56,15 @@ public sealed interface QuizQuestionConfigView {
      * @param rightItems the items to connect to, in config order - the renderer shuffles
      *                   them for display
      */
-    record Connect(List<String> leftItems, List<String> rightItems) implements QuizQuestionConfigView {}
+    record ConnectView(List<String> leftItems, List<String> rightItems) implements QuizQuestionConfigView {}
 
     /**
      * @param items the items to bring into the right order
      */
-    record Ordering(List<String> items) implements QuizQuestionConfigView {}
+    record OrderingView(List<String> items) implements QuizQuestionConfigView {}
 
     /**
      * @param requiredCount how many entries the member has to name
      */
-    record Enumeration(int requiredCount) implements QuizQuestionConfigView {}
+    record EnumerationView(int requiredCount) implements QuizQuestionConfigView {}
 }

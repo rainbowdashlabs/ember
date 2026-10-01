@@ -12,7 +12,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import TestSectionSourceRow from './TestSectionSourceRow.vue'
-import type { QuizCatalog, QuizCategory } from '@/api/quiz'
+import type { QuizCatalog, QuizCategory } from '@/api/generated/schema'
 
 interface SourceDraft {
   key: string

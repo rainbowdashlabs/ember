@@ -10,7 +10,7 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import ChartsTab from './ChartsTab.vue'
 import GroupedChartsTab from './GroupedChartsTab.vue'
 import IndividualResponseTab from './IndividualResponseTab.vue'
-import type {FormAnalytics, FormResponse} from '@/api/forms'
+import type {FormAnalytics, FormResponseEntry} from '@/api/generated/schema'
 import {formatAnswerDisplay} from '@/util/formAnswerDisplay'
 import type {GroupSeries} from './groupedChart'
 
@@ -26,8 +26,8 @@ defineProps<{
   grouped: boolean
   names: string[]
   series: GroupSeries[] | null
-  responses: FormResponse[]
-  currentResponse: FormResponse | null
+  responses: FormResponseEntry[]
+  currentResponse: FormResponseEntry | null
   currentResponseIndex: number
   loadingResponse: boolean
   getAnswerForQuestion: (questionId: number) => string

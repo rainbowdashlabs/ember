@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
+import dev.chojo.ember.feature.quiz.service.AiService.ModelInfo;
 import dev.chojo.ember.feature.quiz.service.QuizGenerationService;
 import dev.chojo.ember.feature.quiz.service.QuizGenerationService.BatchGenerateRequest;
 import dev.chojo.ember.feature.quiz.service.QuizGenerationService.BatchResult;
@@ -22,13 +23,13 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,13 +86,13 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.PUT,
             summary = "Save the AI generation prompt",
             tags = {"Quiz AI"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PromptRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SuccessResponse.class)))
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiPromptRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSuccessResponse.class)))
     private void savePrompt(Context ctx) {
         var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(PromptRequest.class);
+        var req = ctx.bodyAsClass(AiPromptRequest.class);
         aiService.setPrompt(session.stationId(), req.prompt() != null ? req.prompt() : "");
-        ctx.json(new SuccessResponse(true));
+        ctx.json(new AiSuccessResponse(true));
     }
 
     @OpenApi(
@@ -100,20 +101,20 @@ public class AiRoutes implements Routes {
             summary = "Save an AI provider configuration",
             tags = {"Quiz AI"},
             pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProviderRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiProviderRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SuccessResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSuccessResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void saveProvider(Context ctx) {
         var session = UserSession.from(ctx);
         String provider = ctx.pathParam("provider");
-        var req = ctx.bodyAsClass(ProviderRequest.class);
+        var req = ctx.bodyAsClass(AiProviderRequest.class);
         if (req.apiKey() == null || req.apiKey().isBlank()) {
             throw Refusal.AI_PROVIDER_NEEDS_A_KEY.raise();
         }
         aiService.saveProvider(session.stationId(), provider, req.apiKey(), req.model());
-        ctx.json(new SuccessResponse(true));
+        ctx.json(new AiSuccessResponse(true));
     }
 
     @OpenApi(
@@ -138,7 +139,7 @@ public class AiRoutes implements Routes {
             pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransientKeyRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModelInfo[].class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void fetchModels(Context ctx) {
@@ -162,14 +163,14 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Generate distractor answers for a question",
             tags = {"Quiz AI"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GenerateRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiGenerateRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = GenerateResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiGenerateResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void generate(Context ctx) {
         var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(GenerateRequest.class);
+        var req = ctx.bodyAsClass(AiGenerateRequest.class);
         if (req.question() == null || req.question().isBlank()) {
             throw Refusal.AI_GENERATION_NEEDS_A_QUESTION.raise();
         }
@@ -186,7 +187,7 @@ public class AiRoutes implements Routes {
                     req.question(),
                     req.correctAnswer(),
                     req.count() != null ? req.count() : 3);
-            ctx.json(new GenerateResponse(results));
+            ctx.json(new AiGenerateResponse(results));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument during AI generation", e);
             throw Refusal.AI_GENERATION_REFUSED.raise();
@@ -242,21 +243,25 @@ public class AiRoutes implements Routes {
                 session.stationId(), session.accountId(), pathInt(ctx, "catalogId"), request));
     }
 
-    @OpenApiName("AiSuccessResponse")
-    public record SuccessResponse(boolean success) {}
+    public record AiSuccessResponse(boolean success) {}
 
     public record JobIdResponse(String jobId) {}
 
     public record AiSettingsResponse(List<StationAiProvider> providers, String prompt, String defaultPrompt) {}
 
-    public record PromptRequest(String prompt) {}
+    public record AiPromptRequest(@Nullable String prompt) {}
 
-    public record ProviderRequest(String apiKey, String model) {}
+    public record AiProviderRequest(String apiKey, @Nullable String model) {}
 
-    public record TransientKeyRequest(String apiKey) {}
+    public record TransientKeyRequest(@Nullable String apiKey) {}
 
-    public record GenerateRequest(
-            String provider, String apiKey, String model, String question, String correctAnswer, Integer count) {}
+    public record AiGenerateRequest(
+            @Nullable String provider,
+            @Nullable String apiKey,
+            @Nullable String model,
+            String question,
+            String correctAnswer,
+            @Nullable Integer count) {}
 
-    public record GenerateResponse(List<String> answers) {}
+    public record AiGenerateResponse(List<String> answers) {}
 }

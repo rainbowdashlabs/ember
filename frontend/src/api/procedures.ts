@@ -4,162 +4,68 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { createCrudResource, createScopedCrudResource } from './crud'
-import type { MemberIdentity } from './types'
+import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
+import type {
+    AssigneeRequest,
+    components,
+    CreateProcedureRequest,
+    DependencyEntry,
+    DependencyRequest,
+    PatchItemRequest,
+    Procedure,
+    ProcedureDetail,
+    ProcedureItem,
+    ProcedureItemRequest,
+    ProcedureTemplate,
+    ProcedureTemplateDetail,
+    ProcedureTemplateItem,
+    ProcedureTemplateRequest,
+    UpdateProcedureRequest,
+} from './generated/schema'
 
-// -- Types --
+export type ProcedureStatusName = components['schemas']['ProcedureStatus']
 
 export const ProcedureStatus = {
     OPEN: 'OPEN',
     RESOLVED: 'RESOLVED',
-} as const
+} as const satisfies Record<ProcedureStatusName, ProcedureStatusName>
 
-export type ProcedureStatusName = (typeof ProcedureStatus)[keyof typeof ProcedureStatus]
-
-export interface ProcedureTemplate {
-    id: number
-    stationId: number
-    name: string
-    description: string | null
-    archived: boolean
-    createdBy: number
-    createdAt: string
-}
-
-export interface ProcedureTemplateItem {
-    id: number
-    templateId: number
-    title: string
-    description: string | null
-    isPublic: boolean
-    userAssigned: boolean
-    position: number
-}
-
-export interface Procedure {
-    id: number
-    stationId: number
-    templateId: number | null
-    name: string
-    description: string | null
-    isPublic: boolean
-    status: ProcedureStatusName
-    assignedBy: number
-    dueAt: string | null
-    createdAt: string
-    resolvedAt: string | null
-    /** The appointment this was prepared for, or null when it stands on its own. */
-    eventId: number | null
-    /** The one occurrence of that appointment, as a calendar date. */
-    eventDate: string | null
-}
-
-export interface ProcedureItem {
-    id: number
-    procedureId: number
-    title: string
-    description: string | null
-    note: string | null
-    isPublic: boolean
-    userAssigned: boolean
-    position: number
-    checked: boolean
-    checkedAt: string | null
-    checkedBy: number | null
-}
-
-export interface TemplateDetail {
-    template: ProcedureTemplate
-    items: ProcedureTemplateItem[]
-    dependencies: [number, number][]
-}
-
-export interface ProcedureDetail {
-    procedure: Procedure
-    items: ProcedureItem[]
-    dependencies: [number, number][]
-    assigneeIds: number[]
-    assignees: MemberIdentity[]
-}
-
-interface TemplateRequest {
-    name: string
-    description?: string
-}
-
-interface TemplateItemRequest {
-    title: string
-    description?: string
-    isPublic?: boolean
-    userAssigned?: boolean
-}
-
-interface TemplateItemUpdateRequest extends TemplateItemRequest {
-    position?: number
-}
-
-export interface ProcedureRequest {
-    name?: string
-    description?: string
-    templateId?: number
-    /** An instant, not a calendar date. Run what a date field holds through `dateToInstant` first. */
-    dueAt?: string
-    isPublic?: boolean
-    assigneeIds?: number[]
-    /** The appointment this is being prepared for. Recorded only together with the date. */
-    eventId?: number
-    /** The one occurrence of that appointment, as a calendar date. */
-    eventDate?: string
-}
-
-interface ProcedureUpdateRequest {
-    name: string
-    description?: string
-    dueAt?: string | null
-    isPublic?: boolean
-}
-
-interface ProcedureItemRequest {
-    title: string
-    description?: string
-    isPublic?: boolean
-    userAssigned?: boolean
-    position?: number
-}
-
-interface ProcedureItemUpdateRequest {
-    title?: string
-    description?: string
-    note?: string
-    isPublic?: boolean
-    userAssigned?: boolean
-    position?: number
+/** Which procedures a list asks for: by state, and only the reader's own with `assignee: 'me'`. */
+export interface ProcedureListParams {
+    status?: ProcedureStatusName
+    assignee?: 'me'
 }
 
 const templates = createCrudResource<
     ProcedureTemplate,
-    TemplateRequest,
-    TemplateRequest,
-    TemplateDetail
+    ProcedureTemplateRequest,
+    ProcedureTemplateRequest,
+    ProcedureTemplateDetail
 >('/procedure-templates')
 
 const templateItems = createScopedCrudResource<
     ProcedureTemplateItem,
-    TemplateItemRequest,
-    TemplateItemUpdateRequest
+    ProcedureItemRequest,
+    ProcedureItemRequest,
+    ProcedureTemplateItem,
+    ProcedureTemplateItem,
+    NoContent
 >((templateId: number) => `/procedure-templates/${templateId}/items`)
 
 const procedures = createCrudResource<
     Procedure,
-    ProcedureRequest,
-    ProcedureUpdateRequest,
+    CreateProcedureRequest,
+    UpdateProcedureRequest,
     ProcedureDetail
 >('/procedures')
 
 const procedureItems = createScopedCrudResource<
     ProcedureItem,
     ProcedureItemRequest,
-    ProcedureItemUpdateRequest
+    ProcedureItemRequest,
+    ProcedureItem,
+    ProcedureItem,
+    NoContent
 >((procedureId: number) => `/procedures/${procedureId}/items`)
 
 // -- Templates --
@@ -176,20 +82,34 @@ export const createTemplateItem = templateItems.create
 export const updateTemplateItem = templateItems.update
 export const deleteTemplateItem = templateItems.remove
 
-// -- Template Dependencies --
+/** One step waiting for another, with both sides named, as the screens read and write it. */
+export type StepDependency = Required<DependencyEntry>
 
-export async function setTemplateDependencies(templateId: number, dependencies: number[][]): Promise<void> {
-    await client.put(`/procedure-templates/${templateId}/dependencies`, { dependencies })
+/**
+ * Every dependency between the steps, as the server reads it, from the pairs a detail carries: the
+ * step first, the step it waits for second.
+ *
+ * @param pairs the dependencies as a template or procedure detail sends them
+ */
+export function dependencyEntries(pairs: readonly number[][]): StepDependency[] {
+    return pairs.flatMap(([itemId, dependsOnItemId]) =>
+        itemId === undefined || dependsOnItemId === undefined ? [] : [{itemId, dependsOnItemId}])
 }
 
-export async function setProcedureDependencies(procedureId: number, dependencies: { itemId: number; dependsOnItemId: number }[]): Promise<void> {
-    await client.put(`/procedures/${procedureId}/dependencies`, { dependencies })
+export async function setTemplateDependencies(templateId: number, dependencies: StepDependency[]): Promise<void> {
+    const request: DependencyRequest = { dependencies }
+    await client.put(`/procedure-templates/${templateId}/dependencies`, request)
+}
+
+export async function setProcedureDependencies(procedureId: number, dependencies: StepDependency[]): Promise<void> {
+    const request: DependencyRequest = { dependencies }
+    await client.put(`/procedures/${procedureId}/dependencies`, request)
 }
 
 // -- Procedures --
 
-export async function getProcedures(params?: { status?: string; assignee?: string }): Promise<Procedure[]> {
-    return procedures.list(params)
+export async function getProcedures(params?: ProcedureListParams): Promise<Procedure[]> {
+    return procedures.list(params ? { ...params } : undefined)
 }
 
 /**
@@ -223,12 +143,17 @@ export async function reopenProcedure(id: number): Promise<Procedure> {
 
 // -- Assignees --
 
-export async function addAssignees(id: number, memberIds: number[]): Promise<void> {
-    await client.post(`/procedures/${id}/assignees`, { memberIds })
+/** Hands the procedure to more members. @returns the ids of everybody it is handed to now */
+export async function addAssignees(id: number, memberIds: number[]): Promise<number[]> {
+    const request: AssigneeRequest = { memberIds }
+    const res = await client.post<number[]>(`/procedures/${id}/assignees`, request)
+    return res.data
 }
 
-export async function removeAssignee(id: number, memberId: number): Promise<void> {
-    await client.delete(`/procedures/${id}/assignees/${memberId}`)
+/** Takes the procedure away from one member. @returns the ids of everybody it is still handed to */
+export async function removeAssignee(id: number, memberId: number): Promise<number[]> {
+    const res = await client.delete<number[]>(`/procedures/${id}/assignees/${memberId}`)
+    return res.data
 }
 
 // -- Procedure Items --
@@ -237,7 +162,12 @@ export const addItem = procedureItems.create
 export const editItem = procedureItems.update
 export const deleteItem = procedureItems.remove
 
-export async function patchItem(procedureId: number, itemId: number, data: { checked?: boolean; note?: string }): Promise<ProcedureItem> {
-    const res = await client.patch<ProcedureItem>(`/procedures/${procedureId}/items/${itemId}`, data)
+/**
+ * Ticks or unticks a step, or writes its note.
+ *
+ * @returns every step of the procedure as it now stands
+ */
+export async function patchItem(procedureId: number, itemId: number, data: PatchItemRequest): Promise<ProcedureItem[]> {
+    const res = await client.patch<ProcedureItem[]>(`/procedures/${procedureId}/items/${itemId}`, data)
     return res.data
 }

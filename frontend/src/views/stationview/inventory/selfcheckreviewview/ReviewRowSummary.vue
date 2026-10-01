@@ -11,7 +11,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import IdentifierFinding from './IdentifierFinding.vue'
-import type {SelfCheckReviewRow} from '@/api/selfChecks'
+import type {SelfCheckReviewRow} from '@/api/generated/schema'
 
 /**
  * What the member said about one thing, and what settling it would do.

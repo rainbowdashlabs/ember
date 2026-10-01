@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {SelfCheckIdentifierMatch} from '@/api/selfChecks'
+import type {SelfCheckIdentifierMatch} from '@/api/generated/schema'
 
 /**
  * What the number the member read off a piece matched, shown as a finding rather than as a fact.

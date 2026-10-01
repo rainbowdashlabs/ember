@@ -5,8 +5,7 @@
  */
 import {ref, type Ref} from 'vue'
 import {forms} from '@/api'
-import type {FormQuestion} from '@/api/forms'
-import {typedAnswers, type AnswerValue} from '@/util/formAnswers'
+import type {FormAnswerValue, FormQuestion} from '@/api/generated/schema'
 
 /** The part of the page walk a draft needs: where the reader is, and how to put them back there. */
 interface DraftWalk {
@@ -33,7 +32,7 @@ export function useServerDraft(
     formId: Ref<number>,
     memberId: Ref<number | null>,
     questions: Ref<FormQuestion[]>,
-    answers: Ref<Record<number, AnswerValue>>,
+    answers: Ref<Record<number, FormAnswerValue>>,
     walk: DraftWalk,
 ) {
     /** When the draft the form continues from was kept, or null where it started fresh. */
@@ -45,9 +44,9 @@ export function useServerDraft(
         const forWhom = memberId.value
         const draft = await forms.getDraft(formId.value, forWhom).catch(() => null)
         if (!draft || forWhom !== memberId.value) return
-        for (const [id, value] of Object.entries(draft.answers)) {
-            const {type: _type, ...answer} = value
-            answers.value[Number(id)] = answer
+        for (const question of questions.value) {
+            const answer = draft.answers[question.id]
+            if (answer?.type === question.formQuestionType) answers.value[question.id] = answer
         }
         if (draft.path.length > 0) walk.showAt(draft.path, {})
         resumedFrom.value = draft.updatedAt
@@ -61,7 +60,7 @@ export function useServerDraft(
         const form = formId.value
         const forWhom = memberId.value
         const draft = {
-            answers: typedAnswers(questions.value, answers.value, question => question.formQuestionType),
+            answers: Object.fromEntries(Object.entries(answers.value).map(([id, answer]) => [id, {...answer}])),
             path: walk.path.value,
         }
         saving = saving.then(() => forms.saveDraft(form, forWhom, draft).catch(() => undefined))

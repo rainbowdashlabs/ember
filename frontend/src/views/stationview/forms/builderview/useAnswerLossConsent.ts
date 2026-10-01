@@ -6,7 +6,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {forms} from '@/api'
-import type {QuestionAnswerCount} from '@/api/forms'
+import type {QuestionAnswerCount} from '@/api/generated/schema'
 
 /** The editor was asked whether answers may go and said no, so nothing was saved. */
 export class AnswerLossDeclined extends Error {

@@ -6,7 +6,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import FormOptionsEditor from './FormOptionsEditor.vue'
-import type {FormOption} from '@/api/forms'
+import type {Option} from '@/api/generated/schema'
 
 const DRAG_LIST_STUB = {
     props: ['items'],
@@ -17,19 +17,19 @@ const DRAG_LIST_STUB = {
     </div>`,
 }
 
-function mountEditor(options: FormOption[]) {
+function mountEditor(options: Option[]) {
     const wrapper = mount(FormOptionsEditor, {
         props: {
             modelValue: options,
-            'onUpdate:modelValue': (next: FormOption[]) => wrapper.setProps({modelValue: next}),
+            'onUpdate:modelValue': (next: Option[]) => wrapper.setProps({modelValue: next}),
         },
         global: {stubs: {DragList: DRAG_LIST_STUB}},
     })
     return wrapper
 }
 
-function current(wrapper: ReturnType<typeof mountEditor>): FormOption[] {
-    return wrapper.props('modelValue') as FormOption[]
+function current(wrapper: ReturnType<typeof mountEditor>): Option[] {
+    return wrapper.props('modelValue') as Option[]
 }
 
 /**

@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import DragList from '@/components/input/DragList.vue'
 import TestSectionCard from './TestSectionCard.vue'
-import type { QuizCatalog, QuizCategory } from '@/api/quiz'
+import type { QuizCatalog, QuizCategory } from '@/api/generated/schema'
 
 interface SourceDraft {
   key: string

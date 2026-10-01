@@ -7,7 +7,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import { PageTargetKind, type PageTarget } from '@/api/forms'
+import { PageTargetKind } from '@/api/forms'
+import type { PageTarget } from '@/api/generated/schema'
 import type { PageChoice } from '../pageChoice'
 
 /**
@@ -34,7 +35,7 @@ const value = computed({
   get: () => (target.value.kind === PageTargetKind.PAGE ? `${PAGE_PREFIX}${target.value.page}` : target.value.kind),
   set: (chosen: string) => {
     if (chosen.startsWith(PAGE_PREFIX)) target.value = { kind: PageTargetKind.PAGE, page: chosen.slice(PAGE_PREFIX.length) }
-    else target.value = { kind: chosen as PageTarget['kind'], page: null }
+    else target.value = { kind: Object.values(PageTargetKind).find(kind => kind === chosen) ?? PageTargetKind.NEXT }
   },
 })
 

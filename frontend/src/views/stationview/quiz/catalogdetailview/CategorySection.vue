@@ -19,7 +19,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { QuizCategory } from '@/api/quiz'
+import type { QuizCategory } from '@/api/generated/schema'
 import { quiz } from '@/api'
 
 defineProps<{

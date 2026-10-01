@@ -4,25 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {createCrudResource} from './crud'
-
-export interface SavedFilter {
-    id: number
-    accountId: number
-    tableType: string
-    name: string
-    filterData: string
-    position: number
-}
-
-export interface CreateFilterRequest {
-    tableType: string
-    name: string
-    filterData: string
-}
+import type {CreateFilterRequest, FilterTableType, SavedFilter} from './generated/schema'
 
 const filters = createCrudResource<SavedFilter, CreateFilterRequest>('/saved-filters')
 
-export async function listFilters(tableType: string): Promise<SavedFilter[]> {
+export async function listFilters(tableType: FilterTableType): Promise<SavedFilter[]> {
     return filters.list({tableType})
 }
 

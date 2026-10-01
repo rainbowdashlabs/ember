@@ -11,7 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {ResultDimension, type ResultDimensionName, type ResultGrouping} from '@/api/forms'
+import {ResultDimension, type ResultDimensionName, type ResultGroupingState} from '@/api/forms'
 import {FieldTypes, type ProfileField} from '@/api/profileFields'
 import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
 import {groupingBy, NO_VALUE_GROUP, parseBounds} from './resultQuery'
@@ -28,7 +28,7 @@ const props = defineProps<{
   fields: ProfileField[]
 }>()
 
-const grouping = defineModel<ResultGrouping | null>({required: true})
+const grouping = defineModel<ResultGroupingState | null>({required: true})
 
 const {t} = useI18n()
 

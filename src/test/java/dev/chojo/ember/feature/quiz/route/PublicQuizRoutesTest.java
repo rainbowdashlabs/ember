@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.PublicQuizService;
-import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicCatalog;
-import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicQuestion;
+import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicQuizCatalog;
+import dev.chojo.ember.feature.quiz.service.PublicQuizService.PublicQuizQuestion;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -29,9 +31,10 @@ class PublicQuizRoutesTest {
     @Test
     void theTeaserListsCatalogsAndPicksAQuestion() {
         var quiz = mock(PublicQuizService.class);
-        when(quiz.catalogs(STATION)).thenReturn(List.of(new PublicCatalog(1, "Knoten", "")));
+        when(quiz.catalogs(STATION)).thenReturn(List.of(new PublicQuizCatalog(1, "Knoten", "")));
         when(quiz.randomQuestion(STATION, List.of(1, 2)))
-                .thenReturn(new PublicQuestion(9, "SINGLE", "Welcher?", "", null, null));
+                .thenReturn(new PublicQuizQuestion(
+                        9, QuizQuestionType.TRUE_FALSE, "Welcher?", "", null, new QuestionConfig.TrueFalse(true)));
         var harness = RouteHarness.serving(new PublicQuizRoutes(quiz));
 
         harness.run((server, client) -> {

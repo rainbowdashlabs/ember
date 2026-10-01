@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {WaitingListEntryWithScore} from '@/api/waitingList'
+import type {WaitingListEntryWithScore} from '@/api/generated/schema'
 
 /** The name a waiting list entry is shown by: first name, and the last name where one was given. */
 export function entryFullName(item: WaitingListEntryWithScore): string {

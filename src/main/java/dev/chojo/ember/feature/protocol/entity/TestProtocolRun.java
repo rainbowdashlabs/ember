@@ -6,12 +6,18 @@
 package dev.chojo.ember.feature.protocol.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * One test of a protocol on one day.
+ *
+ * @param createdBy the member who started it, or {@code null} once that member is gone
+ */
 public record TestProtocolRun(
         int id,
         int protocolId,
@@ -19,7 +25,7 @@ public record TestProtocolRun(
         String name,
         LocalDate testDate,
         RunStatus status,
-        int createdBy,
+        @Nullable Integer createdBy,
         Instant createdAt) {
 
     public static RowMapping<TestProtocolRun> map() {
@@ -30,7 +36,7 @@ public record TestProtocolRun(
                 row.getString("name"),
                 row.getDate("test_date").toLocalDate(),
                 row.getEnum("status", RunStatus.class),
-                row.getInt("created_by"),
+                row.getObject("created_by", Integer.class),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 

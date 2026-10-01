@@ -4,11 +4,50 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {createCrudResource, createScopedCrudResource, type NoContent} from './crud'
-import type {MemberIdentity} from './types'
+import {createCrudResource, createScopedCrudResource} from './crud'
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {prepareImageUpload} from '@/util/imageUpload'
+import type {
+    CatalogListResponse,
+    CatalogTransfer,
+    components,
+    CsvDraft,
+    CsvDraftRequest,
+    CsvMappings,
+    FrozenQuestionDetail,
+    MyQuizAttempt,
+    QuestionConfigByType,
+    QuizAccessRequest,
+    QuizAnswerRequest,
+    QuizAttemptDetail,
+    QuizAvailableTest,
+    QuizCatalog,
+    QuizCatalogDetail,
+    QuizCatalogRequest,
+    QuizCategory,
+    QuizCategoryRequest,
+    QuizGradeRequest,
+    QuizQuestion,
+    QuizQuestionRead,
+    QuizQuestionReport,
+    QuizQuestionRequest,
+    QuizReportRequest,
+    QuizSectionRequest,
+    QuizSuccessResponse,
+    QuizTest,
+    QuizTestAttempt,
+    QuizTestDetail,
+    QuizTestRequest,
+    QuizTestRestrictions,
+    QuizTestRestrictionsRequest,
+    QuizTestSection,
+    QuizTestSummary,
+    RemoteCatalogDetail,
+    ReplaceQuestionRequest,
+} from './generated/schema'
+
+export type QuizQuestionTypeName = components['schemas']['QuizQuestionType']
 
 export const QuizQuestionTypes = {
     MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
@@ -19,307 +58,105 @@ export const QuizQuestionTypes = {
     TRUE_FALSE: 'TRUE_FALSE',
     ORDERING: 'ORDERING',
     ENUMERATION: 'ENUMERATION',
-} as const
+} as const satisfies Record<QuizQuestionTypeName, QuizQuestionTypeName>
 
-export type QuizQuestionTypeName = (typeof QuizQuestionTypes)[keyof typeof QuizQuestionTypes]
+/** Whether a value names a kind of question, as a picker or a file may hand over any text. */
+export function isQuizQuestionType(value: unknown): value is QuizQuestionTypeName {
+    return typeof value === 'string' && Object.hasOwn(QuizQuestionTypes, value)
+}
+
+export type QuizTestStatusName = components['schemas']['TestStatus']
 
 export const QuizTestStatus = {
     DRAFT: 'DRAFT',
     ACTIVE: 'ACTIVE',
     CLOSED: 'CLOSED',
-} as const
+} as const satisfies Record<QuizTestStatusName, QuizTestStatusName>
 
-export type QuizTestStatusName = (typeof QuizTestStatus)[keyof typeof QuizTestStatus]
+export type QuizAttemptStatusName = components['schemas']['AttemptStatus']
 
 export const QuizAttemptStatus = {
     IN_PROGRESS: 'IN_PROGRESS',
     SUBMITTED: 'SUBMITTED',
     GRADED: 'GRADED',
-} as const
+} as const satisfies Record<QuizAttemptStatusName, QuizAttemptStatusName>
 
-export type QuizAttemptStatusName = (typeof QuizAttemptStatus)[keyof typeof QuizAttemptStatus]
-
-/** Where a catalog's questions came from, filled in by an import or a copy from a partner. */
-export interface CatalogMetadata {
-    language: string | null
-    source: string | null
-    author: string | null
-    license: string | null
-}
-
-export interface QuizCatalog {
-    id: number
-    stationId: string
-    name: string
-    description: string
-    trainingEnabled: boolean
-    metadata: CatalogMetadata
-    createdAt: string
-    updatedAt: string
-}
-
-export interface QuizCategory {
-    id: number
-    stationId: string
-    name: string
-    description: string
-    position: number
-}
-
-export interface QuizQuestion {
-    id: number
-    catalogId: number
-    categoryId: number | null
-    quizQuestionType: QuizQuestionTypeName
-    title: string
-    description: string
-    imageUrl: string | null
-    points: number
-    autoPoints: boolean
-    config: Record<string, unknown>
-    position: number
-    createdAt: string
-    updatedAt: string
-}
-
-export interface QuizCatalogDetail {
-    id: number
-    stationId: string
-    name: string
-    description: string
-    trainingEnabled: boolean
-    metadata: CatalogMetadata
-    questionCount: number
-    questionTypeCounts: Record<string, number>
-    categories: QuizCategory[]
-    createdAt: string
-    updatedAt: string
-}
-
-export interface QuizTest {
-    id: number
-    stationId: string
-    title: string
-    description: string
-    status: QuizTestStatusName
-    timeLimit: number | null
-    shuffle: boolean
-    forced?: boolean
-    startAt: string | null
-    endAt: string | null
-    createdBy: number
-    createdAt: string
-    updatedAt: string
-    restrictionMode?: string
-    restricted?: boolean
-}
-
-export interface QuizAvailableTest {
-    test: QuizTest
-    attemptStatus: string | null
-    startedAt: string | null
-    submittedAt: string | null
-}
-
-export interface QuizTestSummary {
-    test: QuizTest
-    attemptCount: number
-}
-
-export interface QuizTestSection {
-    id: number
-    testId: number
-    title: string
-    description: string
-    position: number
-}
-
-export interface QuizTestSectionSource {
-    id: number
-    sectionId: number
-    catalogId: number
-    categoryId: number | null
-    questionCount: number
-}
-
-export interface QuizSectionDetail {
-    id: number
-    testId: number
-    title: string
-    description: string
-    position: number
-    sources: QuizTestSectionSource[]
-}
-
-export interface QuizTestDetail {
-    test: QuizTest
-    sections: QuizSectionDetail[]
-    attemptCount: number
-}
-
-export interface QuizTestAttempt {
-    id: number
-    testId: number
-    memberId: number
-    status: QuizAttemptStatusName
-    startedAt: string
-    submittedAt: string | null
-    gradedAt: string | null
-    gradedBy: number | null
-    totalPoints: number
-    maxPoints: number
-}
-
-export interface QuizTestAttemptQuestion {
-    id: number
-    attemptId: number
-    questionId: number
-    sectionId: number | null
-    position: number
-}
-
-export interface QuizTestAnswer {
-    id: number
-    attemptId: number
-    questionId: number
-    sectionId: number | null
-    answer: string
-    points: number | null
-    graded: boolean
-    position: number
-}
-
-export interface QuizAttemptDetail {
-    attempt: QuizTestAttempt
-    questions: QuizTestAttemptQuestion[]
-    answers: QuizTestAnswer[]
-    questionDetails?: QuizQuestion[] | null
-    memberIdentity?: MemberIdentity | null
+/**
+ * A question of one kind, with the settings that kind has. The settings travel beside the kind
+ * rather than naming it themselves, so {@link isQuizQuestionOf} is what tells them apart.
+ */
+export type QuizQuestionOf<T extends QuizQuestionTypeName> = Omit<QuizQuestion, 'quizQuestionType' | 'config'> & {
+    quizQuestionType: T
+    config: QuestionConfigByType[T]
 }
 
 /**
- * The file a catalog is exported to and imported from. Categories are addressed by the key the
- * file itself defines, because a database id from the exporting station names nothing here.
+ * Whether a question is of the given kind, which is what lets a screen drawing one kind read its
+ * settings as that kind's.
  */
-export interface QuizCatalogExport {
-    formatVersion: number
-    catalog: {
-        name: string
-        description: string
-        trainingEnabled: boolean
-        metadata: CatalogMetadata
-    }
-    categories: QuizCatalogExportCategory[]
-    questions: QuizCatalogExportQuestion[]
-}
-
-export interface QuizCatalogExportCategory {
-    key: string
-    name: string
-    description: string
-    position: number
-}
-
-export interface QuizCatalogExportQuestion {
-    categoryKey: string | null
-    quizQuestionType: QuizQuestionTypeName
-    title: string
-    description: string
-    imageUrl: string | null
-    points: number
-    autoPoints: boolean
-    config: Record<string, unknown>
-    position: number
-}
-
-/** One reason an uploaded file was refused, pointing at the place in the file. */
-export interface CatalogTransferProblem {
-    location: string
-    message: string
-}
-
-// -- Shared catalog entry from federation --
-
-export interface SharedCatalogEntry {
-    id: number
-    name: string
-    description: string | null
-    stationName: string
-    stationUid: string | null
+export function isQuizQuestionOf<T extends QuizQuestionTypeName>(
+    question: QuizQuestion,
+    type: T,
+): question is QuizQuestionOf<T> {
+    return question.quizQuestionType === type
 }
 
 /**
- * A catalog as a federation partner serves it: the catalog itself plus the categories and
- * questions it holds.
+ * Whether a question came with its answers. Somebody who may not see the catalog gets the question
+ * as it is put to them, without them.
  */
-export interface FederatedCatalogDetail {
-    catalog: QuizCatalog
-    categories: QuizCategory[]
-    questions: QuizQuestion[]
+export function isFullQuestion(question: QuizQuestionRead): question is QuizQuestion {
+    return 'autoPoints' in question
+}
+
+/** Whether the member has an attempt at a test; one who never started has none. */
+export function hasAttempt(attempt: MyQuizAttempt): attempt is QuizAttemptDetail {
+    return 'attempt' in attempt
 }
 
 /**
  * Reads a catalog served by a federation partner. The partner is addressed by its station UUID
  * because a catalog id is only unique within the station that owns it.
  */
-export async function getFederatedCatalog(stationUid: string, catalogId: number): Promise<FederatedCatalogDetail> {
-    const res = await client.get<FederatedCatalogDetail>(`/federated/${stationUid}/quiz/catalogs/${catalogId}`)
+export async function getFederatedCatalog(stationUid: string, catalogId: number): Promise<RemoteCatalogDetail> {
+    const res = await client.get<RemoteCatalogDetail>(`/federated/${stationUid}/quiz/catalogs/${catalogId}`)
     return res.data
-}
-
-export interface CatalogListResponse {
-    catalogs: QuizCatalog[]
-    sharedCatalogs: SharedCatalogEntry[]
-}
-
-interface CatalogRequest {
-    name: string
-    description?: string
-    trainingEnabled?: boolean
-    metadata?: CatalogMetadata
-}
-
-interface CategoryRequest {
-    name: string
-    description?: string
-    position?: number
-}
-
-interface TestCreateRequest {
-    title: string
-    description?: string
-    timeLimit?: number | null
-    shuffle?: boolean
-    forced?: boolean
 }
 
 const catalogs = createCrudResource<
     QuizCatalog,
-    CatalogRequest,
-    CatalogRequest,
+    QuizCatalogRequest,
+    QuizCatalogRequest,
     QuizCatalogDetail
 >('/quiz/catalogs')
 
 const categories = createCrudResource<
     QuizCategory,
-    CategoryRequest,
-    CategoryRequest,
+    QuizCategoryRequest,
+    QuizCategoryRequest,
     QuizCategory,
     QuizCategory,
-    NoContent
+    QuizSuccessResponse
 >('/quiz/categories')
 
 const catalogQuestions = createScopedCrudResource<
     QuizQuestion,
-    Record<string, unknown>
+    QuizQuestionRequest
 >((catalogId: number) => `/quiz/catalogs/${catalogId}/questions`)
 
-const questions = createCrudResource<QuizQuestion, Record<string, unknown>>('/quiz/questions')
+const questions = createCrudResource<
+    QuizQuestion,
+    QuizQuestionRequest,
+    QuizQuestionRequest,
+    QuizQuestionRead,
+    QuizQuestion,
+    QuizQuestion
+>('/quiz/questions')
 
 const tests = createCrudResource<
     QuizTestSummary,
-    TestCreateRequest,
-    Record<string, unknown>,
+    QuizTestRequest,
+    QuizTestRequest,
     QuizTestDetail,
     QuizTest
 >('/quiz/tests')
@@ -328,13 +165,6 @@ const tests = createCrudResource<
 
 export async function listCatalogs(): Promise<CatalogListResponse> {
     const res = await client.get<CatalogListResponse>('/quiz/catalogs')
-    return res.data
-}
-
-export async function searchCatalogs(query: string, federated: boolean): Promise<CatalogListResponse> {
-    const res = await client.get<CatalogListResponse>('/quiz/catalogs/search', {
-        params: { q: query, federated },
-    })
     return res.data
 }
 
@@ -383,12 +213,6 @@ export async function closeTest(id: number): Promise<QuizTest> {
 
 // -- Frozen Questions --
 
-export interface FrozenQuestionDetail {
-    position: number
-    sectionId: number | null
-    question: QuizQuestion | null
-}
-
 export async function generateFrozenQuestions(testId: number): Promise<FrozenQuestionDetail[]> {
     const res = await client.post<FrozenQuestionDetail[]>(`/quiz/tests/${testId}/generate-questions`)
     return res.data
@@ -400,7 +224,8 @@ export async function listFrozenQuestions(testId: number): Promise<FrozenQuestio
 }
 
 export async function replaceFrozenQuestion(testId: number, position: number, questionId: number): Promise<FrozenQuestionDetail[]> {
-    const res = await client.put<FrozenQuestionDetail[]>(`/quiz/tests/${testId}/frozen-questions/${position}`, { questionId })
+    const request: ReplaceQuestionRequest = {questionId}
+    const res = await client.put<FrozenQuestionDetail[]>(`/quiz/tests/${testId}/frozen-questions/${position}`, request)
     return res.data
 }
 
@@ -416,7 +241,7 @@ export async function listAvailableReplacements(testId: number): Promise<QuizQue
 
 // -- Sections --
 
-export async function replaceSections(testId: number, sections: { title: string; description: string; sources: { catalogId: number; categoryId?: number | null; questionCount: number }[] }[]): Promise<QuizTestSection[]> {
+export async function replaceSections(testId: number, sections: QuizSectionRequest[]): Promise<QuizTestSection[]> {
     const res = await client.put<QuizTestSection[]>(`/quiz/tests/${testId}/sections`, sections)
     return res.data
 }
@@ -428,13 +253,15 @@ export async function startAttempt(testId: number): Promise<QuizAttemptDetail> {
     return res.data
 }
 
-export async function getMyAttempt(testId: number): Promise<QuizAttemptDetail> {
-    const res = await client.get<QuizAttemptDetail>(`/quiz/tests/${testId}/my-attempt`)
+/** The member's attempt at a test, or nothing where they never started one. */
+export async function getMyAttempt(testId: number): Promise<MyQuizAttempt> {
+    const res = await client.get<MyQuizAttempt>(`/quiz/tests/${testId}/my-attempt`)
     return res.data
 }
 
 export async function saveAnswer(attemptId: number, questionId: number, answer: string): Promise<void> {
-    await client.post(`/quiz/attempts/${attemptId}/answer`, { questionId, answer })
+    const request: QuizAnswerRequest = {questionId, answer}
+    await client.post(`/quiz/attempts/${attemptId}/answer`, request)
 }
 
 export async function submitAttempt(attemptId: number): Promise<QuizTestAttempt> {
@@ -455,7 +282,8 @@ export async function getAttemptDetail(attemptId: number): Promise<QuizAttemptDe
 }
 
 export async function gradeAnswer(answerId: number, points: number): Promise<void> {
-    await client.post(`/quiz/answers/${answerId}/grade`, { points })
+    const request: QuizGradeRequest = {points}
+    await client.post(`/quiz/answers/${answerId}/grade`, request)
 }
 
 export async function gradeAttempt(attemptId: number): Promise<QuizTestAttempt> {
@@ -465,26 +293,27 @@ export async function gradeAttempt(attemptId: number): Promise<QuizTestAttempt> 
 
 // -- Restrictions --
 
-export interface QuizTestRestrictions {
-    userTypes?: string[]
-    groupIds: number[]
-    tagIds: number[]
-    mode?: string
-}
-
 export async function getRestrictions(testId: number): Promise<QuizTestRestrictions> {
     const res = await client.get<QuizTestRestrictions>(`/quiz/tests/${testId}/restrictions`)
     return res.data
 }
 
-export async function setRestrictions(testId: number, data: QuizTestRestrictions): Promise<void> {
-    await client.put(`/quiz/tests/${testId}/restrictions`, data)
+/**
+ * Replaces whom a test is put to. Every list sent replaces the stored one, so a list the screen does
+ * not edit has to be sent back as it was read.
+ *
+ * @returns the restrictions as stored
+ */
+export async function setRestrictions(testId: number, data: QuizTestRestrictionsRequest): Promise<QuizTestRestrictions> {
+    const res = await client.put<QuizTestRestrictions>(`/quiz/tests/${testId}/restrictions`, data)
+    return res.data
 }
 
 // -- Member Access --
 
 export async function grantAccess(testId: number, memberId: number, closesAt?: string | null): Promise<void> {
-    await client.post(`/quiz/tests/${testId}/access`, { memberId, closesAt })
+    const request: QuizAccessRequest = {memberId, closesAt}
+    await client.post(`/quiz/tests/${testId}/access`, request)
 }
 
 export async function revokeAccess(testId: number, memberId: number): Promise<void> {
@@ -534,60 +363,28 @@ export async function downloadSolutionPdf(testId: number): Promise<void> {
 
 // -- Import/Export --
 
-export async function exportCatalog(catalogId: number): Promise<QuizCatalogExport> {
-    const res = await client.get<QuizCatalogExport>(`/quiz/catalogs/${catalogId}/export`)
+export async function exportCatalog(catalogId: number): Promise<CatalogTransfer> {
+    const res = await client.get<CatalogTransfer>(`/quiz/catalogs/${catalogId}/export`)
     return res.data
 }
 
-export async function importCatalog(data: QuizCatalogExport): Promise<QuizCatalog> {
+export async function importCatalog(data: CatalogTransfer): Promise<QuizCatalog> {
     const res = await client.post<QuizCatalog>('/quiz/catalogs/import', data)
     return res.data
 }
 
 /** Adds the questions a file carries to a catalog that already exists, behind the ones in it. */
-export async function appendToCatalog(catalogId: number, data: QuizCatalogExport): Promise<QuizCatalog> {
+export async function appendToCatalog(catalogId: number, data: CatalogTransfer): Promise<QuizCatalog> {
     const res = await client.post<QuizCatalog>(`/quiz/catalogs/${catalogId}/import`, data)
     return res.data
 }
 
 // -- Reading a sheet --
 
-/** Which column of a sheet carries which field. Everything but the question text is optional. */
-export interface CsvMappings {
-    questionColumn: string
-    answerColumn: string
-    categoryColumn: string
-    typeColumn: string
-    pointsColumn: string
-    descriptionColumn: string
-    imageColumn: string
-    distractorColumn: string
-    pointsPerCorrectColumn: string
-    requiredCountColumn: string
-    orderedRequiredColumn: string
-    separator: string
-    answerSeparator: string
-    defaultType: QuizQuestionTypeName
-}
-
-/**
- * One row read into the shape a catalog file carries, alongside the answer cell it came from.
- * The wizard keeps that cell so it can offer to split it again on a different separator.
- */
-export interface QuizCsvDraftQuestion {
-    question: QuizCatalogExportQuestion
-    rawAnswer: string
-    answerSeparator: string
-}
-
-export interface QuizCsvDraft {
-    categories: QuizCatalogExportCategory[]
-    questions: QuizCsvDraftQuestion[]
-}
-
 /** Reads a sheet into a draft without writing anything, so the wizard can show what would arrive. */
-export async function draftFromCsv(content: string, mappings: CsvMappings): Promise<QuizCsvDraft> {
-    const res = await client.post<QuizCsvDraft>('/quiz/catalogs/csv-draft', {content, mappings})
+export async function draftFromCsv(content: string, mappings: CsvMappings): Promise<CsvDraft> {
+    const request: CsvDraftRequest = {content, mappings}
+    const res = await client.post<CsvDraft>('/quiz/catalogs/csv-draft', request)
     return res.data
 }
 
@@ -598,21 +395,10 @@ export async function downloadCatalogTemplate(format: 'csv' | 'json'): Promise<v
 
 // -- Reports on questions --
 
-/**
- * A note somebody left on a question while training, saying that something about it is wrong, out
- * of date or ambiguous. It exists until somebody who maintains the catalog acknowledges it.
- */
-export interface QuizQuestionReport {
-    id: number
-    questionId: number
-    reporterName: string
-    note: string
-    createdAt: string
-}
-
 /** Reports a question from the training view. */
 export async function reportQuestion(questionId: number, note: string): Promise<QuizQuestionReport> {
-    const res = await client.post<QuizQuestionReport>(`/quiz/questions/${questionId}/reports`, {note})
+    const request: QuizReportRequest = {note}
+    const res = await client.post<QuizQuestionReport>(`/quiz/questions/${questionId}/reports`, request)
     return res.data
 }
 

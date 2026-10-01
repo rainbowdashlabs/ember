@@ -15,7 +15,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import BatchActionFields from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchActionFields.vue'
 import BatchGenerateOptions from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchGenerateOptions.vue'
-import {QuizQuestionTypes, type QuizCategory, type QuizQuestion} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizCategory, QuizQuestion} from '@/api/generated/schema'
 import {quiz, ai} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {type AiCredentials, loadAiCredentials} from '@/util/aiCredentials'
@@ -152,7 +153,7 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
     provider: credentials.provider,
     model: credentials.model || null,
     userPrompt: prompt, catalogId: props.catalogId,
-    entries: [{questionType: type, count: 1, categoryId: q.categoryId}],
+    entries: [{quizQuestionType: type, count: 1, categoryId: q.categoryId}],
   })
   while (true) {
     await new Promise(r => setTimeout(r, 1500))
@@ -162,7 +163,7 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
       await quiz.updateQuestion(q.id, {
         title: gen.title, description: q.description, categoryId: q.categoryId,
         quizQuestionType: type, points: q.points, autoPoints: q.autoPoints,
-        config: gen.config,
+        config: ai.generatedConfig(gen.config),
       })
     }
     if (poll.done) break

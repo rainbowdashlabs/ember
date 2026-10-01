@@ -6,14 +6,15 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 public record QuizTestAnswer(
         int id,
         int attemptId,
         int questionId,
-        Integer sectionId,
+        @Nullable Integer sectionId,
         String answer,
-        Double points,
+        @Nullable Double points,
         boolean graded,
         int position) {
 

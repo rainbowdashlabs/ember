@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.CredentialCipherException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -191,7 +192,8 @@ public class AiCredentialService {
      * @param usable    whether the stored key still opens; false means it has to be entered again
      * @param keyEnding the last four characters of the key, or {@code null} when it does not open
      */
-    public record AiCredentialSummary(String provider, String model, boolean usable, String keyEnding) {}
+    public record AiCredentialSummary(
+            @Nullable String provider, @Nullable String model, boolean usable, @Nullable String keyEnding) {}
 
     /** What became of a save. */
     public enum SaveOutcome {

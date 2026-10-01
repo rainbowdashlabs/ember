@@ -11,10 +11,10 @@ import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResultGroupDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResultGroup;
 import dev.chojo.ember.feature.form.service.FormResultQuery.Dimension;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Filter;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Grouping;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultFilter;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.form.service.FormResultQuery.Match;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -147,17 +147,17 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         memberGroupRepo.addMember(parents.id(), guardianMember.id());
         try {
             var grouped = assembler.buildAnalytics(
-                    formId, new FormResultQuery(null, new Grouping(Dimension.GROUP, null, null, null)));
+                    formId, new FormResultQuery(null, new ResultGrouping(Dimension.GROUP, null, null, null)));
             assertEquals(
                     List.of(String.valueOf(youth.id())),
-                    grouped.groups().stream().map(ResultGroupDto::key).toList());
+                    grouped.groups().stream().map(FormResultGroup::key).toList());
             assertEquals("Jugend", grouped.groups().getFirst().label());
             assertEquals(
                     List.of("Blue"),
                     grouped.groups().getFirst().tallies().getFirst().values());
             assertTrue(grouped.groupsOverlap());
 
-            var onlyParents = new Filter(null, List.of(parents.id()), Match.ANY, null, null, null, null, null);
+            var onlyParents = new ResultFilter(null, List.of(parents.id()), Match.ANY, null, null, null, null, null);
             var filtered = assembler.buildAnalytics(formId, new FormResultQuery(onlyParents, null));
             assertEquals(0, filtered.totalResponses());
             assertTrue(filtered.responseIds().isEmpty());
@@ -182,7 +182,7 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                 null);
         profileFieldRepo.setValue(submitterMember.id(), field.id(), StringNode.valueOf(born.toString()));
         try {
-            var exactly = new Filter(null, null, null, null, null, null, age, age);
+            var exactly = new ResultFilter(null, null, null, null, null, null, age, age);
             assertEquals(
                     1,
                     assembler
@@ -190,10 +190,10 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                             .totalResponses());
 
             var grouped = assembler.buildAnalytics(
-                    formId, new FormResultQuery(null, new Grouping(Dimension.AGE, null, null, List.of(age))));
+                    formId, new FormResultQuery(null, new ResultGrouping(Dimension.AGE, null, null, List.of(age))));
             assertEquals(
                     List.of(age + "+"),
-                    grouped.groups().stream().map(ResultGroupDto::key).toList());
+                    grouped.groups().stream().map(FormResultGroup::key).toList());
         } finally {
             profileFieldRepo.delete(field.id());
         }

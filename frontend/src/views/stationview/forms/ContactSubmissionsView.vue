@@ -12,7 +12,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubmissionList from './contactsubmissionsview/SubmissionList.vue'
-import {acknowledgeContactResponse, FormAnalyticsBase, type Form, type FormAnswer, type FormQuestion, type FormResponse} from '@/api/forms'
+import {acknowledgeContactResponse, FormAnalyticsBase} from '@/api/forms'
+import type {Form, FormAnswer, FormQuestion, FormResponseEntry} from '@/api/generated/schema'
 import {forms} from '@/api'
 import {formatAnswerDisplay} from '@/util/formAnswerDisplay'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -29,7 +30,7 @@ const route = useRoute()
 const formId = computed(() => Number(route.params.id))
 const form = ref<Form | null>(null)
 const questions = ref<FormQuestion[]>([])
-const submissions = ref<FormResponse[]>([])
+const submissions = ref<FormResponseEntry[]>([])
 const answersByResponse = ref<Map<number, FormAnswer[]>>(new Map())
 const ackInFlight = ref<Set<number>>(new Set())
 
@@ -78,7 +79,7 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
  */
 const ackFailure = ref<Failure | null>(null)
 
-async function acknowledge(submission: FormResponse) {
+async function acknowledge(submission: FormResponseEntry) {
     if (submission.acknowledgedAt) return
     const next = new Set(ackInFlight.value)
     next.add(submission.id)

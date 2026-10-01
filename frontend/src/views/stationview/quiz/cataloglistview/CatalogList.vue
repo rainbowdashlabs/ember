@@ -4,13 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type {QuizCatalog, SharedCatalogEntry} from '@/api/quiz'
+import type {QuizCatalog, SharedQuizCatalog} from '@/api/generated/schema'
 import LocalCatalogRow from './LocalCatalogRow.vue'
 import SharedCatalogRow from './SharedCatalogRow.vue'
 
 defineProps<{
   catalogs: QuizCatalog[]
-  sharedCatalogs: SharedCatalogEntry[]
+  sharedCatalogs: SharedQuizCatalog[]
   isMobile: boolean
 }>()
 

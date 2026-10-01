@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Question representation for members without catalog access: the same identity and
  * presentation fields as {@link QuizQuestion}, but with the solution-bearing config
@@ -25,11 +27,12 @@ package dev.chojo.ember.feature.quiz.entity;
 public record QuizQuestionView(
         int id,
         int catalogId,
-        Integer categoryId,
+        @Nullable Integer categoryId,
         QuizQuestionType quizQuestionType,
         String title,
         String description,
-        String imageUrl,
+        @Nullable String imageUrl,
         double points,
         int position,
-        QuizQuestionConfigView config) {}
+        QuizQuestionConfigView config)
+        implements QuizQuestionRead {}

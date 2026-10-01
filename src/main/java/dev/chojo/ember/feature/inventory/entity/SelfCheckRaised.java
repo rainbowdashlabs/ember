@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -43,12 +44,12 @@ public record SelfCheckRaised(
         int taskId,
         SelfCheckRaisedKind kind,
         SelfCheckRaisedState state,
-        Integer itemId,
-        Integer movementId,
-        Integer waitsForRowId,
-        Integer newSizeId,
+        @Nullable Integer itemId,
+        @Nullable Integer movementId,
+        @Nullable Integer waitsForRowId,
+        @Nullable Integer newSizeId,
         String words,
-        Integer raisedBy,
+        @Nullable Integer raisedBy,
         Instant raisedAt) {
 
     /**

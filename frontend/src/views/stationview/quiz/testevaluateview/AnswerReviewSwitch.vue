@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {QuizQuestionTypes, type QuizQuestion, type QuizTestAnswer} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 import McAnswerReview from './McAnswerReview.vue'
 import TrueFalseAnswerReview from './TrueFalseAnswerReview.vue'
 import ConnectAnswerReview from './ConnectAnswerReview.vue'
