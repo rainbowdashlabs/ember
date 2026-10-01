@@ -52,6 +52,7 @@
 - **Files of a station could be read by anyone signed in on the instance.** Somebody signed in who was no member of a station could open its media files, pictures and documents, list its media files and see its cluster by naming the station. These now answer only members of the station.
 - **The code that set up an authenticator app could be used once more.** The code typed in to confirm a new authenticator app was still accepted by the next sign-in or confirmation within its short validity window. It now counts as used the moment the app is set up.
 - **Questions of another station's template could be copied.** Somebody allowed to create appointments could copy the registration questions of another station's appointment template into a new appointment by giving its number. Only the station's own templates are used now, and naming another one creates no appointment.
+- **Steps of other procedures could be changed.** Somebody allowed to work on one procedure could tick off, edit, delete or add a note to a step of any other procedure, even one of another station, by naming it under their own, and the same held for the steps of procedure templates. A step is now reached only through the procedure or template it belongs to.
 
 ### Changes
 

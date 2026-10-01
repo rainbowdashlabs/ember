@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.procedure.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcedureAssigned;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
@@ -114,11 +116,36 @@ public class ProcedureService {
         return deleted;
     }
 
+    /**
+     * One step of one template.
+     *
+     * @param templateId the template the step has to belong to
+     * @param itemId     the step
+     * @return the step, or empty when the template holds no step by that id
+     */
+    public Optional<ProcedureTemplateItem> findTemplateItemIn(int templateId, int itemId) {
+        return repository.findTemplateItems(templateId).stream()
+                .filter(item -> item.id() == itemId)
+                .findFirst();
+    }
+
     public List<int[]> findTemplateItemDependencies(int templateId) {
         return repository.findTemplateItemDependencies(templateId);
     }
 
+    /**
+     * Replaces the dependencies between the steps of one template.
+     *
+     * @param templateId   the template
+     * @param dependencies pairs of step ids: the step first, the step it waits for second
+     * @throws RefusalResponse {@link Refusal#PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE} when a pair names a step
+     *                         of another template
+     */
     public void setTemplateItemDependencies(int templateId, List<int[]> dependencies) {
+        var held = repository.findTemplateItems(templateId).stream()
+                .map(ProcedureTemplateItem::id)
+                .collect(Collectors.toSet());
+        if (!namesOnly(held, dependencies)) throw Refusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE.raise();
         repository.setTemplateItemDependencies(templateId, dependencies);
         log.info("Procedure template {} now carries {} item dependency(s)", templateId, dependencies.size());
     }
@@ -282,8 +309,15 @@ public class ProcedureService {
         return removed;
     }
 
-    public Optional<ProcedureItem> findItemById(int itemId) {
-        return repository.findItemById(itemId);
+    /**
+     * One step of one procedure.
+     *
+     * @param procedureId the procedure the step has to belong to
+     * @param itemId      the step
+     * @return the step, or empty when the procedure holds no step by that id
+     */
+    public Optional<ProcedureItem> findItemIn(int procedureId, int itemId) {
+        return repository.findItemById(itemId).filter(item -> item.procedureId() == procedureId);
     }
 
     public List<ProcedureItem> findItems(int procedureId) {
@@ -389,9 +423,25 @@ public class ProcedureService {
         return repository.findItemDependencies(procedureId);
     }
 
+    /**
+     * Replaces the dependencies between the steps of one procedure.
+     *
+     * @param procedureId  the procedure
+     * @param dependencies pairs of step ids: the step first, the step it waits for second
+     * @throws RefusalResponse {@link Refusal#PROCEDURE_STEP_NOT_IN_PROCEDURE} when a pair names a step of
+     *                         another procedure
+     */
     public void setItemDependencies(int procedureId, List<int[]> dependencies) {
+        var held = repository.findItems(procedureId).stream()
+                .map(ProcedureItem::id)
+                .collect(Collectors.toSet());
+        if (!namesOnly(held, dependencies)) throw Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE.raise();
         repository.setItemDependencies(procedureId, dependencies);
         log.info("Procedure {} now carries {} item dependency(s)", procedureId, dependencies.size());
+    }
+
+    private static boolean namesOnly(Set<Integer> held, List<int[]> dependencies) {
+        return dependencies.stream().allMatch(pair -> held.contains(pair[0]) && held.contains(pair[1]));
     }
 
     public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {

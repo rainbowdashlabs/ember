@@ -52,6 +52,7 @@
 - **Dateien einer Wache konnte jeder lesen, der auf der Instanz angemeldet war.** Wer angemeldet, aber kein Mitglied einer Wache war, konnte ihre Mediendateien, Bilder und Dokumente öffnen, ihre Mediendateien auflisten und ihren Verbund sehen, indem er die Wache angab. Das ist jetzt nur noch Mitgliedern der Wache möglich.
 - **Der Code, mit dem eine Authenticator-App eingerichtet wurde, ließ sich noch einmal verwenden.** Der Code, der eine neue Authenticator-App bestätigte, wurde innerhalb seiner kurzen Gültigkeit noch von der nächsten Anmeldung oder Bestätigung angenommen. Jetzt gilt er als verbraucht, sobald die App eingerichtet ist.
 - **Fragen aus der Terminvorlage einer anderen Wache ließen sich übernehmen.** Wer Termine anlegen durfte, konnte die Fragen zur Anmeldung aus der Terminvorlage einer anderen Wache in einen neuen Termin übernehmen, indem er ihre Nummer angab. Jetzt werden nur die eigenen Vorlagen der Wache verwendet, und mit einer fremden wird kein Termin angelegt.
+- **Schritte anderer Abläufe ließen sich ändern.** Wer an einem Ablauf arbeiten durfte, konnte einen Schritt jedes anderen Ablaufs, auch eines anderer Wachen, abhaken, bearbeiten, löschen oder mit einer Notiz versehen, indem er ihn unter dem eigenen Ablauf angab, und dasselbe galt für die Schritte von Ablaufvorlagen. Ein Schritt ist jetzt nur noch über den Ablauf oder die Vorlage erreichbar, zu der er gehört.
 
 ### Änderungen
 

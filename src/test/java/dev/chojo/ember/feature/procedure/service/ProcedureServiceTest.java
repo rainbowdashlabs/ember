@@ -137,9 +137,21 @@ class ProcedureServiceTest {
 
     @Test
     void setTemplateItemDependencies() {
+        when(repository.findTemplateItems(TEMPLATE_ID))
+                .thenReturn(List.of(
+                        new ProcedureTemplateItem(1, TEMPLATE_ID, "A", null, true, true, 0),
+                        new ProcedureTemplateItem(2, TEMPLATE_ID, "B", null, true, true, 1)));
         var deps = List.of(new int[] {1, 2});
         service.setTemplateItemDependencies(TEMPLATE_ID, deps);
         verify(repository).setTemplateItemDependencies(TEMPLATE_ID, deps);
+    }
+
+    @Test
+    void findTemplateItemInKnowsOnlyTheStepsOfThatTemplate() {
+        var step = new ProcedureTemplateItem(1, TEMPLATE_ID, "A", null, true, true, 0);
+        when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of(step));
+        assertEquals(Optional.of(step), service.findTemplateItemIn(TEMPLATE_ID, 1));
+        assertTrue(service.findTemplateItemIn(TEMPLATE_ID, 2).isEmpty());
     }
 
     @Test
@@ -494,6 +506,25 @@ class ProcedureServiceTest {
     void findItemDependencies() {
         when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
         assertEquals(List.of(), service.findItemDependencies(PROCEDURE_ID));
+    }
+
+    @Test
+    void setItemDependenciesBetweenStepsOfTheProcedure() {
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(
+                        new ProcedureItem(1, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null),
+                        new ProcedureItem(2, PROCEDURE_ID, "B", null, null, true, true, 1, false, null, null)));
+        var deps = List.of(new int[] {2, 1});
+        service.setItemDependencies(PROCEDURE_ID, deps);
+        verify(repository).setItemDependencies(PROCEDURE_ID, deps);
+    }
+
+    @Test
+    void findItemInKnowsOnlyTheStepsOfThatProcedure() {
+        var step = new ProcedureItem(ITEM_ID, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null);
+        when(repository.findItemById(ITEM_ID)).thenReturn(Optional.of(step));
+        assertEquals(Optional.of(step), service.findItemIn(PROCEDURE_ID, ITEM_ID));
+        assertTrue(service.findItemIn(PROCEDURE_ID + 1, ITEM_ID).isEmpty());
     }
 
     @Test

@@ -185,9 +185,7 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void updateTemplateItem(Context ctx) {
-        requireOwnedOrNotFound(
-                ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
-        int iid = pathInt(ctx, "iid");
+        int iid = requireTemplateStep(ctx).id();
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (!procedureService.updateTemplateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
@@ -201,9 +199,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteTemplateItem(Context ctx) {
-        requireOwnedOrNotFound(
-                ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
-        int iid = pathInt(ctx, "iid");
+        int iid = requireTemplateStep(ctx).id();
         if (!procedureService.deleteTemplateItem(iid)) throw Refusal.PROCEDURE_TEMPLATE_STEP_NOT_HERE_TO_DELETE.raise();
         ctx.status(204);
     }
@@ -436,8 +432,7 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void editItem(Context ctx) {
-        requireOwnedOrNotFound(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
-        int iid = pathInt(ctx, "iid");
+        int iid = requireProcedureStep(ctx).id();
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (!procedureService.updateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
@@ -451,8 +446,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteItem(Context ctx) {
-        requireOwnedOrNotFound(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
-        int iid = pathInt(ctx, "iid");
+        int iid = requireProcedureStep(ctx).id();
         if (!procedureService.deleteItem(iid)) throw Refusal.PROCEDURE_STEP_NOT_HERE_TO_DELETE.raise();
         ctx.status(204);
     }
@@ -464,18 +458,15 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureItem[].class)))
     private void patchItem(Context ctx) {
         var session = StationSession.from(ctx);
-        int rid = pathInt(ctx, "rid");
-        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
-        int iid = pathInt(ctx, "iid");
+        var item = requireProcedureStep(ctx);
+        int rid = item.procedureId();
+        int iid = item.id();
         var req = ctx.bodyAsClass(PatchItemRequest.class);
 
         if (req.checked() != null) {
             boolean hasEdit = session.hasPermission(StationPermission.PROCEDURE_EDIT);
             if (req.checked()) {
                 if (!hasEdit) {
-                    var item = procedureService
-                            .findItemById(iid)
-                            .orElseThrow(Refusal.PROCEDURE_STEP_NOT_HERE_TO_TICK::raise);
                     if (!item.userAssigned()) {
                         throw Refusal.PROCEDURE_STEP_NOT_YOURS_TO_TICK.raise();
                     }
@@ -499,6 +490,34 @@ public class ProcedureRoutes implements Routes {
             procedureService.updateItemNote(iid, note);
         }
         ctx.json(procedureService.findItems(rid));
+    }
+
+    /**
+     * The step a request names under a procedure of the caller's station.
+     *
+     * @return the step, refused as not here when the procedure is another station's or the step is
+     *         another procedure's
+     */
+    private ProcedureItem requireProcedureStep(Context ctx) {
+        int rid = pathInt(ctx, "rid");
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        return procedureService
+                .findItemIn(rid, pathInt(ctx, "iid"))
+                .orElseThrow(Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+    }
+
+    /**
+     * The step a request names under a procedure template of the caller's station.
+     *
+     * @return the step, refused as not here when the template is another station's or the step is
+     *         another template's
+     */
+    private ProcedureTemplateItem requireTemplateStep(Context ctx) {
+        int tid = pathInt(ctx, "tid");
+        requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        return procedureService
+                .findTemplateItemIn(tid, pathInt(ctx, "iid"))
+                .orElseThrow(Refusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE::raise);
     }
 
     /**

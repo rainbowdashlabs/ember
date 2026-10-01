@@ -1233,10 +1233,6 @@ public enum Refusal {
     PROCEDURE_STEP_NOT_HERE_TO_DELETE(
             Area.PROCEDURES, 18, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
 
-    /** A step of a procedure that went before the tick reached it. */
-    PROCEDURE_STEP_NOT_HERE_TO_TICK(
-            Area.PROCEDURES, 19, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
-
     /** A step nobody was meant to tick off themselves, ticked off by somebody it was handed to. */
     PROCEDURE_STEP_NOT_YOURS_TO_TICK(
             Area.PROCEDURES, 20, HttpStatus.FORBIDDEN, "This step is ticked off by whoever runs the procedure"),
@@ -1266,6 +1262,14 @@ public enum Refusal {
     /** A procedure that could not be read back after being reopened, with the reopening already in. */
     PROCEDURE_NOT_HERE_AFTER_REOPENING(
             Area.PROCEDURES, 26, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /** A step named under a procedure it does not belong to. */
+    PROCEDURE_STEP_NOT_IN_PROCEDURE(
+            Area.PROCEDURES, 27, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
+
+    /** A step named under a procedure template it does not belong to. */
+    PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE(
+            Area.PROCEDURES, 28, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
 
     /** A checklist written down without a name. */
     CHECKLIST_NEEDS_A_NAME(Area.CHECKLISTS, 1, HttpStatus.BAD_REQUEST, Sentences.CHECKLIST_NEEDS_A_NAME),

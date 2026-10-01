@@ -542,7 +542,6 @@ export default {
     'R-016': PROCEDURE_STEP_NEEDS_A_TITLE,
     'R-017': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
     'R-018': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
-    'R-019': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
     'R-020': 'Diesen Schritt hakt ab, wer den Vorgang führt',
     'R-021': PROCEDURE_NOT_YOURS,
     'R-022': 'Dieser Schritt lässt sich noch nicht abhaken: ein Schritt davor ist noch offen, '
@@ -551,6 +550,8 @@ export default {
     'R-024': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'R-025': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'R-026': CHANGE_SAVED_BUT_NOT_READ_BACK,
+    'R-027': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
+    'R-028': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
 
     'CL-001': CHECKLIST_NEEDS_A_NAME,
     'CL-002': 'Eine Checkliste braucht mindestens eine Spalte, es wurde nichts gespeichert',
