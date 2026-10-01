@@ -380,7 +380,7 @@ public class ClusterProfileFieldService {
                 .asQuestion(name, fieldType.fieldType())
                 .flatMap(QuestionCheck::defaultValue)
                 .ifPresent(problem -> {
-                    throw new BadRequestResponse(problem.message());
+                    throw Refusal.CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());
                 });
     }
 

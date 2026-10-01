@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -117,7 +116,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
     private static void refused(ProfileField field, String answer) {
         int member = freshMember();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.setValues(member, List.of(new FieldValueEntry(field.id(), answer)), member),
                 answer + " under " + field.fieldType());
     }

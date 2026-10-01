@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,7 +79,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
     private void refused(ProfileFieldType type, String config, String answer) {
         var field = ask(type, config);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), answer), memberId),
                 answer + " under " + type);
     }
@@ -124,7 +123,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
     @Test
     void aQuestionCannotStartFromAnAnswerItRefuses() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> ask(ProfileFieldType.ENUM, "{\"options\":[\"S\"],\"defaultValue\":\"XL\"}"));
     }
 
@@ -139,7 +138,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
         var field = ask(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}");
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> profileFieldService.setValues(
                         memberId, List.of(new FieldValueEntry(field.id(), "\"XL\"", FieldOrigin.CLUSTER)), memberId));
 

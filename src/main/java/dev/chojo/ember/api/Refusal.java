@@ -3104,6 +3104,13 @@ public enum Refusal {
      */
     CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE(Area.CLUSTERS, 70, HttpStatus.BAD_REQUEST, Sentences.EXPIRY_OUT_OF_RANGE),
 
+    /** An association question saved with a default its own answers would not take. */
+    CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED(
+            Area.CLUSTERS,
+            71,
+            HttpStatus.BAD_REQUEST,
+            "That default does not suit this question, so nothing was saved"),
+
     /**
      * A file in the media library that is gone, or one held back from this reader. The two are one
      * code deliberately: telling them apart would say that the file is there and withheld.
@@ -3993,6 +4000,10 @@ public enum Refusal {
             147,
             HttpStatus.BAD_REQUEST,
             "An age is counted from a date and takes no answer of its own, so nothing was saved"),
+
+    /** A profile answer the question does not take, such as an unknown choice or a day that is no date. */
+    PROFILE_ANSWER_NOT_ACCEPTED(
+            Area.MEMBERS, 148, HttpStatus.BAD_REQUEST, "That answer does not suit this question, so nothing was saved"),
 
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),

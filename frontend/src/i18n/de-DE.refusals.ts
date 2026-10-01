@@ -1014,6 +1014,7 @@ export default {
     'CU-066': CLUSTER_NOT_HERE,
     'CU-069': NOT_A_CLUSTER_IDENTITY,
     'CU-070': EXPIRY_OUT_OF_RANGE,
+    'CU-071': 'Diese Vorgabe passt nicht zu dieser Frage, es wurde nichts gespeichert',
 
     'L-001': FILE_NOT_HERE,
     'L-002': PICTURE_NOT_HERE,
@@ -1251,6 +1252,7 @@ export default {
     'M-146': REGISTRATION_CODE_NOT_HERE,
     'M-147': 'Ein Alter wird aus einem Datum berechnet und nimmt keine eigene Antwort an, '
         + 'es wurde nichts gespeichert',
+    'M-148': 'Diese Antwort passt nicht zu dieser Frage, es wurde nichts gespeichert',
 
     'N-001': TOO_MANY_ATTEMPTS,
 
