@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixup
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
+import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
@@ -81,6 +82,7 @@ public class StationImportService {
     private final TransferFileImporter fileImporter;
     private final FederationPartnerTransferFixupService federationFixup;
     private final StationKeyTransfer keyTransfer;
+    private final StationAiKeyTransfer aiKeyTransfer;
     private final RemoteUrlValidator urlValidator;
     private final OutboundHttp outbound;
     private final StationTableImporter stationImporter;
@@ -101,6 +103,7 @@ public class StationImportService {
             TransferFileImporter fileImporter,
             FederationPartnerTransferFixupService federationFixup,
             StationKeyTransfer keyTransfer,
+            StationAiKeyTransfer aiKeyTransfer,
             RemoteUrlValidator urlValidator,
             OutboundHttp outbound,
             StationTableImporter stationImporter,
@@ -118,6 +121,7 @@ public class StationImportService {
         this.fileImporter = fileImporter;
         this.federationFixup = federationFixup;
         this.keyTransfer = keyTransfer;
+        this.aiKeyTransfer = aiKeyTransfer;
         this.urlValidator = urlValidator;
         this.outbound = outbound;
         this.stationImporter = stationImporter;
@@ -246,6 +250,7 @@ public class StationImportService {
         int stationId = station.id();
         stationImporter.applyFields(stationId, stationData);
         keyTransfer.adopt(stationId, stationPage, stationData, token);
+        aiKeyTransfer.adopt(stationId, stationPage, token);
 
         UUID currentUid =
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
@@ -274,6 +279,7 @@ public class StationImportService {
             stationImporter.applyFields(stationId, stationData);
             keyTransfer.adopt(stationId, stationPage, stationData, token);
         }
+        aiKeyTransfer.adopt(stationId, stationPage, token);
 
         Station target = stationRepository
                 .findById(stationId)

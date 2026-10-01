@@ -139,7 +139,6 @@ public class QuizGenerationService {
                 stationId,
                 accountId,
                 providerOf(request.provider()),
-                request.apiKey(),
                 request.model(),
                 question.title(),
                 String.join(", ", correctParts),
@@ -168,7 +167,6 @@ public class QuizGenerationService {
                 turn.stationId(),
                 turn.accountId(),
                 providerOf(turn.request().provider()),
-                turn.request().apiKey(),
                 turn.request().model(),
                 entry.quizQuestionType(),
                 turn.request().userPrompt(),
@@ -218,7 +216,6 @@ public class QuizGenerationService {
 
     public record GenerateQuestionsRequest(
             @Nullable String provider,
-            @Nullable String apiKey,
             @Nullable String model,
             @Nullable String userPrompt,
             @Nullable String locale,
@@ -236,7 +233,6 @@ public class QuizGenerationService {
 
     public record BatchGenerateRequest(
             @Nullable String provider,
-            @Nullable String apiKey,
             @Nullable String model,
             @Nullable Integer targetTotalOptions) {}
 

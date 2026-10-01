@@ -63,7 +63,7 @@ class AiRoutesTest {
     @Test
     void wrongAnswersAreAddedToTheNamedCatalog() {
         when(generation.fillDistractors(
-                        STATION, TestSessions.ACCOUNT_ID, 30, new BatchGenerateRequest("claude", null, null, 4)))
+                        STATION, TestSessions.ACCOUNT_ID, 30, new BatchGenerateRequest("claude", null, 4)))
                 .thenReturn(new BatchResult(2, List.of()));
         when(generation.fillDistractors(eq(STATION), eq(TestSessions.ACCOUNT_ID), eq(31), any()))
                 .thenThrow(Refusal.AI_GENERATION_CATALOG_NOT_HERE.raise());

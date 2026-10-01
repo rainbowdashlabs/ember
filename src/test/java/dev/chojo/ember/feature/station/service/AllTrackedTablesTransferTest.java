@@ -61,7 +61,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
+        exportService = new StationExportService(
+                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -71,6 +72,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 null,
                 new FederationPartnerTransferFixupService(new FederationRepository(), null),
                 TestStationKeys.transfer(),
+                TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),
                 stationImporter,

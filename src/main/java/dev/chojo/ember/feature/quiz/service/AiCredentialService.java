@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.feature.quiz.entity.AccountAiCredential;
 import dev.chojo.ember.feature.quiz.entity.AiVendor;
+import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
@@ -17,6 +18,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -70,12 +72,21 @@ public class AiCredentialService {
      * @return the plaintext key, or empty when the station keeps none for this provider or it no
      *         longer opens
      */
-    // TODO: carry station AI keys across a station transfer the way the federation key is carried
     public Optional<String> stationKey(int stationId, String provider) {
-        return stations.findByProvider(stationId, provider).flatMap(station -> {
-            if (!CredentialCipher.isSealed(station.apiKey())) return Optional.of(station.apiKey());
-            return open(station.apiKey(), "station " + stationId);
-        });
+        return stations.findByProvider(stationId, provider).flatMap(this::open);
+    }
+
+    /**
+     * Every key a station keeps that still opens, with the provider and model it is for.
+     *
+     * @param stationId the station
+     * @return the plaintext keys; a key that no longer opens is left out
+     */
+    public List<StationKey> stationKeys(int stationId) {
+        return stations.findByStation(stationId).stream()
+                .flatMap(station ->
+                        open(station).map(key -> new StationKey(station.provider(), station.model(), key)).stream())
+                .toList();
     }
 
     /**
@@ -167,6 +178,11 @@ public class AiCredentialService {
                 .flatMap(this::open);
     }
 
+    private Optional<String> open(StationAiProvider station) {
+        if (!CredentialCipher.isSealed(station.apiKey())) return Optional.of(station.apiKey());
+        return open(station.apiKey(), "station " + station.stationId());
+    }
+
     private Optional<String> open(AccountAiCredential credential) {
         return open(credential.sealedKey(), "account " + credential.accountId());
     }
@@ -197,6 +213,15 @@ public class AiCredentialService {
             @Nullable String model,
             boolean usable,
             @Nullable String keyEnding) {}
+
+    /**
+     * A key a station keeps, opened.
+     *
+     * @param provider the provider the key is for
+     * @param model    the model asked by default, or {@code null} for the provider's default
+     * @param key      the plaintext key
+     */
+    public record StationKey(String provider, @Nullable String model, String key) {}
 
     /** What became of a save. */
     public enum SaveOutcome {

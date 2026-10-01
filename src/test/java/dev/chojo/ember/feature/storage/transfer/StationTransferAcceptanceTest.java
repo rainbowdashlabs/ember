@@ -16,6 +16,9 @@ import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
+import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
+import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
+import dev.chojo.ember.feature.quiz.service.AiCredentialService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -117,7 +120,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var backendImporter = new TransferBackendImporter(configRepo, credentialCipher, resolver);
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
-        exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
+        exportService = new StationExportService(
+                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
         var fileImporter = new TransferFileImporter(storageService, avatarService, images, mediaStorageService);
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
@@ -128,6 +132,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 fileImporter,
                 new FederationPartnerTransferFixupService(new FederationRepository(), null),
                 TestStationKeys.transfer(),
+                TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),
                 stationImporter,
@@ -273,6 +278,26 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var redecrypted = StoredCredentials.S3.parse(credentialCipher.decryptToString(dst.credentials()));
         assertEquals("AKIA-source-access", redecrypted.accessKey());
         assertEquals("ssshh-source-secret", redecrypted.secretKey());
+    }
+
+    /**
+     * The station's AI keys come along: the destination holds one working key per provider, with
+     * the model that went with it, and the copied table row does not add a second one.
+     */
+    @Test
+    void aiKeysTravelWithTheStation() throws Exception {
+        var credentials = new AiCredentialService(
+                new AccountAiCredentialRepository(), new AiProviderRepository(), TestStationKeys.cipher());
+        Station source = stationRepo.create("Source AI");
+        credentials.saveStationKey(source.id(), "openai", "sk-travelling", "gpt-4o");
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        assertEquals(
+                List.of(new AiCredentialService.StationKey("openai", "gpt-4o", "sk-travelling")),
+                credentials.stationKeys(importResult.stationId()));
     }
 
     /**

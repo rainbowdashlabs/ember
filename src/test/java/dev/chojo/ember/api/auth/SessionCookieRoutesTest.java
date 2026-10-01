@@ -85,7 +85,7 @@ class SessionCookieRoutesTest {
         assertTrue(cookie.contains("SameSite=Lax"), cookie);
         assertFalse(cookie.contains("Secure"), "a dev instance is reached over plain HTTP");
         assertFalse(response.body().contains("session-token"), response.body());
-        assertTrue(response.body().contains("\"token\":null"), response.body());
+        assertFalse(response.body().contains("\"token\""), response.body());
 
         String csrf = cookie(response, SessionCookies.CSRF_COOKIE);
         assertTrue(csrf.startsWith("ember_csrf=" + csrfGuard(null).tokenFor("session-token") + ";"), csrf);

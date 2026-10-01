@@ -123,7 +123,6 @@ public class AiService {
             int stationId,
             int accountId,
             String provider,
-            @Nullable String transientKey,
             @Nullable String model,
             QuizQuestionType quizQuestionType,
             @Nullable String userPrompt,
@@ -132,7 +131,7 @@ public class AiService {
             @Nullable String categoryDescription,
             List<String> existingTitles) {
         AiVendor vendor = requireVendor(provider);
-        String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
+        String apiKey = storedKey(stationId, accountId, provider);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         String resolvedModel = resolveModel(stationId, vendor, model);
         String effectiveLocale = locale != null ? locale : "de";
@@ -193,13 +192,12 @@ public class AiService {
             int stationId,
             int accountId,
             String provider,
-            @Nullable String transientKey,
             @Nullable String model,
             String question,
             String correctAnswer,
             int count) {
         AiVendor vendor = requireVendor(provider);
-        String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
+        String apiKey = storedKey(stationId, accountId, provider);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         String resolvedModel = resolveModel(stationId, vendor, model);
         String systemPrompt = loadPromptFile("wrong_answers", "de").replace("{count}", String.valueOf(count));
@@ -224,10 +222,13 @@ public class AiService {
     /**
      * Lists the chat models the key can use, or nothing for a provider this service does not know.
      *
+     * <p>A key typed into the settings but not saved yet is tried as it is, so somebody can pick a
+     * model before deciding to keep the key; without one the stored key is used.
+     *
      * @throws IllegalArgumentException when no API key is available
      */
-    public List<ModelInfo> fetchModels(int stationId, int accountId, String provider, @Nullable String transientKey) {
-        String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
+    public List<ModelInfo> fetchModels(int stationId, int accountId, String provider, @Nullable String typedKey) {
+        String apiKey = typedKey != null && !typedKey.isBlank() ? typedKey : storedKey(stationId, accountId, provider);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         var vendor = AiVendor.fromKey(provider);
         if (vendor.isEmpty()) return List.of();
@@ -262,17 +263,8 @@ public class AiService {
         });
     }
 
-    /**
-     * The key a call is made with: one sent along with the request, then the caller's own, then the
-     * station's.
-     *
-     * <p>A key in the request is how a page from before keys moved to the server still works; a
-     * current page sends none.
-     */
-    // TODO: stop taking a key in the request once no page from before the switch can be open
-    private @Nullable String resolveApiKey(
-            int stationId, int accountId, String provider, @Nullable String transientKey) {
-        if (transientKey != null && !transientKey.isBlank()) return transientKey;
+    /** The key a call is made with: the caller's own, then the station's. */
+    private @Nullable String storedKey(int stationId, int accountId, String provider) {
         return credentials
                 .keyFor(accountId, provider)
                 .or(() -> credentials.stationKey(stationId, provider))

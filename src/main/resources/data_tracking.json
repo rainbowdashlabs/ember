@@ -21049,7 +21049,7 @@
         "ignoredColumns": [
           "station_id"
         ],
-        "rationale": "Per-station AI provider configuration; transfers with the station. The key is encrypted with the source instance's credential key, so the target reads it as missing and the station enters it again."
+        "rationale": "Per-station AI provider configuration; transfers with the station. The copied key is encrypted with the source instance's credential key, so a token transfer also carries every key that opens, sealed with the transfer token, on the station page, and stores it under the target's key before this table is copied. A key the source cannot open arrives as missing and the station enters it again."
       },
       "gdprExport": {
         "status": "IGNORED",

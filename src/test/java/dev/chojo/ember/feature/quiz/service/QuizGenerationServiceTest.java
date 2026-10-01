@@ -83,7 +83,6 @@ class QuizGenerationServiceTest {
                         eq(ACCOUNT),
                         eq("openai"),
                         isNull(),
-                        isNull(),
                         eq(QuizQuestionType.FREE_ANSWER),
                         isNull(),
                         eq("de"),
@@ -91,7 +90,7 @@ class QuizGenerationServiceTest {
                         eq("Ropes"),
                         any()))
                 .thenAnswer(call -> {
-                    titlesSeen.addAll(call.getArgument(10));
+                    titlesSeen.addAll(call.getArgument(9));
                     return chat;
                 });
         when(ai.generateNextQuestion(chat, QuizQuestionType.FREE_ANSWER))
@@ -119,15 +118,13 @@ class QuizGenerationServiceTest {
                 null,
                 null,
                 null,
-                null,
                 List.of(new GenerateEntry(null, 2, null), new GenerateEntry(QuizQuestionType.FREE_ANSWER, 0, null)));
 
         String jobId = service.startQuestions(STATION, ACCOUNT, request);
 
         assertTrue(service.poll(STATION, jobId).questions().isEmpty());
         verify(ai, never())
-                .createQuestionSession(
-                        anyInt(), anyInt(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+                .createQuestionSession(anyInt(), anyInt(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -169,13 +166,11 @@ class QuizGenerationServiceTest {
                 new QuestionConfig.MultipleChoice(List.of(new ChoiceOption("Yes", true)), 1));
         when(failing.title()).thenReturn("Broken?");
         when(questions.findQuestions(CATALOG)).thenReturn(List.of(shortOfOptions, full, noRightAnswer, free, failing));
-        when(ai.generate(STATION, ACCOUNT, "claude", "key", null, "Colour?", "Red", 1))
-                .thenReturn(List.of("Green"));
-        when(ai.generate(STATION, ACCOUNT, "claude", "key", null, "Broken?", "Yes", 2))
+        when(ai.generate(STATION, ACCOUNT, "claude", null, "Colour?", "Red", 1)).thenReturn(List.of("Green"));
+        when(ai.generate(STATION, ACCOUNT, "claude", null, "Broken?", "Yes", 2))
                 .thenThrow(new IllegalStateException("offline"));
 
-        var result =
-                service.fillDistractors(STATION, ACCOUNT, CATALOG, new BatchGenerateRequest("claude", "key", null, 3));
+        var result = service.fillDistractors(STATION, ACCOUNT, CATALOG, new BatchGenerateRequest("claude", null, 3));
 
         assertEquals(1, result.generatedCount());
         assertEquals(List.of("Broken?: offline"), result.errors());
@@ -191,7 +186,7 @@ class QuizGenerationServiceTest {
         assertEquals(
                 Refusal.AI_GENERATION_CATALOG_NOT_HERE,
                 refusalOf(() -> service.fillDistractors(
-                        STATION, ACCOUNT, CATALOG, new BatchGenerateRequest(null, null, null, null))));
+                        STATION, ACCOUNT, CATALOG, new BatchGenerateRequest(null, null, null))));
         verify(questions, never()).findQuestions(anyInt());
         verifyNoInteractions(ai);
     }
@@ -203,7 +198,7 @@ class QuizGenerationServiceTest {
         assertEquals(
                 Refusal.AI_GENERATION_CATALOG_NOT_HERE,
                 refusalOf(() -> service.fillDistractors(
-                        STATION, ACCOUNT, CATALOG, new BatchGenerateRequest(null, null, null, null))));
+                        STATION, ACCOUNT, CATALOG, new BatchGenerateRequest(null, null, null))));
         verify(questions, never()).findQuestions(anyInt());
     }
 
@@ -221,7 +216,7 @@ class QuizGenerationServiceTest {
     }
 
     private static GenerateQuestionsRequest order(GenerateEntry... entries) {
-        return new GenerateQuestionsRequest(null, null, null, null, "de", CATALOG, List.of(entries));
+        return new GenerateQuestionsRequest(null, null, null, "de", CATALOG, List.of(entries));
     }
 
     private static Refusal refusalOf(Executable call) {

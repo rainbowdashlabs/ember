@@ -519,13 +519,10 @@ public class AuthRoutes implements Routes {
     /**
      * Response body for login: a finished sign-in, or the one step still standing in the way of one.
      *
-     * <p>A finished sign-in travels in the session cookie, never in the body, so {@code token} is
-     * always {@code null} and {@code expiresAt} says only how long the session lasts. The field stays
-     * so a tab opened before the switch still reads a well-formed answer.
+     * <p>A finished sign-in travels in the session cookie, never in the body, so {@code expiresAt}
+     * says only how long the session lasts.
      */
-    // TODO: drop the always-empty token once no tab from before the cookie switch can be open
     public record LoginResponse(
-            @Nullable String token,
             @Nullable Instant expiresAt,
             boolean passwordChangeRequired,
             @Nullable String passwordChangeToken,
@@ -539,23 +536,23 @@ public class AuthRoutes implements Routes {
 
         /** Neither a session nor a way to one: whoever asked has to sign in by hand. */
         public static LoginResponse none() {
-            return new LoginResponse(null, null, false, null, null, false, null, null, false, null, null);
+            return new LoginResponse(null, false, null, null, false, null, null, false, null, null);
         }
 
         public static LoginResponse session(Instant expiresAt) {
-            return new LoginResponse(null, expiresAt, false, null, null, false, null, null, false, null, null);
+            return new LoginResponse(expiresAt, false, null, null, false, null, null, false, null, null);
         }
 
         public static LoginResponse passwordChange(String token, Instant expiresAt) {
-            return new LoginResponse(null, null, true, token, expiresAt, false, null, null, false, null, null);
+            return new LoginResponse(null, true, token, expiresAt, false, null, null, false, null, null);
         }
 
         public static LoginResponse address(String token, Instant expiresAt) {
-            return new LoginResponse(null, null, false, null, null, true, token, expiresAt, false, null, null);
+            return new LoginResponse(null, false, null, null, true, token, expiresAt, false, null, null);
         }
 
         public static LoginResponse twoFactor(String preAuthToken, Instant expiresAt) {
-            return new LoginResponse(null, null, false, null, null, false, null, null, true, preAuthToken, expiresAt);
+            return new LoginResponse(null, false, null, null, false, null, null, true, preAuthToken, expiresAt);
         }
 
         /**

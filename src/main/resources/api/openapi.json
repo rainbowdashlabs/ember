@@ -40850,9 +40850,6 @@
           "provider" : {
             "type" : [ "string", "null" ]
           },
-          "apiKey" : {
-            "type" : [ "string", "null" ]
-          },
           "model" : {
             "type" : [ "string", "null" ]
           },
@@ -42036,9 +42033,6 @@
         "type" : "object",
         "properties" : {
           "provider" : {
-            "type" : [ "string", "null" ]
-          },
-          "apiKey" : {
             "type" : [ "string", "null" ]
           },
           "model" : {
@@ -51247,9 +51241,6 @@
           "provider" : {
             "type" : [ "string", "null" ]
           },
-          "apiKey" : {
-            "type" : [ "string", "null" ]
-          },
           "model" : {
             "type" : [ "string", "null" ]
           },
@@ -54861,9 +54852,6 @@
       "LoginResponse" : {
         "type" : "object",
         "properties" : {
-          "token" : {
-            "type" : [ "string", "null" ]
-          },
           "expiresAt" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/Instant"
@@ -54911,19 +54899,16 @@
             } ]
           }
         },
-        "required" : [ "token", "expiresAt", "passwordChangeRequired", "passwordChangeToken", "passwordChangeTokenExpiresAt", "addressRequired", "addressToken", "addressTokenExpiresAt", "twoFactorRequired", "preAuthToken", "preAuthTokenExpiresAt" ]
+        "required" : [ "expiresAt", "passwordChangeRequired", "passwordChangeToken", "passwordChangeTokenExpiresAt", "addressRequired", "addressToken", "addressTokenExpiresAt", "twoFactorRequired", "preAuthToken", "preAuthTokenExpiresAt" ]
       },
       "LoginResultResponse" : {
         "type" : "object",
         "properties" : {
-          "token" : {
-            "type" : [ "string", "null" ]
-          },
           "expiresAt" : {
             "$ref" : "#/components/schemas/Instant"
           }
         },
-        "required" : [ "token", "expiresAt" ]
+        "required" : [ "expiresAt" ]
       },
       "LookAndFeelRequest" : {
         "type" : "object",

@@ -39,7 +39,8 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
+        exportService = new StationExportService(
+                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
 
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();

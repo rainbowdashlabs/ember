@@ -183,7 +183,6 @@ public class AiRoutes implements Routes {
                     session.stationId(),
                     session.accountId(),
                     Objects.requireNonNullElse(req.provider(), "openai"),
-                    req.apiKey(),
                     req.model(),
                     req.question(),
                     req.correctAnswer(),
@@ -258,7 +257,6 @@ public class AiRoutes implements Routes {
 
     public record AiGenerateRequest(
             @Nullable String provider,
-            @Nullable String apiKey,
             @Nullable String model,
             String question,
             String correctAnswer,

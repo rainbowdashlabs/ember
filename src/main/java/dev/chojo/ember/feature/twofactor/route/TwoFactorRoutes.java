@@ -527,7 +527,7 @@ public class TwoFactorRoutes implements Routes {
     private void answerSession(Context ctx, LoginResult session) {
         sessionCookies.issue(ctx, session);
         ctx.json(new LoginResultResponse(
-                null, Objects.requireNonNull(session.expiresAt(), "a minted session carries its expiry")));
+                Objects.requireNonNull(session.expiresAt(), "a minted session carries its expiry")));
     }
 
     /**
@@ -647,12 +647,11 @@ public class TwoFactorRoutes implements Routes {
     /**
      * The answer to a finished second factor.
      *
-     * @param token     always {@code null}: the session travels in its cookie. Kept so a tab opened
-     *                  before the switch still reads a well-formed answer
+     * <p>The session itself travels in its cookie, never in the body.
+     *
      * @param expiresAt when the session ends
      */
-    // TODO: drop the always-empty token once no tab from before the cookie switch can be open
-    public record LoginResultResponse(@Nullable String token, Instant expiresAt) {}
+    public record LoginResultResponse(Instant expiresAt) {}
 
     public record WebAuthnBeginResponse(String challengeToken, String optionsJson) {}
 

@@ -50,23 +50,33 @@ class AiServiceTest {
     }
 
     @Test
-    void theKeyComesFromTheRequestThenThePersonThenTheStation() {
+    void theKeyComesFromThePersonThenTheStation() {
         when(credentials.stationKey(1, "claude")).thenReturn(Optional.of("station"));
         when(credentials.keyFor(7, "claude")).thenReturn(Optional.of("personal"));
         when(clients.anthropic(anyString())).thenThrow(new IllegalStateException("offline"));
 
-        assertThrows(RuntimeException.class, () -> service.generate(1, 7, "claude", "sent", null, "Q", "A", 1));
-        assertThrows(RuntimeException.class, () -> service.generate(1, 7, "claude", null, null, "Q", "A", 1));
-        assertThrows(RuntimeException.class, () -> service.generate(1, 8, "claude", " ", null, "Q", "A", 1));
+        assertThrows(RuntimeException.class, () -> service.generate(1, 7, "claude", null, "Q", "A", 1));
+        assertThrows(RuntimeException.class, () -> service.generate(1, 8, "claude", null, "Q", "A", 1));
 
-        verify(clients).anthropic("sent");
         verify(clients).anthropic("personal");
         verify(clients).anthropic("station");
     }
 
     @Test
+    void aTypedKeyIsTriedForTheModelListBeforeTheStoredOne() {
+        when(credentials.keyFor(7, "claude")).thenReturn(Optional.of("personal"));
+        when(clients.anthropic(anyString())).thenThrow(new IllegalStateException("offline"));
+
+        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 7, "claude", "typed"));
+        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 7, "claude", " "));
+
+        verify(clients).anthropic("typed");
+        verify(clients).anthropic("personal");
+    }
+
+    @Test
     void withoutAnyKeyNothingIsCalled() {
-        assertThrows(IllegalArgumentException.class, () -> service.generate(1, 7, "claude", null, null, "Q", "A", 1));
+        assertThrows(IllegalArgumentException.class, () -> service.generate(1, 7, "claude", null, "Q", "A", 1));
         assertThrows(IllegalArgumentException.class, () -> service.fetchModels(1, 7, "claude", null));
 
         verifyNoInteractions(clients);
@@ -83,11 +93,12 @@ class AiServiceTest {
     @Test
     void anOpenAiClientIsClosedWhenTheCallFails() {
         OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
+        when(credentials.keyFor(1, "openai")).thenReturn(Optional.of("key"));
         when(clients.openAi("key")).thenReturn(client);
         when(client.chat().completions().create(any(ChatCompletionCreateParams.class)))
                 .thenThrow(new IllegalStateException("offline"));
 
-        assertThrows(RuntimeException.class, () -> service.generate(1, 1, "openai", "key", null, "Q", "A", 3));
+        assertThrows(RuntimeException.class, () -> service.generate(1, 1, "openai", null, "Q", "A", 3));
 
         verify(client).close();
     }
@@ -101,9 +112,10 @@ class AiServiceTest {
         when(block.asText().text()).thenReturn("first\nsecond\n\nthird");
         when(message.content()).thenReturn(List.of(block));
         when(client.messages().create(any(MessageCreateParams.class))).thenReturn(message);
+        when(credentials.keyFor(1, "claude")).thenReturn(Optional.of("key"));
         when(clients.anthropic("key")).thenReturn(client);
 
-        assertEquals(List.of("first", "second"), service.generate(1, 1, "claude", "key", null, "Q", "A", 2));
+        assertEquals(List.of("first", "second"), service.generate(1, 1, "claude", null, "Q", "A", 2));
 
         verify(client).close();
     }
@@ -122,11 +134,12 @@ class AiServiceTest {
     @Test
     void aSessionTurnClosesItsClient() {
         OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
+        when(credentials.stationKey(1, "openai")).thenReturn(Optional.of("key"));
         when(clients.openAi("key")).thenReturn(client);
         when(client.chat().completions().create(any(ChatCompletionCreateParams.class)))
                 .thenThrow(new IllegalStateException("offline"));
         var session = service.createQuestionSession(
-                1, 1, "openai", "key", null, QuizQuestionType.TRUE_FALSE, "prompt", "de", null, null, List.of());
+                1, 1, "openai", null, QuizQuestionType.TRUE_FALSE, "prompt", "de", null, null, List.of());
 
         assertTrue(service.generateNextQuestion(session, QuizQuestionType.TRUE_FALSE)
                 .isEmpty());
@@ -136,7 +149,9 @@ class AiServiceTest {
 
     @Test
     void anUnknownProviderBuildsNoClient() {
-        assertThrows(IllegalArgumentException.class, () -> service.generate(1, 1, "mystery", "key", null, "Q", "A", 1));
+        when(credentials.keyFor(1, "mystery")).thenReturn(Optional.of("key"));
+
+        assertThrows(IllegalArgumentException.class, () -> service.generate(1, 1, "mystery", null, "Q", "A", 1));
         assertTrue(service.fetchModels(1, 1, "mystery", "key").isEmpty());
 
         verifyNoInteractions(clients);

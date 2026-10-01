@@ -53937,7 +53937,6 @@ export interface components {
             usable: boolean;
         };
         AiGenerateRequest: {
-            apiKey?: string | null;
             correctAnswer?: string;
             /** Format: int32 */
             count?: number | null;
@@ -54333,7 +54332,6 @@ export interface components {
             overview?: boolean | null;
         };
         BatchGenerateRequest: {
-            apiKey?: string | null;
             model?: string | null;
             provider?: string | null;
             /** Format: int32 */
@@ -57511,7 +57509,6 @@ export interface components {
             quizQuestionType?: components["schemas"]["QuizQuestionType"];
         };
         GenerateQuestionsRequest: {
-            apiKey?: string | null;
             /** Format: int32 */
             catalogId?: number | null;
             entries?: components["schemas"]["GenerateEntry"][];
@@ -58888,12 +58885,10 @@ export interface components {
             passwordChangeTokenExpiresAt: components["schemas"]["Instant"] | null;
             preAuthToken: string | null;
             preAuthTokenExpiresAt: components["schemas"]["Instant"] | null;
-            token: string | null;
             twoFactorRequired: boolean;
         };
         LoginResultResponse: {
             expiresAt: components["schemas"]["Instant"];
-            token: string | null;
         };
         LogPageResponse: {
             entries: components["schemas"]["LogEntryResponse"][];
