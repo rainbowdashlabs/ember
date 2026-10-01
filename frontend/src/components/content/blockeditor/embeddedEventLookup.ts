@@ -5,7 +5,7 @@
  */
 import {getEmbeddedEvent} from '@/api/events'
 import {listPublicEvents} from '@/api/publicEvents'
-import {sessionInfo} from '@/util/sessionState'
+import {useSession} from '@/composables/useSession'
 import type {BlockAudience} from '@/api/generated/schema'
 
 /** Where an event block found its event, which decides where its link goes. */
@@ -51,6 +51,7 @@ export async function findEmbeddedEvent(
     eventUid: string,
     audience: BlockAudience,
 ): Promise<FoundEvent | null> {
+    const {sessionInfo} = useSession()
     if (audience !== 'MEMBERS' || sessionInfo.value?.stationId !== stationUid) {
         return findPublicEvent(stationUid, eventUid)
     }

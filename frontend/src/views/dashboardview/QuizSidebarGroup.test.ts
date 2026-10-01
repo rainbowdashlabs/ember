@@ -6,7 +6,7 @@
 import {afterEach, describe, expect, it} from 'vitest'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import QuizSidebarGroup from './QuizSidebarGroup.vue'
-import {sessionInfo} from '@/util/sessionState'
+import {sessionWriter} from '@/util/sessionState'
 import {createSessionInfo} from '@/test/mocks/factories'
 
 /**
@@ -18,14 +18,14 @@ import {createSessionInfo} from '@/test/mocks/factories'
  */
 describe('QuizSidebarGroup', () => {
     function signIn(permissions: string[]) {
-        sessionInfo.value = createSessionInfo({
+        sessionWriter().setInfo(createSessionInfo({
             permissions,
             member: {id: 1, stationId: 'test-station', accountId: 1, uid: 'member-uid-1', calledName: 'Member', nickname: null},
-        })
+        }))
     }
 
     afterEach(() => {
-        sessionInfo.value = null
+        sessionWriter().setInfo(null)
     })
 
     it('names both halves for somebody who has both', async () => {

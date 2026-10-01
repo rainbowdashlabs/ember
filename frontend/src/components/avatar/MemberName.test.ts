@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import MemberName from './MemberName.vue'

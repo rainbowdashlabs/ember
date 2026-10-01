@@ -5,7 +5,7 @@
  */
 import {beforeEach, describe, expect, it} from 'vitest'
 import {acceptStorage, setItem} from '@/api/storage'
-import {sessionInfo} from '@/util/sessionState'
+import {sessionWriter} from '@/util/sessionState'
 import {createSessionInfo} from '@/test/mocks/factories'
 import {
     claimVisitedArea,
@@ -18,14 +18,14 @@ const STATION = '11111111-1111-4111-a111-111111111111'
 const CLUSTER = '22222222-2222-4222-a222-222222222222'
 
 function signedInAs(uid: string) {
-    sessionInfo.value = createSessionInfo({account: {id: 7, uid}})
+    sessionWriter().setInfo(createSessionInfo({account: {id: 7, uid}}))
 }
 
 describe('the last area somebody was in', () => {
     beforeEach(() => {
         localStorage.clear()
         acceptStorage()
-        sessionInfo.value = null
+        sessionWriter().setInfo(null)
         claimVisitedArea()
         forgetLandingMemory()
     })

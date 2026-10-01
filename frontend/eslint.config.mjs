@@ -58,10 +58,49 @@ const ENUM_SECTIONS = [
  */
 const LAYERS = [
     {layer: 'api', above: ['views', 'components', 'composables', 'layouts', 'pages']},
-    {layer: 'components', above: ['views', 'layouts', 'pages']},
+    {layer: 'components', above: ['views', 'layouts', 'pages'], stateThroughComposables: true},
     {layer: 'composables', above: ['views', 'layouts', 'pages']},
     {layer: 'i18n', above: ['views', 'components', 'composables', 'layouts', 'pages']},
+    {layer: 'views', above: [], stateThroughComposables: true},
+    {layer: 'layouts', above: [], stateThroughComposables: true},
+    {layer: 'pages', above: [], stateThroughComposables: true},
 ]
+
+/**
+ * The modules holding state that more than one composable builds on.
+ *
+ * <p>Only composables, other `util` modules, the API clients, plugins and middleware reach them. A view,
+ * component, layout or page goes through the composable, which hands out read-only views and the
+ * setters that belong to them. A test may still arrange the state it starts from.
+ *
+ * <p>The exceptions hand out no writable state: `browserState` is the helper the state is built with,
+ * `formState` works out whether a form takes answers, and the problem report and the sidebar match are
+ * browser machinery behind a function API, like the toasts, which components call directly.
+ */
+const SHARED_STATE = {
+    from: './src/util/*State.ts',
+    except: [`${import.meta.dirname}/src/util/{browserState,formState,problemReportState,sidebarGroupState}.ts`],
+}
+
+/**
+ * The `import/no-restricted-paths` zones of one layer.
+ *
+ * @param layer the layer, as listed in {@link LAYERS}
+ * @returns the zones its files are held to
+ */
+function layerZones({layer, above, stateThroughComposables}) {
+    const zones = above.map(from => ({
+        target: `./src/${layer}`,
+        from: `./src/${from}`,
+        message: `${layer}/ may not import from ${from}/.`,
+    }))
+    if (!stateThroughComposables) return zones
+    return [...zones, {
+        target: `./src/${layer}/**/!(*.test).{ts,vue}`,
+        ...SHARED_STATE,
+        message: `${layer}/ reaches shared state through its composable, not util/*State.ts.`,
+    }]
+}
 
 /**
  * The `v-html` bindings that do not show what the shared markdown renderer produced, each with the
@@ -298,17 +337,11 @@ export default withNuxt(
             }],
         },
     },
-    ...LAYERS.map(({layer, above}) => ({
-        name: `ember/layers/${layer}`,
-        files: [`src/${layer}/**/*.{ts,vue}`],
+    ...LAYERS.map(layer => ({
+        name: `ember/layers/${layer.layer}`,
+        files: [`src/${layer.layer}/**/*.{ts,vue}`],
         rules: {
-            'import/no-restricted-paths': ['error', {
-                zones: above.map(from => ({
-                    target: `./src/${layer}`,
-                    from: `./src/${from}`,
-                    message: `${layer}/ may not import from ${from}/.`,
-                })),
-            }],
+            'import/no-restricted-paths': ['error', {zones: layerZones(layer)}],
         },
     })),
     {

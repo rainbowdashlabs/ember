@@ -11,7 +11,7 @@ import { hasSessionCookie } from '@/api/sessionCookie'
 import { userSettings } from '@/api'
 import type { ThemeInfo } from '@/api/generated/schema'
 import { usePride } from '@/composables/usePride'
-import { sessionInfo } from '@/util/sessionState'
+import { sessionState } from '@/util/sessionState'
 import { themeRepainted } from '@/util/themeState'
 import { browserRef } from '@/util/browserState'
 import { reportCaughtError } from '@/util/devErrorReporter'
@@ -346,7 +346,8 @@ function resetToInstanceDefaults(state: ThemeState) {
  */
 export function syncThemeWithSession() {
     const state = themeState()
-    watch(sessionInfo, info => initFromSession(state, info?.theme), {flush: 'sync', immediate: true})
+    const session = sessionState()
+    watch(() => session.value.info, info => initFromSession(state, info?.theme), {flush: 'sync', immediate: true})
 }
 
 /**

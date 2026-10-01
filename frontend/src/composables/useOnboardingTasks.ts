@@ -106,6 +106,11 @@ export function useOnboardingTasks() {
         clearActiveTask(state)
     }
 
+    /** Brings back the guide the reader waved away, on the task it was walking. */
+    function reopenGuide() {
+        guideDismissed.value = false
+    }
+
     return {
         loading: readonly(loading),
         status: readonly(onboardingStatus),
@@ -113,7 +118,11 @@ export function useOnboardingTasks() {
         stationTasks,
         instanceTasks,
         activeTaskId: readonly(activeTaskId),
+        activeTaskKey: readonly(activeTaskKey),
         activeLevel: readonly(activeLevel),
+        activeStep: readonly(activeStep),
+        guideDismissed: readonly(guideDismissed),
+        reopenGuide,
         openOf,
         load,
         confirm,

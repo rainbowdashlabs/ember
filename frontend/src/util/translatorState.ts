@@ -3,12 +3,20 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {browserShallowRef} from '@/util/browserState'
+
 type Translate = (key: string, params?: Record<string, unknown>) => string
+
+/** The browser's translate function and the language it speaks. */
+interface BrowserTranslation {
+    t: Translate
+    locale: () => string
+}
 
 const DEFAULT_LOCALE = 'de-DE'
 
-let translate: Translate = key => key
-let currentLocale: () => string = () => DEFAULT_LOCALE
+/** What the client plugin handed over, or null before it has, and always on the server. */
+const handedOver = browserShallowRef<BrowserTranslation | null>(null)
 
 /**
  * Translation for code that runs outside any component, such as the request client's interceptors,
@@ -21,12 +29,11 @@ let currentLocale: () => string = () => DEFAULT_LOCALE
  * is the only language the interface speaks in full.
  */
 export const translator = {
-    t: (key: string, params?: Record<string, unknown>): string => translate(key, params),
-    locale: (): string => currentLocale(),
+    t: (key: string, params?: Record<string, unknown>): string => handedOver.value?.t(key, params) ?? key,
+    locale: (): string => handedOver.value?.locale() ?? DEFAULT_LOCALE,
 }
 
 /** Hands {@link translator} the browser's translate function and the language it speaks. */
 export function setTranslator(t: Translate, locale: () => string): void {
-    translate = t
-    currentLocale = locale
+    handedOver.value = {t, locale}
 }

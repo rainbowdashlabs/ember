@@ -13,6 +13,7 @@ import type {ApiErrorBody} from '@/util/apiError'
 import {getActingStation} from '@/util/actingStationState'
 import {isPublicRoute} from '@/util/publicRoute'
 import {translator} from '@/util/translatorState'
+import {browserShallowRef} from '@/util/browserState'
 
 declare module 'axios' {
     export interface InternalAxiosRequestConfig {
@@ -57,7 +58,7 @@ function stepUpProofsOf(body: ApiErrorBody | undefined): StepUpProofName[] | nul
     return body.proofs.filter((proof): proof is StepUpProofName => (known as string[]).includes(proof))
 }
 
-// -- Request history for problem reports --
+/** One request as a problem report lists it. */
 export interface RequestHistoryEntry {
     method: string
     url: string
@@ -67,11 +68,33 @@ export interface RequestHistoryEntry {
     error?: string
 }
 
-const requestHistory: RequestHistoryEntry[] = []
 const MAX_HISTORY = 20
 
+/** The last requests this browser sent, newest last, for the problem report. */
+const requestHistory = browserShallowRef<readonly RequestHistoryEntry[]>([])
+
 export function getRequestHistory(): RequestHistoryEntry[] {
-    return [...requestHistory]
+    return [...requestHistory.value]
+}
+
+/**
+ * Notes a request that has been answered or has failed, keeping the last {@link MAX_HISTORY}.
+ *
+ * @param config the request as it went out
+ * @param status the status it was answered with, or null where no answer came
+ * @param error  what went wrong, where something did
+ */
+function recordRequest(config: InternalAxiosRequestConfig, status: number | null, error?: string): void {
+    const start = config._startTime
+    const entry: RequestHistoryEntry = {
+        method: (config.method ?? 'GET').toUpperCase(),
+        url: config.url ?? '',
+        status,
+        duration: start ? Date.now() - start : 0,
+        timestamp: new Date().toISOString(),
+        ...(error === undefined ? {} : {error}),
+    }
+    requestHistory.value = [...requestHistory.value, entry].slice(-MAX_HISTORY)
 }
 
 /**
@@ -126,30 +149,13 @@ client.interceptors.request.use((config) => {
 
 client.interceptors.response.use(
     (response) => {
-        const start = response.config._startTime
-        requestHistory.push({
-            method: (response.config.method ?? 'GET').toUpperCase(),
-            url: response.config.url ?? '',
-            status: response.status,
-            duration: start ? Date.now() - start : 0,
-            timestamp: new Date().toISOString(),
-        })
-        if (requestHistory.length > MAX_HISTORY) requestHistory.shift()
+        recordRequest(response.config, response.status)
         return response
     },
     (error) => {
         const config = error?.config
         if (config) {
-            const start = config._startTime
-            requestHistory.push({
-                method: (config.method ?? 'GET').toUpperCase(),
-                url: config.url ?? '',
-                status: error?.response?.status ?? null,
-                duration: start ? Date.now() - start : 0,
-                timestamp: new Date().toISOString(),
-                error: error?.response?.data?.message ?? error?.message,
-            })
-            if (requestHistory.length > MAX_HISTORY) requestHistory.shift()
+            recordRequest(config, error?.response?.status ?? null, error?.response?.data?.message ?? error?.message)
         }
         const status = error?.response?.status
         if (status && status !== 401 && status !== 403) {

@@ -5,7 +5,7 @@
  */
 import {getItem, removeItem, setItem} from '@/api/storage'
 import type {AccountInfo} from '@/api/generated/schema'
-import {sessionInfo} from '@/util/sessionState'
+import {sessionState} from '@/util/sessionState'
 
 const LANDING_AREA_KEY = 'landing_area'
 
@@ -92,7 +92,7 @@ export function rememberVisitedArea(path: string): void {
     const unclaimed = unclaimedArea()
     const area = areaOf(path)
     if (!area) return
-    const account = accountKey(sessionInfo.value?.account)
+    const account = accountKey(sessionState().value.info?.account)
     if (account) write({...area, account})
     else unclaimed.value = area
 }
@@ -101,7 +101,7 @@ export function rememberVisitedArea(path: string): void {
 export function claimVisitedArea(): void {
     const unclaimed = unclaimedArea()
     if (!unclaimed.value) return
-    const account = accountKey(sessionInfo.value?.account)
+    const account = accountKey(sessionState().value.info?.account)
     if (account) write({...unclaimed.value, account})
     unclaimed.value = null
 }

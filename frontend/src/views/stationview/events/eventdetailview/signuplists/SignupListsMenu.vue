@@ -20,7 +20,6 @@ import {StationModules, StationPermission} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
-import {getActingStation} from '@/util/actingStationState'
 import {describeFailure} from '@/util/failure'
 import {dateToInstant, formatDate} from '@/util/format'
 import {showToast} from '@/util/toast'
@@ -34,14 +33,14 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const router = useRouter()
-const {hasPermission, isModuleEnabled} = useSession()
+const {hasPermission, isModuleEnabled, actingStation} = useSession()
 
 /**
  * An association's calendar is a station's calendar, borrowed for as long as the screen is open. The
  * association has no lists of its own, so an entry here would either lead nowhere or drop the reader
  * out of the association and open the new list under a station they were not looking at.
  */
-const insideCluster = computed(() => getActingStation() !== null)
+const insideCluster = computed(() => actingStation() !== null)
 
 const canCreateChecklist = computed(() => hasPermission(StationPermission.CHECKLIST_MANAGE))
 

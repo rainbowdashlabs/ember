@@ -4,11 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 // @vitest-environment happy-dom
-import {afterEach, describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
+import {ref} from 'vue'
 import SetupMailChoice from './SetupMailChoice.vue'
-import {sessionInfo} from '@/util/sessionState'
 import type {SessionInfo} from '@/api/generated/schema'
+
+const sessionInfo = ref<SessionInfo | null>(null)
+
+vi.mock('@/composables/useSession', () => ({useSession: () => ({sessionInfo})}))
 
 const CHOICE = '[data-testid="setup-mail-choice"]'
 const IMPOSSIBLE = '[data-testid="setup-mail-impossible"]'

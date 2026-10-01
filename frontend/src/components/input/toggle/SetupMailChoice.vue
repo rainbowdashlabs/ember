@@ -7,7 +7,7 @@
 import {computed, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ToggleInput from './ToggleInput.vue'
-import {sessionInfo} from '@/util/sessionState'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 
@@ -29,6 +29,7 @@ const props = withDefaults(defineProps<{
  * and offering the choice would only promise something that cannot happen. The setup link is then
  * handed over by whoever runs the station, the same way it already is there.
  */
+const {sessionInfo} = useSession()
 const canSendMail = computed(() => sessionInfo.value?.canSendMail !== false)
 const offered = computed(() => canSendMail.value && props.hasAddress)
 

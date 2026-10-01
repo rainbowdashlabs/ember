@@ -15,7 +15,7 @@ import {
     compareSortValues, sortIconFor, type AriaSort, type SortComparator, type SortDirection, type SortValue,
 } from '@/composables/useSortable'
 import {loadColumnChoices, saveColumnChoices, type ColumnChoices} from '@/util/columnChoices'
-import {sessionStationId} from '@/util/sessionState'
+import {sessionState} from '@/util/sessionState'
 
 /**
  * How one table is being looked at: its sort, its filters and its search.
@@ -89,13 +89,14 @@ export interface FilterDialog {
  */
 export function useDataTable<Row>(options: DataTableOptions<Row>) {
     const {t} = useI18n()
+    const session = sessionState()
     const yesNo: YesNo = {yes: t('common.yes'), no: t('common.no')}
 
     const ownState = reactive(emptyTableState(options.sort?.key ?? null, options.sort?.direction)) as DataTableState
     const state = computed<DataTableState>(() => toValue(options.state) ?? ownState)
 
     const memoryKey = computed(() => {
-        const scope = options.perStation === false ? 'all' : sessionStationId.value ?? '-'
+        const scope = options.perStation === false ? 'all' : session.value.stationId ?? '-'
         return `${scope}:${toValue(options.id)}`
     })
     const choices = ref<ColumnChoices>({})

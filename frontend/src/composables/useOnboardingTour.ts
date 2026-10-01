@@ -114,9 +114,16 @@ export function useOnboardingTour() {
         startTour()
     }
 
+    /** Says the task tour has taken over from the introduction, so the handover is not made twice. */
+    function takeHandover() {
+        handoverPending.value = false
+    }
+
     return {
         isActive: readonly(isActive),
         currentStep: readonly(currentStep),
+        handoverPending: readonly(handoverPending),
+        takeHandover,
         filteredSteps,
         totalSteps,
         currentStepData,
