@@ -404,8 +404,7 @@ public class FederationHttpClient {
         String nonce = UUID.randomUUID().toString();
         String signature = signer.signRequest(
                 localStationId, method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr);
-        String stationUid = stationRepository.requireUid(localStationId)
-                .toString();
+        String stationUid = stationRepository.requireUid(localStationId).toString();
 
         var local = FederationContractVersions.current();
         var builder = HttpRequest.newBuilder()

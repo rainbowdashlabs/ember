@@ -437,9 +437,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      */
     public RemoteKbFile remoteFileForPartner(FederationPartner partner, int fileId) {
         var file = fileForPartner(partner, fileId);
-        return RemoteKbFile.of(
-                file,
-                stationRepository.requireUid(file.stationId()));
+        return RemoteKbFile.of(file, stationRepository.requireUid(file.stationId()));
     }
 
     /**

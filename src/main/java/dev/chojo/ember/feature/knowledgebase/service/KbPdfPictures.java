@@ -82,8 +82,7 @@ public class KbPdfPictures {
      * @return the rewritten body with the pictures it now points at
      */
     public Placed place(int stationId, String markdown) {
-        var stationUid = stationRepository.requireUid(stationId)
-                .toString();
+        var stationUid = stationRepository.requireUid(stationId).toString();
         var namesByUrl = new LinkedHashMap<String, String>();
         var pictures = new LinkedHashMap<String, byte[]>();
         Function<String, String> localName = url -> namesByUrl.computeIfAbsent(url, u -> read(stationId, stationUid, u)
