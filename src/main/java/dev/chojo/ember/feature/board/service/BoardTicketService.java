@@ -8,15 +8,11 @@ package dev.chojo.ember.feature.board.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
-import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
-import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
@@ -29,14 +25,9 @@ import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.repository.CommentRepository;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
-import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -56,7 +47,6 @@ public class BoardTicketService {
     private static final Logger log = LoggerFactory.getLogger(BoardTicketService.class);
 
     private final BoardTicketRepository ticketRepository;
-    private final CommentRepository comments;
     private final BoardRepository boardRepository;
     private final BoardService boardService;
     private final DomainEventBus eventBus;
@@ -64,22 +54,18 @@ public class BoardTicketService {
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
     private final BoardAttachmentService attachmentService;
-    private final CommentMentions mentions;
 
     @Inject
     public BoardTicketService(
             BoardTicketRepository ticketRepository,
-            CommentRepository comments,
             BoardRepository boardRepository,
             BoardService boardService,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver,
-            BoardAttachmentService attachmentService,
-            CommentMentions mentions) {
+            BoardAttachmentService attachmentService) {
         this.ticketRepository = ticketRepository;
-        this.comments = comments;
         this.boardRepository = boardRepository;
         this.boardService = boardService;
         this.eventBus = eventBus;
@@ -87,7 +73,6 @@ public class BoardTicketService {
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
         this.attachmentService = attachmentService;
-        this.mentions = mentions;
     }
 
     public List<BoardTicket> findByBoard(int boardId) {
@@ -419,105 +404,6 @@ public class BoardTicketService {
     public void reorderChecklistItems(int ticketId, List<Integer> orderedIds) {
         ticketRepository.reorderChecklistItems(ticketId, orderedIds);
         log.debug("Checklist of ticket {} reordered to {} item(s)", ticketId, orderedIds.size());
-    }
-
-    public List<BoardComment> findComments(int ticketId) {
-        return comments.findByTarget(CommentEntityType.BOARD_TICKET, ticketId).stream()
-                .map(BoardComment::of)
-                .toList();
-    }
-
-    public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
-        var comment = BoardComment.of(
-                comments.create(CommentEntityType.BOARD_TICKET, ticketId, null, parentId, author, content));
-        ticketRepository.findById(ticketId).ifPresent(ticket -> {
-            notifyWatchers(ticketId, ticket.boardId(), "Neuer Kommentar", null);
-            mentions.announce(mentionOrigin(ticket, author, comment.id(), content), content);
-        });
-        log.info("Created comment {} on ticket {}", comment.id(), ticketId);
-        return comment;
-    }
-
-    /**
-     * Updates a comment on a ticket and announces the mentions the edit added. Whoever the comment
-     * already mentioned is not told again.
-     *
-     * @param ticketId the ticket the comment hangs under
-     * @param id       the comment
-     * @param content  the new text
-     * @return {@code true} if the comment was updated
-     */
-    public boolean updateComment(int ticketId, int id, String content) {
-        var previous = findComments(ticketId).stream()
-                .filter(comment -> comment.id() == id)
-                .findFirst();
-        if (!comments.update(CommentEntityType.BOARD_TICKET, id, content)) {
-            log.warn("Update for comment {} affected zero rows", id);
-            return false;
-        }
-        log.info("Updated comment {}", id);
-        previous.ifPresent(comment -> ticketRepository
-                .findById(ticketId)
-                .ifPresent(ticket -> mentions.announceAdded(
-                        mentionOrigin(ticket, comment.author(), id, content), comment.content(), content)));
-        return true;
-    }
-
-    /**
-     * Where a comment on a ticket was written, for the notifications its mentions raise. The ticket's
-     * key stands where an author's name would, and a comment from another station still mentions,
-     * with nobody excluded as its author.
-     */
-    private CommentMentions.Origin mentionOrigin(
-            BoardTicket ticket, MemberIdentity author, int commentId, String content) {
-        var board = boardRepository.findById(ticket.boardId()).orElse(null);
-        var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
-        int stationId = board != null ? board.stationId() : 0;
-        Integer authorMemberId = author != null
-                ? stationMemberService.resolveId(stationId, author.memberUid()).orElse(null)
-                : null;
-        String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
-        return new CommentMentions.Origin(
-                stationId,
-                authorMemberId,
-                ticketKey,
-                CommentEntityType.BOARD_TICKET,
-                ticketKey,
-                commentLink(ticket, board, commentId),
-                commentId,
-                preview);
-    }
-
-    private static NotificationLink commentLink(BoardTicket ticket, Board board, int commentId) {
-        var address = new BoardTicketAddress(board != null ? board.shortKey() : "?", ticket.ticketNumber());
-        return NotificationLinks.comment(NotificationLinks.ticket(address, ticket.id()), commentId);
-    }
-
-    /**
-     * Deletes a comment on a ticket and announces the removal, so that whatever was written about
-     * it can be withdrawn.
-     *
-     * @param ticketId the ticket the comment hangs under, which names the owning station
-     * @param id       the comment to remove
-     * @return {@code true} when a comment was removed
-     */
-    public boolean deleteComment(int ticketId, int id) {
-        var ticket = ticketRepository.findById(ticketId);
-        var board = ticket.flatMap(found -> boardRepository.findById(found.boardId()));
-        boolean deleted = comments.delete(CommentEntityType.BOARD_TICKET, id);
-        if (deleted && ticket.isPresent()) {
-            eventBus.publish(new CommentDeleted(
-                    board.map(Board::stationId).orElse(0),
-                    CommentEntityType.BOARD_TICKET,
-                    commentLink(ticket.get(), board.orElse(null), id),
-                    id));
-        }
-        if (deleted) {
-            log.info("Deleted comment {}", id);
-        } else {
-            log.warn("Delete for comment {} affected zero rows", id);
-        }
-        return deleted;
     }
 
     public List<BoardWeblink> findWeblinks(int ticketId) {

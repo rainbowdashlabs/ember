@@ -23,7 +23,9 @@ import dev.chojo.ember.feature.board.service.BoardAttachmentService;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -41,12 +43,15 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -54,8 +59,8 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 
 /**
- * What a comment on a board ticket does today, pinned over the real routes, service and storage:
- * who reads, writes, changes and removes it, how the activity lists it and whom it tells.
+ * What a comment on a board ticket does, pinned over the real routes, services and storage: who
+ * reads, writes, changes and removes it, how the activity lists it and whom it tells.
  */
 class TicketCommentBehaviourTest extends RepositoryTestBase {
     private static final DomainEventBus BUS = mock(DomainEventBus.class);
@@ -68,6 +73,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
     private static StationMember other;
     private static StationMember reader;
     private static BoardTicketService tickets;
+    private static CommentService comments;
     private static int boardId;
     private static int laneId;
     private static RouteHarness harness;
@@ -91,7 +97,6 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         var backend = new LocalStorageBackend();
         tickets = new BoardTicketService(
                 boardTicketRepo,
-                commentRepo,
                 boardRepo,
                 boards,
                 BUS,
@@ -99,8 +104,8 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 memberNameResolver,
                 new BoardAttachmentService(
-                        new StorageService(new StorageBackendResolver(backend), backend), stationRepo, backend),
-                new CommentMentions(memberLookupService, BUS));
+                        new StorageService(new StorageBackendResolver(backend), backend), stationRepo, backend));
+        comments = newCommentService(BUS);
 
         var board = boards.createWithPreset(station.id(), "Ticket Comments", "", "TCB", LanePreset.SIMPLE);
         boardId = board.id();
@@ -113,6 +118,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         harness = RouteHarness.serving(new BoardTicketDetailRoutes(
                         tickets,
                         boards,
+                        comments,
                         memberNameResolver,
                         new BoardRouteGuards(boards, tickets, memberIdentityFactory)))
                 .withStations(stationRepo);
@@ -148,12 +154,22 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         return tickets.findByBoardAndNumber(boardId, number).orElseThrow().id();
     }
 
+    private static String contentOfFirst(int number) {
+        return comments.list(CommentEntityType.BOARD_TICKET, ticketId(number), CommentFilter.ALL)
+                .getFirst()
+                .content();
+    }
+
     private static String comments(int number) {
         return PREFIX + "/boards/TCB/tickets/%d/comments".formatted(number);
     }
 
     private static UserSession as(StationMember member) {
         return signedIn(member, StationPermission.BOARD_USE);
+    }
+
+    private static UserSession asManager(StationMember member) {
+        return signedIn(member, StationPermission.BOARD_USE, StationPermission.BOARD_MANAGER);
     }
 
     private static Response post(StationMember member, int number, String requestBody) {
@@ -173,9 +189,8 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
                 harness.as(as(member))));
     }
 
-    private static Response remove(StationMember member, int number, int commentId) {
-        return harness.request(
-                client -> client.delete(comments(number) + "/" + commentId, null, harness.as(as(member))));
+    private static Response remove(UserSession session, int number, int commentId) {
+        return harness.request(client -> client.delete(comments(number) + "/" + commentId, null, harness.as(session)));
     }
 
     private static List<DomainEvent> published() {
@@ -196,17 +211,25 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
     }
 
     @Test
-    void anyoneWhoMayEditTheTicketChangesAndRemovesAnyComment() {
+    void onlyTheAuthorChangesAComment() {
         int number = ticket();
         int id = write(writer, number, "von Wanda");
+
+        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_CHANGE, refusalOf(change(other, number, id, "von Otto")));
+        assertEquals(200, change(writer, number, id, "von Wanda umgeschrieben").code());
+        assertEquals("von Wanda umgeschrieben", contentOfFirst(number));
+    }
+
+    @Test
+    void theAuthorOrABoardManagerRemovesAComment() {
+        int number = ticket();
+        int first = write(writer, number, "von Wanda");
         int second = write(writer, number, "auch von Wanda");
 
-        assertEquals(200, change(other, number, id, "von Otto umgeschrieben").code());
-        assertEquals(
-                "von Otto umgeschrieben",
-                tickets.findComments(ticketId(number)).getFirst().content());
-        assertEquals(204, remove(other, number, second).code());
-        assertEquals(Refusal.BOARD_NOT_YOURS_TO_EDIT, refusalOf(remove(reader, number, id)));
+        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_DELETE, refusalOf(remove(as(other), number, first)));
+        assertEquals(204, remove(asManager(other), number, first).code());
+        assertEquals(204, remove(as(writer), number, second).code());
+        assertEquals(Refusal.BOARD_NOT_YOURS_TO_EDIT, refusalOf(remove(as(reader), number, second)));
         assertTrue(published().stream()
                 .anyMatch(event -> event instanceof CommentDeleted deleted
                         && deleted.commentId() == second
@@ -214,12 +237,12 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
     }
 
     @Test
-    void anEmptyChangeIsSaved() {
+    void anEmptyChangeIsRefused() {
         int number = ticket();
         int id = write(writer, number, "alt");
 
-        assertEquals(200, change(writer, number, id, "").code());
-        assertEquals("", tickets.findComments(ticketId(number)).getFirst().content());
+        assertEquals(Refusal.COMMENT_CHANGE_NEEDS_TEXT, refusalOf(change(writer, number, id, "")));
+        assertEquals("alt", contentOfFirst(number));
     }
 
     @Test
@@ -228,16 +251,16 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         int second = ticket();
         int id = write(writer, first, "hier");
 
-        assertEquals(Refusal.TICKET_COMMENT_NOT_HERE, refusalOf(remove(writer, second, id)));
+        assertEquals(Refusal.TICKET_COMMENT_NOT_HERE, refusalOf(remove(as(writer), second, id)));
     }
 
     @Test
-    void aReplyMayNameAParentOnAnotherTicket() {
+    void aReplyToACommentOnAnotherTicketIsRefused() {
         int parent = write(writer, ticket(), "anderswo");
 
-        var reply = json(post(other, ticket(), "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent)));
+        var refused = post(other, ticket(), "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent));
 
-        assertEquals(parent, reply.path("parentId").asInt());
+        assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refusalOf(refused));
     }
 
     @Test
@@ -246,7 +269,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         int parent = write(writer, number, "Eltern");
         json(post(other, number, "{\"content\": \"Antwort\", \"parentId\": %d}".formatted(parent)));
 
-        remove(writer, number, parent);
+        remove(as(writer), number, parent);
 
         var listed = json(harness.request(client -> client.get(comments(number), harness.as(as(writer)))));
         var activity = tickets.findActivity(ticketId(number)).stream()
@@ -261,25 +284,37 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
     void aCommentTellsTheWatchersAndNoParentAuthor() {
         int number = ticket();
         tickets.watchTicket(ticketId(number), writer.id());
-        int parent = write(other, number, "Frage");
+        int parent = write(writer, number, "Frage");
         reset(BUS);
 
-        write(writer, number, "Antwort ohne Bezug");
-        json(post(writer, number, "{\"content\": \"Antwort\", \"parentId\": %d}".formatted(parent)));
+        json(post(other, number, "{\"content\": \"Antwort\", \"parentId\": %d}".formatted(parent)));
 
         var events = published();
-        assertTrue(events.stream().noneMatch(CommentCreated.class::isInstance));
-        var changes = events.stream()
-                .filter(BoardTicketChanged.class::isInstance)
-                .map(BoardTicketChanged.class::cast)
+        assertTrue(events.stream().noneMatch(BoardTicketChanged.class::isInstance));
+        var created = events.stream()
+                .filter(CommentCreated.class::isInstance)
+                .map(CommentCreated.class::cast)
                 .toList();
-        assertEquals(2, changes.size());
-        assertEquals("Neuer Kommentar", changes.getFirst().changeDescription());
-        assertEquals(List.of(writer.id()), changes.getFirst().watcherMemberIds());
+        assertEquals(1, created.size());
+        assertNull(created.getFirst().parentAuthorId());
+        assertEquals(other.id(), created.getFirst().authorMemberId());
+        assertEquals(
+                Set.of(writer.id()),
+                Objects.requireNonNull(created.getFirst().alsoTold()).memberIds());
+        assertEquals("TCB-" + number, created.getFirst().entityTitle());
     }
 
     @Test
-    void aMentionNamesTheTicketKeyAsAuthorAndCutsWithAnEllipsis() {
+    void aCommentWithoutWatchersTellsNobodyButTheMentioned() {
+        int number = ticket();
+
+        write(writer, number, "Niemand schaut zu");
+
+        assertTrue(published().stream().noneMatch(CommentCreated.class::isInstance));
+    }
+
+    @Test
+    void aMentionNamesTheAuthorAndCutsWithAnEllipsis() {
         int number = ticket();
         var mentioned = stationMemberRepo.findById(other.id()).orElseThrow();
 
@@ -290,7 +325,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
                 .map(MentionedInComment.class::cast)
                 .findFirst()
                 .orElseThrow();
-        assertEquals("TCB-" + number, mention.authorName());
+        assertEquals(NameParts.of(as(writer).account()).called(), mention.authorName());
         assertTrue(mention.preview().endsWith("…"));
         assertEquals(101, mention.preview().length());
     }

@@ -81,15 +81,13 @@ class BoardServiceTest extends RepositoryTestBase {
         var attachmentSvc = new BoardAttachmentService(btStorage, stationRepo, btBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
-                commentRepo,
                 boardRepo,
                 boardService,
                 new DomainEventBus(Set.of()),
                 newStationMemberService(null, null),
                 memberIdentityFactory,
                 memberNameResolver,
-                attachmentSvc,
-                silentCommentMentions());
+                attachmentSvc);
 
         station = stationRepo.create("BoardSvcStation");
         account = accountRepo.create("board-svc@test.com", "Board", "Svc");
@@ -267,29 +265,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertEquals(1, ticketService.findChecklistItems(ticketId1).size());
     }
 
-    // -- Comments --
-
-    @Test
-    @Order(40)
-    void createAndFindComments() {
-        var comment = ticketService.createComment(
-                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Looks good");
-        assertNotNull(comment);
-        assertEquals("Looks good", comment.content());
-
-        var comments = ticketService.findComments(ticketId1);
-        assertEquals(1, comments.size());
-    }
-
-    @Test
-    @Order(41)
-    void deleteCommentWithoutChildren() {
-        var comments = ticketService.findComments(ticketId1);
-        assertTrue(ticketService.deleteComment(ticketId1, comments.getFirst().id()));
-        var updated = ticketService.findComments(ticketId1);
-        assertTrue(updated.isEmpty());
-    }
-
     // -- Watchers --
 
     @Test
@@ -318,10 +293,6 @@ class BoardServiceTest extends RepositoryTestBase {
         var moved = ticketService.findById(ticketId1).orElseThrow();
         assertEquals(workLaneId, moved.laneId());
 
-        // Comment with watchers
-        ticketService.createComment(
-                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Watched comment");
-
         // Cleanup
         assertTrue(ticketService.unwatchTicket(ticketId1, member.id()));
         assertFalse(ticketService.isWatching(ticketId1, member.id()));
@@ -334,16 +305,6 @@ class BoardServiceTest extends RepositoryTestBase {
     void findActivity() {
         var activity = ticketService.findActivity(ticketId1);
         assertFalse(activity.isEmpty());
-    }
-
-    // -- Comments update --
-
-    @Test
-    @Order(44)
-    void updateComment() {
-        var comment = ticketService.createComment(
-                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "To update");
-        assertTrue(ticketService.updateComment(ticketId1, comment.id(), "Updated"));
     }
 
     // -- Find by number --
@@ -774,16 +735,6 @@ class BoardServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(880)
-    void commentCreateUpdateDelete() {
-        var comment = ticketService.createComment(
-                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Test comment");
-        assertNotNull(comment);
-        assertTrue(ticketService.updateComment(ticketId1, comment.id(), "Updated comment"));
-        assertTrue(ticketService.deleteComment(ticketId1, comment.id()));
-    }
-
-    @Test
     @Order(881)
     void checklistReorder() {
         var item = ticketService.addChecklistItem(ticketId1, "Reorder test", member.id());
@@ -992,30 +943,6 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(ticketService.isWatching(ticketId1, member.id()));
         assertTrue(ticketService.removeWatcher(ticketId1, identity));
         assertFalse(ticketService.isWatching(ticketId1, member.id()));
-    }
-
-    @Test
-    @Order(894)
-    void commentWithNewFormatMentions() {
-        var memberIdentity = memberIdentityFactory.local(station.id(), member.id());
-        String mentionText =
-                "Hello @[" + memberIdentity.stationUid() + "/" + memberIdentity.memberUid() + ":TestUser]!";
-        var comment = ticketService.createComment(
-                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), mentionText);
-        assertNotNull(comment);
-        ticketService.deleteComment(ticketId1, comment.id());
-    }
-
-    @Test
-    @Order(894)
-    void commentWithMentions() {
-        var comment = ticketService.createComment(
-                ticketId1,
-                null,
-                memberIdentityFactory.local(station.id(), member.id()),
-                "Hello @[" + member.id() + ":Test]!");
-        assertNotNull(comment);
-        ticketService.deleteComment(ticketId1, comment.id());
     }
 
     // -- Cleanup --

@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.WatcherResponse;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
 import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService.FederatedBoardDetail;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -146,15 +147,13 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var attachmentSvc = new BoardAttachmentService(fbpStorage, stationRepo, fbpBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
-                commentRepo,
                 boardRepo,
                 boardService,
                 new DomainEventBus(Set.of()),
                 newStationMemberService(null, null),
                 memberIdentityFactory,
                 resolver,
-                attachmentSvc,
-                silentCommentMentions());
+                attachmentSvc);
         federationRepository = mock(FederationRepository.class);
 
         locator = new FederatedBoardLocator(federationRepository, stationRepo, boardService);
@@ -185,7 +184,13 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         ticketProxy = new FederatedTicketProxy(
                 boardService, ticketService, resolver, memberIdentityFactory, locator, transport.transport(), guards);
         ticketDetailProxy = new FederatedTicketDetailProxy(
-                boardService, ticketService, resolver, locator, transport.transport(), guards);
+                boardService,
+                ticketService,
+                newCommentService(new DomainEventBus(Set.of())),
+                resolver,
+                locator,
+                transport.transport(),
+                guards);
         transport.serve(discoveryService, structureProxy, ticketProxy, ticketDetailProxy);
         when(httpClient.canSign(anyInt())).thenReturn(true);
 
@@ -993,10 +998,13 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Test
     @Order(122)
     void proxyAddCommentLocalCreatesViaService() {
-        // proxyAddComment passes authorId=0 which violates FK on board_ticket_comment.
-        // Create comment directly via ticketService to test the read proxy instead.
-        var comment = ticketService.createComment(
-                ticketId, null, memberIdentityFactory.local(station1.id(), memberId), "Direct comment");
+        var comment = commentRepo.create(
+                CommentEntityType.BOARD_TICKET,
+                ticketId,
+                null,
+                null,
+                memberIdentityFactory.local(station1.id(), memberId),
+                "Direct comment");
         assertNotNull(comment);
 
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
@@ -2093,6 +2101,76 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(305)
+    void aPartnerMemberEditsAndDeletesTheirOwnComment() {
+        var ticket = createLocalTicket("Rewrite me");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        int number = ticket.ticketNumber();
+        var comment = ticketDetailProxy.proxyAddComment(
+                partnerId, BOARD_KEY, number, null, "First words", REMOTE_MEMBER_1, "Partner Member");
+
+        ticketDetailProxy.proxyEditComment(
+                partnerId, BOARD_KEY, number, comment.id(), "Second words", REMOTE_MEMBER_1, "Partner Member");
+        var edited =
+                ticketDetailProxy.proxyGetComments(partnerId, BOARD_KEY, number).getFirst();
+        ticketDetailProxy.proxyDeleteComment(partnerId, BOARD_KEY, number, comment.id(), REMOTE_MEMBER_1);
+
+        assertEquals("Second words", edited.content());
+        assertNotNull(edited.updatedAt());
+        assertTrue(
+                ticketDetailProxy.proxyGetComments(partnerId, BOARD_KEY, number).isEmpty());
+    }
+
+    @Test
+    @Order(305)
+    void aPartnerMemberLeavesSomebodyElsesCommentAlone() {
+        var ticket = createLocalTicket("Not yours");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        int number = ticket.ticketNumber();
+        var comment = ticketDetailProxy.proxyAddComment(
+                partnerId, BOARD_KEY, number, null, "Mine", REMOTE_MEMBER_1, "Partner Member");
+
+        var edit = assertThrows(
+                RefusalResponse.class,
+                () -> ticketDetailProxy.proxyEditComment(
+                        partnerId, BOARD_KEY, number, comment.id(), "Theirs", REMOTE_1, "Somebody"));
+        var delete = assertThrows(
+                RefusalResponse.class,
+                () -> ticketDetailProxy.proxyDeleteComment(partnerId, BOARD_KEY, number, comment.id(), REMOTE_1));
+        var empty = assertThrows(
+                RefusalResponse.class,
+                () -> ticketDetailProxy.proxyEditComment(
+                        partnerId, BOARD_KEY, number, comment.id(), " ", REMOTE_MEMBER_1, "Partner Member"));
+
+        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_CHANGE, edit.refusal());
+        assertEquals(Refusal.COMMENT_NOT_YOURS_TO_DELETE, delete.refusal());
+        assertEquals(Refusal.COMMENT_CHANGE_NEEDS_TEXT, empty.refusal());
+        assertEquals(
+                "Mine",
+                ticketDetailProxy
+                        .proxyGetComments(partnerId, BOARD_KEY, number)
+                        .getFirst()
+                        .content());
+    }
+
+    @Test
+    @Order(305)
+    void aPartnerReachesNoCommentOfAnotherTicket() {
+        var first = createLocalTicket("Here");
+        var second = createLocalTicket("Elsewhere");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        var comment = ticketDetailProxy.proxyAddComment(
+                partnerId, BOARD_KEY, first.ticketNumber(), null, "Here", REMOTE_MEMBER_1, "Partner Member");
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> ticketDetailProxy.proxyDeleteComment(
+                        partnerId, BOARD_KEY, second.ticketNumber(), comment.id(), REMOTE_MEMBER_1));
+
+        assertEquals(Refusal.REMOTE_TICKET_COMMENT_NOT_HERE, refused.refusal());
+    }
+
+    @Test
     @Order(306)
     void proxyChecklistLifecycleLocalFromPartnerMember() {
         var ticket = createLocalTicket("Checklist me");
@@ -2365,7 +2443,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var author = memberIdentityFactory.local(station1.id(), memberId);
         var ticket = ticketService.createTicket(
                 boardId, laneId, "Parity", "Same both ways", null, TicketPriority.LOW, null, author);
-        ticketService.createComment(ticket.id(), null, author, "Hi");
+        commentRepo.create(CommentEntityType.BOARD_TICKET, ticket.id(), null, null, author, "Hi");
         int number = ticket.ticketNumber();
         transport.assertParity(
                 asking, RemoteBoardRoutes.LIST_SHARED_BOARDS.at(), null, RemoteSharedBoardResponse.class);

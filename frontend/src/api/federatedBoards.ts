@@ -179,6 +179,20 @@ export async function addComment(partnerUid: string, boardKey: string, ticketNum
     return res.data
 }
 
+export async function updateComment(
+    partnerUid: string,
+    boardKey: string,
+    ticketNumber: number,
+    commentId: number,
+    data: LocalCommentRequest,
+): Promise<void> {
+    await client.put(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`, data)
+}
+
+export async function deleteComment(partnerUid: string, boardKey: string, ticketNumber: number, commentId: number): Promise<void> {
+    await client.delete(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`)
+}
+
 export async function addChecklistItem(partnerUid: string, boardKey: string, ticketNumber: number, data: LocalChecklistItemRequest): Promise<BoardChecklistItem> {
     const res = await client.post<BoardChecklistItem>(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/checklist`, data)
     return res.data

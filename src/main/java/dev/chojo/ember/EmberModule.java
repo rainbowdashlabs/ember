@@ -116,6 +116,7 @@ import dev.chojo.ember.feature.board.service.FederatedBoardNotificationService;
 import dev.chojo.ember.feature.board.service.FederatedBoardStructureProxy;
 import dev.chojo.ember.feature.board.service.FederatedTicketDetailProxy;
 import dev.chojo.ember.feature.board.service.FederatedTicketProxy;
+import dev.chojo.ember.feature.board.service.TicketCommentTarget;
 import dev.chojo.ember.feature.checklist.route.ChecklistRoutes;
 import dev.chojo.ember.feature.cluster.ClusterModule;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -601,6 +602,7 @@ public class EmberModule extends AbstractModule {
         commentTargets.addBinding(CommentEntityType.EVENT).to(EventCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.KB).to(KbCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.NEWS).to(NewsCommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.BOARD_TICKET).to(TicketCommentTarget.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

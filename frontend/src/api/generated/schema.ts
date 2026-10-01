@@ -23189,6 +23189,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit your own comment on a ticket of a federated board */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    boardKey: string;
+                    commentId: number;
+                    partnerUid: string;
+                    ticketNumber: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LocalCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /** Delete your own comment on a ticket of a federated board */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    boardKey: string;
+                    commentId: number;
+                    partnerUid: string;
+                    ticketNumber: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/history": {
         parameters: {
             query?: never;

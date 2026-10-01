@@ -70,15 +70,13 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
-                commentRepo,
                 boardRepo,
                 boardService,
                 noBus(),
                 memberService,
                 memberIdentityFactory,
                 memberNameResolver,
-                new BoardAttachmentService(storage, stationRepo, backend),
-                silentCommentMentions());
+                new BoardAttachmentService(storage, stationRepo, backend));
 
         station = stationRepo.create("Assignment Station");
         writerAccount = accountRepo.create("assign-writer@test.com", "Wanda", "Writer");

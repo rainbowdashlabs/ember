@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteChecklistItemRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteCommentRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteDeleteCommentRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteEditCommentRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteUpdateChecklistItemRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteWatchRequest;
@@ -44,7 +45,10 @@ public class RemoteBoardTicketDetailRoutes implements Routes {
             RemoteEditCommentRequest.class,
             Void.class);
     public static final FederationEndpoint DELETE_COMMENT = FederationEndpoint.delete(
-            FederationSurface.BOARD_SHARE, TICKET + "/comments/{commentId}", Void.class, Void.class);
+            FederationSurface.BOARD_SHARE,
+            TICKET + "/comments/{commentId}",
+            RemoteDeleteCommentRequest.class,
+            Void.class);
     public static final FederationEndpoint GET_CHECKLIST =
             FederationEndpoint.getList(FederationSurface.BOARD_SHARE, TICKET + "/checklist", BoardChecklistItem.class);
     public static final FederationEndpoint ADD_CHECKLIST_ITEM = FederationEndpoint.post(

@@ -358,15 +358,13 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardAttachmentSvc = new BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
                 boardTicketRepo,
-                commentRepo,
                 boardRepo,
                 boardService,
                 noOpBus,
                 memberSvc,
                 memberIdentityFactory,
                 memberNameResolver,
-                boardAttachmentSvc,
-                silentCommentMentions());
+                boardAttachmentSvc);
         var procedureService = new ProcedureService(procedureRepo, noOpBus);
 
         // -- Seeders --

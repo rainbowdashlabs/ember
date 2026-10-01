@@ -16,8 +16,16 @@ import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.Moderation;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -45,6 +53,7 @@ public class BoardTicketDetailRoutes implements Routes {
 
     private final BoardTicketService ticketService;
     private final BoardService boardService;
+    private final CommentService commentService;
     private final MemberNameResolver memberNameResolver;
     private final BoardRouteGuards guards;
 
@@ -52,10 +61,12 @@ public class BoardTicketDetailRoutes implements Routes {
     public BoardTicketDetailRoutes(
             BoardTicketService ticketService,
             BoardService boardService,
+            CommentService commentService,
             MemberNameResolver memberNameResolver,
             BoardRouteGuards guards) {
         this.ticketService = ticketService;
         this.boardService = boardService;
+        this.commentService = commentService;
         this.memberNameResolver = memberNameResolver;
         this.guards = guards;
     }
@@ -97,8 +108,9 @@ public class BoardTicketDetailRoutes implements Routes {
     private void getComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.viewableTicketId(ctx, session);
-        ctx.json(ticketService.findComments(ticketId).stream()
-                .map(comment -> CommentResponseMapper.fromBoard(memberNameResolver, comment))
+        commentService.requireReadable(session, CommentEntityType.BOARD_TICKET, ticketId);
+        ctx.json(commentService.list(CommentEntityType.BOARD_TICKET, ticketId, CommentFilter.ALL).stream()
+                .map(this::toResponse)
                 .toList());
     }
 
@@ -121,8 +133,13 @@ public class BoardTicketDetailRoutes implements Routes {
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) throw Refusal.TICKET_COMMENT_NEEDS_TEXT.raise();
-        var comment = ticketService.createComment(ticketId, req.parentId(), guards.actor(session), req.content());
-        ctx.status(HttpStatus.CREATED).json(CommentResponseMapper.fromBoard(memberNameResolver, comment));
+        var comment = commentService.create(
+                session,
+                CommentEntityType.BOARD_TICKET,
+                ticketId,
+                writer(session),
+                new NewComment(req.parentId(), null, req.content()));
+        ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
     @OpenApi(
@@ -139,10 +156,14 @@ public class BoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int ticketId = guards.editableTicketId(ctx, session);
-        int commentId = requireCommentOn(ctx, ticketId);
+        var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
+        if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.EDIT)) {
+            throw Refusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
+        }
         var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
-        ticketService.updateComment(ticketId, commentId, req.content());
+        String content = req.content();
+        if (content == null || content.isBlank()) throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
+        commentService.update(comment, writer(session), content).orElseThrow(Refusal.TICKET_COMMENT_NOT_HERE::raise);
         ctx.status(HttpStatus.OK);
     }
 
@@ -159,8 +180,11 @@ public class BoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int ticketId = guards.editableTicketId(ctx, session);
-        ticketService.deleteComment(ticketId, requireCommentOn(ctx, ticketId));
+        var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
+        if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.DELETE)) {
+            throw Refusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
+        }
+        commentService.delete(comment);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -387,12 +411,20 @@ public class BoardTicketDetailRoutes implements Routes {
      * the addressed ticket. Whether the caller may edit that ticket is settled by the guard that
      * resolved it.
      */
-    private int requireCommentOn(Context ctx, int ticketId) {
-        int commentId = pathInt(ctx, "commentId");
-        if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
-            throw Refusal.TICKET_COMMENT_NOT_HERE.raise();
-        }
-        return commentId;
+    private Comment requireCommentOn(Context ctx, int ticketId) {
+        return commentService
+                .findById(CommentEntityType.BOARD_TICKET, pathInt(ctx, "commentId"))
+                .filter(comment -> comment.targetId() == ticketId)
+                .orElseThrow(Refusal.TICKET_COMMENT_NOT_HERE::raise);
+    }
+
+    private CommentWriter writer(UserSession session) {
+        return CommentWriter.local(
+                guards.actor(session), NameParts.of(session.account()).called());
+    }
+
+    private CommentResponse toResponse(Comment comment) {
+        return CommentResponseMapper.fromBoard(memberNameResolver, comment);
     }
 
     public record ChecklistItemRequest(String title, Boolean checked) {}

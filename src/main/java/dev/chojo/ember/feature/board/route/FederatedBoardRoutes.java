@@ -185,6 +185,14 @@ public class FederatedBoardRoutes implements Routes {
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
                 this::federatedLocalAddComment,
                 StationPermission.BOARD_USE);
+        routes.put(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments/{commentId}",
+                this::federatedLocalEditComment,
+                StationPermission.BOARD_USE);
+        routes.delete(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments/{commentId}",
+                this::federatedLocalDeleteComment,
+                StationPermission.BOARD_USE);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
                 this::federatedLocalAddChecklistItem,
@@ -859,6 +867,62 @@ public class FederatedBoardRoutes implements Routes {
                 req.content(),
                 session.member().uid(),
                 resolveDisplayName(session)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            summary = "Edit your own comment on a ticket of a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
+                @OpenApiParam(name = "commentId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCommentRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void federatedLocalEditComment(Context ctx) {
+        var session = UserSession.from(ctx);
+        int partnerId = resolvePartnerId(ctx);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(LocalCommentRequest.class);
+        ticketDetailProxy.proxyEditComment(
+                partnerId,
+                boardKey,
+                ticketNumber,
+                commentId,
+                req.content(),
+                session.member().uid(),
+                resolveDisplayName(session));
+        ctx.status(204);
+    }
+
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete your own comment on a ticket of a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
+                @OpenApiParam(name = "commentId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
+    private void federatedLocalDeleteComment(Context ctx) {
+        var session = UserSession.from(ctx);
+        int partnerId = resolvePartnerId(ctx);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        ticketDetailProxy.proxyDeleteComment(
+                partnerId, boardKey, ticketNumber, commentId, session.member().uid());
+        ctx.status(204);
     }
 
     @OpenApi(

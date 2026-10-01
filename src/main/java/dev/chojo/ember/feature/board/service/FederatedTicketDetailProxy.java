@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
@@ -15,6 +16,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteChecklistItemRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteCommentRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteDeleteCommentRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteDeleteLinkRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteEditCommentRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteLabelActionRequest;
@@ -25,8 +27,14 @@ import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.WatcherResponse;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketLinkRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
@@ -35,10 +43,12 @@ import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -52,6 +62,7 @@ public class FederatedTicketDetailProxy implements FederationServer {
 
     private final BoardService boardService;
     private final BoardTicketService ticketService;
+    private final CommentService commentService;
     private final MemberNameResolver memberNameResolver;
     private final FederatedBoardLocator locator;
     private final FederationTransport transport;
@@ -61,12 +72,14 @@ public class FederatedTicketDetailProxy implements FederationServer {
     public FederatedTicketDetailProxy(
             BoardService boardService,
             BoardTicketService ticketService,
+            CommentService commentService,
             MemberNameResolver memberNameResolver,
             FederatedBoardLocator locator,
             FederationTransport transport,
             FederatedBoardGuards guards) {
         this.boardService = boardService;
         this.ticketService = ticketService;
+        this.commentService = commentService;
         this.memberNameResolver = memberNameResolver;
         this.locator = locator;
         this.transport = transport;
@@ -84,24 +97,74 @@ public class FederatedTicketDetailProxy implements FederationServer {
 
     private void serveComments(FederationEndpoints endpoints) {
         endpoints.serve(
-                RemoteBoardTicketDetailRoutes.GET_COMMENTS,
-                (partner, params, body) -> ticketService.findComments(guards.viewableTicketId(partner, params)).stream()
+                RemoteBoardTicketDetailRoutes.GET_COMMENTS, (partner, params, body) -> commentService
+                        .list(
+                                CommentEntityType.BOARD_TICKET,
+                                guards.viewableTicketId(partner, params),
+                                CommentFilter.ALL)
+                        .stream()
                         .map(comment -> CommentResponseMapper.fromBoard(memberNameResolver, comment))
                         .toList());
         endpoints.<RemoteCommentRequest, BoardComment>serve(
                 RemoteBoardTicketDetailRoutes.ADD_COMMENT, this::serveNewComment);
         endpoints.<RemoteEditCommentRequest, Void>serve(
                 RemoteBoardTicketDetailRoutes.EDIT_COMMENT, (partner, params, body) -> {
-                    int ticketId = guards.writableTicketId(partner, params);
-                    ticketService.updateComment(
-                            ticketId, guards.commentOnTicket(ticketId, params.integer("commentId")), body.content());
+                    serveCommentEdit(partner, params, body);
                     return null;
                 });
-        endpoints.serve(RemoteBoardTicketDetailRoutes.DELETE_COMMENT, (partner, params, body) -> {
-            int ticketId = guards.writableTicketId(partner, params);
-            ticketService.deleteComment(ticketId, guards.commentOnTicket(ticketId, params.integer("commentId")));
-            return null;
-        });
+        endpoints.<RemoteDeleteCommentRequest, Void>serve(
+                RemoteBoardTicketDetailRoutes.DELETE_COMMENT, (partner, params, body) -> {
+                    UUID member = body != null ? body.remoteMemberId() : null;
+                    commentService.delete(ownComment(partner, params, member, Refusal.COMMENT_NOT_YOURS_TO_DELETE));
+                    return null;
+                });
+    }
+
+    /**
+     * Rewrites a comment a member of the partner wrote on a ticket of a board the partner may write
+     * to. Nobody else's comment is theirs to change, and a comment is never left without text.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board, the ticket number and the comment
+     * @param request the new text and who asks
+     */
+    public void serveCommentEdit(ServingPartner partner, PathParams params, RemoteEditCommentRequest request) {
+        var comment = ownComment(partner, params, request.remoteMemberId(), Refusal.COMMENT_NOT_YOURS_TO_CHANGE);
+        String content = request.content();
+        if (content == null || content.isBlank()) throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
+        var writer = CommentWriter.partner(
+                new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()),
+                Objects.requireNonNullElse(request.displayName(), ""));
+        commentService.update(comment, writer, content).orElseThrow(Refusal.REMOTE_TICKET_COMMENT_NOT_HERE::raise);
+        guards.cacheName(partner, request.remoteMemberId(), request.displayName());
+    }
+
+    /**
+     * The comment the path names, once it is on the ticket the request is about and the partner's
+     * member asking wrote it.
+     */
+    private Comment ownComment(ServingPartner partner, PathParams params, @Nullable UUID memberUid, Refusal notYours) {
+        var comment = commentOnTicket(guards.writableTicketId(partner, params), params.integer("commentId"));
+        var author = comment.author();
+        if (memberUid == null
+                || author == null
+                || !author.sameMember(new MemberIdentity(partner.askingStationUid(), memberUid))) {
+            throw notYours.raise();
+        }
+        return comment;
+    }
+
+    /**
+     * A comment a partner names, once it is on the ticket the request is about. The board and the
+     * ticket are checked against what is shared with the partner; the comment id was not, so without
+     * this a partner with write access to one shared board could reach any comment this instance
+     * holds, in any station.
+     */
+    private Comment commentOnTicket(int ticketId, int commentId) {
+        return commentService
+                .findById(CommentEntityType.BOARD_TICKET, commentId)
+                .filter(comment -> comment.targetId() == ticketId)
+                .orElseThrow(Refusal.REMOTE_TICKET_COMMENT_NOT_HERE::raise);
     }
 
     private void serveChecklist(FederationEndpoints endpoints) {
@@ -205,14 +268,17 @@ public class FederatedTicketDetailProxy implements FederationServer {
      */
     public BoardComment serveNewComment(ServingPartner partner, PathParams params, RemoteCommentRequest request) {
         int ticketId = guards.writableTicketId(partner, params);
-        Integer parentId = request.parentId() != null ? guards.commentOnTicket(ticketId, request.parentId()) : null;
-        var comment = ticketService.createComment(
-                ticketId,
-                parentId,
+        Integer parentId = request.parentId();
+        if (parentId != null) commentOnTicket(ticketId, parentId);
+        var target = commentService
+                .target(CommentEntityType.BOARD_TICKET, ticketId)
+                .orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_READ::raise);
+        var writer = CommentWriter.partner(
                 new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()),
-                request.content());
+                Objects.requireNonNullElse(request.displayName(), ""));
+        var comment = commentService.createOn(target, writer, new NewComment(parentId, null, request.content()));
         guards.cacheName(partner, request.remoteMemberId(), request.displayName());
-        return comment;
+        return BoardComment.of(comment);
     }
 
     private int labelTicket(
@@ -283,6 +349,64 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 RemoteBoardTicketDetailRoutes.ADD_COMMENT.at(boardKey, ticketNumber),
                 new RemoteCommentRequest(remoteMemberId, displayName, parentId, content),
                 BoardComment.class);
+    }
+
+    /**
+     * Rewrites a comment the member wrote on a ticket of a federated board.
+     *
+     * @param partnerId      the partner record id
+     * @param boardKey       the board short key
+     * @param ticketNumber   the board relative ticket number
+     * @param commentId      the comment
+     * @param content        the new text
+     * @param remoteMemberId the member asking, who has to be the comment's author
+     * @param displayName    the display name of the member
+     */
+    public void proxyEditComment(
+            int partnerId,
+            String boardKey,
+            int ticketNumber,
+            int commentId,
+            String content,
+            UUID remoteMemberId,
+            String displayName) {
+        log.info(
+                "Federated comment {} edited on partner {} board {} ticket {} by member {}",
+                commentId,
+                partnerId,
+                boardKey,
+                ticketNumber,
+                remoteMemberId);
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.EDIT_COMMENT.at(boardKey, ticketNumber, commentId),
+                new RemoteEditCommentRequest(remoteMemberId, displayName, content),
+                Void.class);
+    }
+
+    /**
+     * Removes a comment the member wrote on a ticket of a federated board.
+     *
+     * @param partnerId      the partner record id
+     * @param boardKey       the board short key
+     * @param ticketNumber   the board relative ticket number
+     * @param commentId      the comment
+     * @param remoteMemberId the member asking, who has to be the comment's author
+     */
+    public void proxyDeleteComment(
+            int partnerId, String boardKey, int ticketNumber, int commentId, UUID remoteMemberId) {
+        log.info(
+                "Federated comment {} deleted on partner {} board {} ticket {} by member {}",
+                commentId,
+                partnerId,
+                boardKey,
+                ticketNumber,
+                remoteMemberId);
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.DELETE_COMMENT.at(boardKey, ticketNumber, commentId),
+                new RemoteDeleteCommentRequest(remoteMemberId),
+                Void.class);
     }
 
     /**

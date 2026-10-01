@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardUnshared
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteShareModeChangedWebhook;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
 import dev.chojo.ember.feature.board.service.FederatedBoardService.PartnerShareConfig;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -88,7 +89,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         var attachmentSvc = new BoardAttachmentService(fbStorage, stationRepo, fbBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
-                commentRepo,
                 boardRepo,
                 new BoardService(
                         boardRepo,
@@ -99,8 +99,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 newStationMemberService(null, null),
                 memberIdentityFactory,
                 memberNameResolver,
-                attachmentSvc,
-                silentCommentMentions());
+                attachmentSvc);
 
         station = stationRepo.create("FedBoardStation");
         partnerStation = stationRepo.create("FedBoardPartner");
@@ -127,8 +126,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         ticketId = ticket.id();
 
         // Create a comment
-        var comment = ticketService.createComment(
-                ticketId, null, memberIdentityFactory.local(station.id(), member.id()), "Fed comment");
+        var comment = commentRepo.create(
+                CommentEntityType.BOARD_TICKET,
+                ticketId,
+                null,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()),
+                "Fed comment");
         int commentId = comment.id();
 
         // Create federation partners via direct SQL

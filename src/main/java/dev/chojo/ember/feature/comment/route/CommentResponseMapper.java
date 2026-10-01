@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 
@@ -79,8 +78,8 @@ public final class CommentResponseMapper {
      * Maps a board ticket comment. The board surface labels authors from the enriched identity
      * alone, so {@code authorName} stays {@code null} and no separate name lookup is issued.
      */
-    public static CommentResponse fromBoard(MemberNameResolver resolver, BoardComment comment) {
-        var scope = new Scope(null, null, comment.ticketId(), null);
+    public static CommentResponse fromBoard(MemberNameResolver resolver, Comment comment) {
+        var scope = new Scope(null, null, comment.targetId(), null);
         if (comment.deleted()) {
             return removed(scope, comment.id(), comment.parentId(), comment.createdAt());
         }

@@ -11,6 +11,19 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
+/**
+ * A new comment on a ticket of a shared board, as the board's station answers the partner that
+ * wrote it. Only the federation sends it: every other path speaks of a {@link Comment}.
+ *
+ * @param id        the comment
+ * @param ticketId  the ticket it hangs under, on the serving station
+ * @param parentId  the comment it answers, {@code null} for a top-level comment
+ * @param author    who wrote it, {@code null} where nobody can be named
+ * @param content   the text
+ * @param deleted   whether it was removed
+ * @param createdAt when it was written
+ * @param updatedAt when it was last changed, {@code null} if never
+ */
 public record BoardComment(
         int id,
         int ticketId,
@@ -22,7 +35,7 @@ public record BoardComment(
         @Nullable Instant updatedAt) {
 
     /**
-     * The board view of a stored comment on a ticket.
+     * The wire form of a stored comment on a ticket.
      *
      * @param comment a comment whose target is a board ticket
      * @return the same comment as a board comment
@@ -37,9 +50,5 @@ public record BoardComment(
                 comment.deleted(),
                 comment.createdAt(),
                 comment.updatedAt());
-    }
-
-    public BoardComment withAuthor(MemberIdentity author) {
-        return new BoardComment(id, ticketId, parentId, author, content, deleted, createdAt, updatedAt);
     }
 }

@@ -189,12 +189,12 @@ export function useBoardApi() {
     }
 
     async function updateComment(commentId: number, data: BoardTicketCommentRequest): Promise<void> {
-        if (isFederated.value) return
+        if (isFederated.value) { await federatedBoards.updateComment(partnerUid.value!, boardKey.value, ticketNumber.value, commentId, data); return }
         await boards.updateComment(boardKey.value, ticketNumber.value, commentId, data)
     }
 
     async function deleteComment(commentId: number): Promise<void> {
-        if (isFederated.value) return
+        if (isFederated.value) { await federatedBoards.deleteComment(partnerUid.value!, boardKey.value, ticketNumber.value, commentId); return }
         await boards.deleteComment(boardKey.value, ticketNumber.value, commentId)
     }
 

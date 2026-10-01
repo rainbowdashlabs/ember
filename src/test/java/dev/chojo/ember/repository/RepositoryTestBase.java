@@ -29,6 +29,11 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
+import dev.chojo.ember.feature.board.route.BoardRouteGuards;
+import dev.chojo.ember.feature.board.service.BoardAttachmentService;
+import dev.chojo.ember.feature.board.service.BoardService;
+import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.board.service.TicketCommentTarget;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterInventoryTagRepository;
@@ -752,7 +757,9 @@ public abstract class RepositoryTestBase {
                 CommentEntityType.KB,
                 new KbCommentTarget(knowledgeBaseRepo),
                 CommentEntityType.NEWS,
-                new NewsCommentTarget(newNewsService(new DomainEventBus(Set.of()))));
+                new NewsCommentTarget(newNewsService(new DomainEventBus(Set.of()))),
+                CommentEntityType.BOARD_TICKET,
+                ticketCommentTarget());
         return new CommentService(
                 commentRepo,
                 targets,
@@ -779,6 +786,29 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 memberLookupService,
                 memberNameResolver);
+    }
+
+    /**
+     * The board ticket comment target over the shared repositories. Its ticket service announces
+     * ticket changes to nobody and keeps no attachments.
+     */
+    private static TicketCommentTarget ticketCommentTarget() {
+        var memberService = newStationMemberService(null, null);
+        var boards = new BoardService(
+                boardRepo,
+                memberService,
+                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo),
+                new UserTagService(userTagRepo, memberGroupRepo));
+        var tickets = new BoardTicketService(
+                boardTicketRepo,
+                boardRepo,
+                boards,
+                new DomainEventBus(Set.of()),
+                memberService,
+                memberIdentityFactory,
+                memberNameResolver,
+                mock(BoardAttachmentService.class));
+        return new TicketCommentTarget(tickets, boards, new BoardRouteGuards(boards, tickets, memberIdentityFactory));
     }
 
     /**

@@ -17729,6 +17729,97 @@
         } ]
       }
     },
+    "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments/{commentId}" : {
+      "put" : {
+        "summary" : "Edit your own comment on a ticket of a federated board",
+        "tags" : [ "Federated Boards" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "partnerUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "boardKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "ticketNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "commentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LocalCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete your own comment on a ticket of a federated board",
+        "tags" : [ "Federated Boards" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "partnerUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "boardKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "ticketNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "commentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/history" : {
       "get" : {
         "summary" : "Get history for a ticket on a federated board",

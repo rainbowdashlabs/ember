@@ -119,24 +119,6 @@ public class FederatedBoardGuards {
     }
 
     /**
-     * A comment a partner names, once it is on the ticket the request is about.
-     *
-     * <p>The board and the ticket are checked against what is shared with the partner; the comment
-     * id was not, so without this a partner with write access to one shared board could rewrite or
-     * delete any board comment this instance holds, in any station.
-     *
-     * <p>What this does not do is ask whether the partner's member wrote the comment. The remote
-     * edit request carries no member, and adding one changes the federation contract, so that check
-     * waits for a contract version that can carry it.
-     */
-    public int commentOnTicket(int ticketId, int commentId) {
-        if (ticketService.findComments(ticketId).stream().noneMatch(comment -> comment.id() == commentId)) {
-            throw Refusal.REMOTE_TICKET_COMMENT_NOT_HERE.raise();
-        }
-        return commentId;
-    }
-
-    /**
      * A ticket of the board the request is about, named by its board relative number, as a link
      * target.
      */

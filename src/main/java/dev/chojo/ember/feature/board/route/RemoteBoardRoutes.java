@@ -126,7 +126,21 @@ public class RemoteBoardRoutes implements Routes {
 
     public record RemoteCommentRequest(UUID remoteMemberId, String displayName, Integer parentId, String content) {}
 
-    public record RemoteEditCommentRequest(String content) {}
+    /**
+     * A partner member rewriting a comment they wrote on a ticket of a shared board.
+     *
+     * @param remoteMemberId the member on the partner station, who has to be the comment's author
+     * @param displayName    what the member is called, for the notifications the edit raises
+     * @param content        the new text
+     */
+    public record RemoteEditCommentRequest(UUID remoteMemberId, String displayName, String content) {}
+
+    /**
+     * A partner member removing a comment they wrote on a ticket of a shared board.
+     *
+     * @param remoteMemberId the member on the partner station, who has to be the comment's author
+     */
+    public record RemoteDeleteCommentRequest(UUID remoteMemberId) {}
 
     public record RemoteChecklistItemRequest(String title, UUID remoteMemberUid, String displayName) {}
 
