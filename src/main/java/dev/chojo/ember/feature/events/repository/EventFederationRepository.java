@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -213,7 +214,7 @@ public class EventFederationRepository {
      * @param eventDate the event occurrence date
      * @return the list of registrations
      */
-    public List<EventFederationRegistration> findRegistrations(int eventId, LocalDate eventDate) {
+    public List<EventFederationRegistration> findRegistrations(int eventId, @Nullable LocalDate eventDate) {
         if (eventDate == null) {
             return query("""
                     SELECT %s
@@ -310,7 +311,7 @@ public class EventFederationRepository {
      * <p>Taking it back removes the row rather than writing a false one, so an appointment nobody has
      * arranged anything for reads the same whether it never had an arrangement or lost one.
      */
-    public void setPartnerPlaces(int eventId, int partnerId, Integer slotBudget, boolean partnerConfirms) {
+    public void setPartnerPlaces(int eventId, int partnerId, @Nullable Integer slotBudget, boolean partnerConfirms) {
         if (!partnerConfirms) {
             query("DELETE FROM event_partner_places WHERE event_id = :event_id AND partner_id = :partner_id;")
                     .single(call().bind("event_id", eventId).bind("partner_id", partnerId))

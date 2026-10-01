@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.util.SizeParser;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Tells a station's managers that its cluster has changed how much room it has.
@@ -50,7 +51,7 @@ public class ClusterQuotaChangedHandler implements DomainEventHandler<ClusterQuo
     /**
      * A quota handed back to the instance default has no number to show, so it says so in words.
      */
-    private static String formatQuota(Long quotaBytes) {
+    private static String formatQuota(@Nullable Long quotaBytes) {
         return quotaBytes == null ? "-" : SizeParser.formatBytes(quotaBytes);
     }
 }

@@ -141,10 +141,11 @@ public class BoardService {
         // Update existing lanes and create new ones
         for (int i = 0; i < lanes.size(); i++) {
             var l = lanes.get(i);
-            if (l.id() != null && l.id() > 0) {
+            Integer laneId = l.id();
+            if (laneId != null && laneId > 0) {
                 // Update existing lane
-                repository.updateLane(l.id(), l.name(), l.color(), i);
-                if (fallbackLaneId == null) fallbackLaneId = l.id();
+                repository.updateLane(laneId, l.name(), l.color(), i);
+                if (fallbackLaneId == null) fallbackLaneId = laneId;
             } else {
                 // Create new lane
                 var created = repository.createLane(boardId, l.name(), l.color(), i);

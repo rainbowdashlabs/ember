@@ -147,7 +147,7 @@ public class EventEmbedRoutes implements Routes {
             boolean cancelled,
             @Nullable String categoryName) {
 
-        static EmbeddedEvent of(StationEvent event, String categoryName) {
+        static EmbeddedEvent of(StationEvent event, @Nullable String categoryName) {
             return new EmbeddedEvent(
                     event.id(),
                     event.name(),

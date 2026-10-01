@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -51,7 +52,7 @@ public class ContentBlockService {
      * A fresh container for the station, or for the instance itself when {@code stationId} is
      * {@code null}: content read in every station belongs to none of them.
      */
-    public ContentContainer create(Integer stationId) {
+    public ContentContainer create(@Nullable Integer stationId) {
         var container = repository.create(stationId);
         log.info("Content container {} created in station {}", container.id(), stationId);
         return container;
@@ -61,7 +62,7 @@ public class ContentBlockService {
      * The container that already exists, or a fresh one. Used wherever a feature turns something
      * into blocks for the first time.
      */
-    public ContentContainer ensure(Integer stationId, Integer containerId) {
+    public ContentContainer ensure(@Nullable Integer stationId, @Nullable Integer containerId) {
         if (containerId != null) {
             var existing = repository.findById(containerId);
             if (existing.isPresent()) return existing.get();
@@ -137,13 +138,13 @@ public class ContentBlockService {
      * whatever owned it has to say so: the reference points the wrong way for the database to
      * clean up on its own, and a container nobody deletes is a row that accumulates forever.
      */
-    public void delete(Integer containerId) {
+    public void delete(@Nullable Integer containerId) {
         if (containerId == null) return;
         repository.delete(containerId);
         log.info("Deleted content container {} and its blocks", containerId);
     }
 
-    private void requireFits(Integer stationId, CellContentType type, CellConfig config, Scope scope) {
+    private void requireFits(@Nullable Integer stationId, CellContentType type, CellConfig config, Scope scope) {
         requireAllowed(type, scope);
         for (var reference : references) {
             reference.requireReachable(stationId, scope.audience(), config);
@@ -161,7 +162,7 @@ public class ContentBlockService {
      * checks have to recurse into them or a withheld block slips through one level down. A cell
      * naming a block that does not exist is not a withheld one, and is left to the config parser.
      */
-    private void requireNestedFits(Integer stationId, CellConfig config, Scope scope) {
+    private void requireNestedFits(@Nullable Integer stationId, CellConfig config, Scope scope) {
         if (!(config instanceof CellConfig.NestedRowsConfig nested)) return;
         var rows = nested.rows();
         if (rows == null) return;
@@ -175,7 +176,7 @@ public class ContentBlockService {
         }
     }
 
-    private static CellContentType knownType(JsonNode name) {
+    private static @Nullable CellContentType knownType(JsonNode name) {
         if (!name.isString()) return null;
         return Arrays.stream(CellContentType.values())
                 .filter(type -> type.name().equals(name.asString()))

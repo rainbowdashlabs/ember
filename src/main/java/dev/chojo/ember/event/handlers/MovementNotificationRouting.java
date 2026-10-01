@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,11 @@ final class MovementNotificationRouting {
      * @param ownerClusterId the cluster owning the gear, or {@code null}
      * @return the audience to tell
      */
-    static Audience nextParty(int stationId, Integer memberId, StepActor nextActor, Integer ownerClusterId) {
+    static Audience nextParty(
+            int stationId,
+            @Nullable Integer memberId,
+            @Nullable StepActor nextActor,
+            @Nullable Integer ownerClusterId) {
         if (nextActor == null) {
             return memberId != null ? StationAudience.member(memberId) : StationAudience.members(List.of());
         }

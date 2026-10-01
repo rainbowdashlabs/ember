@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -71,7 +72,7 @@ public class EventOccurrenceService {
      * @return the occurrences of that page, earliest first
      */
     public List<UpcomingEventOccurrence> findUpcomingOccurrences(
-            int stationId, List<Integer> memberIds, OccurrenceQuery query) {
+            int stationId, @Nullable List<Integer> memberIds, OccurrenceQuery query) {
         var events = matchingEvents(stationId, memberIds, query);
         if (events.isEmpty()) return List.of();
 
@@ -103,7 +104,7 @@ public class EventOccurrenceService {
      * @return the occurrences of that page, latest first
      */
     public List<UpcomingEventOccurrence> findPastOccurrences(
-            int stationId, List<Integer> memberIds, OccurrenceQuery query) {
+            int stationId, @Nullable List<Integer> memberIds, OccurrenceQuery query) {
         var events = matchingEvents(stationId, memberIds, query);
         if (events.isEmpty()) return List.of();
 
@@ -137,10 +138,11 @@ public class EventOccurrenceService {
      * @param query     which half and which kind of appointment, with the filters and the page
      * @return the appointments of that page
      */
-    public List<DatedEvent> findEventsPage(int stationId, List<Integer> memberIds, EventPageQuery query) {
+    public List<DatedEvent> findEventsPage(int stationId, @Nullable List<Integer> memberIds, EventPageQuery query) {
         var filter = query.filter();
+        EventKind kind = query.kind();
         var events = matchingEvents(stationId, memberIds, filter).stream()
-                .filter(ev -> query.kind() == null || query.kind().covers(ev))
+                .filter(ev -> kind == null || kind.covers(ev))
                 .toList();
         if (events.isEmpty()) return List.of();
 
@@ -184,11 +186,12 @@ public class EventOccurrenceService {
     }
 
     /** Whether a date falls inside the window the query asked for, where it asked for one at all. */
-    private static boolean withinWindow(LocalDate date, OccurrenceQuery query) {
-        if (query.from() == null && query.to() == null) return true;
+    private static boolean withinWindow(@Nullable LocalDate date, OccurrenceQuery query) {
+        LocalDate from = query.from();
+        LocalDate to = query.to();
+        if (from == null && to == null) return true;
         if (date == null) return false;
-        return (query.from() == null || !date.isBefore(query.from()))
-                && (query.to() == null || !date.isAfter(query.to()));
+        return (from == null || !date.isBefore(from)) && (to == null || !date.isAfter(to));
     }
 
     /**
@@ -208,12 +211,12 @@ public class EventOccurrenceService {
     }
 
     /** The given date held at or after a floor, where the caller named one. */
-    private static LocalDate notBefore(LocalDate date, LocalDate floor) {
+    private static LocalDate notBefore(LocalDate date, @Nullable LocalDate floor) {
         return floor == null || floor.isBefore(date) ? date : floor;
     }
 
     /** The given date held at or before a ceiling, where the caller named one. */
-    private static LocalDate notAfter(LocalDate date, LocalDate ceiling) {
+    private static LocalDate notAfter(LocalDate date, @Nullable LocalDate ceiling) {
         return ceiling == null || ceiling.isAfter(date) ? date : ceiling;
     }
 
@@ -236,12 +239,13 @@ public class EventOccurrenceService {
         return start == null ? LocalTime.MIN : start.atZone(zone).toLocalTime();
     }
 
-    private List<StationEvent> matchingEvents(int stationId, List<Integer> memberIds, OccurrenceQuery query) {
+    private List<StationEvent> matchingEvents(int stationId, @Nullable List<Integer> memberIds, OccurrenceQuery query) {
         var events = eventCrudService.findFilteredForMembers(
                 stationId, memberIds, query.categoryId(), query.requiresRegistration());
-        if (query.search() == null || query.search().isBlank()) return events;
+        String asked = query.search();
+        if (asked == null || asked.isBlank()) return events;
 
-        String search = query.search().toLowerCase();
+        String search = asked.toLowerCase();
         return events.stream()
                 .filter(ev -> {
                     String name = ev.name() != null ? ev.name().toLowerCase() : "";
@@ -313,11 +317,11 @@ public class EventOccurrenceService {
      * @param offset               how many entries to pass over before the page begins
      */
     public record OccurrenceQuery(
-            Integer categoryId,
-            Boolean requiresRegistration,
-            String search,
-            LocalDate from,
-            LocalDate to,
+            @Nullable Integer categoryId,
+            @Nullable Boolean requiresRegistration,
+            @Nullable String search,
+            @Nullable LocalDate from,
+            @Nullable LocalDate to,
             int limit,
             int offset) {}
 
@@ -329,7 +333,7 @@ public class EventOccurrenceService {
      * @param kind   which kind of appointment to keep, null for both of them
      * @param filter the filters, the window of days and the page
      */
-    public record EventPageQuery(EventState state, EventKind kind, OccurrenceQuery filter) {}
+    public record EventPageQuery(EventState state, @Nullable EventKind kind, OccurrenceQuery filter) {}
 
     /** Which half of the appointments a page asks for. */
     public enum EventState {

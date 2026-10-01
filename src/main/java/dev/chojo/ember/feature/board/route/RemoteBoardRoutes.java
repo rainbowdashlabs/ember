@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -109,18 +110,24 @@ public class RemoteBoardRoutes implements Routes {
             StationUserType requiredUserType) {}
 
     public record RemoteCreateTicketRequest(
-            UUID remoteMemberId, Integer laneId, String title, String description, String priority, String dueDate) {}
+            UUID remoteMemberId,
+            Integer laneId,
+            String title,
+            String description,
+            @Nullable String priority,
+            @Nullable String dueDate) {}
 
     public record RemoteUpdateTicketRequest(
             String title,
-            String description,
-            Integer assignedMemberId,
-            String priority,
-            String dueDate,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
+            @Nullable String priority,
+            @Nullable String dueDate,
             UUID remoteMemberUid,
             String displayName) {}
 
-    public record RemoteMoveTicketRequest(int toLaneId, int position, UUID remoteMemberUid, String displayName) {}
+    public record RemoteMoveTicketRequest(
+            int toLaneId, int position, @Nullable UUID remoteMemberUid, String displayName) {}
 
     public record RemoteReorderRequest(int laneId, List<Integer> orderedIds) {}
 

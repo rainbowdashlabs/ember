@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -283,7 +284,8 @@ public class NewsRepository {
      * either case; for the public, also on the public blog. Backs the public blog and the search of
      * the news block picker. A blank or {@code null} search term returns the most recent entries.
      */
-    public List<News> findOpenEntries(int stationId, BlockAudience audience, String search, int offset, int limit) {
+    public List<News> findOpenEntries(
+            int stationId, BlockAudience audience, @Nullable String search, int offset, int limit) {
         var where = openTo(audience).like("AND LOWER(n.title) LIKE :q", "q", search);
         return query("""
                 SELECT

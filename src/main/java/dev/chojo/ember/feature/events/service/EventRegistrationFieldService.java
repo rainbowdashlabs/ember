@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.question.QuestionCheck;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -288,7 +289,7 @@ public class EventRegistrationFieldService {
         }
     }
 
-    private static boolean isBlank(String value) {
+    private static boolean isBlank(@Nullable String value) {
         return value == null || value.isBlank();
     }
 }

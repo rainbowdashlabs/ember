@@ -5,4 +5,7 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
-public record LaneData(Integer id, String name, String color) {}
+import org.jspecify.annotations.Nullable;
+
+public record LaneData(
+        @Nullable Integer id, String name, @Nullable String color) {}

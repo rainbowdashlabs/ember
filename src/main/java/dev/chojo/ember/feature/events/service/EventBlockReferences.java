@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.content.service.BlockReferences;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -30,7 +31,7 @@ public class EventBlockReferences implements BlockReferences {
     }
 
     @Override
-    public void requireReachable(Integer stationId, BlockAudience audience, CellConfig config) {
+    public void requireReachable(@Nullable Integer stationId, BlockAudience audience, CellConfig config) {
         if (!(config instanceof CellConfig.FeaturedEventConfig featured)) return;
         String eventUid = featured.eventUid();
         if (eventUid == null) return;

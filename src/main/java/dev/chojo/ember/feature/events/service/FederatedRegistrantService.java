@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -51,7 +52,7 @@ public class FederatedRegistrantService {
      * @param registration the registration a partner sent
      * @return the member, or {@code null} when the partnership it came on is gone
      */
-    public MemberIdentity identify(EventFederationRegistration registration) {
+    public @Nullable MemberIdentity identify(EventFederationRegistration registration) {
         UUID partnerStationUid = federationRepository
                 .findPartnerById(registration.partnerId())
                 .map(FederationPartner::partnerStationId)

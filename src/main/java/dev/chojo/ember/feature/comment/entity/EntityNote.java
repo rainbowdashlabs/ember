@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.comment.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -28,7 +29,7 @@ public record EntityNote(
         int entityId,
         int stationId,
         String content,
-        Integer updatedBy,
+        @Nullable Integer updatedBy,
         Instant updatedAt) {
     /**
      * Creates a row mapping for database result set conversion.

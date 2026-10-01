@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,7 +82,7 @@ public class PublicSiteService {
      *
      * @param requestedUids the stations asked for, separated by commas, or null for all partners
      */
-    public List<PublicPartnerSummary> partners(int stationId, String requestedUids) {
+    public List<PublicPartnerSummary> partners(int stationId, @Nullable String requestedUids) {
         var partners = federation.findActivePartnerSummaries(stationId);
         if (requestedUids == null || requestedUids.isBlank()) return partners;
         var requested = Arrays.stream(requestedUids.split(","))

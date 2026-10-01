@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.repository;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -60,7 +61,7 @@ public class EventCategoryRepository {
      * @param color     optional display color (#RRGGBB), or null
      * @return the created category
      */
-    public EventCategory create(int stationId, String name, int position, String color) {
+    public EventCategory create(int stationId, String name, int position, @Nullable String color) {
         return create(stationId, name, position, null, false, color);
     }
 
@@ -76,7 +77,12 @@ public class EventCategoryRepository {
      * @return the created category
      */
     public EventCategory create(
-            int stationId, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
+            int stationId,
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            boolean isPublic,
+            @Nullable String color) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -104,7 +110,13 @@ public class EventCategoryRepository {
      * @param color    the optional new display color (#RRGGBB), or null to clear
      * @return true if a row was updated
      */
-    public boolean update(int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
+    public boolean update(
+            int id,
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            boolean isPublic,
+            @Nullable String color) {
         return query("""
                 UPDATE event_category
                 SET name = :name,

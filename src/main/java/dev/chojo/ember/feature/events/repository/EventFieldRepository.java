@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -260,7 +261,7 @@ public class EventFieldRepository {
             String value,
             int position,
             boolean overview,
-            Integer attendanceFieldId,
+            @Nullable Integer attendanceFieldId,
             boolean isPublic) {
         return SqlSupport.insertReturning(
                 """
@@ -302,8 +303,9 @@ public class EventFieldRepository {
             var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
             var config = field.config() != null ? field.config() : EventFieldConfig.empty();
             String value = field.value() != null ? field.value() : "";
-            if (field.id() != null && update(field.id(), eventId, field, type, config, value, i)) {
-                kept.add(field.id());
+            Integer fieldId = field.id();
+            if (fieldId != null && update(fieldId, eventId, field, type, config, value, i)) {
+                kept.add(fieldId);
                 continue;
             }
             kept.add(create(

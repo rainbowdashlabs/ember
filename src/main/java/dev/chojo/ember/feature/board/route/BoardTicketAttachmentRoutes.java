@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -101,7 +102,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
                     session.stationId(),
                     ticketId,
                     file.filename(),
-                    file.contentType(),
+                    Objects.requireNonNullElse(file.contentType(), "application/octet-stream"),
                     content.readAllBytes(),
                     guards.actor(session));
             ctx.status(HttpStatus.CREATED).json(att);

@@ -5,19 +5,21 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A question of an appointment as it arrives to be written, naming the row it overwrites or none.
  *
  * @param id the row this overwrites, or null for a question asked for the first time
  */
 public record EventFieldDraft(
-        Integer id,
+        @Nullable Integer id,
         String name,
         EventFieldType fieldType,
         EventFieldConfig config,
         String value,
         boolean overview,
-        Integer attendanceFieldId,
+        @Nullable Integer attendanceFieldId,
         boolean isPublic) {
 
     /**
@@ -31,7 +33,7 @@ public record EventFieldDraft(
             EventFieldConfig config,
             String value,
             boolean overview,
-            Integer attendanceFieldId,
+            @Nullable Integer attendanceFieldId,
             boolean isPublic) {
         this(null, name, fieldType, config, value, overview, attendanceFieldId, isPublic);
     }

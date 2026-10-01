@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.question.QuestionValues;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -81,7 +82,7 @@ public final class RegistrationRowLookups {
      *
      * @return the name, or null where the member filed it themselves or is not known
      */
-    public String createdByName(Integer createdBy) {
+    public @Nullable String createdByName(@Nullable Integer createdBy) {
         return createdBy == null ? null : nameResolver.called(createdBy);
     }
 
@@ -120,7 +121,7 @@ public final class RegistrationRowLookups {
     }
 
     /** A member's display name, empty when unknown, and their identity, {@code null} when unknown. */
-    public record MemberDisplay(String name, MemberIdentity identity) {}
+    public record MemberDisplay(String name, @Nullable MemberIdentity identity) {}
 
     private record EventDay(int eventId, LocalDate date) {}
 

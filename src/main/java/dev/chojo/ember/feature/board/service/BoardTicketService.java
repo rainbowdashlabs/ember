@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +123,7 @@ public class BoardTicketService {
      * @param boardId  the board the ticket belongs to
      * @param assignee whom the ticket is being handed to, or {@code null} to take the name off
      */
-    private void requireAssignable(int boardId, MemberIdentity assignee) {
+    private void requireAssignable(int boardId, @Nullable MemberIdentity assignee) {
         if (assignee == null) return;
         var board = boardRepository.findById(boardId).orElse(null);
         if (board == null) return;
@@ -138,11 +139,11 @@ public class BoardTicketService {
             int boardId,
             int laneId,
             String title,
-            String description,
-            MemberIdentity assignee,
+            @Nullable String description,
+            @Nullable MemberIdentity assignee,
             TicketPriority priority,
-            LocalDate dueDate,
-            MemberIdentity creator) {
+            @Nullable LocalDate dueDate,
+            @Nullable MemberIdentity creator) {
         requireAssignable(boardId, assignee);
         int ticketNumber = boardRepository.nextTicketNumber(boardId);
         int position = ticketRepository.findByBoardAndLane(boardId, laneId).size();
@@ -155,11 +156,11 @@ public class BoardTicketService {
     public boolean updateTicket(
             int id,
             String title,
-            String description,
-            MemberIdentity assignee,
+            @Nullable String description,
+            @Nullable MemberIdentity assignee,
             TicketPriority priority,
-            LocalDate dueDate,
-            MemberIdentity actor) {
+            @Nullable LocalDate dueDate,
+            @Nullable MemberIdentity actor) {
         var oldTicket = ticketRepository.findById(id).orElse(null);
         if (oldTicket != null) requireAssignable(oldTicket.boardId(), assignee);
         boolean updated = ticketRepository.updateTicket(id, title, description, assignee, priority, dueDate);
@@ -189,7 +190,7 @@ public class BoardTicketService {
         return updated;
     }
 
-    public boolean assignTicket(int ticketId, MemberIdentity assignee, int actorMemberId) {
+    public boolean assignTicket(int ticketId, @Nullable MemberIdentity assignee, int actorMemberId) {
         var oldTicket = ticketRepository.findById(ticketId).orElse(null);
         if (oldTicket != null) requireAssignable(oldTicket.boardId(), assignee);
         MemberIdentity oldAssignee = oldTicket != null ? oldTicket.assignee() : null;
@@ -264,7 +265,8 @@ public class BoardTicketService {
         return deleted;
     }
 
-    public boolean moveTicket(int ticketId, int fromLaneId, int toLaneId, int position, MemberIdentity actor) {
+    public boolean moveTicket(
+            int ticketId, int fromLaneId, int toLaneId, int position, @Nullable MemberIdentity actor) {
         boolean moved = ticketRepository.moveTicket(ticketId, toLaneId, position);
         if (moved) {
             ticketRepository.logTransition(ticketId, fromLaneId, toLaneId, actor);
@@ -314,7 +316,7 @@ public class BoardTicketService {
 
     // -- Links --
 
-    public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, MemberIdentity actor) {
+    public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, @Nullable MemberIdentity actor) {
         if (ticketId == linkedTicketId) {
             log.warn("Refusing to link ticket {} to itself", ticketId);
             return;
@@ -329,7 +331,10 @@ public class BoardTicketService {
     }
 
     private void logLinkHistory(
-            BoardTicket ticket, BoardTicket linkedTicket, BoardTicketHistoryAction action, MemberIdentity actor) {
+            BoardTicket ticket,
+            BoardTicket linkedTicket,
+            BoardTicketHistoryAction action,
+            @Nullable MemberIdentity actor) {
         var board = boardRepository.findById(ticket.boardId()).orElse(null);
         var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
         String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
@@ -338,7 +343,7 @@ public class BoardTicketService {
         ticketRepository.logHistory(linkedTicket.id(), action, reverseKey, actor);
     }
 
-    public boolean unlinkTickets(int ticketId, int linkedTicketId, MemberIdentity actor) {
+    public boolean unlinkTickets(int ticketId, int linkedTicketId, @Nullable MemberIdentity actor) {
         var ticket = ticketRepository.findById(ticketId).orElse(null);
         var linkedTicket = ticketRepository.findById(linkedTicketId).orElse(null);
         boolean deleted = ticketRepository.deleteLink(ticketId, linkedTicketId);
@@ -559,7 +564,7 @@ public class BoardTicketService {
         return ticketRepository.findActivity(ticketId);
     }
 
-    private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
+    private void notifyWatchers(int ticketId, int boardId, String changeDescription, @Nullable Integer actorMemberId) {
         var watchers = findWatchers(ticketId);
         if (watchers.isEmpty()) return;
         var board = boardRepository.findById(boardId).orElse(null);

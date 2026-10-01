@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Board and ticket lookups plus the view/edit access policy shared by the local board route
@@ -124,7 +125,7 @@ public class BoardRouteGuards {
      * A member of the session's station as a federation aware identity, or {@code null} when no
      * member is given.
      */
-    public MemberIdentity member(UserSession session, Integer memberId) {
+    public @Nullable MemberIdentity member(UserSession session, @Nullable Integer memberId) {
         return memberId == null ? null : memberIdentityFactory.local(session.stationId(), memberId);
     }
 }

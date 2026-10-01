@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig.MemberListSortBy;
 import dev.chojo.ember.feature.content.entity.CellConfig.ResolvedMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -39,12 +41,12 @@ public final class MemberListResolver {
             StationMemberRepository memberRepository,
             AvatarService avatarService,
             int stationId,
-            JsonNode source,
-            MemberListSortBy sortBy,
-            Map<String, String> memberDescriptions,
-            List<String> memberOrder) {
+            @Nullable JsonNode source,
+            @Nullable MemberListSortBy sortBy,
+            @Nullable Map<String, String> memberDescriptions,
+            @Nullable List<String> memberOrder) {
         if (source == null || !source.isObject()) return List.of();
-        Map<String, String> descriptions = memberDescriptions != null ? memberDescriptions : Map.of();
+        Map<String, String> descriptions = Objects.requireNonNullElse(memberDescriptions, Map.of());
         var picked =
                 switch (source.path("kind").asString()) {
                     case "group" ->
@@ -90,7 +92,9 @@ public final class MemberListResolver {
     }
 
     private static List<StationMemberRepository.PickerMember> sortMembers(
-            List<StationMemberRepository.PickerMember> members, MemberListSortBy sortBy, List<String> memberOrder) {
+            List<StationMemberRepository.PickerMember> members,
+            @Nullable MemberListSortBy sortBy,
+            @Nullable List<String> memberOrder) {
         if (members.isEmpty()) return members;
         var effective = sortBy != null ? sortBy : MemberListSortBy.ORDER;
         if (effective == MemberListSortBy.ORDER) {

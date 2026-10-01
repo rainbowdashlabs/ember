@@ -47,6 +47,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -313,7 +315,7 @@ public class EventFederationService implements FederationServer {
      * @param eventDate the event occurrence date
      * @return the list of registrations
      */
-    public List<EventFederationRegistration> findRegistrations(int eventId, LocalDate eventDate) {
+    public List<EventFederationRegistration> findRegistrations(int eventId, @Nullable LocalDate eventDate) {
         return federationRepository.findRegistrations(eventId, eventDate);
     }
 
@@ -375,7 +377,7 @@ public class EventFederationService implements FederationServer {
      * <p>A budget means the partner decides: handing somebody five places and then choosing their
      * five for them is not a thing anybody wants, and the database refuses the combination outright.
      */
-    public void setPartnerPlaces(int eventId, int partnerId, Integer slotBudget, boolean partnerConfirms) {
+    public void setPartnerPlaces(int eventId, int partnerId, @Nullable Integer slotBudget, boolean partnerConfirms) {
         federationRepository.setPartnerPlaces(eventId, partnerId, slotBudget, partnerConfirms);
         log.info(
                 "Event {} now gives partner {} {} places, decided by {}",
@@ -422,7 +424,7 @@ public class EventFederationService implements FederationServer {
      * @param budget how many it may fill, or {@code null} for no cap
      * @param decidedByPartner whether the partner decides rather than this station
      */
-    public record PartnerPlaceCount(int taken, Integer budget, boolean decidedByPartner) {}
+    public record PartnerPlaceCount(int taken, @Nullable Integer budget, boolean decidedByPartner) {}
 
     /**
      * Puts a partner's member back on the list, for as long as their withdrawal can be taken back.
@@ -735,7 +737,7 @@ public class EventFederationService implements FederationServer {
      * Reads the optional occurrence date a comment is scoped to. Older peers omit the field
      * entirely, which keeps the comment attached to the whole event rather than one date.
      */
-    private static LocalDate commentDay(String eventDate) {
+    private static @Nullable LocalDate commentDay(String eventDate) {
         if (eventDate == null || eventDate.isBlank()) return null;
         try {
             return LocalDate.parse(eventDate);
@@ -858,9 +860,9 @@ public class EventFederationService implements FederationServer {
             int eventId,
             UUID remoteMemberUid,
             String displayName,
-            Integer parentId,
+            @Nullable Integer parentId,
             String content,
-            LocalDate eventDate) {
+            @Nullable LocalDate eventDate) {
         var target = commentService
                 .target(CommentEntityType.EVENT, eventId)
                 .orElseThrow(Refusal.EVENT_NOT_SHARED_WITH_PARTNER::raise);
@@ -878,8 +880,9 @@ public class EventFederationService implements FederationServer {
     public CommentResponse updateRemoteComment(
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         var comment = requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
+        var author = Objects.requireNonNull(comment.author(), "a comment without an author is refused as not theirs");
         var updated = commentService
-                .update(comment, CommentWriter.partner(comment.author(), ""), content)
+                .update(comment, CommentWriter.partner(author, ""), content)
                 .orElseThrow(NotFoundResponse::new);
         log.info("Comment {} on an event edited (partner {})", commentId, partner.id());
         return toCommentResponse(updated);

@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,7 +144,7 @@ public class EventRegistrationService {
      * @return the created registration
      */
     public EventRegistration register(
-            int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
+            int eventId, int memberId, LocalDate eventDate, boolean autoAccept, @Nullable Integer createdBy) {
         var registration =
                 registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
         log.info(
@@ -273,7 +274,7 @@ public class EventRegistrationService {
      * @param current the status the registration holds now, or null where there is none yet
      * @return the status to write
      */
-    private static RegistrationStatus refusalFor(RegistrationStatus current) {
+    private static RegistrationStatus refusalFor(@Nullable RegistrationStatus current) {
         return current == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
     }
 
@@ -385,7 +386,7 @@ public class EventRegistrationService {
      *
      * @param heldBefore the status the registration held before this refusal was written
      */
-    private void announceFreedPlace(int eventId, int memberId, RegistrationStatus heldBefore) {
+    private void announceFreedPlace(int eventId, int memberId, @Nullable RegistrationStatus heldBefore) {
         if (heldBefore == RegistrationStatus.ACCEPTED) {
             announce(eventId, memberId, RegistrationStatus.WITHDRAWN);
         }
@@ -428,7 +429,7 @@ public class EventRegistrationService {
      * @param createdBy the member ID of the creator, or null if self-declined
      * @return the stored declination
      */
-    public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, Integer createdBy) {
+    public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, @Nullable Integer createdBy) {
         var existing = registrationRepository.findByEventAndDate(eventId, eventDate).stream()
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
@@ -472,7 +473,7 @@ public class EventRegistrationService {
      * @param months     the number of months to look back
      * @return the statistics per member
      */
-    public List<MemberRegistrationStats> findStatsByEvent(int eventId, Integer categoryId, int months) {
+    public List<MemberRegistrationStats> findStatsByEvent(int eventId, @Nullable Integer categoryId, int months) {
         return registrationRepository.findStatsByEvent(eventId, categoryId, months);
     }
 }

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +77,7 @@ public class EventCrudService {
      * is picking does not widen it, so a block never names what part of its readers cannot see.
      */
     public List<PickerEvent> searchEventPicker(
-            int stationId, BlockAudience audience, String search, PickerMode mode, int limit) {
+            int stationId, BlockAudience audience, @Nullable String search, PickerMode mode, int limit) {
         return eventRepository.searchForPicker(stationId, audience, search, mode, limit);
     }
 
@@ -120,7 +121,10 @@ public class EventCrudService {
      * member who manages events sees them all, as does a {@code null} member.
      */
     public List<StationEvent> findFiltered(
-            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
+            int stationId,
+            @Nullable Integer memberId,
+            @Nullable Integer categoryId,
+            @Nullable Boolean requiresRegistration) {
         return eventRepository.findFiltered(stationId, restrictedTo(memberId), categoryId, requiresRegistration);
     }
 
@@ -130,7 +134,10 @@ public class EventCrudService {
      * any listed member who manages events.
      */
     public List<StationEvent> findFilteredForMembers(
-            int stationId, List<Integer> memberIds, Integer categoryId, Boolean requiresRegistration) {
+            int stationId,
+            @Nullable List<Integer> memberIds,
+            @Nullable Integer categoryId,
+            @Nullable Boolean requiresRegistration) {
         if (memberIds == null) {
             return eventRepository.findFiltered(stationId, null, categoryId, requiresRegistration);
         }
@@ -148,7 +155,7 @@ public class EventCrudService {
      * The member whose view restrictions narrow a listing, or {@code null} where nothing narrows
      * it: no member was named, or the member manages events and sees all of them.
      */
-    private Integer restrictedTo(Integer memberId) {
+    private @Nullable Integer restrictedTo(@Nullable Integer memberId) {
         return memberId == null || managesEvents(memberId) ? null : memberId;
     }
 
@@ -186,20 +193,20 @@ public class EventCrudService {
     public StationEvent create(
             int stationId,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Integer thresholdDays,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         var event = createWithoutEvent(
                 stationId,
                 name,
@@ -241,20 +248,20 @@ public class EventCrudService {
     public StationEvent createWithoutEvent(
             int stationId,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Integer thresholdDays,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime);
         var event = eventRepository.create(
                 stationId,
@@ -297,21 +304,21 @@ public class EventCrudService {
     public Optional<StationEvent> update(
             int id,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Boolean isPublic,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Integer thresholdDays,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Boolean isPublic,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime);
         var before = eventRepository.findById(id).orElse(null);
         if (eventRepository.update(
@@ -373,7 +380,7 @@ public class EventCrudService {
      * @param count how many times it takes place in total, or null
      * @return the event as it now stands, or empty when there is no such event
      */
-    public Optional<StationEvent> setRepeatEnd(int id, LocalDate until, Integer count) {
+    public Optional<StationEvent> setRepeatEnd(int id, @Nullable LocalDate until, @Nullable Integer count) {
         var event = eventRepository.findById(id).orElse(null);
         if (event == null) {
             log.warn("Cannot set the repeat end: event {} not found", id);

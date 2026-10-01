@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,16 +56,16 @@ public class EventTemplateService {
     public boolean update(
             int id,
             String name,
-            String title,
-            String description,
-            Integer categoryId,
-            StationEvent.EventType eventType,
-            Boolean requiresRegistration,
-            String registrationDeadlineOffset,
-            Boolean requiresConfirmation,
-            RestrictionMode restrictionMode,
-            Integer attendanceTemplateId,
-            Integer registrationLimit) {
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            StationEvent.@Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            @Nullable String registrationDeadlineOffset,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit) {
         if (repository.update(
                 id,
                 name,
@@ -147,7 +148,7 @@ public class EventTemplateService {
     }
 
     /** Whether this attendance field belongs to the sheet the template writes into. */
-    private boolean reachable(int templateId, Integer attendanceFieldId) {
+    private boolean reachable(int templateId, @Nullable Integer attendanceFieldId) {
         if (attendanceFieldId == null) return true;
         var sheetId = repository
                 .findById(templateId)

@@ -42,6 +42,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -344,7 +345,7 @@ public class EventStructureRoutes implements Routes {
      * one occurrence asks about that occurrence, because a question answered per date has no answer
      * anywhere else.
      */
-    private static LocalDate askedDate(Context ctx) {
+    private static @Nullable LocalDate askedDate(Context ctx) {
         String date = ctx.queryParam("date");
         if (date == null || date.isBlank()) return null;
         try {
@@ -373,9 +374,9 @@ public class EventStructureRoutes implements Routes {
                         .map(e -> new EventFieldDraft(
                                 e.id(),
                                 e.name(),
-                                e.fieldType(),
-                                e.config(),
-                                e.value() != null ? e.value() : "",
+                                Objects.requireNonNullElse(e.fieldType(), EventFieldType.STRING),
+                                Objects.requireNonNullElse(e.config(), EventFieldConfig.empty()),
+                                Objects.requireNonNullElse(e.value(), ""),
                                 Boolean.TRUE.equals(e.overview()),
                                 e.attendanceFieldId(),
                                 Boolean.TRUE.equals(e.isPublic())))

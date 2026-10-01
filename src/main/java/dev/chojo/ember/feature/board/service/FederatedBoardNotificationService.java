@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,7 +133,7 @@ public class FederatedBoardNotificationService implements FederationServer {
         log.info("Notified partner {} of share mode change on board {} to {}", partnerId, boardId, newMode);
     }
 
-    private Void received(FederationEndpoint webhook) {
+    private @Nullable Void received(FederationEndpoint webhook) {
         log.info("Received board webhook {}", webhook.path());
         return null;
     }

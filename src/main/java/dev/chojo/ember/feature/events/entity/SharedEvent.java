@@ -41,7 +41,7 @@ public record SharedEvent(
         return new SharedEvent(
                 event.id(),
                 event.name(),
-                event.description() != null ? event.description() : "",
+                Objects.requireNonNullElse(event.description(), ""),
                 event.eventType(),
                 Objects.requireNonNullElse(event.dayOfWeek(), 0),
                 event.startTime() != null ? event.startTime().toString() : "",

@@ -6,6 +6,7 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Whoever's turn it was has refused, and the movement has closed. The item that set out is back
@@ -16,15 +17,15 @@ import dev.chojo.ember.event.DomainEvent;
  * @param memberId      the member it concerned, or {@code null}
  * @param inventoryId   the inventory it was about
  * @param inventoryName that inventory's name, for the reader
- * @param reason        why it was refused, in the words of whoever refused
+ * @param reason        why it was refused, in the words of whoever refused, or {@code null} where they gave none
  * @param actorMemberId who refused, so they are not told about their own doing
  */
 public record MovementDeclined(
         int stationId,
         int movementId,
-        Integer memberId,
+        @Nullable Integer memberId,
         Integer inventoryId,
         String inventoryName,
-        String reason,
+        @Nullable String reason,
         int actorMemberId)
         implements DomainEvent {}

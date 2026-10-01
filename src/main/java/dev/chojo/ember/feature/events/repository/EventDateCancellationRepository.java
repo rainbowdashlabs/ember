@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -39,7 +40,12 @@ public class EventDateCancellationRepository {
      * @param cancelledBy the manager calling it off, or null for the check
      * @return true where the date was not off before and is now
      */
-    public boolean cancel(int eventId, LocalDate date, CancellationCause cause, String reason, Integer cancelledBy) {
+    public boolean cancel(
+            int eventId,
+            LocalDate date,
+            CancellationCause cause,
+            @Nullable String reason,
+            @Nullable Integer cancelledBy) {
         return query("""
                 INSERT INTO event_date_cancellation(event_id, event_date, cause, reason, cancelled_by)
                 VALUES (:event_id, :event_date, :cause, :reason, :cancelled_by)

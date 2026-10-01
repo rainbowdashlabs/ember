@@ -44,7 +44,7 @@ public record StationPage(
         @Nullable String metaDescription,
         @Nullable Integer ogImageId,
         @Nullable String ogImageHash,
-        Integer containerId,
+        @Nullable Integer containerId,
         int createdBy,
         Instant createdAt,
         Instant updatedAt,

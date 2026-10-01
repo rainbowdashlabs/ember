@@ -45,8 +45,9 @@ public class MovementDeclinedHandler implements DomainEventHandler<MovementDecli
         var data = NotificationData.of(
                 new NotificationParams.MovementDeclined(event.inventoryName(), event.reason()),
                 new NotificationData.NotificationLink("inventory-movement-detail", Map.of("id", event.movementId())));
+        Integer memberId = event.memberId();
         var everybody = MovementNotificationRouting.stationTeam(event.stationId())
-                .and(StationAudience.members(event.memberId() != null ? List.of(event.memberId()) : List.of()));
+                .and(StationAudience.members(memberId != null ? List.of(memberId) : List.of()));
         notifier.notify(
                 everybody.except(event.actorMemberId()),
                 NotificationType.MOVEMENT_DECLINED,

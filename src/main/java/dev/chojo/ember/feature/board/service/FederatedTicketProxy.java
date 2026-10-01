@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -191,9 +192,17 @@ public class FederatedTicketProxy implements FederationServer {
                 request.title(),
                 request.description(),
                 null,
-                request.priority() != null ? TicketPriority.valueOf(request.priority()) : TicketPriority.MEDIUM,
-                request.dueDate() != null ? LocalDate.parse(request.dueDate()) : null,
+                priorityOf(request.priority(), TicketPriority.MEDIUM),
+                dateOf(request.dueDate()),
                 new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()));
+    }
+
+    private static TicketPriority priorityOf(@Nullable String name, TicketPriority fallback) {
+        return name != null ? TicketPriority.valueOf(name) : fallback;
+    }
+
+    private static @Nullable LocalDate dateOf(@Nullable String text) {
+        return text != null ? LocalDate.parse(text) : null;
     }
 
     /**
@@ -206,17 +215,20 @@ public class FederatedTicketProxy implements FederationServer {
      */
     public BoardTicket serveTicketUpdate(ServingPartner partner, PathParams params, RemoteUpdateTicketRequest request) {
         int ticketId = guards.writableTicketId(partner, params);
-        MemberIdentity assignee = request.assignedMemberId() != null
-                ? memberIdentityFactory.local(partner.servingStationId(), request.assignedMemberId())
+        Integer assignedMemberId = request.assignedMemberId();
+        MemberIdentity assignee = assignedMemberId != null
+                ? memberIdentityFactory.local(partner.servingStationId(), assignedMemberId)
                 : null;
+        TicketPriority currentPriority =
+                ticketService.findById(ticketId).map(BoardTicket::priority).orElse(TicketPriority.MEDIUM);
         guards.cacheName(partner, request.remoteMemberUid(), request.displayName());
         ticketService.updateTicket(
                 ticketId,
                 request.title(),
                 request.description(),
                 assignee,
-                request.priority() != null ? TicketPriority.valueOf(request.priority()) : null,
-                request.dueDate() != null ? LocalDate.parse(request.dueDate()) : null,
+                priorityOf(request.priority(), currentPriority),
+                dateOf(request.dueDate()),
                 guards.actor(partner, request.remoteMemberUid()));
         return ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_AFTER_UPDATE::raise);
     }
@@ -251,7 +263,7 @@ public class FederatedTicketProxy implements FederationServer {
      * @param request the lane and its tickets in their new order
      * @return nothing
      */
-    public Void serveReorder(ServingPartner partner, PathParams params, RemoteReorderRequest request) {
+    public @Nullable Void serveReorder(ServingPartner partner, PathParams params, RemoteReorderRequest request) {
         int boardId = guards.writableBoardId(partner, params);
         ticketService.reorderTickets(guards.laneOnBoard(boardId, request.laneId()), request.orderedIds());
         return null;
@@ -264,7 +276,7 @@ public class FederatedTicketProxy implements FederationServer {
      * @param params  names the board and the ticket number
      * @return nothing
      */
-    public Void serveDeletion(ServingPartner partner, PathParams params) {
+    public @Nullable Void serveDeletion(ServingPartner partner, PathParams params) {
         ticketService.deleteTicket(guards.writableTicketId(partner, params));
         return null;
     }
@@ -291,7 +303,7 @@ public class FederatedTicketProxy implements FederationServer {
      * @param query     the search query, all tickets when blank
      * @return the matching ticket summaries
      */
-    public List<TicketSummary> proxySearchTickets(int partnerId, String boardKey, String query) {
+    public List<TicketSummary> proxySearchTickets(int partnerId, String boardKey, @Nullable String query) {
         var request = RemoteBoardTicketRoutes.SEARCH_TICKETS.at(boardKey);
         if (query != null && !query.isBlank()) {
             request = request.query("q", query);
@@ -396,10 +408,10 @@ public class FederatedTicketProxy implements FederationServer {
             String boardKey,
             int ticketNumber,
             String title,
-            String description,
-            Integer assignedMemberId,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
             TicketPriority priority,
-            LocalDate dueDate,
+            @Nullable LocalDate dueDate,
             UUID remoteMemberUid,
             String displayName) {
         log.info(
@@ -435,7 +447,7 @@ public class FederatedTicketProxy implements FederationServer {
             int ticketNumber,
             int toLaneId,
             int position,
-            UUID remoteMemberUid,
+            @Nullable UUID remoteMemberUid,
             String displayName) {
         log.info(
                 "Federated ticket move on partner {} board {} ticket {} to lane {} by member {}",
@@ -497,11 +509,11 @@ public class FederatedTicketProxy implements FederationServer {
         return ticket.withIdentities(assignee, creator);
     }
 
-    private static String nameOf(TicketPriority priority) {
+    private static @Nullable String nameOf(@Nullable TicketPriority priority) {
         return priority != null ? priority.name() : null;
     }
 
-    private static String textOf(LocalDate date) {
+    private static @Nullable String textOf(@Nullable LocalDate date) {
         return date != null ? date.toString() : null;
     }
 }

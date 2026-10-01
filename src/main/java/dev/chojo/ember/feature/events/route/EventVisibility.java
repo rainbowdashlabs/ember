@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -56,7 +57,7 @@ public class EventVisibility {
      * @return those members, null where nothing narrows the listing, and a member nobody is where the
      *     reader is no member of the station at all
      */
-    static List<Integer> memberIdsSeenBy(UserSession session, GuardianPolicy guardianPolicy) {
+    static @Nullable List<Integer> memberIdsSeenBy(UserSession session, GuardianPolicy guardianPolicy) {
         if (session.hasPermission(StationPermission.EVENT_MANAGER)) {
             return null;
         }

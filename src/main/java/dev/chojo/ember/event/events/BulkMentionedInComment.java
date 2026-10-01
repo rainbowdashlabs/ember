@@ -9,13 +9,14 @@ import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Published when a group or special target is @mentioned in a comment.
  * The handler resolves the mention type and target ID to individual members.
  *
  * @param stationId       the station where the comment was posted
- * @param authorMemberId  the member ID of the comment author
+ * @param authorMemberId  the member ID of the comment author, {@code null} when they are not a member of the station
  * @param authorName      the display name of the comment author
  * @param entityType      the type of entity the comment is on
  * @param entityTitle     the title/name of the entity
@@ -27,7 +28,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData.Notificatio
  */
 public record BulkMentionedInComment(
         int stationId,
-        Integer authorMemberId,
+        @Nullable Integer authorMemberId,
         String authorName,
         CommentEntityType entityType,
         String entityTitle,

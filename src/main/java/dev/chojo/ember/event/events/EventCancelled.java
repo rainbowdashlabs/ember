@@ -7,6 +7,7 @@ package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 
@@ -21,11 +22,16 @@ import java.time.LocalDate;
  * @param cause     who called it off
  */
 public record EventCancelled(
-        int stationId, int eventId, String eventName, String reason, LocalDate eventDate, CancellationCause cause)
+        int stationId,
+        int eventId,
+        String eventName,
+        @Nullable String reason,
+        @Nullable LocalDate eventDate,
+        CancellationCause cause)
         implements DomainEvent {
 
     /** The whole series, called off by a manager. */
-    public static EventCancelled series(int stationId, int eventId, String eventName, String reason) {
+    public static EventCancelled series(int stationId, int eventId, String eventName, @Nullable String reason) {
         return new EventCancelled(stationId, eventId, eventName, reason, null, CancellationCause.MANUAL);
     }
 }

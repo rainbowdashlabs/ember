@@ -27,7 +27,7 @@ public record BoardTicket(
         TicketPriority priority,
         @Nullable LocalDate dueDate,
         int position,
-        MemberIdentity creator,
+        @Nullable MemberIdentity creator,
         Instant createdAt,
         Instant updatedAt,
         Instant laneEnteredAt,
@@ -70,7 +70,7 @@ public record BoardTicket(
         };
     }
 
-    public BoardTicket withIdentities(MemberIdentity assignee, MemberIdentity creator) {
+    public BoardTicket withIdentities(@Nullable MemberIdentity assignee, @Nullable MemberIdentity creator) {
         return new BoardTicket(
                 id,
                 boardId,

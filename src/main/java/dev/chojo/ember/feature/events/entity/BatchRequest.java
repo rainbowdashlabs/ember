@@ -6,19 +6,20 @@
 package dev.chojo.ember.feature.events.entity;
 
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
 
 public record BatchRequest(
-        String name,
-        String description,
-        Integer templateId,
-        Integer categoryId,
-        List<BatchFieldEntry> inlineFields,
+        @Nullable String name,
+        @Nullable String description,
+        @Nullable Integer templateId,
+        @Nullable Integer categoryId,
+        @Nullable List<BatchFieldEntry> inlineFields,
         List<BatchRow> rows,
-        Boolean requiresRegistration,
-        Boolean requiresConfirmation,
-        Instant registrationDeadline,
+        @Nullable Boolean requiresRegistration,
+        @Nullable Boolean requiresConfirmation,
+        @Nullable Instant registrationDeadline,
         RestrictionSelection restriction,
         RestrictionSelection viewRestriction) {}

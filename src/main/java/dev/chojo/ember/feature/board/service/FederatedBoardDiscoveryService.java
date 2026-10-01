@@ -32,6 +32,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -95,7 +96,7 @@ public class FederatedBoardDiscoveryService implements FederationServer {
                 .map(board -> new RemoteSharedBoardResponse(
                         board.uid(),
                         board.name(),
-                        board.description() != null ? board.description() : "",
+                        Objects.requireNonNullElse(board.description(), ""),
                         board.shortKey(),
                         shareMode(board.id(), partner),
                         federatedBoardService

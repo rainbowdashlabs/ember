@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -132,7 +133,7 @@ public class BoardRepository {
                 .all();
     }
 
-    public BoardLane createLane(int boardId, String name, String color, int position) {
+    public BoardLane createLane(int boardId, String name, @Nullable String color, int position) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO board_lane(board_id, name, color, position)
@@ -146,7 +147,7 @@ public class BoardRepository {
                 LANE_COLUMNS);
     }
 
-    public boolean updateLane(int id, String name, String color, int position) {
+    public boolean updateLane(int id, String name, @Nullable String color, int position) {
         return query("UPDATE board_lane SET name = :name, color = :color, position = :position WHERE id = :id;")
                 .single(call().bind("id", id)
                         .bind("name", name)

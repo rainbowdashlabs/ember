@@ -11,6 +11,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
@@ -153,7 +154,14 @@ class EventRouteLookupsTest {
                 .replaceFields(
                         9,
                         List.of(new EventFieldDraft(
-                                null, "Größe", EventFieldType.STRING, null, "", false, null, true)));
+                                null,
+                                "Größe",
+                                EventFieldType.STRING,
+                                EventFieldConfig.empty(),
+                                "",
+                                false,
+                                null,
+                                true)));
         verify(fields, never()).replaceFields(eq(7), any());
         verify(fields, never()).replaceFields(eq(8), any());
     }

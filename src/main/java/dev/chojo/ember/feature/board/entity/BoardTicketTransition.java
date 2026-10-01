@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.board.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -15,7 +16,12 @@ import java.util.UUID;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record BoardTicketTransition(
-        int id, int ticketId, Integer fromLaneId, Integer toLaneId, MemberIdentity actor, Instant movedAt) {
+        int id,
+        int ticketId,
+        Integer fromLaneId,
+        Integer toLaneId,
+        @Nullable MemberIdentity actor,
+        Instant movedAt) {
 
     public static RowMapping<BoardTicketTransition> map() {
         return row -> {

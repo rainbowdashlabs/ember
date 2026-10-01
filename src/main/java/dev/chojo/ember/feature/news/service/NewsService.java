@@ -40,6 +40,7 @@ import dev.chojo.ember.util.Markdown;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +100,7 @@ public class NewsService {
      * structure so the feed renderer can re-flow it as multi-line HTML. The renderer applies its
      * own length cap on top. Returns {@code null} when nothing readable is left.
      */
-    static String previewOf(String markdown) {
+    static @Nullable String previewOf(String markdown) {
         String preview = Markdown.toPlainText(markdown);
         return preview.isEmpty() ? null : preview;
     }
@@ -306,7 +307,8 @@ public class NewsService {
      * The station's news every reader of the audience may read, newest first, with an optional
      * case-insensitive search on the title. Backs the search of the news block picker.
      */
-    public List<News> findOpenEntries(int stationId, BlockAudience audience, String search, int offset, int limit) {
+    public List<News> findOpenEntries(
+            int stationId, BlockAudience audience, @Nullable String search, int offset, int limit) {
         return newsRepository.findOpenEntries(stationId, audience, search, offset, limit);
     }
 
@@ -369,8 +371,9 @@ public class NewsService {
      * The blocks of a rich entry, in reading order.
      */
     public List<ContentRow> loadBlocks(News news) {
-        if (news.containerId() == null) return List.of();
-        return blocks.loadRows(news.containerId());
+        Integer containerId = news.containerId();
+        if (containerId == null) return List.of();
+        return blocks.loadRows(containerId);
     }
 
     /**
@@ -392,11 +395,12 @@ public class NewsService {
     public Optional<News> saveBlocks(int id, List<ContentBlockService.RowData> rows) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) return Optional.empty();
-        if (news.contentMode() != ContentMode.RICH || news.containerId() == null) {
+        Integer containerId = news.containerId();
+        if (news.contentMode() != ContentMode.RICH || containerId == null) {
             throw new BadRequestResponse("This entry is not built from blocks");
         }
 
-        blocks.save(news.containerId(), rows, ContentBlockService.Scope.ARTICLE);
+        blocks.save(containerId, rows, ContentBlockService.Scope.ARTICLE);
 
         // The pictures of a system entry come out of the instance library, which is addressed by
         // the literal scope rather than through a station: the entry is read in stations that hold

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.util.Markdown;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
@@ -224,7 +225,7 @@ public final class ContentProjection {
      * A titled part of an accordion or a tab strip. Both are a heading with a body once the
      * folding is taken away, which is all a reader of the projection can be given.
      */
-    private static String section(String title, String body) {
+    private static String section(@Nullable String title, @Nullable String body) {
         var out = new ArrayList<String>();
         if (!orEmpty(title).isBlank()) out.add("### " + title);
         if (!orEmpty(body).isBlank()) out.add(body);
@@ -342,13 +343,13 @@ public final class ContentProjection {
         return String.join("\n\n", blocks);
     }
 
-    private static String linkLine(String label, String url) {
+    private static String linkLine(@Nullable String label, @Nullable String url) {
         if (url == null || url.isBlank()) return orEmpty(label);
         String text = orEmpty(label).isBlank() ? url : label;
         return "[" + text + "](" + url + ")";
     }
 
-    private static String orEmpty(String value) {
+    private static String orEmpty(@Nullable String value) {
         return value == null ? "" : value;
     }
 }

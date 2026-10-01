@@ -26,6 +26,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +84,7 @@ public class EventFieldService {
      * @param eventId the appointment
      * @param date    the occurrence, or null to read the answers the appointment itself carries
      */
-    public List<EventField> findByEvent(int eventId, LocalDate date) {
+    public List<EventField> findByEvent(int eventId, @Nullable LocalDate date) {
         return date == null ? repository.findByEvent(eventId) : repository.findByEventOn(eventId, date);
     }
 
@@ -264,13 +265,10 @@ public class EventFieldService {
      * @throws ConflictResponse   when a single-value slot is already taken
      */
     public EventField toggleSelfRegistration(
-            int eventId, int fieldId, int memberId, LocalDate date, boolean runsTheEvent) {
+            int eventId, int fieldId, int memberId, @Nullable LocalDate date, boolean runsTheEvent) {
         var raw = repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
-        boolean perDate = raw.config().perDate();
-        if (perDate && date == null) {
-            throw new BadRequestResponse("This question is answered per date, so a date is required");
-        }
-        var field = perDate ? repository.findByIdOn(fieldId, date).orElseThrow(NotFoundResponse::new) : raw;
+        LocalDate day = raw.config().perDate() ? requiredDay(date) : null;
+        var field = day != null ? repository.findByIdOn(fieldId, day).orElseThrow(NotFoundResponse::new) : raw;
         if (field.eventId() != eventId) {
             throw new NotFoundResponse();
         }
@@ -309,16 +307,23 @@ public class EventFieldService {
         }
         if (entering && !runsTheEvent) requireStillTakingPeople(eventId);
 
-        if (perDate) {
-            repository.updateValueOn(fieldId, date, newValue);
+        if (day != null) {
+            repository.updateValueOn(fieldId, day, newValue);
         } else {
             repository.updateValue(fieldId, newValue);
         }
         fieldRegistrationService.reconcile(eventId);
         log.info("Member {} toggled self-registration on event field {}", memberId, fieldId);
-        return perDate
-                ? repository.findByIdOn(fieldId, date).orElseThrow(NotFoundResponse::new)
+        return day != null
+                ? repository.findByIdOn(fieldId, day).orElseThrow(NotFoundResponse::new)
                 : repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+    }
+
+    private static LocalDate requiredDay(@Nullable LocalDate date) {
+        if (date == null) {
+            throw new BadRequestResponse("This question is answered per date, so a date is required");
+        }
+        return date;
     }
 
     /**
@@ -331,8 +336,9 @@ public class EventFieldService {
      */
     private void requireStillTakingPeople(int eventId) {
         var event = eventRepository.findById(eventId).orElseThrow(NotFoundResponse::new);
-        if (!event.requiresRegistration() || event.registrationDeadline() == null) return;
-        if (Instant.now().isAfter(event.registrationDeadline())) {
+        Instant deadline = event.registrationDeadline();
+        if (!event.requiresRegistration() || deadline == null) return;
+        if (Instant.now().isAfter(deadline)) {
             throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
         }
     }

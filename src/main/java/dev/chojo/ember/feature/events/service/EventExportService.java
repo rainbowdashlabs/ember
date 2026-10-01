@@ -211,7 +211,7 @@ public class EventExportService {
                         : "";
                 yield start.isEmpty() ? "" : start + " – " + end;
             }
-            case "description" -> event.description() != null ? event.description() : "";
+            case "description" -> Objects.requireNonNullElse(event.description(), "");
             default -> "";
         };
     }

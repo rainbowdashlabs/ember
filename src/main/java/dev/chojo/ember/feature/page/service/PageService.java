@@ -28,6 +28,7 @@ import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -86,7 +87,7 @@ public class PageService {
         return slug.replaceAll("^-+|-+$", "");
     }
 
-    public StationPage create(int stationId, String title, Integer parentId, int createdBy) {
+    public StationPage create(int stationId, String title, @Nullable Integer parentId, int createdBy) {
         if (parentId != null) {
             validateDepth(parentId, 1);
             refuseUnlistedParent(parentId);
@@ -120,8 +121,9 @@ public class PageService {
      * was given one by the upgrade, so a page without one is a page nothing has been written into.
      */
     private StationPage loadBlocks(StationPage page) {
-        if (page.containerId() == null) return page;
-        return page.withRows(blocks.loadRows(page.containerId()));
+        Integer containerId = page.containerId();
+        if (containerId == null) return page;
+        return page.withRows(blocks.loadRows(containerId));
     }
 
     public Optional<StationPage> getPageRendered(int pageId) {
@@ -150,7 +152,7 @@ public class PageService {
      * title + slug + updatedAt) for the pages of the supplied station that somebody outside can
      * open, with optional case-insensitive title-substring filter.
      */
-    public List<PickerPage> searchPagePicker(int stationId, String search, int limit) {
+    public List<PickerPage> searchPagePicker(int stationId, @Nullable String search, int limit) {
         return pageRepository.searchForPicker(stationId, search, limit);
     }
 
@@ -244,9 +246,9 @@ public class PageService {
             int pageId,
             String title,
             String slug,
-            Integer parentId,
-            String metaDescription,
-            Integer ogImageId,
+            @Nullable Integer parentId,
+            @Nullable String metaDescription,
+            @Nullable Integer ogImageId,
             List<ContentBlockService.RowData> rows) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
@@ -400,7 +402,8 @@ public class PageService {
                 source.stationId(), source.title() + " (Copy)", newSlug, source.parentId(), createdBy);
         var container = blocks.create(source.stationId());
         pageRepository.setContainer(copy.id(), container.id());
-        if (source.containerId() != null) blocks.copyInto(source.containerId(), container.id());
+        Integer sourceContainerId = source.containerId();
+        if (sourceContainerId != null) blocks.copyInto(sourceContainerId, container.id());
 
         log.info(
                 "Page {} duplicated from page {} in station {} by member {}",
@@ -411,7 +414,7 @@ public class PageService {
         return pageRepository.findById(copy.id()).map(this::loadBlocks).orElseThrow();
     }
 
-    public void setLandingPage(int stationId, Integer pageId) {
+    public void setLandingPage(int stationId, @Nullable Integer pageId) {
         if (pageId != null) {
             var page =
                     pageRepository.findById(pageId).orElseThrow(() -> new IllegalArgumentException("Page not found"));

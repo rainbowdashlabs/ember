@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -22,7 +23,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param member the station member who either saw or has not yet seen the news
  * @param seenAt when the member first fully saw the news, or {@code null} if not yet seen
  */
-public record NewsViewer(MemberIdentity member, Instant seenAt) {
+public record NewsViewer(MemberIdentity member, @Nullable Instant seenAt) {
 
     public static RowMapping<NewsViewer> map() {
         return row -> {

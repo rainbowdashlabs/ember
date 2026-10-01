@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +112,7 @@ public class EventAttachmentService {
      * Attaches a file from the station's library to the event. The file has to belong to the same
      * station, because an attachment is a reference into that station's library and nothing else.
      */
-    public EventAttachment attach(int eventId, int stationId, int fileId, String label, boolean internal) {
+    public EventAttachment attach(int eventId, int stationId, int fileId, @Nullable String label, boolean internal) {
         var file = media.findFile(fileId).orElseThrow(() -> new BadRequestResponse("Unknown file"));
         if (!Objects.equals(file.stationId(), stationId)) {
             throw new BadRequestResponse("File belongs to another station");
@@ -126,7 +127,7 @@ public class EventAttachmentService {
         return attachment;
     }
 
-    public boolean update(int attachmentId, String label, boolean internal) {
+    public boolean update(int attachmentId, @Nullable String label, boolean internal) {
         return repository.update(attachmentId, blankToNull(label), internal);
     }
 
@@ -144,7 +145,7 @@ public class EventAttachmentService {
                 .toList();
     }
 
-    private static String blankToNull(String label) {
+    private static @Nullable String blankToNull(@Nullable String label) {
         return label == null || label.isBlank() ? null : label;
     }
 }

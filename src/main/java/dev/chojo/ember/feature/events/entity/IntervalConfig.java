@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -13,5 +15,5 @@ public record IntervalConfig(
         int dayOfWeek,
         LocalDate startDate,
         LocalDate endDate,
-        LocalTime startTime,
-        LocalTime endTime) {}
+        @Nullable LocalTime startTime,
+        @Nullable LocalTime endTime) {}

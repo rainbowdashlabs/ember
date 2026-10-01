@@ -42783,7 +42783,11 @@
             "format" : "int32"
           },
           "creator" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -58062,7 +58066,7 @@
         "type" : "object",
         "properties" : {
           "id" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "entityType" : {
@@ -58076,11 +58080,15 @@
             "type" : "string"
           },
           "updatedBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "updatedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "entityType", "entityId", "content", "updatedBy", "updatedAt" ]
@@ -66714,7 +66722,7 @@
             "type" : [ "string", "null" ]
           },
           "containerId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "createdBy" : {

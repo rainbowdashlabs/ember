@@ -54594,7 +54594,7 @@ export interface components {
             /** Format: int32 */
             checklistTotal: number;
             createdAt: components["schemas"]["Instant"];
-            creator: components["schemas"]["MemberIdentity"];
+            creator: components["schemas"]["MemberIdentity"] | null;
             description: string | null;
             dueDate: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
@@ -59983,10 +59983,10 @@ export interface components {
             entityId: number;
             entityType: components["schemas"]["NoteEntityType"];
             /** Format: int32 */
-            id: number;
-            updatedAt: components["schemas"]["Instant"];
+            id: number | null;
+            updatedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            updatedBy: number;
+            updatedBy: number | null;
         };
         NoteVersionResponse: {
             /** Format: int32 */
@@ -62931,7 +62931,7 @@ export interface components {
         StationModule: "INVENTORY" | "NEWS" | "EVENTS" | "ATTENDANCE" | "FORMS" | "LOST_AND_FOUND" | "WAITING_LIST" | "QUIZ" | "KNOWLEDGE_BASE" | "TEST_PROTOCOL" | "BOARDS" | "PROCEDURES" | "DOCUMENTS";
         StationPage: {
             /** Format: int32 */
-            containerId: number;
+            containerId: number | null;
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             createdBy: number;

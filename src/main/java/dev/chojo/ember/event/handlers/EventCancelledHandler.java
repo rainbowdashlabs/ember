@@ -54,8 +54,9 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
     public void handle(EventCancelled event) {
         var placeHolders = placeHolders(event);
         if (placeHolders.isEmpty()) return;
-        var link = event.eventDate() != null
-                ? NotificationLinks.eventDate(event.eventId(), event.eventDate())
+        LocalDate eventDate = event.eventDate();
+        var link = eventDate != null
+                ? NotificationLinks.eventDate(event.eventId(), eventDate)
                 : NotificationLinks.event(event.eventId());
         notifier.notify(
                 StationAudience.household(placeHolders),
@@ -68,8 +69,9 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
     }
 
     private List<Integer> placeHolders(EventCancelled event) {
-        if (event.eventDate() != null) {
-            return registrationRepository.findRegisteredMemberIds(event.eventId(), event.eventDate());
+        LocalDate eventDate = event.eventDate();
+        if (eventDate != null) {
+            return registrationRepository.findRegisteredMemberIds(event.eventId(), eventDate);
         }
         var today = LocalDate.now(occurrenceCalendar.zoneOf(event.stationId()));
         return registrationRepository.findRegisteredMemberIdsFrom(event.eventId(), today);

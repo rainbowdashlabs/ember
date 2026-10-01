@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.transport.PathParams;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -132,7 +133,7 @@ public class FederatedBoardGuards {
     /**
      * The acting member of the partner station, or {@code null} when the partner named none.
      */
-    public MemberIdentity actor(ServingPartner partner, UUID memberUid) {
+    public @Nullable MemberIdentity actor(ServingPartner partner, @Nullable UUID memberUid) {
         return memberUid == null ? null : new MemberIdentity(partner.askingStationUid(), memberUid);
     }
 
@@ -140,7 +141,7 @@ public class FederatedBoardGuards {
      * Remembers the display name a partner sent along for one of its members, so later reads show a
      * name instead of an opaque id.
      */
-    public void cacheName(ServingPartner partner, UUID memberUid, String displayName) {
+    public void cacheName(ServingPartner partner, @Nullable UUID memberUid, @Nullable String displayName) {
         if (memberUid == null || displayName == null) return;
         eventFederationRepository.cacheName(partner.partnerId(), memberUid, displayName);
     }

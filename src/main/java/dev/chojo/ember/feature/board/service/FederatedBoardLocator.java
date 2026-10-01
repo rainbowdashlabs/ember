@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -55,7 +56,7 @@ public class FederatedBoardLocator {
      * @param boardKey  the board short key
      * @return the board or {@code null}
      */
-    public Board resolveFederatedBoard(int partnerId, String boardKey) {
+    public @Nullable Board resolveFederatedBoard(int partnerId, String boardKey) {
         var partner = federationRepository.findPartnerById(partnerId).orElse(null);
         if (partner == null) return null;
         return stationRepository
@@ -71,7 +72,7 @@ public class FederatedBoardLocator {
      * @param boardKey  the board short key
      * @return the board uid or {@code null}
      */
-    public UUID resolveFederatedBoardUid(int partnerId, String boardKey) {
+    public @Nullable UUID resolveFederatedBoardUid(int partnerId, String boardKey) {
         var board = resolveFederatedBoard(partnerId, boardKey);
         return board != null ? board.uid() : null;
     }

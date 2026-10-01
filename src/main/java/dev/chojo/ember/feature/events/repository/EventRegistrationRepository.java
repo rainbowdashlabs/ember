@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -203,7 +204,7 @@ public class EventRegistrationRepository {
      * @return the created or updated registration
      */
     public EventRegistration create(
-            int eventId, int memberId, LocalDate eventDate, RegistrationStatus status, Integer createdBy) {
+            int eventId, int memberId, LocalDate eventDate, RegistrationStatus status, @Nullable Integer createdBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -272,7 +273,7 @@ public class EventRegistrationRepository {
      * {@code months} months and optionally narrowed to one category, so the registration screen
      * can rank members by how often they were turned down.
      */
-    public List<MemberRegistrationStats> findStatsByEvent(int eventId, Integer categoryId, int months) {
+    public List<MemberRegistrationStats> findStatsByEvent(int eventId, @Nullable Integer categoryId, int months) {
         return query("""
                 SELECT
                     er.member_id,

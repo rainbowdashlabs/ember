@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +34,7 @@ public class EventAttachmentRepository {
     /**
      * Attaches a file to an event, placing it last.
      */
-    public EventAttachment attach(int eventId, int fileId, String label, boolean internal) {
+    public EventAttachment attach(int eventId, int fileId, @Nullable String label, boolean internal) {
         int id = SqlSupport.insertReturning(
                 """
                 INSERT INTO event_attachment(event_id, file_id, label, internal, sort_order)
@@ -99,7 +100,7 @@ public class EventAttachmentRepository {
     /**
      * Writes the label and whether the file is kept back from the room.
      */
-    public boolean update(int attachmentId, String label, boolean internal) {
+    public boolean update(int attachmentId, @Nullable String label, boolean internal) {
         return query("UPDATE event_attachment SET label = :label, internal = :internal WHERE id = :id;")
                 .single(call().bind("id", attachmentId).bind("label", label).bind("internal", internal))
                 .update()

@@ -215,7 +215,7 @@ public class EventRoutes implements Routes {
      * Reads the picker's time-window filter, falling back to upcoming events when the parameter
      * is absent or names no known mode.
      */
-    private PickerMode parsePickerMode(String modeParam) {
+    private PickerMode parsePickerMode(@Nullable String modeParam) {
         if (modeParam == null) return PickerMode.FUTURE;
         try {
             return PickerMode.valueOf(modeParam.toUpperCase(Locale.ROOT));
@@ -342,7 +342,7 @@ public class EventRoutes implements Routes {
     }
 
     /** An optional date bound, absent where the parameter was not sent or was sent empty. */
-    private static LocalDate parseDate(String value) {
+    private static @Nullable LocalDate parseDate(@Nullable String value) {
         if (value == null || value.isBlank()) return null;
         try {
             return LocalDate.parse(value);
@@ -355,7 +355,7 @@ public class EventRoutes implements Routes {
      * Reads which half of the appointments a page asks for, falling back to the ones still to come
      * where the parameter is absent or names no known state.
      */
-    private static EventOccurrenceService.EventState parseState(String value) {
+    private static EventOccurrenceService.EventState parseState(@Nullable String value) {
         if (value == null) return EventOccurrenceService.EventState.CURRENT;
         try {
             return EventOccurrenceService.EventState.valueOf(value.toUpperCase(Locale.ROOT));
@@ -368,7 +368,7 @@ public class EventRoutes implements Routes {
      * Reads which kind of appointment a page asks for, answering null for both of them where the
      * parameter is absent or names no known kind.
      */
-    private static EventOccurrenceService.EventKind parseKind(String value) {
+    private static EventOccurrenceService.@Nullable EventKind parseKind(@Nullable String value) {
         if (value == null) return null;
         try {
             return EventOccurrenceService.EventKind.valueOf(value.toUpperCase(Locale.ROOT));
@@ -536,7 +536,7 @@ public class EventRoutes implements Routes {
         }
     }
 
-    private List<Integer> resolveVisibleMemberIds(UserSession session) {
+    private @Nullable List<Integer> resolveVisibleMemberIds(UserSession session) {
         return EventVisibility.memberIdsSeenBy(session, guardianPolicy);
     }
 
@@ -735,15 +735,18 @@ public class EventRoutes implements Routes {
                 ? requestedInlineFields.stream()
                         .map(f -> new BatchFieldEntry(
                                 f.name(),
-                                f.fieldType() != null ? f.fieldType() : EventFieldType.STRING,
-                                f.config() != null ? f.config() : EventFieldConfig.parse("{}"),
+                                Objects.requireNonNullElse(f.fieldType(), EventFieldType.STRING),
+                                Objects.requireNonNullElse(f.config(), EventFieldConfig.empty()),
                                 Boolean.TRUE.equals(f.overview()),
                                 f.attendanceFieldId()))
                         .toList()
                 : null;
         var batchRows = req.rows().stream()
                 .map(r -> new BatchRow(
-                        r.name(), r.startTime(), r.endTime(), r.fieldValues() != null ? r.fieldValues() : Map.of()))
+                        r.name(),
+                        r.startTime(),
+                        r.endTime(),
+                        Objects.requireNonNullElse(r.fieldValues(), Map.<String, String>of())))
                 .toList();
         var batchReq = new BatchRequest(
                 req.name(),
@@ -755,8 +758,8 @@ public class EventRoutes implements Routes {
                 req.requiresRegistration(),
                 req.requiresConfirmation(),
                 req.registrationDeadline(),
-                req.restriction() != null ? req.restriction() : RestrictionSelection.empty(),
-                req.viewRestriction() != null ? req.viewRestriction() : RestrictionSelection.empty());
+                Objects.requireNonNullElse(req.restriction(), RestrictionSelection.empty()),
+                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()));
         var created = batchEventService.createBatch(session.stationId(), batchReq);
         ctx.json(created);
     }
@@ -875,5 +878,6 @@ public class EventRoutes implements Routes {
     /**
      * The optional category and registration-requirement filters shared by the event listings.
      */
-    private record CategoryFilter(Integer categoryId, Boolean requiresRegistration) {}
+    private record CategoryFilter(
+            @Nullable Integer categoryId, @Nullable Boolean requiresRegistration) {}
 }

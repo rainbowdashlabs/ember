@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,16 +56,16 @@ public class EventTemplateRepository {
     public boolean update(
             int id,
             String name,
-            String title,
-            String description,
-            Integer categoryId,
-            StationEvent.EventType eventType,
-            Boolean requiresRegistration,
-            String registrationDeadlineOffset,
-            Boolean requiresConfirmation,
-            RestrictionMode restrictionMode,
-            Integer attendanceTemplateId,
-            Integer registrationLimit) {
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            StationEvent.@Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            @Nullable String registrationDeadlineOffset,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit) {
         return query("""
                 UPDATE event_template SET
                     name = :name,

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,7 @@ public class EventCancellationService {
      * @param eventId   the series
      * @param reason    the reason given, or null
      */
-    public void cancelSeries(int stationId, int eventId, String reason) {
+    public void cancelSeries(int stationId, int eventId, @Nullable String reason) {
         var event = eventRepository
                 .findById(eventId)
                 .filter(found -> found.stationId() == stationId)
@@ -91,7 +92,7 @@ public class EventCancellationService {
      * @param reason      the reason given, or null
      * @param cancelledBy the manager calling it off, or null where the caller is no member
      */
-    public void cancelDate(StationEvent event, LocalDate date, String reason, Integer cancelledBy) {
+    public void cancelDate(StationEvent event, LocalDate date, @Nullable String reason, @Nullable Integer cancelledBy) {
         var calendar = occurrenceCalendar.forStation(event.stationId());
         switch (calendar.check(event, date)) {
             case NOT_AN_OCCURRENCE, IN_A_BREAK -> throw Refusal.DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT.raise();
@@ -168,7 +169,8 @@ public class EventCancellationService {
                 .toList();
     }
 
-    private void announceCancelled(StationEvent event, LocalDate date, String reason, CancellationCause cause) {
+    private void announceCancelled(
+            StationEvent event, LocalDate date, @Nullable String reason, CancellationCause cause) {
         eventRepository.touch(event.id());
         equipmentRelease.withdrawRequestsOn(event.id(), event.stationId(), date);
         log.info("Cancelled {} of appointment {} ({})", date, event.id(), cause);

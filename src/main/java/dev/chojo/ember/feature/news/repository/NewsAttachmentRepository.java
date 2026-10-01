@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.news.entity.NewsAttachment;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -92,7 +93,7 @@ public class NewsAttachmentRepository {
         return out;
     }
 
-    public boolean updateLabel(int attachmentId, String label) {
+    public boolean updateLabel(int attachmentId, @Nullable String label) {
         return query("UPDATE news_attachment SET label = :label WHERE id = :id;")
                 .single(call().bind("id", attachmentId).bind("label", label))
                 .update()

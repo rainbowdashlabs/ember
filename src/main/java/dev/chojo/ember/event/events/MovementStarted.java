@@ -7,6 +7,7 @@ package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A movement of gear between two parties has been started.
@@ -25,12 +26,12 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 public record MovementStarted(
         int stationId,
         int movementId,
-        Integer memberId,
+        @Nullable Integer memberId,
         String memberName,
         Integer inventoryId,
         String inventoryName,
         String reason,
         int actorMemberId,
-        StepActor nextActor,
-        Integer ownerClusterId)
+        @Nullable StepActor nextActor,
+        @Nullable Integer ownerClusterId)
         implements DomainEvent {}

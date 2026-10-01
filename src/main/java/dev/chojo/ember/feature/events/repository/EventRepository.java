@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -151,7 +152,7 @@ public class EventRepository {
      * {@code search} is a case-insensitive substring match on the event name.
      */
     public List<PickerEvent> searchForPicker(
-            int stationId, BlockAudience audience, String search, PickerMode mode, int limit) {
+            int stationId, BlockAudience audience, @Nullable String search, PickerMode mode, int limit) {
         String timePredicate =
                 switch (mode) {
                     case FUTURE -> "AND e.start_time > NOW()";
@@ -209,7 +210,10 @@ public class EventRepository {
      *                     the whole station, which is also what an event manager sees
      */
     public List<StationEvent> findFiltered(
-            int stationId, Integer restrictedTo, Integer categoryId, Boolean requiresRegistration) {
+            int stationId,
+            @Nullable Integer restrictedTo,
+            @Nullable Integer categoryId,
+            @Nullable Boolean requiresRegistration) {
         var where = WhereBuilder.create()
                 .add(EVENT_ADMITS_MEMBER_PREDICATE, "member_id", restrictedTo)
                 .add("AND e.category_id = :category_id", "category_id", categoryId)
@@ -264,20 +268,20 @@ public class EventRepository {
     public StationEvent create(
             int stationId,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Integer thresholdDays,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_days, registration_close_days)
@@ -324,21 +328,21 @@ public class EventRepository {
     public boolean update(
             int id,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Boolean isPublic,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Integer thresholdDays,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Boolean isPublic,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         return query("""
                 UPDATE station_event
                 SET
@@ -392,7 +396,7 @@ public class EventRepository {
      * @param count how many times it takes place in total, or null
      * @return true if a row was updated
      */
-    public boolean updateRepeatEnd(int id, LocalDate until, Integer count) {
+    public boolean updateRepeatEnd(int id, @Nullable LocalDate until, @Nullable Integer count) {
         return query("""
                 UPDATE station_event
                 SET repeat_until = :repeat_until,
@@ -587,7 +591,7 @@ public class EventRepository {
      * @param reason optional cancellation reason
      * @return true if a row was updated
      */
-    public boolean cancelEvent(int id, String reason) {
+    public boolean cancelEvent(int id, @Nullable String reason) {
         return query("""
                 UPDATE station_event
                 SET cancelled = TRUE,

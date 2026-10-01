@@ -130,7 +130,7 @@ public class EventAttachmentRoutes implements Routes {
     }
 
     /** A width that is not a usable number is no width at all, rather than a refusal to answer. */
-    private static Integer parseOptionalWidth(String raw) {
+    private static @Nullable Integer parseOptionalWidth(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             int value = Integer.parseInt(raw);

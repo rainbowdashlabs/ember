@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -123,12 +124,12 @@ public class BoardTicketRepository {
             int laneId,
             int ticketNumber,
             String title,
-            String description,
-            MemberIdentity assignee,
+            @Nullable String description,
+            @Nullable MemberIdentity assignee,
             TicketPriority priority,
-            LocalDate dueDate,
+            @Nullable LocalDate dueDate,
             int position,
-            MemberIdentity creator) {
+            @Nullable MemberIdentity creator) {
         return SqlSupport.insertReturning(
                 """
                 WITH ins AS (
@@ -177,10 +178,10 @@ public class BoardTicketRepository {
     public boolean updateTicket(
             int id,
             String title,
-            String description,
-            MemberIdentity assignee,
+            @Nullable String description,
+            @Nullable MemberIdentity assignee,
             TicketPriority priority,
-            LocalDate dueDate) {
+            @Nullable LocalDate dueDate) {
         return query("""
                 UPDATE board_ticket SET title = :title, description = :description,
                     assignee_station_uid = :assignee_station_uid::UUID, assignee_member_uid = :assignee_member_uid::UUID,
@@ -203,7 +204,7 @@ public class BoardTicketRepository {
                 .changed();
     }
 
-    public boolean assignTicket(int id, MemberIdentity assignee) {
+    public boolean assignTicket(int id, @Nullable MemberIdentity assignee) {
         return query("""
                 UPDATE board_ticket SET assignee_station_uid = :assignee_station_uid::UUID,
                     assignee_member_uid = :assignee_member_uid::UUID, updated_at = now()
@@ -296,7 +297,7 @@ public class BoardTicketRepository {
         return deleted;
     }
 
-    public void logTransition(int ticketId, int fromLaneId, int toLaneId, MemberIdentity actor) {
+    public void logTransition(int ticketId, int fromLaneId, int toLaneId, @Nullable MemberIdentity actor) {
         query("""
                 INSERT INTO board_ticket_transition(ticket_id, from_lane_id, to_lane_id, actor_station_uid, actor_member_uid)
                 VALUES (:ticket_id, :from_lane_id, :to_lane_id, :actor_station_uid::UUID, :actor_member_uid::UUID);""")
@@ -574,7 +575,8 @@ public class BoardTicketRepository {
 
     // -- History --
 
-    public void logHistory(int ticketId, BoardTicketHistoryAction action, String detail, MemberIdentity actor) {
+    public void logHistory(
+            int ticketId, BoardTicketHistoryAction action, @Nullable String detail, @Nullable MemberIdentity actor) {
         query("""
                 INSERT INTO board_ticket_history(ticket_id, action, detail, actor_station_uid, actor_member_uid)
                 VALUES (:ticket_id, :action, :detail, :actor_station_uid::UUID, :actor_member_uid::UUID)""")

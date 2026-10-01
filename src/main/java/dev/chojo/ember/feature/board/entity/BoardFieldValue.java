@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.databind.ObjectMapper;
 
@@ -17,7 +18,7 @@ public sealed interface BoardFieldValue {
     Logger log = getLogger(BoardFieldValue.class);
     ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
 
-    static BoardFieldValue parse(BoardFieldType fieldType, String json) {
+    static @Nullable BoardFieldValue parse(BoardFieldType fieldType, String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, fieldType.valueClass());

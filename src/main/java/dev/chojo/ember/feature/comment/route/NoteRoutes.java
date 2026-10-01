@@ -24,6 +24,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -179,12 +180,12 @@ public class NoteRoutes implements Routes {
      * API response representing a note.
      */
     public record NoteResponse(
-            Integer id,
+            @Nullable Integer id,
             NoteEntityType entityType,
             int entityId,
             String content,
-            Integer updatedBy,
-            Instant updatedAt) {}
+            @Nullable Integer updatedBy,
+            @Nullable Instant updatedAt) {}
 
     /**
      * API response representing a note version.

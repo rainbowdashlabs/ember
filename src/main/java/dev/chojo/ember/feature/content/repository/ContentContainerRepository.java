@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.content.entity.ContentContainer;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +32,7 @@ public class ContentContainerRepository {
 
     private static final String CONTAINER_COLUMNS = "id, station_id, created_at";
 
-    public ContentContainer create(Integer stationId) {
+    public ContentContainer create(@Nullable Integer stationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO content_container(station_id)

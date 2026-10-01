@@ -95,7 +95,7 @@ public sealed interface CellConfig {
      * The public id a block names, kept only when it is a UUID. An author writes a block's settings
      * as they like, and an id that is not one names nothing.
      */
-    private static String wellFormedUid(String raw) {
+    private static @Nullable String wellFormedUid(@Nullable String raw) {
         if (raw == null) return null;
         try {
             return UUID.fromString(raw).toString();
@@ -276,7 +276,7 @@ public sealed interface CellConfig {
             if (eventUid != null) date = wellFormedDay(date);
         }
 
-        private static String wellFormedDay(String raw) {
+        private static @Nullable String wellFormedDay(@Nullable String raw) {
             if (raw == null) return null;
             try {
                 return LocalDate.parse(raw).toString();
