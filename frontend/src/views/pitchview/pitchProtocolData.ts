@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/generated/schema'
+import type {EvaluationResponse, MemberWithName, TestProtocolItem, TestProtocolSection} from '@/api/generated/schema'
 import type {PitchEvaluation, PitchGrading} from './pitchTypes'
 import {pitchMember} from './pitchMembers'
 
@@ -42,7 +42,7 @@ export const PROTOCOL_GRADING: PitchGrading = {
     section: EQUIPMENT,
     childSections: [ON_VEHICLE],
     sectionItems: (sectionId: number) => ITEMS.filter(entry => entry.sectionId === sectionId),
-    checks: new Map([[1, true], [2, true], [5, true]]),
+    checks: new Map([[1, true], [2, true], [5, true]]) as ReadonlyMap<number, boolean>,
     score: 5,
     maxPoints: 10,
     done: false,
@@ -78,5 +78,5 @@ const EVAL_DATA: EvaluationResponse = {
 
 export const PROTOCOL_EVALUATION: PitchEvaluation = {
     evalData: EVAL_DATA,
-    memberMap: new Map(MEMBERS.map(entry => [entry.id, entry])),
+    memberMap: new Map(MEMBERS.map(entry => [entry.id, entry])) as ReadonlyMap<number, MemberWithName>,
 }

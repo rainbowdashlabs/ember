@@ -52,4 +52,4 @@ export const TRAINING_CATALOGS: QuizCatalog[] = [
     catalog(4, 'Rechtsgrundlagen', '12 Fragen'),
 ]
 
-export const TRAINING_SELECTION = new Set([1, 2])
+export const TRAINING_SELECTION: ReadonlySet<number> = new Set([1, 2])

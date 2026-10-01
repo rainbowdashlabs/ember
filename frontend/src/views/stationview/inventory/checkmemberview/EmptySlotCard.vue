@@ -18,7 +18,7 @@ defineProps<{
   /** Whether a procurement has already been noted for this slot during this check. */
   procurementNoted: boolean
   availableItems: InventoryItem[]
-  slotSelections: Map<string, string>
+  slotSelections: ReadonlyMap<string, string>
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   /** Which of the requirement's pieces this empty place is, counted off as 2/2 among them. */
   position?: number

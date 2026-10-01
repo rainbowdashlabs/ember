@@ -36,9 +36,9 @@ export function columnOf(key: string): ColumnChoice | null {
     return {kind: kind === 'p' ? 'PROFILE_FIELD' : 'REGISTRATION_FIELD', key: null, fieldId}
 }
 
-const LISTING_BUILTINS = new Set(['groups', 'tags'])
+const LISTING_BUILTINS: ReadonlySet<string> = new Set(['groups', 'tags'])
 const DAY_PATTERN = /^(\d{2})\.(\d{2})\.(\d{4})$/
-const TRUE_WORDS = new Set(['true', 'ja', 'yes'])
+const TRUE_WORDS: ReadonlySet<string> = new Set(['true', 'ja', 'yes'])
 
 /** A drawn day as ISO, whichever of the two ways it was written. */
 function isoDay(cell: string): string {

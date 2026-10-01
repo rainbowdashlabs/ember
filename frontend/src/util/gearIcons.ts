@@ -115,7 +115,7 @@ export const GEAR_ICONS: readonly GearIcon[] = [
     entry('hand-holding', 'general', ['leihe', 'geliehen', 'übergabe']),
 ] as const
 
-const BY_NAME = new Map(GEAR_ICONS.map(icon => [icon.name, icon]))
+const BY_NAME: ReadonlyMap<string, GearIcon> = new Map(GEAR_ICONS.map(icon => [icon.name, icon]))
 
 /**
  * The catalogue entry for a stored name, or null for one the catalogue does not offer.

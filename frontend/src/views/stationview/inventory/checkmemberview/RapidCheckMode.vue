@@ -28,7 +28,7 @@ const props = defineProps<{
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   /** What has been written down about each piece so far, so the walk shows the same note the list does. */
-  itemNotes: Map<number, string>
+  itemNotes: ReadonlyMap<number, string>
   /** The step a piece is standing on when something is already running on it, null otherwise. */
   movementStep: (itemId: number) => string | null
 }>()

@@ -18,11 +18,11 @@ const props = defineProps<{
   assignedItems: InventoryItem[]
   availableItems: InventoryItem[]
   emptySlotCount: number
-  itemResults: Map<number, CheckResult>
-  itemNotes: Map<number, string>
-  slotsNotInPossession: Set<string>
-  slotProcurements: Set<string>
-  slotSelections: Map<string, string>
+  itemResults: ReadonlyMap<number, CheckResult>
+  itemNotes: ReadonlyMap<number, string>
+  slotsNotInPossession: ReadonlySet<string>
+  slotProcurements: ReadonlySet<string>
+  slotSelections: ReadonlyMap<string, string>
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
 }>()

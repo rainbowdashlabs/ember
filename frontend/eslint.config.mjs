@@ -353,6 +353,14 @@ export default withNuxt(
         },
     },
     {
+        name: 'ember/module-state',
+        files: ['src/**/*.{ts,vue}'],
+        ignores: ['src/**/*.test.ts', 'src/test/**'],
+        rules: {
+            'ember/no-module-state': 'error',
+        },
+    },
+    {
         name: 'ember/state-types',
         files: ['src/**/*.{ts,vue}'],
         rules: restrictSyntax(INLINE_STATE_TYPE),

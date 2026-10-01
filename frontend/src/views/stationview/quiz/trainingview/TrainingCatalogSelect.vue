@@ -11,7 +11,7 @@ import type { QuizCatalog } from '@/api/generated/schema'
 
 defineProps<{
   catalogs: QuizCatalog[]
-  selectedCatalogIds: Set<number>
+  selectedCatalogIds: ReadonlySet<number>
 }>()
 
 defineEmits<{

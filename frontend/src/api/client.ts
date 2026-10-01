@@ -24,7 +24,7 @@ declare module 'axios' {
 }
 
 /** The methods that change something, which are the ones that have to prove they came from this page. */
-const UNSAFE_METHODS = new Set(['post', 'put', 'patch', 'delete'])
+const UNSAFE_METHODS: ReadonlySet<string> = new Set(['post', 'put', 'patch', 'delete'])
 
 /**
  * How often one request may be sent back through the step-up prompt. One answered challenge that

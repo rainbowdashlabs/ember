@@ -17,7 +17,7 @@ defineProps<{
   section: TestProtocolSection
   childSections: TestProtocolSection[]
   sectionItems: (sectionId: number) => TestProtocolItem[]
-  checks: Map<number, boolean>
+  checks: ReadonlyMap<number, boolean>
   score: number
   maxPoints: number
   done: boolean

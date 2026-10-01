@@ -14,7 +14,7 @@ import type { MemberLike } from '@/components/input/select/memberOption'
 
 const props = defineProps<{
   evalData: EvaluationResponse
-  memberMap: Map<number, MemberLike>
+  memberMap: ReadonlyMap<number, MemberLike>
 }>()
 
 const emit = defineEmits<{

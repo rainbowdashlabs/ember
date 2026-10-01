@@ -130,11 +130,11 @@ export interface PitchInventoryCheck {
     assignedItems: InventoryItem[]
     availableItems: InventoryItem[]
     emptySlotCount: number
-    itemResults: Map<number, CheckResult>
-    itemNotes: Map<number, string>
-    slotsNotInPossession: Set<string>
-    slotProcurements: Set<string>
-    slotSelections: Map<string, string>
+    itemResults: ReadonlyMap<number, CheckResult>
+    itemNotes: ReadonlyMap<number, string>
+    slotsNotInPossession: ReadonlySet<string>
+    slotProcurements: ReadonlySet<string>
+    slotSelections: ReadonlyMap<string, string>
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
 }
@@ -145,7 +145,7 @@ export interface PitchRapidCheck {
     availableForInventory: (inventoryId: number) => InventoryItem[]
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
-    itemNotes: Map<number, string>
+    itemNotes: ReadonlyMap<number, string>
     movementStep: (itemId: number) => string | null
 }
 
@@ -280,7 +280,7 @@ export interface PitchGrading {
     section: TestProtocolSection
     childSections: TestProtocolSection[]
     sectionItems: (sectionId: number) => TestProtocolItem[]
-    checks: Map<number, boolean>
+    checks: ReadonlyMap<number, boolean>
     score: number
     maxPoints: number
     done: boolean
@@ -289,7 +289,7 @@ export interface PitchGrading {
 /** What the application's own evaluation table needs to draw a whole run. */
 export interface PitchEvaluation {
     evalData: EvaluationResponse
-    memberMap: Map<number, MemberWithName>
+    memberMap: ReadonlyMap<number, MemberWithName>
 }
 
 /** A section switch above the content, as the grading carries one per section of the sheet. */
@@ -352,7 +352,7 @@ export interface PitchScreen {
     hint?: string
     progress?: PitchProgress
     /** The catalogues the training offers, with the ones already picked. */
-    catalogs?: {items: QuizCatalog[]; selected: Set<number>}
+    catalogs?: {items: QuizCatalog[]; selected: ReadonlySet<number>}
     /** The line the grading keeps above the sheet: the label left, the score right. */
     total?: {label: string; value: string}
     /** The counter row an inventory carries above its items. */

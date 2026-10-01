@@ -13,7 +13,8 @@ interface BrowserTranslation {
     locale: () => string
 }
 
-const DEFAULT_LOCALE = 'de-DE'
+/** The language the interface falls back to, and the only one it speaks in full. */
+export const DEFAULT_LOCALE = 'de-DE'
 
 /** What the client plugin handed over, or null before it has, and always on the server. */
 const handedOver = browserShallowRef<BrowserTranslation | null>(null)

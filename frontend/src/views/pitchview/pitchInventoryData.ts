@@ -53,17 +53,20 @@ function itemLabel(entry: InventoryItem, req: RequiredInventoryItem): string {
     return [entry.name, size, entry.internalId].filter(Boolean).join(' · ')
 }
 
+/** What the check and the quick run both have written down about the lost jacket. */
+const LOST_JACKET_NOTE: ReadonlyMap<number, string> = new Map([[755, 'Beim Zeltlager verloren']])
+
 /** The check of one member: one item confirmed, one lost, and a slot that stayed empty. */
 export const INVENTORY_CHECK: PitchInventoryCheck = {
     req: CLOTHING,
     assignedItems: [JACKET, BOOTS],
     availableItems: [],
     emptySlotCount: 1,
-    itemResults: new Map<number, CheckResult>([[142, 'CONFIRMED'], [755, 'LOST']]),
-    itemNotes: new Map([[755, 'Beim Zeltlager verloren']]),
-    slotsNotInPossession: new Set<string>(),
-    slotProcurements: new Set<string>(),
-    slotSelections: new Map<string, string>(),
+    itemResults: new Map([[142, 'CONFIRMED'], [755, 'LOST']]) as ReadonlyMap<number, CheckResult>,
+    itemNotes: LOST_JACKET_NOTE,
+    slotsNotInPossession: new Set() as ReadonlySet<string>,
+    slotProcurements: new Set() as ReadonlySet<string>,
+    slotSelections: new Map() as ReadonlyMap<string, string>,
     sizeLabel,
     itemLabel,
 }
@@ -77,7 +80,7 @@ export const INVENTORY_RAPID: PitchRapidCheck = {
     availableForInventory: () => FREE,
     sizeLabel,
     itemLabel,
-    itemNotes: new Map([[755, 'Beim Zeltlager verloren']]),
+    itemNotes: LOST_JACKET_NOTE,
     movementStep: () => null,
 }
 
@@ -111,12 +114,21 @@ const CONTAINERS = [
     container(6, 'Fahrzeug 1', 6, null, 'B-100'),
 ]
 
-export const INVENTORY_STORAGE: PitchStorage = {
-    roots: CONTAINERS.filter(entry => entry.parentId == null),
-    childrenByParent: CONTAINERS.reduce((map, entry) => {
-        if (entry.parentId == null) return map
-        map.set(entry.parentId, [...(map.get(entry.parentId) ?? []), entry])
-        return map
-    }, new Map<number, InventoryContainer[]>()),
-    kindById: new Map(KINDS.map(kind => [kind.id, kind])),
+/**
+ * The storage as the application's own container tree takes it, with the lookups it reads built
+ * from the containers and their kinds.
+ */
+function storageOf(containers: InventoryContainer[], kinds: InventoryContainerKind[]): PitchStorage {
+    const childrenByParent = new Map<number, InventoryContainer[]>()
+    for (const entry of containers) {
+        if (entry.parentId == null) continue
+        childrenByParent.set(entry.parentId, [...(childrenByParent.get(entry.parentId) ?? []), entry])
+    }
+    return {
+        roots: containers.filter(entry => entry.parentId == null),
+        childrenByParent,
+        kindById: new Map(kinds.map(kind => [kind.id, kind])),
+    }
 }
+
+export const INVENTORY_STORAGE = storageOf(CONTAINERS, KINDS)

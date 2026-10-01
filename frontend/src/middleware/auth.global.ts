@@ -33,7 +33,7 @@ const IDLE_LIMIT_MS = 3600000
  * until the browser called the page unresponsive, and only a reload broke out of it, because the
  * consent flag lives no longer than the page does.
  */
-const IDLE_EXEMPT = new Set(['/station/requirements', '/reconsent'])
+const IDLE_EXEMPT: ReadonlySet<string> = new Set(['/station/requirements', '/reconsent'])
 
 /**
  * Signs in as somebody else because a link said so, which only a demo or a development instance
