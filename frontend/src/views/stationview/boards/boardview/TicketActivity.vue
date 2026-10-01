@@ -7,57 +7,42 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TabBar from '@/components/navigation/TabBar.vue'
-import CommentThread from '@/components/comment/CommentThread.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { BoardTicketComment } from '@/api/boards'
-import type { BoardLabel, BoardLane, BoardTicketHistoryResponse, BoardTicketTransitionResponse, MemberCompletion } from '@/api/generated/schema'
-import type { Comment } from '@/api/comments'
+import type { CommentSource } from '@/api/comments'
+import type { BoardLabel, BoardLane, BoardTicketHistoryResponse, BoardTicketTransitionResponse, CommentResponse } from '@/api/generated/schema'
 import { contrastTextColor } from '@/util/contrastColor'
 import { formatDateTime } from '@/util/format'
 
+/**
+ * What happened on a ticket, in three tabs: its comments, its changes, and both together.
+ *
+ * <p>The comments tab is the shared comment section, kept mounted while another tab shows, so the
+ * count on its tab and the comments among the changes stay as current as the thread itself.
+ */
 const props = defineProps<{
-    comments: BoardTicketComment[]
+    commentSource: CommentSource
     transitions: BoardTicketTransitionResponse[]
     history: BoardTicketHistoryResponse[]
     lanes: BoardLane[]
     labels: BoardLabel[]
-    members: MemberCompletion[]
     readonly?: boolean
-    federated?: boolean
-}>()
-
-const emit = defineEmits<{
-    createComment: [parentId: number | null, content: string]
-    updateComment: [commentId: number, content: string]
-    deleteComment: [commentId: number]
 }>()
 
 const { t, te } = useI18n()
 const activeTab = ref('comments')
+const comments = ref<CommentResponse[]>([])
 
 function historyActionLabel(action: string): string {
     const key = `boards.historyActions.${action}`
     return te(key) ? t(key) : action
 }
 
-const commentsAsGeneric = computed<Comment[]>(() =>
-    props.comments.map(c => ({
-        id: c.id,
-        parentId: c.parentId,
-        author: c.author ?? null,
-        authorName: c.author?.name ?? '',
-        content: c.content,
-        deleted: c.deleted,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-    })),
-)
-
-type ActivityItem = { type: 'comment'; data: BoardTicketComment; ts: string } | { type: 'transition'; data: BoardTicketTransitionResponse; ts: string } | { type: 'history'; data: BoardTicketHistoryResponse; ts: string }
+type ActivityItem = { type: 'comment'; data: CommentResponse; ts: string } | { type: 'transition'; data: BoardTicketTransitionResponse; ts: string } | { type: 'history'; data: BoardTicketHistoryResponse; ts: string }
 
 const allActivity = computed<ActivityItem[]>(() => {
     const items: ActivityItem[] = [
-        ...props.comments.filter(c => !c.deleted).map(c => ({ type: 'comment' as const, data: c, ts: c.createdAt })),
+        ...comments.value.filter(c => !c.deleted).map(c => ({ type: 'comment' as const, data: c, ts: c.createdAt })),
         ...props.transitions.map(t => ({ type: 'transition' as const, data: t, ts: t.movedAt })),
         ...props.history.map(h => ({ type: 'history' as const, data: h, ts: h.createdAt })),
     ]
@@ -76,7 +61,7 @@ const priorityIcons: Record<string, { icon: string[]; color: string }> = { HIGHE
 function findLabel(name: string) { return props.labels.find(l => l.name === name) }
 
 const tabs = computed(() => [
-    { key: 'comments', label: `${t('boards.comments')} (${props.comments.filter(c => !c.deleted).length})` },
+    { key: 'comments', label: `${t('boards.comments')} (${comments.value.filter(c => !c.deleted).length})` },
     { key: 'transitions', label: `${t('boards.transitions')} (${props.transitions.length + props.history.length})` },
     { key: 'all', label: t('boards.activityAll') },
 ])
@@ -96,17 +81,13 @@ function laneName(id: number | null): string {
     <div>
         <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
-        <div v-if="activeTab === 'comments'">
-            <CommentThread
-                :comments="commentsAsGeneric"
-                :members="members"
-                :federated="federated"
-                :readonly="readonly"
-                @create="(parentId, content) => emit('createComment', parentId, content)"
-                @update="(id, content) => emit('updateComment', id, content)"
-                @delete="(id) => emit('deleteComment', id)"
-            />
-        </div>
+        <CommentSection
+            v-show="activeTab === 'comments'"
+            :source="commentSource"
+            :readonly="readonly"
+            untitled
+            @loaded="comments = $event"
+        />
 
         <div v-if="activeTab === 'transitions'" class="space-y-2">
             <template v-for="item in changesActivity" :key="activityKey(item)">

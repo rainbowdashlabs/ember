@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
-    ActiveSession, AttendanceEntry, BoardLabel, BoardLane, CheckResult, ContentRow, EvaluationResponse, Form,
+    ActiveSession, AttendanceEntry, BoardLabel, BoardLane, CheckResult, CommentResponse, ContentRow, EvaluationResponse, Form,
     FormAnswerValue, FormQuestion, FormQuestionInfo, FormResultGroup, InventoryContainer, InventoryContainerKind,
     InventoryItem, InventorySize, MemberCompletion, MemberGroup, MemberIdentity, MemberWithName, PartnerResponse,
     ProcedureItem,
@@ -15,7 +15,6 @@ import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 import type {KbItem} from '@/views/stationview/knowledge/knowledgebaseview/useKbItems'
-import type {Comment} from '@/api/comments'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 /** The accent a slide is drawn in. Maps onto the theme colours, not onto fixed hex values. */
@@ -360,7 +359,7 @@ export interface PitchScreen {
     storage?: PitchStorage
     board?: PitchBoard
     /** Rendered by the application's own comment thread, read-only. */
-    comments?: Comment[]
+    comments?: CommentResponse[]
     inventoryCheck?: PitchInventoryCheck
     rapidCheck?: PitchRapidCheck
     attendance?: PitchAttendance

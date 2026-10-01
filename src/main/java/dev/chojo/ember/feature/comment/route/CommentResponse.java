@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.comment.route;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.MemberIdentity;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,14 +39,14 @@ import java.time.LocalDate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CommentResponse(
         int id,
-        Integer newsId,
-        Integer fileId,
-        Integer ticketId,
-        Integer parentId,
-        MemberIdentity author,
-        String authorName,
+        @Nullable Integer newsId,
+        @Nullable Integer fileId,
+        @Nullable Integer ticketId,
+        @Nullable Integer parentId,
+        @Nullable MemberIdentity author,
+        @Nullable String authorName,
         String content,
         boolean deleted,
         Instant createdAt,
-        Instant updatedAt,
-        LocalDate eventDate) {}
+        @Nullable Instant updatedAt,
+        @Nullable LocalDate eventDate) {}

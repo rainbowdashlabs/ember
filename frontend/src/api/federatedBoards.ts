@@ -5,11 +5,11 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
-import { typedFields, type BoardTicketComment, type TypedBoardField } from './boards'
+import { typedFields, type TypedBoardField } from './boards'
+import type { CommentSource } from './comments'
 import type {
     AccessOverrideResponse,
     BoardChecklistItem,
-    BoardComment,
     BoardField,
     BoardLabel,
     BoardLane,
@@ -18,6 +18,7 @@ import type {
     BoardTicketHistoryResponse,
     BoardTicketLink,
     BoardTicketTransitionResponse,
+    CommentResponse,
     components,
     DiscoveredBoard,
     EnrichedBookmark,
@@ -110,9 +111,21 @@ export async function getTicket(partnerUid: string, boardKey: string, ticketNumb
     return res.data
 }
 
-export async function getComments(partnerUid: string, boardKey: string, ticketNumber: number): Promise<BoardTicketComment[]> {
-    const res = await client.get<BoardTicketComment[]>(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/comments`)
-    return res.data
+/**
+ * The thread under a ticket of a board a partner station shares. A mention offers the partner's board
+ * members; only authors change or remove a comment there, because no right of this station counts on
+ * the partner's board.
+ */
+export function partnerTicketCommentSource(partnerUid: string, boardKey: string, ticketNumber: number): CommentSource {
+    const base = `/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/comments`
+    return {
+        list: async () => (await client.get<CommentResponse[]>(base)).data,
+        create: (parentId, content) => client.post(base, {parentId: parentId ?? undefined, content} satisfies LocalCommentRequest),
+        update: (commentId, content) => client.put(`${base}/${commentId}`, {content} satisfies LocalCommentRequest),
+        remove: commentId => client.delete(`${base}/${commentId}`),
+        mentionables: async () => ({members: await getBoardMembers(partnerUid, boardKey), groups: []}),
+        moderator: null,
+    }
 }
 
 export async function getChecklist(partnerUid: string, boardKey: string, ticketNumber: number): Promise<BoardChecklistItem[]> {
@@ -172,25 +185,6 @@ export async function moveTicket(partnerUid: string, boardKey: string, ticketNum
 
 export async function reorderTickets(partnerUid: string, boardKey: string, ticketNumber: number, data: LocalReorderRequest): Promise<void> {
     await client.put(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/reorder`, data)
-}
-
-export async function addComment(partnerUid: string, boardKey: string, ticketNumber: number, data: LocalCommentRequest): Promise<BoardComment> {
-    const res = await client.post<BoardComment>(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/comments`, data)
-    return res.data
-}
-
-export async function updateComment(
-    partnerUid: string,
-    boardKey: string,
-    ticketNumber: number,
-    commentId: number,
-    data: LocalCommentRequest,
-): Promise<void> {
-    await client.put(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`, data)
-}
-
-export async function deleteComment(partnerUid: string, boardKey: string, ticketNumber: number, commentId: number): Promise<void> {
-    await client.delete(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`)
 }
 
 export async function addChecklistItem(partnerUid: string, boardKey: string, ticketNumber: number, data: LocalChecklistItemRequest): Promise<BoardChecklistItem> {

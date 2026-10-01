@@ -20,7 +20,7 @@ import {useKbFileFavourite} from '@/views/stationview/knowledge/kbfileview/useKb
 import KbFileDescription from '@/views/stationview/knowledge/kbfileview/KbFileDescription.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
-import KbCommentSection from '@/components/comment/KbCommentSection.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import PresentationViewer from '@/views/stationview/knowledge/kbfileview/PresentationViewer.vue'
 import KbFileContent from '@/views/stationview/knowledge/kbfileview/KbFileContent.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
@@ -88,6 +88,10 @@ const showShareModal = ref(false)
 const {downloadOriginal, downloadPdf} = useKbFileDownloads(file, computed(() => props.stationUid))
 
 const isFederated = computed(() => props.stationUid != null)
+
+const commentSource = computed(() => (props.stationUid
+    ? knowledgeBase.partnerKbCommentSource(props.stationUid, props.fileId)
+    : knowledgeBase.kbCommentSource(props.fileId)))
 
 /**
  * The file's own name at the head of the page, because "Datei" says nothing about which one is
@@ -455,12 +459,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @reupload="handleReuploadFile"
             />
 
-            <!-- Comments -->
-            <KbCommentSection
-                :file-id="file.id"
-                :station-uid="stationUid"
-                class="mt-6"
-            />
+            <CommentSection :source="commentSource" class="mt-6"/>
         </template>
         <!-- Presentation Viewer Overlay -->
         <PresentationViewer

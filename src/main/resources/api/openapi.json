@@ -45039,7 +45039,7 @@
             "$ref" : "#/components/schemas/LocalDate"
           }
         },
-        "required" : [ "id", "newsId", "fileId", "ticketId", "parentId", "author", "authorName", "content", "deleted", "createdAt", "updatedAt", "eventDate" ]
+        "required" : [ "id", "content", "deleted", "createdAt" ]
       },
       "CompleteCheckRequest" : {
         "type" : "object",

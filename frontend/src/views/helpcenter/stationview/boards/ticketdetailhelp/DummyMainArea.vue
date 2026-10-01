@@ -18,7 +18,7 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
 const {t} = useI18n()
 
 const dummyTabs = [
-  {key: 'comments', label: 'Kommentare (3)'},
+  {key: 'comments', label: 'Kommentare (2)'},
   {key: 'transitions', label: 'Änderungen (5)'},
   {key: 'all', label: 'Alle'},
 ]

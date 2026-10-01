@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Comment} from '@/api/comments'
-import type {MemberGroup, UserTag} from '@/api/generated/schema'
+import type {CommentResponse, MemberGroup, UserTag} from '@/api/generated/schema'
 import type {PitchNews, PitchNewsSettings} from './pitchTypes'
 import {pitchIdentity} from './pitchMembers'
 
@@ -68,12 +67,13 @@ export const NEWS_SETTINGS: PitchNewsSettings = {
 }
 
 /** The questions under the post, drawn by the application's own comment thread. */
-export const NEWS_COMMENTS: Comment[] = [
+export const NEWS_COMMENTS: CommentResponse[] = [
     {
-        id: 1, parentId: null,
+        id: 1,
         author: pitchIdentity('Anna Müller', 'm-anna'),
         authorName: 'Anna Müller',
         content: 'Können Geschwister mitkommen, die noch nicht dabei sind?',
+        deleted: false,
         createdAt: published(1),
     },
     {
@@ -81,6 +81,7 @@ export const NEWS_COMMENTS: Comment[] = [
         author: pitchIdentity('Clara Weiß', 'm-clara'),
         authorName: 'Clara Weiß',
         content: '@[Anna Müller] Ja, bitte bei der Anmeldung als Begleitperson eintragen.',
+        deleted: false,
         createdAt: published(1),
     },
 ]

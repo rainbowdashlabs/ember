@@ -59,6 +59,7 @@
 ### Fixes
 
 - **Own comments on a partner's board could not be changed.** Changing or removing your own comment on a board a partner station shares with you did nothing. It now works, and boards shared between two instances pause until both run this version.
+- **Comment delete buttons followed the wrong rights.** News and wiki managers were not shown the button to remove other people's comments, while appointment managers saw it on boards and on partner stations' appointments, where removing then failed. The button now shows for the author and for whoever manages that kind of content.
 - **Addresses in group and tag lists sat out of line.** In the member lists of groups and tags, the address of somebody with a profile picture stood beside the picture instead of under the name. It now lines up under the name for everybody.
 - **Reordering options no longer changes answers.** Reordering or renaming the options of a question that already had answers could change what those answers said. Answers now stay with the option that was chosen, and removing an option somebody chose asks first.
 - **Optional questions could stop a form from being sent.** In some cases a form with an optional choice or rating question left empty, or a choice answered only in the reader's own words, was refused. Such answers are now accepted.

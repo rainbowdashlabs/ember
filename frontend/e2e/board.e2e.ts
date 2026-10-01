@@ -76,6 +76,38 @@ test.describe('Boards', () => {
     })
 
     /**
+     * A ticket comment belongs to whoever wrote it. Its author puts it right and takes it back from
+     * the ticket's comments, and the count on the tab follows what is left.
+     */
+    test('the author changes and removes their ticket comment', async ({managerPage: page}) => {
+        const first = unique('Kommentar')
+        const second = unique('Korrektur')
+
+        const key = await createBoard(page)
+        await createTicket(page, key)
+
+        await page.getByRole('tab', {name: /Kommentare/}).click()
+        await page.locator('[contenteditable="true"]').last().click()
+        await page.keyboard.type(first)
+        await page.getByRole('button', {name: 'Absenden'}).click()
+
+        const comment = page.locator('[id^="comment-"]').filter({hasText: first})
+        await expect(comment).toHaveCount(1)
+        await expect(page.getByRole('tab', {name: 'Kommentare (1)'})).toBeVisible()
+        await comment.getByRole('button', {name: 'Bearbeiten', exact: true}).click()
+        await comment.locator('[contenteditable="true"]').click()
+        await page.keyboard.press('ControlOrMeta+A')
+        await page.keyboard.type(second)
+        await comment.getByRole('button', {name: 'Speichern', exact: true}).click()
+
+        const changed = page.locator('[id^="comment-"]').filter({hasText: second})
+        await expect(changed).toContainText('bearbeitet')
+        await changed.getByRole('button', {name: 'Löschen', exact: true}).click()
+        await expect(page.locator('[id^="comment-"]').filter({hasText: second})).toHaveCount(0)
+        await expect(page.getByRole('tab', {name: 'Kommentare (0)'})).toBeVisible()
+    })
+
+    /**
      * Work moving along is what a board is. The lane is changed from the ticket rather than by
      * dragging its card: the same call sits behind both, and a story that drags would be measuring
      * the mouse.

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.comment.route;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -98,12 +99,12 @@ public final class CommentResponseMapper {
             MemberNameResolver resolver,
             Scope scope,
             int id,
-            Integer parentId,
-            MemberIdentity author,
+            @Nullable Integer parentId,
+            @Nullable MemberIdentity author,
             String content,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt) {
+            @Nullable Instant updatedAt) {
         if (deleted) {
             return removed(scope, id, parentId, createdAt);
         }
@@ -122,12 +123,12 @@ public final class CommentResponseMapper {
     private static CommentResponse live(
             Scope scope,
             int id,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
+            @Nullable Integer parentId,
+            @Nullable MemberIdentity author,
+            @Nullable String authorName,
             String content,
             Instant createdAt,
-            Instant updatedAt) {
+            @Nullable Instant updatedAt) {
         return new CommentResponse(
                 id,
                 scope.newsId(),
@@ -143,7 +144,7 @@ public final class CommentResponseMapper {
                 scope.eventDate());
     }
 
-    private static CommentResponse removed(Scope scope, int id, Integer parentId, Instant createdAt) {
+    private static CommentResponse removed(Scope scope, int id, @Nullable Integer parentId, Instant createdAt) {
         return new CommentResponse(
                 id,
                 scope.newsId(),
@@ -159,5 +160,9 @@ public final class CommentResponseMapper {
                 scope.eventDate());
     }
 
-    private record Scope(Integer newsId, Integer fileId, Integer ticketId, LocalDate eventDate) {}
+    private record Scope(
+            @Nullable Integer newsId,
+            @Nullable Integer fileId,
+            @Nullable Integer ticketId,
+            @Nullable LocalDate eventDate) {}
 }

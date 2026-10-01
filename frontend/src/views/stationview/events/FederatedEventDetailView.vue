@@ -13,9 +13,9 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import {StationPermission} from '@/api/types'
-import type {Comment} from '@/api/comments'
-import type {MemberCompletion, RemoteEventDetail, RemoteMemberRegistration} from '@/api/generated/schema'
-import {comments as commentsApi, events, stationMembers} from '@/api'
+import {partnerEventCommentSource} from '@/api/comments'
+import type {RemoteEventDetail, RemoteMemberRegistration} from '@/api/generated/schema'
+import {events} from '@/api'
 import {UNDO_WINDOW_MS} from '@/api/events'
 import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
@@ -24,7 +24,8 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import AttachmentsCard from './federatedeventdetailview/AttachmentsCard.vue'
 import HeaderCard from './federatedeventdetailview/HeaderCard.vue'
 import RegistrationCard from './federatedeventdetailview/RegistrationCard.vue'
-import CommentsCard from './federatedeventdetailview/CommentsCard.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -164,9 +165,7 @@ function withdrawRegistration(uid: string) {
   return runRegistration('withdraw', uid)
 }
 
-const commentsList = ref<Comment[]>([])
-const members = ref<MemberCompletion[]>([])
-const commentsLoading = ref(false)
+const commentSource = computed(() => partnerEventCommentSource(stationUid.value, eventId.value))
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   const [eventDetail, regs] = await Promise.all([
@@ -175,69 +174,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   ])
   detail.value = eventDetail
   myRegistrations.value = regs
-  await loadComments()
 })
-
-async function loadComments() {
-  commentsLoading.value = true
-  try {
-    const [c, m] = await Promise.all([
-      commentsApi.listFederatedEventComments(stationUid.value, eventId.value),
-      stationMembers.listCompletions(),
-    ])
-    commentsList.value = c
-    members.value = m
-  } catch {
-    /* comments may fail silently */
-  } finally {
-    commentsLoading.value = false
-  }
-}
-
-/**
- * Reads the comments back after one was written.
- *
- * <p>Separate from the writing. The three used to share one `try`, so a comment the partner station
- * had already stored, followed by a list that would not come back, said the comment had not been
- * written, and a reader told that writes it again.
- */
-async function refreshComments() {
-  try {
-    commentsList.value = await commentsApi.listFederatedEventComments(stationUid.value, eventId.value)
-  } catch (e) {
-    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
-  }
-}
-
-async function createComment(parentId: number | null, content: string) {
-  try {
-    await commentsApi.createFederatedEventComment(stationUid.value, eventId.value, {parentId, content})
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await refreshComments()
-}
-
-async function updateComment(commentId: number, content: string) {
-  try {
-    await commentsApi.updateFederatedEventComment(stationUid.value, commentId, {content})
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await refreshComments()
-}
-
-async function deleteComment(commentId: number) {
-  try {
-    await commentsApi.deleteFederatedEventComment(stationUid.value, commentId)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await refreshComments()
-}
 
 watch(() => [route.params.stationUid, route.params.eventId], () => {
   stationUid.value = route.params.stationUid as string
@@ -278,14 +215,9 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
             @confirm="confirmOwn"
         />
 
-        <CommentsCard
-            :comments="commentsList"
-            :members="members"
-            :loading="commentsLoading"
-            @create="createComment"
-            @update="updateComment"
-            @delete="deleteComment"
-        />
+        <NeutralContainer>
+          <CommentSection :source="commentSource"/>
+        </NeutralContainer>
       </template>
     </div>
   </ViewContent>

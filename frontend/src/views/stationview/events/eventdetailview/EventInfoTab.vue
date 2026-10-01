@@ -14,6 +14,7 @@ import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
 import {isRecurringEvent} from '@/api/events'
+import {eventCommentSource} from '@/api/comments'
 import type {AbsentMemberResponse, EventField, StationEvent} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
@@ -41,6 +42,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+const commentSource = computed(() => eventCommentSource(props.eventId, props.focusedDate))
 
 /**
  * Whoever writes the event, which is more than whoever runs it.
@@ -82,7 +85,7 @@ const canEditEvent = computed(() => props.canManageEvents || props.hasPermission
     </NeutralContainer>
 
     <NeutralContainer>
-      <CommentSection :event-id="eventId" :event-date="focusedDate"/>
+      <CommentSection :source="commentSource"/>
     </NeutralContainer>
   </div>
 </template>

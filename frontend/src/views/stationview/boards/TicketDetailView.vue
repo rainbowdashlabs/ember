@@ -16,7 +16,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import TicketHeaderBar from './ticketdetailview/TicketHeaderBar.vue'
 import TicketBody from './ticketdetailview/TicketBody.vue'
 import { knowledgeBase, boards } from '@/api'
-import {rawFieldValue, TicketPriority, type AnyBoard, type BoardFieldRaw, type BoardFieldTypeName, type BoardTicketComment, type TicketPriorityName, type TypedBoardField} from '@/api/boards'
+import {rawFieldValue, TicketPriority, type AnyBoard, type BoardFieldRaw, type BoardFieldTypeName, type TicketPriorityName, type TypedBoardField} from '@/api/boards'
 import type {BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse, BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useBoardApi } from '@/composables/useBoardApi'
@@ -77,7 +77,7 @@ interface KbSearchResult {
 }
 
 const kbSearchResults = ref<KbSearchResult[]>([])
-const comments = ref<BoardTicketComment[]>([])
+const commentSource = computed(() => api.commentSource())
 const weblinks = ref<BoardWeblink[]>([])
 const attachments = ref<BoardTicketAttachment[]>([])
 
@@ -134,12 +134,11 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent)
  * change having worked while the screen stayed behind.
  */
 async function loadDetails() {
-        const [cl, li, tr, hi, co, wl, at, fv] = await Promise.all([
+        const [cl, li, tr, hi, wl, at, fv] = await Promise.all([
             api.getChecklist(),
             api.getLinks(),
             api.getTransitions(),
             api.getHistory(),
-            api.getComments(),
             api.getWeblinks(),
             api.getAttachments(),
             api.getFieldValues(),
@@ -148,7 +147,6 @@ async function loadDetails() {
         links.value = li
         transitions.value = tr
         ticketHistory.value = hi
-        comments.value = co
         weblinks.value = wl
         attachments.value = at
         fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, rawFieldValue(v)]))
@@ -159,8 +157,8 @@ async function loadDetails() {
 /**
  * What the reader's last action ran into, which every one of these used to throw away.
  *
- * <p>A checklist item that was not added, a comment that was not posted and a lane the ticket would
- * not move to all looked exactly like nothing having happened: no word, no mark, nothing. The reader
+ * <p>A checklist item that was not added and a lane the ticket would not move to both looked
+ * exactly like nothing having happened: no word, no mark, nothing. The reader
  * pressed again, and where the write had in fact gone through and only the refresh had failed, the
  * ticket then carried it twice.
  */
@@ -219,8 +217,6 @@ async function toggleChecklistItem(item: BoardChecklistItem) { await act(() => a
 async function reorderChecklist(fromIndex: number, toIndex: number) { const items = moveWithin(checklist.value, fromIndex, toIndex); checklist.value = items; await act(() => api.reorderChecklist({ orderedIds: items.map(i => i.id) }), () => Promise.resolve()) }
 async function removeAllChecklistItems() { const items = [...checklist.value]; await act(async () => { for (const item of items) { await api.deleteChecklistItem(item.id) } }, async () => { showChecklist.value = false; await loadDetails() }) }
 async function removeChecklistItem(itemId: number) { await act(() => api.deleteChecklistItem(itemId)) }
-async function createComment(parentId: number | null, content: string) { await act(() => api.createComment({ parentId: parentId ?? undefined, content })) }
-async function updateComment(commentId: number, content: string) { await act(() => api.updateComment(commentId, { content })) }
 
 async function saveFieldValue(fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw | null) {
     await act(
@@ -295,8 +291,6 @@ async function toggleWatch() {
     )
 }
 
-async function deleteCommentFn(commentId: number) { await act(() => api.deleteComment(commentId)) }
-
 const checklistVisible = computed(() => checklist.value.length > 0 || showChecklist.value || newChecklistTitle.value !== '')
 
 watch(ticketNumber, reload)
@@ -331,9 +325,9 @@ watch(ticketNumber, reload)
                 :all-labels="allLabels" :ticket-labels="ticketLabels" :board-fields="boardFields"
                 :priority-options="priorityChoices" :checklist="checklist" :checklist-visible="checklistVisible"
                 :links="links" :weblinks="weblinks" :attachments="attachments" :transitions="transitions"
-                :history="ticketHistory" :comments="comments" :kb-links="kbLinks"
+                :history="ticketHistory" :comment-source="commentSource" :kb-links="kbLinks"
                 :kb-search-results="kbSearchResults" :can-edit="canEdit"
-                :federated="api.isFederated.value" :partner-uid="api.partnerUid.value" :failure="actionFailure ?? saveFailure ?? loadFailure"
+                :partner-uid="api.partnerUid.value" :failure="actionFailure ?? saveFailure ?? loadFailure"
                 @save-ticket="saveTicket" @reload-details="refreshDetails"
                 @show-checklist="showChecklist = true"
                 @add-checklist-item="addChecklistItem"
@@ -341,8 +335,7 @@ watch(ticketNumber, reload)
                 @remove-checklist-item="removeChecklistItem"
                 @remove-all-checklist-items="removeAllChecklistItems"
                 @reorder-checklist="reorderChecklist"
-                @create-comment="createComment" @update-comment="updateComment"
-                @delete-comment="deleteCommentFn" @upload-files="handleFileUpload"
+                @upload-files="handleFileUpload"
                 @kb-search="onKbSearch" @add-kb-link="addKbLinkFn" @remove-kb-link="removeKbLinkFn"
                 @move-to="moveTo" @toggle-label="toggleLabel" @create-label="createAndAddLabel"
                 @save-field="saveFieldValue"

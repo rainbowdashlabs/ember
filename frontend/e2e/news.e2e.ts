@@ -236,6 +236,54 @@ test.describe('News', () => {
     })
 
     /**
+     * Whoever manages the news may take down what somebody else wrote under an entry, which is what
+     * keeps a discussion in order, but never put words in their mouth. The button used to be offered
+     * to appointment managers only, so a news manager allowed to remove a comment was never shown
+     * the way to do it.
+     */
+    test('a news manager removes a comment somebody else wrote and cannot change it',
+        async ({managerPage, memberPage}) => {
+            const newsId = await articleByApi(managerPage, unique('Kommentiert'))
+            const words = unique('Mitgliederkommentar')
+            const written = await memberPage.request.post(`/api/v1/news/${newsId}/comments`, {
+                headers: await apiHeaders(memberPage),
+                data: {parentId: null, content: words},
+            })
+            expect(written.ok(), `the member wrote a comment (${await written.text()})`).toBeTruthy()
+            const commentId = (await written.json()).id
+
+            await managerPage.goto(`/station/news/${newsId}`)
+            const comment = managerPage.locator(`#comment-${commentId}`)
+            await expect(comment).toContainText(words)
+            await expect(comment.getByRole('button', {name: 'Bearbeiten', exact: true})).toHaveCount(0)
+
+            await comment.getByRole('button', {name: 'Löschen', exact: true}).click()
+            await expect(managerPage.getByText(words)).toHaveCount(0)
+        })
+
+    /** A comment its author changed says so, the same as under an appointment or a wiki article. */
+    test('a changed comment is marked as edited', async ({managerPage}) => {
+        const headers = await apiHeaders(managerPage)
+        const newsId = await articleByApi(managerPage, unique('Geändert'))
+        const written = await managerPage.request.post(`/api/v1/news/${newsId}/comments`, {
+            headers,
+            data: {parentId: null, content: 'Erster Gedanke'},
+        })
+        expect(written.ok(), `the organiser wrote a comment (${await written.text()})`).toBeTruthy()
+        const commentId = (await written.json()).id
+        const changed = await managerPage.request.put(`/api/v1/news/comments/${commentId}`, {
+            headers,
+            data: {content: 'Zweiter Gedanke'},
+        })
+        expect(changed.ok(), `the organiser changed the comment (${await changed.text()})`).toBeTruthy()
+
+        await managerPage.goto(`/station/news/${newsId}`)
+        const comment = managerPage.locator(`#comment-${commentId}`)
+        await expect(comment).toContainText('Zweiter Gedanke')
+        await expect(comment).toContainText('bearbeitet')
+    })
+
+    /**
      * The notice about an entry is only worth anything as long as the entry is there: a reader taps
      * it expecting the article and would otherwise land on a page the application no longer has.
      * The tap is part of the story because it is also what marks the notice read, and a read notice
@@ -272,6 +320,16 @@ test.describe('News', () => {
             }
         })
 })
+
+/** An entry every member may read, written straight to the server, and its number. */
+async function articleByApi(page: Page, title: string): Promise<number> {
+    const created = await page.request.post('/api/v1/news', {
+        headers: await apiHeaders(page),
+        data: {title, contentMarkdown: 'Zum Kommentieren.', userTypes: [], groupIds: [], tagIds: [], memberIds: []},
+    })
+    expect(created.ok(), `the organiser wrote an article (${await created.text()})`).toBeTruthy()
+    return (await created.json()).id
+}
 
 /** The number a news detail address ends in. */
 function idOf(detailUrl: string): string {

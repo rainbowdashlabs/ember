@@ -5,10 +5,12 @@
  */
 import client from './client'
 import {ContentMode} from './news'
-import {createCrudResource, createScopedCrudResource, type NoContent} from './crud'
+import {createCrudResource} from './crud'
+import {noMentionables, stationMentionables, type CommentSource} from './comments'
+import {StationPermission} from './types'
 import {uploadFile as uploadMultipart} from './upload'
 import type {
-    MemberIdentity,
+    CommentResponse,
     AudienceRequest,
     BlockRowRequest,
     BlocksResponse,
@@ -549,50 +551,30 @@ export async function search(query: string, options?: { tag?: string; federated?
     return res.data
 }
 
-/**
- * A comment under a wiki article.
- *
- * TODO: take the generated comment record once the comment system is reworked to say which fields it fills.
- */
-export interface KbComment {
-    id: number
-    fileId: number
-    parentId: number | null
-    author: MemberIdentity | null
-    authorName: string
-    content: string
-    deleted?: boolean
-    createdAt: string
-    updatedAt?: string | null
+/** The thread under one of the station's own articles; a knowledge manager removes anybody's comment there. */
+export function kbCommentSource(fileId: number): CommentSource {
+    return {
+        list: async () => (await client.get<CommentResponse[]>(`/kb/files/${fileId}/comments`)).data,
+        create: (parentId, content) => client.post(`/kb/files/${fileId}/comments`, {parentId, content}),
+        update: (commentId, content) => client.put(`/kb/comments/${commentId}`, {content}),
+        remove: commentId => client.delete(`/kb/comments/${commentId}`),
+        mentionables: () => stationMentionables({type: 'KB_FILE', entityId: fileId}),
+        moderator: StationPermission.KNOWLEDGE_MANAGER,
+    }
 }
 
-interface CommentCreateRequest {
-    parentId?: number | null
-    content: string
+/** The thread under an article a partner station shares, where only authors change or remove anything. */
+export function partnerKbCommentSource(stationUid: string, fileId: number): CommentSource {
+    const base = `/federated/${stationUid}/kb`
+    return {
+        list: async () => (await client.get<CommentResponse[]>(`${base}/files/${fileId}/comments`)).data,
+        create: (parentId, content) => client.post(`${base}/files/${fileId}/comments`, {parentId, content}),
+        update: (commentId, content) => client.put(`${base}/comments/${commentId}`, {content}),
+        remove: commentId => client.delete(`${base}/comments/${commentId}`),
+        mentionables: noMentionables,
+        moderator: null,
+    }
 }
-
-interface CommentUpdateRequest {
-    content: string
-}
-
-const fileComments = createScopedCrudResource<
-    KbComment,
-    CommentCreateRequest
->((fileId: number) => `/kb/files/${fileId}/comments`)
-
-const comments = createCrudResource<
-    KbComment,
-    CommentUpdateRequest,
-    CommentUpdateRequest,
-    KbComment,
-    KbComment,
-    NoContent
->('/kb/comments')
-
-export const listComments = fileComments.list
-export const createComment = fileComments.create
-export const updateComment = comments.update
-export const deleteComment = comments.remove
 
 /**
  * Reads a knowledge-base file served by a federation partner. The partner is addressed by its
@@ -629,26 +611,4 @@ export async function getFederatedFile(stationUid: string, fileId: number): Prom
 export async function getFederatedFileContent(stationUid: string, fileId: number): Promise<string> {
     const res = await client.get<FileContentResponse>(`/federated/${stationUid}/kb/files/${fileId}/content`)
     return res.data.content
-}
-
-export async function listFederatedComments(stationUid: string, fileId: number): Promise<KbComment[]> {
-    const res = await client.get<KbComment[]>(`/federated/${stationUid}/kb/files/${fileId}/comments`)
-    return res.data
-}
-
-export async function createFederatedComment(
-    stationUid: string,
-    fileId: number,
-    data: {parentId?: number | null; content: string},
-): Promise<KbComment> {
-    const res = await client.post<KbComment>(`/federated/${stationUid}/kb/files/${fileId}/comments`, data)
-    return res.data
-}
-
-export async function updateFederatedComment(stationUid: string, commentId: number, data: {content: string}): Promise<void> {
-    await client.put(`/federated/${stationUid}/kb/comments/${commentId}`, data)
-}
-
-export async function deleteFederatedComment(stationUid: string, commentId: number): Promise<void> {
-    await client.delete(`/federated/${stationUid}/kb/comments/${commentId}`)
 }

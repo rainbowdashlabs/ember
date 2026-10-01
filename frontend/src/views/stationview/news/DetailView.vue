@@ -18,7 +18,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import NewsViewBadge from './newsshared/NewsViewBadge.vue'
 import AttachmentList from './newsshared/AttachmentList.vue'
 import NewsBody from './newsshared/NewsBody.vue'
@@ -27,6 +27,7 @@ import {internalContentContext} from '@/util/contentContext'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
 import type {NewsResponse} from '@/api/generated/schema'
 import {news} from '@/api'
+import {newsCommentSource} from '@/api/news'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 
@@ -86,6 +87,8 @@ const {
   failure,
 })
 
+const commentSource = computed(() => newsCommentSource(Number(route.params.id)))
+
 watch(() => route.params.id, reload)
 </script>
 
@@ -121,7 +124,7 @@ watch(() => route.params.id, reload)
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <NewsCommentSection :news-id="entry.id"/>
+          <CommentSection :source="commentSource"/>
         </div>
       </NeutralContainer>
 

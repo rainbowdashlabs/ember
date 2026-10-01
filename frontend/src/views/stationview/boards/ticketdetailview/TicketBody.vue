@@ -7,8 +7,9 @@
 import TicketLeftColumn from './TicketLeftColumn.vue'
 import TicketRightColumn from './TicketRightColumn.vue'
 import type {
-    AnyBoard, BoardFieldRaw, BoardFieldTypeName, BoardTicketComment, TicketPriorityName, TypedBoardField,
+    AnyBoard, BoardFieldRaw, BoardFieldTypeName, TicketPriorityName, TypedBoardField,
 } from '@/api/boards'
+import type { CommentSource } from '@/api/comments'
 import type {
     BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse,
     BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary,
@@ -36,11 +37,10 @@ defineProps<{
     attachments: BoardTicketAttachment[]
     transitions: BoardTicketTransitionResponse[]
     history: BoardTicketHistoryResponse[]
-    comments: BoardTicketComment[]
+    commentSource: CommentSource
     kbLinks: BoardTicketKbLink[]
     kbSearchResults: KbSearchResult[]
     canEdit: boolean
-    federated: boolean
     partnerUid?: string
     /** What the last action or load ran into, described, or nothing where nothing has. */
     failure: Failure | null
@@ -67,9 +67,6 @@ const emit = defineEmits<{
     removeChecklistItem: [id: number]
     removeAllChecklistItems: []
     reorderChecklist: [from: number, to: number]
-    createComment: [parentId: number | null, content: string]
-    updateComment: [commentId: number, content: string]
-    deleteComment: [commentId: number]
     uploadFiles: [files: File[]]
     kbSearch: []
     addKbLink: [id: number]
@@ -91,9 +88,9 @@ const emit = defineEmits<{
             :board="board" :ticket="ticket" :all-tickets="allTickets" :lanes="lanes" :members="members"
             :all-labels="allLabels" :priority-options="priorityOptions" :checklist="checklist"
             :checklist-visible="checklistVisible" :links="links" :weblinks="weblinks"
-            :attachments="attachments" :transitions="transitions" :history="history" :comments="comments"
+            :attachments="attachments" :transitions="transitions" :history="history" :comment-source="commentSource"
             :kb-links="kbLinks" :kb-search-results="kbSearchResults" :can-edit="canEdit"
-            :federated="federated" :partner-uid="partnerUid"
+            :partner-uid="partnerUid"
             @save-ticket="emit('saveTicket')" @reload-details="emit('reloadDetails')"
             @show-checklist="emit('showChecklist')"
             @add-checklist-item="emit('addChecklistItem')"
@@ -101,9 +98,6 @@ const emit = defineEmits<{
             @remove-checklist-item="emit('removeChecklistItem', $event)"
             @remove-all-checklist-items="emit('removeAllChecklistItems')"
             @reorder-checklist="(f, t) => emit('reorderChecklist', f, t)"
-            @create-comment="(p, c) => emit('createComment', p, c)"
-            @update-comment="(i, c) => emit('updateComment', i, c)"
-            @delete-comment="emit('deleteComment', $event)"
             @upload-files="emit('uploadFiles', $event)"
             @kb-search="emit('kbSearch')"
             @add-kb-link="emit('addKbLink', $event)"

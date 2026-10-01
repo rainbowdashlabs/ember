@@ -6,6 +6,8 @@
 import client from './client'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import { uploadFile } from './upload'
+import type { CommentSource } from './comments'
+import { StationPermission } from './types'
 import { downloadAuthed } from '@/util/downloadAuthed'
 import type {
     AccessData,
@@ -32,6 +34,7 @@ import type {
     BoardWeblink,
     CanEditResponse,
     ChecklistItemRequest,
+    CommentResponse,
     components,
     CreateBoardRequest,
     CreateTicketRequest,
@@ -42,7 +45,6 @@ import type {
     LaneRequest,
     LinkRequest,
     MemberCompletion,
-    MemberIdentity,
     MoveTicketRequest,
     ReorderChecklistRequest,
     RemoteBoard,
@@ -101,23 +103,6 @@ export function isBoardFieldType(value: unknown): value is BoardFieldTypeName {
 
 /** A board as its own station sends it, or as a partner's board arrives through federation. */
 export type AnyBoard = Board | RemoteBoard
-
-/**
- * A comment under a board ticket.
- *
- * TODO: take the generated comment record once the comment system is reworked to say which fields it fills.
- */
-export interface BoardTicketComment {
-    id: number
-    ticketId: number
-    parentId?: number
-    author?: MemberIdentity
-    authorName?: string
-    content: string
-    deleted: boolean
-    createdAt: string
-    updatedAt?: string
-}
 
 /**
  * A board field whose settings are the record its type names, so a reader narrowing on `fieldType`
@@ -420,22 +405,20 @@ export async function getTransitions(boardKey: string, ticketNumber: number): Pr
     return res.data
 }
 
-export async function getComments(boardKey: string, ticketNumber: number): Promise<BoardTicketComment[]> {
-    const res = await client.get<BoardTicketComment[]>(`/boards/${boardKey}/tickets/${ticketNumber}/comments`)
-    return res.data
-}
-
-export async function createComment(boardKey: string, ticketNumber: number, data: BoardTicketCommentRequest): Promise<BoardTicketComment> {
-    const res = await client.post<BoardTicketComment>(`/boards/${boardKey}/tickets/${ticketNumber}/comments`, data)
-    return res.data
-}
-
-export async function updateComment(boardKey: string, ticketNumber: number, commentId: number, data: BoardTicketCommentRequest): Promise<void> {
-    await client.put(`/boards/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`, data)
-}
-
-export async function deleteComment(boardKey: string, ticketNumber: number, commentId: number): Promise<void> {
-    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`)
+/**
+ * The thread under a ticket of the station's own boards. A mention offers the board's members, and a
+ * board manager removes anybody's comment there.
+ */
+export function ticketCommentSource(boardKey: string, ticketNumber: number): CommentSource {
+    const base = `/boards/${boardKey}/tickets/${ticketNumber}/comments`
+    return {
+        list: async () => (await client.get<CommentResponse[]>(base)).data,
+        create: (parentId, content) => client.post(base, {parentId: parentId ?? undefined, content} satisfies BoardTicketCommentRequest),
+        update: (commentId, content) => client.put(`${base}/${commentId}`, {content} satisfies BoardTicketCommentRequest),
+        remove: commentId => client.delete(`${base}/${commentId}`),
+        mentionables: async () => ({members: await getBoardMembers(boardKey), groups: []}),
+        moderator: StationPermission.BOARD_MANAGER,
+    }
 }
 
 export async function getWeblinks(boardKey: string, ticketNumber: number): Promise<BoardWeblink[]> {

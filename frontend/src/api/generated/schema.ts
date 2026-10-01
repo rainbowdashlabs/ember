@@ -55366,23 +55366,23 @@ export interface components {
             parentId?: number;
         };
         CommentResponse: {
-            author: components["schemas"]["MemberIdentity"];
-            authorName: string;
+            author?: components["schemas"]["MemberIdentity"];
+            authorName?: string;
             content: string;
             createdAt: components["schemas"]["Instant"];
             deleted: boolean;
-            eventDate: components["schemas"]["LocalDate"];
+            eventDate?: components["schemas"]["LocalDate"];
             /** Format: int32 */
-            fileId: number;
+            fileId?: number;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            newsId: number;
+            newsId?: number;
             /** Format: int32 */
-            parentId: number;
+            parentId?: number;
             /** Format: int32 */
-            ticketId: number;
-            updatedAt: components["schemas"]["Instant"];
+            ticketId?: number;
+            updatedAt?: components["schemas"]["Instant"];
         };
         CompleteCheckRequest: {
             items?: components["schemas"]["CheckItemResult"][];

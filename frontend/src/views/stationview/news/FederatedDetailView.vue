@@ -14,9 +14,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
-import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import type { FederatedNewsData } from '@/api/generated/schema'
 import { news } from '@/api'
+import { partnerNewsCommentSource } from '@/api/news'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { formatDateTime } from '@/util/format'
 import ProseContent from '@/components/display/ProseContent.vue'
@@ -39,6 +40,8 @@ const { config: entry, loading, failure, reload: loadData } = useConfigPanel<Fed
  * answered, and where the entry could not be fetched at all.
  */
 const pageTitle = computed(() => entry.value?.title || t('pages.federated-news-detail.title'))
+
+const commentSource = computed(() => partnerNewsCommentSource(stationUid.value, newsId.value))
 
 watch(() => [route.params.stationUid, route.params.newsId], () => {
   stationUid.value = route.params.stationUid as string
@@ -72,7 +75,7 @@ watch(() => [route.params.stationUid, route.params.newsId], () => {
         <ProseContent v-html="entry.contentHtml"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <NewsCommentSection :news-id="newsId" :station-uid="stationUid" />
+          <CommentSection :source="commentSource" />
         </div>
       </NeutralContainer>
     </div>

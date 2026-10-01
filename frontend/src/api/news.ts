@@ -4,11 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { createCrudResource, createScopedCrudResource, pageParams } from './crud'
+import { createCrudResource, pageParams } from './crud'
+import { noMentionables, stationMentionables, type CommentSource } from './comments'
+import { StationPermission } from './types'
 import type {
     BlockAudience,
-    MemberIdentity,
     BlockRowRequest,
+    CommentResponse,
     FederatedNewsData,
     FederatedNewsItem,
     NewsAttachment,
@@ -50,36 +52,32 @@ export const NewsVisibilityRole = {
 export function visibilityRoleOf(value: string): NewsVisibilityRoleName {
     return Object.values(NewsVisibilityRole).find(role => role === value) ?? NewsVisibilityRole.MEMBER
 }
-/**
- * A comment under a news entry.
- *
- * TODO: take the generated comment record once the comment system is reworked to say which fields it fills.
- */
-export interface NewsComment {
-    id: number
-    newsId: number
-    parentId: number | null
-    author: MemberIdentity | null
-    authorName: string
-    content: string
-    deleted?: boolean
-    createdAt: string
-    updatedAt?: string | null
-}
-
-/** What is sent when a comment is written or corrected. */
-export interface CommentRequest {
-    parentId?: number | null
-    content: string
-}
-
 const news = createCrudResource<NewsResponse, NewsRequest>('/news')
 
-const newsComments = createScopedCrudResource<NewsComment, CommentRequest>(
-    (newsId: number) => `/news/${newsId}/comments`,
-)
+/** The thread under one of the station's own entries; a news manager removes anybody's comment there. */
+export function newsCommentSource(newsId: number): CommentSource {
+    return {
+        list: async () => (await client.get<CommentResponse[]>(`/news/${newsId}/comments`)).data,
+        create: (parentId, content) => client.post(`/news/${newsId}/comments`, {parentId, content}),
+        update: (commentId, content) => client.put(`/news/comments/${commentId}`, {content}),
+        remove: commentId => client.delete(`/news/comments/${commentId}`),
+        mentionables: () => stationMentionables({type: 'NEWS', entityId: newsId}),
+        moderator: StationPermission.NEWS_MANAGER,
+    }
+}
 
-const comments = createCrudResource<NewsComment, CommentRequest>('/news/comments')
+/** The thread under an entry a partner station shares, where only authors change or remove anything. */
+export function partnerNewsCommentSource(stationUid: string, newsId: number): CommentSource {
+    const base = `/federated/${stationUid}/news`
+    return {
+        list: async () => (await client.get<CommentResponse[]>(`${base}/${newsId}/comments`)).data,
+        create: (parentId, content) => client.post(`${base}/${newsId}/comments`, {parentId, content}),
+        update: (commentId, content) => client.put(`${base}/comments/${commentId}`, {content}),
+        remove: commentId => client.delete(`${base}/comments/${commentId}`),
+        mentionables: noMentionables,
+        moderator: null,
+    }
+}
 
 /**
  * Searches the station's news a block may name for its readers by title, newest first: on a page
@@ -168,24 +166,6 @@ export async function getFederatedNews(stationUid: string, newsId: number): Prom
     return res.data
 }
 
-export async function listFederatedNewsComments(stationUid: string, newsId: number): Promise<NewsComment[]> {
-    const res = await client.get<NewsComment[]>(`/federated/${stationUid}/news/${newsId}/comments`)
-    return res.data
-}
-
-export async function createFederatedNewsComment(stationUid: string, newsId: number, data: CommentRequest): Promise<NewsComment> {
-    const res = await client.post<NewsComment>(`/federated/${stationUid}/news/${newsId}/comments`, data)
-    return res.data
-}
-
-export async function updateFederatedNewsComment(stationUid: string, commentId: number, data: CommentRequest): Promise<void> {
-    await client.put(`/federated/${stationUid}/news/comments/${commentId}`, data)
-}
-
-export async function deleteFederatedNewsComment(stationUid: string, commentId: number): Promise<void> {
-    await client.delete(`/federated/${stationUid}/news/comments/${commentId}`)
-}
-
 export async function listNews(offset = 0, limit = 20): Promise<NewsResponse[]> {
     return news.list(pageParams({offset, limit}))
 }
@@ -194,11 +174,6 @@ export const getNews = news.get
 export const createNews = news.create
 export const updateNews = news.update
 export const deleteNews = news.remove
-
-export const listComments = newsComments.list
-export const createComment = newsComments.create
-export const updateComment = comments.update
-export const deleteComment = comments.remove
 
 /**
  * Turns a plain entry into one built from blocks. What the author already wrote becomes a single

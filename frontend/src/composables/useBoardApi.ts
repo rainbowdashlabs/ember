@@ -8,10 +8,11 @@ import { useRoute } from 'vue-router'
 import { boards } from '@/api'
 import * as federatedBoards from '@/api/federatedBoards'
 import type {
-    AnyBoard, BoardFieldRaw, BoardFieldTypeName, BoardTicketComment, LinkTypeName, TypedBoardField, TypedBoardFieldValue,
+    AnyBoard, BoardFieldRaw, BoardFieldTypeName, LinkTypeName, TypedBoardField, TypedBoardFieldValue,
 } from '@/api/boards'
+import type { CommentSource } from '@/api/comments'
 import type {
-    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketCommentRequest,
+    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment,
     BoardTicketHistoryResponse, BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink,
     ChecklistItemRequest, MemberCompletion, MoveTicketRequest, ReorderChecklistRequest, TicketSummary, UpdateTicketRequest,
 } from '@/api/generated/schema'
@@ -22,7 +23,7 @@ import type {
  * Otherwise, uses the local API.
  *
  * <p>A partner's board offers no weblinks, field values or wiki links, and does not take reordered
- * checklists or edited and deleted comments: those reads answer empty and those writes do nothing there.
+ * checklists: those reads answer empty and those writes do nothing there.
  */
 export function useBoardApi() {
     const route = useRoute()
@@ -113,9 +114,9 @@ export function useBoardApi() {
         return boards.getHistory(boardKey.value, ticketNumber.value)
     }
 
-    async function getComments(): Promise<BoardTicketComment[]> {
-        if (isFederated.value) return federatedBoards.getComments(partnerUid.value!, boardKey.value, ticketNumber.value)
-        return boards.getComments(boardKey.value, ticketNumber.value)
+    function commentSource(): CommentSource {
+        if (isFederated.value) return federatedBoards.partnerTicketCommentSource(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.ticketCommentSource(boardKey.value, ticketNumber.value)
     }
 
     async function getWeblinks(): Promise<BoardWeblink[]> {
@@ -181,21 +182,6 @@ export function useBoardApi() {
     async function reorderChecklist(data: ReorderChecklistRequest): Promise<void> {
         if (isFederated.value) return
         await boards.reorderChecklist(boardKey.value, ticketNumber.value, data)
-    }
-
-    async function createComment(data: BoardTicketCommentRequest): Promise<void> {
-        if (isFederated.value) { await federatedBoards.addComment(partnerUid.value!, boardKey.value, ticketNumber.value, data); return }
-        await boards.createComment(boardKey.value, ticketNumber.value, data)
-    }
-
-    async function updateComment(commentId: number, data: BoardTicketCommentRequest): Promise<void> {
-        if (isFederated.value) { await federatedBoards.updateComment(partnerUid.value!, boardKey.value, ticketNumber.value, commentId, data); return }
-        await boards.updateComment(boardKey.value, ticketNumber.value, commentId, data)
-    }
-
-    async function deleteComment(commentId: number): Promise<void> {
-        if (isFederated.value) { await federatedBoards.deleteComment(partnerUid.value!, boardKey.value, ticketNumber.value, commentId); return }
-        await boards.deleteComment(boardKey.value, ticketNumber.value, commentId)
     }
 
     async function addTicketLabel(labelId: number): Promise<BoardLabel[]> {
@@ -272,7 +258,7 @@ export function useBoardApi() {
         getLinks,
         getTransitions,
         getHistory,
-        getComments,
+        commentSource,
         getWeblinks,
         getAttachments,
         getFieldValues,
@@ -286,9 +272,6 @@ export function useBoardApi() {
         updateChecklistItem,
         deleteChecklistItem,
         reorderChecklist,
-        createComment,
-        updateComment,
-        deleteComment,
         addTicketLabel,
         removeTicketLabel,
         createLink,

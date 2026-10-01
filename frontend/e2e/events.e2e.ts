@@ -111,6 +111,37 @@ test.describe('Events', () => {
     })
 
     /**
+     * A comment under an appointment belongs to whoever wrote it: they write it, put it right and
+     * take it back, all from the appointment's own page, and a correction is marked as one.
+     */
+    test('an author writes, changes and removes their comment on an appointment', async ({managerPage: page}) => {
+        const appointment = await weeklyAppointment(page, `Kommentarprobe ${Date.now()}`)
+        const first = `Erster Gedanke ${Date.now()}`
+        const second = `Zweiter Gedanke ${Date.now()}`
+        try {
+            await page.goto(`/station/events/${appointment.id}/${appointment.dateAfterWeeks(0)}`)
+            await page.locator('[contenteditable="true"]').last().click()
+            await page.keyboard.type(first)
+            await page.getByRole('button', {name: 'Absenden'}).click()
+
+            const comment = page.locator('[id^="comment-"]').filter({hasText: first})
+            await expect(comment).toHaveCount(1)
+            await comment.getByRole('button', {name: 'Bearbeiten', exact: true}).click()
+            await comment.locator('[contenteditable="true"]').click()
+            await page.keyboard.press('ControlOrMeta+A')
+            await page.keyboard.type(second)
+            await comment.getByRole('button', {name: 'Speichern', exact: true}).click()
+
+            const changed = page.locator('[id^="comment-"]').filter({hasText: second})
+            await expect(changed).toContainText('bearbeitet')
+            await changed.getByRole('button', {name: 'Löschen', exact: true}).click()
+            await expect(page.getByText(second)).toHaveCount(0)
+        } finally {
+            await appointment.remove()
+        }
+    })
+
+    /**
      * The list of what is coming up reads from the nearest date to the furthest. It used to hoist
      * every event running over several days to the front, which put one months away above
      * tomorrow's drill and made the whole list read as unsorted.

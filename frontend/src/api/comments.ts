@@ -5,20 +5,50 @@
  */
 import client from './client'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
-import type { MemberIdentity } from './generated/schema'
+import type { CommentResponse, MemberCompletion, MemberGroup, StationPermission } from './generated/schema'
+import { StationPermission as Permission } from './types'
+import { listCompletions } from './stationMembers'
+import { listGroups } from './memberGroups'
 import { apiErrorStatus } from '@/util/apiError'
 
-export interface Comment {
-    id: number
-    parentId?: number | null
-    author: MemberIdentity | null
-    authorName: string
-    content: string
-    deleted?: boolean
-    createdAt: string
-    updatedAt?: string | null
-    /** ISO yyyy-MM-dd for date-scoped comments on recurring events; null otherwise. */
-    eventDate?: string | null
+/** Whom a mention in a thread can name. */
+export interface Mentionables {
+    members: MemberCompletion[]
+    groups: MemberGroup[]
+}
+
+/**
+ * Everything a comment section needs from the surface it sits on: where its thread is read and
+ * written, whom a mention can name, and who besides the author may remove a comment.
+ *
+ * <p>Only the author changes a comment, on every surface. Removing somebody else's comment takes the
+ * surface's own manager right, the one the server checks; on a partner station's thread nobody here
+ * holds a right of that station, so there only authors remove.
+ */
+export interface CommentSource {
+    list(): Promise<CommentResponse[]>
+    create(parentId: number | null, content: string): Promise<unknown>
+    update(commentId: number, content: string): Promise<unknown>
+    remove(commentId: number): Promise<unknown>
+    mentionables(): Promise<Mentionables>
+    /** The right that lets somebody remove a comment they did not write, or null where only authors may. */
+    moderator: StationPermission | null
+    /** The appointment whose registered and declined members a mention can reach at once. */
+    eventId?: number
+}
+
+/**
+ * The members of this station a mention can name, narrowed to whoever may read what the thread hangs
+ * under, and its groups.
+ */
+export async function stationMentionables(restriction: {type: string; entityId: number}): Promise<Mentionables> {
+    const [members, groups] = await Promise.all([listCompletions(restriction), listGroups()])
+    return {members, groups}
+}
+
+/** Nobody: a partner station's members are not known here, and this station's mean nothing there. */
+export function noMentionables(): Promise<Mentionables> {
+    return Promise.resolve({members: [], groups: []})
 }
 
 export interface EntityNote {
@@ -39,8 +69,6 @@ export interface NoteVersion {
     createdAt: string
 }
 
-// -- Event Comments --
-
 interface CommentCreateRequest {
     parentId?: number | null
     content: string
@@ -51,58 +79,52 @@ interface CommentUpdateRequest {
     content: string
 }
 
-const eventComments = createScopedCrudResource<Comment, CommentCreateRequest>(
+const eventComments = createScopedCrudResource<CommentResponse, CommentCreateRequest>(
     (eventId: number) => `/events/${eventId}/comments`,
 )
 
 const comments = createCrudResource<
-    Comment,
+    CommentResponse,
     CommentUpdateRequest,
     CommentUpdateRequest,
-    Comment,
-    Comment,
+    CommentResponse,
+    CommentResponse,
     NoContent
 >('/events/comments')
 
 /**
- * Lists comments for an event. When `eventDate` is provided, the list is filtered to
- * comments scoped to that specific occurrence of a recurring event. When `eventDate` is
- * the literal string `'none'`, only whole-event comments (event_date IS NULL on the
- * backend) are returned. Omitted → all comments.
+ * The thread under one of the station's own appointments.
+ *
+ * <p>With a date, the thread is that one occurrence of a repeating appointment: it lists the comments
+ * written on that date and a new comment carries it. Without one it is the whole appointment.
  */
-export async function listEventComments(eventId: number, eventDate?: string | null): Promise<Comment[]> {
-    return eventComments.list(eventId, {date: eventDate})
+export function eventCommentSource(eventId: number, eventDate?: string | null): CommentSource {
+    return {
+        list: () => eventComments.list(eventId, {date: eventDate}),
+        create: (parentId, content) => eventComments.create(eventId, {parentId, content, eventDate: eventDate ?? undefined}),
+        update: (commentId, content) => comments.update(commentId, {content}),
+        remove: commentId => comments.remove(commentId),
+        mentionables: () => stationMentionables({type: 'EVENT_VIEW', entityId: eventId}),
+        moderator: Permission.EVENT_MANAGER,
+        eventId,
+    }
 }
 
-export const createEventComment = eventComments.create
-export const updateComment = comments.update
-export const deleteComment = comments.remove
-
-// -- Federated Event Comments --
-
-export async function listFederatedEventComments(stationUid: string, eventId: number): Promise<Comment[]> {
-    const res = await client.get<Comment[]>(`/federated/${stationUid}/events/${eventId}/comments`)
-    return res.data
+/**
+ * The thread under an appointment a partner station shares. A mention offers this station's own
+ * members, who are the ones reading along here.
+ */
+export function partnerEventCommentSource(stationUid: string, eventId: number): CommentSource {
+    const base = `/federated/${stationUid}/events`
+    return {
+        list: async () => (await client.get<CommentResponse[]>(`${base}/${eventId}/comments`)).data,
+        create: (parentId, content) => client.post(`${base}/${eventId}/comments`, {parentId, content}),
+        update: (commentId, content) => client.put(`${base}/comments/${commentId}`, {content}),
+        remove: commentId => client.delete(`${base}/comments/${commentId}`),
+        mentionables: async () => ({members: await listCompletions(), groups: []}),
+        moderator: null,
+    }
 }
-
-export async function createFederatedEventComment(
-    stationUid: string,
-    eventId: number,
-    data: { parentId?: number | null; content: string; eventDate?: string | null },
-): Promise<Comment> {
-    const res = await client.post<Comment>(`/federated/${stationUid}/events/${eventId}/comments`, data)
-    return res.data
-}
-
-export async function updateFederatedEventComment(stationUid: string, commentId: number, data: { content: string }): Promise<void> {
-    await client.put(`/federated/${stationUid}/events/comments/${commentId}`, data)
-}
-
-export async function deleteFederatedEventComment(stationUid: string, commentId: number): Promise<void> {
-    await client.delete(`/federated/${stationUid}/events/comments/${commentId}`)
-}
-
-// -- Notes --
 
 export async function getNote(entityType: string, entityId: number): Promise<EntityNote | null> {
     try {
