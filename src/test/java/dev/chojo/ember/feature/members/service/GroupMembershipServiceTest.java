@@ -205,9 +205,10 @@ class GroupMembershipServiceTest extends RepositoryTestBase {
 
         assertEquals(Refusal.GROUP_WRONG_USER_TYPE_ON_ADD, refused.refusal());
         assertEquals(
-                List.of(new GroupRuleRefused.Conflict(parent.id(), "Paula Parent", List.of("Ausbilder"))),
+                List.of(new GroupRuleRefused.GroupConflict(parent.id(), "Paula Parent", List.of("Ausbilder"))),
                 refused.conflicts());
-        assertTrue(refused.body() instanceof GroupRuleRefused.Body body
+        assertTrue(refused.body() instanceof GroupRuleRefused.GroupRuleRefusedBody body
+                && body.conflicts() != null
                 && body.conflicts().size() == 1);
     }
 

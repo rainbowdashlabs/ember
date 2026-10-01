@@ -20408,7 +20408,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                  "$ref" : "#/components/schemas/AnswersRefusedBody"
                 }
               }
             }
@@ -20452,7 +20452,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                  "$ref" : "#/components/schemas/AnswersRefusedBody"
                 }
               }
             }
@@ -20489,6 +20489,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FormResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AnswersRefusedBody"
                 }
               }
             }
@@ -20584,6 +20594,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FormResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AnswersRefusedBody"
                 }
               }
             }
@@ -21195,7 +21215,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Body"
+                  "$ref" : "#/components/schemas/GroupRuleRefusedBody"
                 }
               }
             }
@@ -21321,6 +21341,26 @@
                   "items" : {
                     "$ref" : "#/components/schemas/MemberWithName"
                   }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupRuleRefusedBody"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupRuleRefusedBody"
                 }
               }
             }
@@ -33028,7 +33068,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                  "$ref" : "#/components/schemas/AnswersRefusedBody"
                 }
               }
             }
@@ -33957,7 +33997,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                  "$ref" : "#/components/schemas/AnswersRefusedBody"
                 }
               }
             }
@@ -40769,6 +40809,25 @@
           }
         }
       },
+      "AnswerProblem" : {
+        "type" : "object",
+        "properties" : {
+          "questionId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "questionId", "pageKey", "code", "message" ]
+      },
       "AnswerRequest" : {
         "type" : "object",
         "properties" : {
@@ -40776,6 +40835,27 @@
             "type" : "boolean"
           }
         }
+      },
+      "AnswersRefusedBody" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "problems" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AnswerProblem"
+            }
+          }
+        },
+        "required" : [ "error" ]
       },
       "ApplicationDecisionRequest" : {
         "type" : "object",
@@ -42797,27 +42877,6 @@
           }
         },
         "required" : [ "id", "ticketId", "url", "title", "position" ]
-      },
-      "Body" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "code" : {
-            "type" : "string"
-          },
-          "conflicts" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/Conflict"
-            }
-          }
-        },
-        "required" : [ "error", "message", "code", "conflicts" ]
       },
       "BooleanConfig" : {
         "type" : "object",
@@ -44855,25 +44914,6 @@
             }
           }
         }
-      },
-      "Conflict" : {
-        "type" : "object",
-        "properties" : {
-          "memberId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "memberName" : {
-            "type" : "string"
-          },
-          "groups" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          }
-        },
-        "required" : [ "memberId", "memberName", "groups" ]
       },
       "Connect" : {
         "type" : "object",
@@ -51133,6 +51173,25 @@
           }
         }
       },
+      "GroupConflict" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "memberId", "memberName", "groups" ]
+      },
       "GroupDetail" : {
         "type" : "object",
         "properties" : {
@@ -51193,6 +51252,27 @@
             "type" : "boolean"
           }
         }
+      },
+      "GroupRuleRefusedBody" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "conflicts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GroupConflict"
+            }
+          }
+        },
+        "required" : [ "error" ]
       },
       "GroupRulesRequest" : {
         "type" : "object",

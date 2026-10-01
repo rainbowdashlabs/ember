@@ -144,7 +144,7 @@ public class GroupRulesService {
                 .collect(Collectors.toMap(MemberGroup::id, Function.identity()));
         var overlaps = groupRepository.findOverlaps(setGroups.keySet());
         if (overlaps.isEmpty()) return;
-        var conflicts = new ArrayList<GroupRuleRefused.Conflict>();
+        var conflicts = new ArrayList<GroupRuleRefused.GroupConflict>();
         overlaps.forEach((memberId, groupIds) -> conflicts.add(membershipService.conflict(
                 memberId,
                 groupIds.stream()
@@ -152,7 +152,7 @@ public class GroupRulesService {
                         .map(MemberGroup::name)
                         .sorted()
                         .toList())));
-        conflicts.sort(Comparator.comparing(GroupRuleRefused.Conflict::memberName));
+        conflicts.sort(Comparator.comparing(GroupRuleRefused.GroupConflict::memberName));
         throw GroupRuleRefused.naming(Refusal.GROUP_SET_MEMBERS_OVERLAP, conflicts);
     }
 

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.service.FormAnswersRefused;
+import dev.chojo.ember.feature.form.service.FormAnswersRefused.AnswersRefusedBody;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
 import dev.chojo.ember.feature.form.service.PublicFormService;
@@ -131,7 +132,7 @@ public class PublicFormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicFormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = PublicFormSubmitResponse.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "429", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -274,7 +275,7 @@ public class PublicFormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicFormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = PublicFormSubmitResponse.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "410", content = @OpenApiContent(from = ErrorResponseWrapper.class)),

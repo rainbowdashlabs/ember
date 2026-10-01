@@ -61,7 +61,8 @@ class FormPathWalkerTest {
         var walk = FormPathWalker.walk(pages, List.of(question), Map.of(1, new FormAnswerValue.TextAnswer("  ")));
 
         assertEquals(
-                List.of(FormAnswersRefused.Problem.of(1, "p0", Refusal.QUESTION_NEEDS_AN_ANSWER)), walk.problems());
+                List.of(FormAnswersRefused.AnswerProblem.of(1, "p0", Refusal.QUESTION_NEEDS_AN_ANSWER)),
+                walk.problems());
     }
 
     @Test
@@ -141,8 +142,8 @@ class FormPathWalkerTest {
 
         assertEquals(
                 List.of(
-                        FormAnswersRefused.Problem.of(42, null, Refusal.ANSWER_TO_QUESTION_NOT_ON_FORM),
-                        FormAnswersRefused.Problem.of(1, "p0", Refusal.ANSWER_DOES_NOT_FIT_QUESTION)),
+                        FormAnswersRefused.AnswerProblem.of(42, null, Refusal.ANSWER_TO_QUESTION_NOT_ON_FORM),
+                        FormAnswersRefused.AnswerProblem.of(1, "p0", Refusal.ANSWER_DOES_NOT_FIT_QUESTION)),
                 walk.problems());
     }
 

@@ -3,15 +3,15 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberGroup, MemberGroupSet} from '@/api/generated/schema'
+import type {GroupConflict as MemberConflict, MemberGroup, MemberGroupSet} from '@/api/generated/schema'
 import {StationUserTypeLabels} from '@/api/types'
-import {apiErrorBody, apiErrorCode, type ApiGroupConflict} from '@/util/apiError'
+import {apiErrorBody, apiErrorCode} from '@/util/apiError'
 
 /** A change to groups refused for the members it would break a rule for, as the screen shows it. */
 export interface GroupConflict {
     /** The code of the refusal, which says which rule it was. */
     code: string
-    conflicts: ApiGroupConflict[]
+    conflicts: MemberConflict[]
 }
 
 /** The members a change to groups was refused for, where the refusal named any. */

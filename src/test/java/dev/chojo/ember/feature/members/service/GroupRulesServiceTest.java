@@ -109,7 +109,7 @@ class GroupRulesServiceTest extends RepositoryTestBase {
         assertEquals(
                 List.of(parent.id()),
                 refused.conflicts().stream()
-                        .map(GroupRuleRefused.Conflict::memberId)
+                        .map(GroupRuleRefused.GroupConflict::memberId)
                         .toList());
         assertTrue(memberGroupRepo.findById(crew.id()).orElseThrow().userTypes().isEmpty());
 

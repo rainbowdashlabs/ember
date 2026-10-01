@@ -162,11 +162,12 @@ class FormBranchingTest extends RepositoryTestBase {
 
         assertEquals(Refusal.FORM_ANSWER_REFUSED, refused.refusal());
         assertEquals(
-                List.of(FormAnswersRefused.Problem.of(form.bringing().id(), "yes", Refusal.QUESTION_NEEDS_AN_ANSWER)),
+                List.of(FormAnswersRefused.AnswerProblem.of(
+                        form.bringing().id(), "yes", Refusal.QUESTION_NEEDS_AN_ANSWER)),
                 refused.problems());
         var renamed = refused.as(Refusal.FORM_ANSWERS_NOT_SAVED);
         assertEquals(Refusal.FORM_ANSWERS_NOT_SAVED, renamed.refusal());
-        var body = assertInstanceOf(FormAnswersRefused.Body.class, renamed.body());
+        var body = assertInstanceOf(FormAnswersRefused.AnswersRefusedBody.class, renamed.body());
         assertEquals("F-035", body.code());
         assertEquals(refused.problems(), body.problems());
         assertEquals(List.of(), service.findAllAnswersForForm(form.id()), "nothing was stored");

@@ -3,36 +3,26 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ErrorResponseWrapper, StepUpChallenge} from '@/api/generated/schema'
+import type {
+    AnswersRefusedBody,
+    ErrorResponseWrapper,
+    GroupRuleRefusedBody,
+    StepUpChallenge,
+} from '@/api/generated/schema'
 
 /**
- * Error payload the backend sends with a failed request: its error envelope, or the step-up challenge.
- * Any of their fields may be missing, because the body is whichever of the two the server answered with.
+ * Error payload the backend sends with a failed request: its error envelope, a refusal of answers to a
+ * form, a refusal of a change to groups, or the step-up challenge. Any of their fields may be missing,
+ * because the body is whichever of them the server answered with.
  *
- * <p>`title` is the problem-detail envelope of a request that never reached the application. A refusal
- * of answers to a form adds `problems`, one per question; a refusal of a change to groups adds
- * `conflicts`, one per member it was refused for.
+ * <p>`title` is the problem-detail envelope of a request that never reached the application, which the
+ * backend's own description does not cover.
  */
-export type ApiErrorBody = Partial<ErrorResponseWrapper> & Partial<StepUpChallenge> & {
-    title?: string
-    problems?: ApiAnswerProblem[]
-    conflicts?: ApiGroupConflict[]
-}
-
-/** One member a change to groups was refused for, with the groups the rule is about for them. */
-export interface ApiGroupConflict {
-    memberId: number
-    memberName: string
-    groups: string[]
-}
-
-/** One question an answer to a form was refused at. */
-export interface ApiAnswerProblem {
-    questionId: number
-    pageKey: string | null
-    code: string
-    message: string
-}
+export type ApiErrorBody = Partial<ErrorResponseWrapper>
+    & Partial<AnswersRefusedBody>
+    & Partial<GroupRuleRefusedBody>
+    & Partial<StepUpChallenge>
+    & {title?: string}
 
 /**
  * What a failed request leaves behind, in either of the two shapes the application meets.

@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalytics
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseDetail;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntry;
 import dev.chojo.ember.feature.form.service.FormAnswersRefused;
+import dev.chojo.ember.feature.form.service.FormAnswersRefused.AnswersRefusedBody;
 import dev.chojo.ember.feature.form.service.FormDirectoryService;
 import dev.chojo.ember.feature.form.service.FormDirectoryService.FormListEntry;
 import dev.chojo.ember.feature.form.service.FormDirectoryService.FormSearchResult;
@@ -748,7 +749,7 @@ public class FormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = FormResponse.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class))
             })
     private void submitResponse(Context ctx) {
         int id = pathInt(ctx, "id");
@@ -781,7 +782,7 @@ public class FormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class))
             })
     private void updateResponse(Context ctx) {
         int id = pathInt(ctx, "id");
@@ -814,6 +815,7 @@ public class FormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = FormResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void submitForMember(Context ctx) {
@@ -832,6 +834,7 @@ public class FormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormSubmitRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateForMember(Context ctx) {

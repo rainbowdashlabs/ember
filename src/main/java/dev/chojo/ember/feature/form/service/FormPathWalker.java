@@ -46,7 +46,9 @@ public final class FormPathWalker {
      * @param problems what is wrong with the answers, one entry per question; empty where they can be taken
      */
     public record Walk(
-            List<String> path, Map<Integer, FormAnswerValue> answers, List<FormAnswersRefused.Problem> problems) {}
+            List<String> path,
+            Map<Integer, FormAnswerValue> answers,
+            List<FormAnswersRefused.AnswerProblem> problems) {}
 
     /**
      * Walks the pages with the given answers.
@@ -58,11 +60,12 @@ public final class FormPathWalker {
      */
     public static Walk walk(List<FormPage> pages, List<FormQuestion> questions, Map<Integer, FormAnswerValue> answers) {
         var given = nonEmpty(answers);
-        var problems = new ArrayList<FormAnswersRefused.Problem>();
+        var problems = new ArrayList<FormAnswersRefused.AnswerProblem>();
         var known = questions.stream().map(FormQuestion::id).collect(Collectors.toSet());
         for (var questionId : given.keySet()) {
             if (!known.contains(questionId)) {
-                problems.add(FormAnswersRefused.Problem.of(questionId, null, Refusal.ANSWER_TO_QUESTION_NOT_ON_FORM));
+                problems.add(
+                        FormAnswersRefused.AnswerProblem.of(questionId, null, Refusal.ANSWER_TO_QUESTION_NOT_ON_FORM));
             }
         }
         var path = path(pages, questions, given);
@@ -73,13 +76,13 @@ public final class FormPathWalker {
             var value = given.get(question.id());
             if (value == null) {
                 if (question.required()) {
-                    problems.add(FormAnswersRefused.Problem.of(
+                    problems.add(FormAnswersRefused.AnswerProblem.of(
                             question.id(), question.pageKey(), Refusal.QUESTION_NEEDS_AN_ANSWER));
                 }
                 continue;
             }
             if (!question.config().validate(value).isEmpty()) {
-                problems.add(FormAnswersRefused.Problem.of(
+                problems.add(FormAnswersRefused.AnswerProblem.of(
                         question.id(), question.pageKey(), Refusal.ANSWER_DOES_NOT_FIT_QUESTION));
                 continue;
             }

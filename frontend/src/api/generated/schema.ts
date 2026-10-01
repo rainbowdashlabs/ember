@@ -25900,7 +25900,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                        "application/json": components["schemas"]["AnswersRefusedBody"];
                     };
                 };
             };
@@ -25936,7 +25936,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                        "application/json": components["schemas"]["AnswersRefusedBody"];
                     };
                 };
             };
@@ -26013,6 +26013,15 @@ export interface paths {
                         "application/json": components["schemas"]["FormResponse"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AnswersRefusedBody"];
+                    };
+                };
                 /** @description Forbidden */
                 403: {
                     headers: {
@@ -26048,6 +26057,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["FormResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AnswersRefusedBody"];
                     };
                 };
                 /** @description Forbidden */
@@ -26796,7 +26814,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Body"];
+                        "application/json": components["schemas"]["GroupRuleRefusedBody"];
                     };
                 };
             };
@@ -26935,6 +26953,24 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MemberWithName"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupRuleRefusedBody"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupRuleRefusedBody"];
                     };
                 };
             };
@@ -41563,7 +41599,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                        "application/json": components["schemas"]["AnswersRefusedBody"];
                     };
                 };
                 /** @description Not Found */
@@ -43624,7 +43660,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                        "application/json": components["schemas"]["AnswersRefusedBody"];
                     };
                 };
                 /** @description Not Found */
@@ -53764,8 +53800,21 @@ export interface components {
             slot?: number | null;
             typedInternalId?: string | null;
         };
+        AnswerProblem: {
+            code: string;
+            message: string;
+            pageKey: string | null;
+            /** Format: int32 */
+            questionId: number;
+        };
         AnswerRequest: {
             attending?: boolean;
+        };
+        AnswersRefusedBody: {
+            code?: string;
+            error: string;
+            message?: string;
+            problems?: components["schemas"]["AnswerProblem"][];
         };
         ApplicationDecisionRequest: {
             approve?: boolean;
@@ -54471,12 +54520,6 @@ export interface components {
             title: string;
             url: string;
         };
-        Body: {
-            code: string;
-            conflicts: components["schemas"]["Conflict"][];
-            error: string;
-            message: string;
-        };
         BooleanConfig: {
             falseLabel: string;
             /**
@@ -55171,12 +55214,6 @@ export interface components {
         CompleteContainerCheckRequest: {
             deep?: boolean;
             items?: components["schemas"]["CheckItemResult"][];
-        };
-        Conflict: {
-            groups: string[];
-            /** Format: int32 */
-            memberId: number;
-            memberName: string;
         };
         Connect: {
             pairs: components["schemas"]["Pair"][] | null;
@@ -57324,6 +57361,12 @@ export interface components {
             tagId?: number;
             userType?: components["schemas"]["StationUserType"];
         };
+        GroupConflict: {
+            groups: string[];
+            /** Format: int32 */
+            memberId: number;
+            memberName: string;
+        };
         GroupDetail: {
             /** Format: int32 */
             id: number;
@@ -57344,6 +57387,12 @@ export interface components {
             position?: number;
             removeNonMatching?: boolean;
             rules?: components["schemas"]["GroupRulesRequest"] | null;
+        };
+        GroupRuleRefusedBody: {
+            code?: string;
+            conflicts?: components["schemas"]["GroupConflict"][];
+            error: string;
+            message?: string;
         };
         GroupRulesRequest: {
             /** Format: int32 */
@@ -64099,7 +64148,9 @@ export type AiProviderRequest = components['schemas']['AiProviderRequest'];
 export type AiSettingsResponse = components['schemas']['AiSettingsResponse'];
 export type AiSuccessResponse = components['schemas']['AiSuccessResponse'];
 export type AnswerBody = components['schemas']['AnswerBody'];
+export type AnswerProblem = components['schemas']['AnswerProblem'];
 export type AnswerRequest = components['schemas']['AnswerRequest'];
+export type AnswersRefusedBody = components['schemas']['AnswersRefusedBody'];
 export type ApplicationDecisionRequest = components['schemas']['ApplicationDecisionRequest'];
 export type ApplicationLogPage = components['schemas']['ApplicationLogPage'];
 export type ApplicationRequest = components['schemas']['ApplicationRequest'];
@@ -64196,7 +64247,6 @@ export type BoardTicketKbLink = components['schemas']['BoardTicketKbLink'];
 export type BoardTicketLink = components['schemas']['BoardTicketLink'];
 export type BoardTicketTransitionResponse = components['schemas']['BoardTicketTransitionResponse'];
 export type BoardWeblink = components['schemas']['BoardWeblink'];
-export type Body = components['schemas']['Body'];
 export type BooleanConfig = components['schemas']['BooleanConfig'];
 export type BooleanValue = components['schemas']['BooleanValue'];
 export type BorrowedItemResponse = components['schemas']['BorrowedItemResponse'];
@@ -64301,7 +64351,6 @@ export type CommentRequest = components['schemas']['CommentRequest'];
 export type CommentResponse = components['schemas']['CommentResponse'];
 export type CompleteCheckRequest = components['schemas']['CompleteCheckRequest'];
 export type CompleteContainerCheckRequest = components['schemas']['CompleteContainerCheckRequest'];
-export type Conflict = components['schemas']['Conflict'];
 export type Connect = components['schemas']['Connect'];
 export type ConnectView = components['schemas']['ConnectView'];
 export type ConsentChangesResponse = components['schemas']['ConsentChangesResponse'];
@@ -64603,9 +64652,11 @@ export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsR
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
 export type GeocodingProvider = components['schemas']['GeocodingProvider'];
 export type GrantRequest = components['schemas']['GrantRequest'];
+export type GroupConflict = components['schemas']['GroupConflict'];
 export type GroupDetail = components['schemas']['GroupDetail'];
 export type GroupEntry = components['schemas']['GroupEntry'];
 export type GroupRequest = components['schemas']['GroupRequest'];
+export type GroupRuleRefusedBody = components['schemas']['GroupRuleRefusedBody'];
 export type GroupRulesRequest = components['schemas']['GroupRulesRequest'];
 export type GroupSetRequest = components['schemas']['GroupSetRequest'];
 export type GuardianEntry = components['schemas']['GuardianEntry'];

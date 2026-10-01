@@ -17,7 +17,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.GroupRuleRefused.Conflict;
+import dev.chojo.ember.feature.members.service.GroupRuleRefused.GroupConflict;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
@@ -330,9 +330,9 @@ public class GroupMembershipService {
      * @param groups   the names of those groups
      * @return the entry
      */
-    Conflict conflict(int memberId, List<String> groups) {
+    GroupConflict conflict(int memberId, List<String> groups) {
         String name = nameResolver.get().identified(memberId);
-        return new Conflict(memberId, name != null ? name : "#" + memberId, groups);
+        return new GroupConflict(memberId, name != null ? name : "#" + memberId, groups);
     }
 
     private void requireRightsFor(Collection<MemberGroup> groups, UserSession by, Refusal refusal) {

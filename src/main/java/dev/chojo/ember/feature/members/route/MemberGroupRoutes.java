@@ -194,7 +194,9 @@ public class MemberGroupRoutes implements Routes {
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
-                @OpenApiResponse(status = "409", content = @OpenApiContent(from = GroupRuleRefused.Body.class))
+                @OpenApiResponse(
+                        status = "409",
+                        content = @OpenApiContent(from = GroupRuleRefused.GroupRuleRefusedBody.class))
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
@@ -257,7 +259,15 @@ public class MemberGroupRoutes implements Routes {
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMembersRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)),
+                @OpenApiResponse(
+                        status = "400",
+                        content = @OpenApiContent(from = GroupRuleRefused.GroupRuleRefusedBody.class)),
+                @OpenApiResponse(
+                        status = "409",
+                        content = @OpenApiContent(from = GroupRuleRefused.GroupRuleRefusedBody.class))
+            })
     private void setMembers(Context ctx) {
         int groupId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);

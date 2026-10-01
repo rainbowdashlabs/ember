@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -19,9 +20,9 @@ import java.util.List;
  * those members and decide. A sentence alone would leave them searching.
  */
 public class GroupRuleRefused extends RefusalResponse {
-    private final transient List<Conflict> conflicts;
+    private final transient List<GroupConflict> conflicts;
 
-    private GroupRuleRefused(Refusal refusal, List<Conflict> conflicts) {
+    private GroupRuleRefused(Refusal refusal, List<GroupConflict> conflicts) {
         super(refusal, refusal.message());
         this.conflicts = List.copyOf(conflicts);
     }
@@ -33,7 +34,7 @@ public class GroupRuleRefused extends RefusalResponse {
      * @param conflicts the members concerned, one entry each
      * @return the refusal to throw
      */
-    public static GroupRuleRefused naming(Refusal refusal, List<Conflict> conflicts) {
+    public static GroupRuleRefused naming(Refusal refusal, List<GroupConflict> conflicts) {
         return new GroupRuleRefused(refusal, conflicts);
     }
 
@@ -42,14 +43,14 @@ public class GroupRuleRefused extends RefusalResponse {
      *
      * @return one entry per member
      */
-    public List<Conflict> conflicts() {
+    public List<GroupConflict> conflicts() {
         return conflicts;
     }
 
     @Override
     public Object body() {
         var refusal = refusal();
-        return new Body(refusal.status().getMessage(), getMessage(), refusal.code(), conflicts);
+        return new GroupRuleRefusedBody(refusal.status().getMessage(), getMessage(), refusal.code(), conflicts);
     }
 
     /**
@@ -59,16 +60,25 @@ public class GroupRuleRefused extends RefusalResponse {
      * @param memberName what the station calls them
      * @param groups     the names of the groups the rule is about for them
      */
-    public record Conflict(int memberId, String memberName, List<String> groups) {}
+    public record GroupConflict(int memberId, String memberName, List<String> groups) {}
 
     /**
-     * The error body of a refused change to groups: the usual error, and the members one by one.
+     * The error body of a route that changes groups: the usual error, and where a rule refused the
+     * change, the members one by one.
+     *
+     * <p>A route describes one body per status, and its other refusals share the status with this one.
+     * Those leave {@code conflicts} out, which is why it is optional here although a refusal for the
+     * members always carries it.
      *
      * @param error     the error category
      * @param message   what was refused
      * @param code      the code of the refusal
-     * @param conflicts the members concerned
+     * @param conflicts the members concerned, or {@code null} for a refusal of something else
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Body(String error, String message, String code, List<Conflict> conflicts) {}
+    public record GroupRuleRefusedBody(
+            String error,
+            @Nullable String message,
+            @Nullable String code,
+            @Nullable List<GroupConflict> conflicts) {}
 }
