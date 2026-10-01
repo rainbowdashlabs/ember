@@ -154,16 +154,23 @@ class ConsentServiceTest extends RepositoryTestBase {
     @Order(20)
     void getDiffSameVersion() {
         var versions = service.getCurrentVersions();
-        var diff = service.getPrivacyDiff(versions.privacyVersion(), versions.privacyVersion());
-        assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
+        assertNull(service.getPrivacyDiff(versions.privacyVersion(), versions.privacyVersion()));
     }
 
     @Test
     @Order(21)
-    void getTosDiff() {
-        var versions = service.getCurrentVersions();
-        var diff = service.getTosDiff(versions.tosVersion(), versions.tosVersion());
-        assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
+    void getTosDiff() throws IOException {
+        String before = service.getCurrentVersions().tosVersion();
+        Files.writeString(tempDir.resolve("tos").resolve("de").resolve("01-tos.md"), "# Terms\nThese are new terms.");
+        service.initialize();
+        String after = service.getCurrentVersions().tosVersion();
+        assertNotEquals(before, after);
+
+        var diff = service.getTosDiff(before, after);
+
+        assertNotNull(diff);
+        assertTrue(diff.contains("- These are the terms."), diff);
+        assertTrue(diff.contains("+ These are new terms."), diff);
     }
 
     @Test
@@ -207,9 +214,26 @@ class ConsentServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(24)
-    void getPrivacyDiffDifferentVersions() {
-        var diff = service.getPrivacyDiff("version-a", "version-b");
-        assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
+    void getPrivacyDiffDifferentVersions() throws IOException {
+        String before = service.getCurrentVersions().privacyVersion();
+        Files.writeString(
+                tempDir.resolve("privacy").resolve("de").resolve("01-privacy.md"),
+                "# Privacy\nWe value your privacy a lot.");
+        service.initialize();
+        String after = service.getCurrentVersions().privacyVersion();
+        assertNotEquals(before, after);
+
+        var diff = service.getPrivacyDiff(before, after);
+
+        assertNotNull(diff);
+        assertTrue(diff.contains("- We value your privacy."), diff);
+        assertTrue(diff.contains("+ We value your privacy a lot."), diff);
+    }
+
+    @Test
+    @Order(24)
+    void getPrivacyDiffOfVersionsNeverArchivedIsNull() {
+        assertNull(service.getPrivacyDiff("version-a", "version-b"));
     }
 
     @Test

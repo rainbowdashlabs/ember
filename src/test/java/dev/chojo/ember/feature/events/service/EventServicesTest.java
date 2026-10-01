@@ -587,8 +587,32 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(64)
     void findPendingRegistrationsByStation() {
+        var start = Instant.now().plus(14, ChronoUnit.DAYS);
+        var event = crudService.create(
+                station.id(),
+                "Pending Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+        var open = registrationService.register(event.id(), member.id(), LocalDate.of(2026, 11, 8), false, null);
+        var declined = registrationService.decline(event.id(), member.id(), LocalDate.of(2026, 11, 9), null);
+
         var pending = registrationService.findPendingByStation(station.id());
-        assertNotNull(pending);
+
+        assertTrue(pending.stream().anyMatch(r -> r.id() == open.id()), "the open registration is found");
+        assertFalse(pending.stream().anyMatch(r -> r.id() == declined.id()), "a declined one is not");
+        assertTrue(pending.stream().allMatch(r -> r.status() == RegistrationStatus.PENDING));
     }
 
     @Test

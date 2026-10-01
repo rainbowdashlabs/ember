@@ -292,8 +292,16 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(23)
     void findApplicableFieldsForMember() {
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+        var memberField = ask("ApplicableMemberField", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 20);
+        var guardianField = ask("ApplicableGuardianField", FieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 21);
+
         var fields = service.findApplicableFields(member.id());
-        assertNotNull(fields);
+
+        assertTrue(fields.stream().anyMatch(f -> f.id() == memberField.id()), "a member is asked the member field");
+        assertTrue(
+                fields.stream().noneMatch(f -> f.id() == guardianField.id()), "and not what only guardians are asked");
+        service.delete(memberField.id());
+        service.delete(guardianField.id());
     }
 
     /**
