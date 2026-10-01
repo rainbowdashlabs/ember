@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /** One screen asking for a station, under a token of its own. */
 interface Claim {
     token: string
