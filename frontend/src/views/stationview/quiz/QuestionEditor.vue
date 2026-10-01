@@ -148,10 +148,8 @@ function onTypeChange(val: string | number | null | undefined) {
       </div>
     </div>
 
-    <!-- Image upload (only for IMAGE_TEXT) -->
     <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" :auth-src="authImageSrc" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
 
-    <!-- Type-specific config editors -->
     <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" v-model:config="config" :question-title="title" />
     <FillBlankConfigEditor v-if="questionType === QuizQuestionTypes.FILL_IN_THE_BLANK" v-model:config="config" />
     <FreeAnswerConfigEditor v-if="questionType === QuizQuestionTypes.FREE_ANSWER || questionType === QuizQuestionTypes.ENUMERATION" v-model:config="config" />
@@ -160,7 +158,6 @@ function onTypeChange(val: string | number | null | undefined) {
     <TfConfigEditor v-if="questionType === QuizQuestionTypes.TRUE_FALSE" v-model:config="config" />
     <OrderingConfigEditor v-if="questionType === QuizQuestionTypes.ORDERING" v-model:config="config" />
 
-    <!-- Save / Cancel -->
     <ButtonRow pair align="end" class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="!title.trim()" @click="emit('save')">{{ t('common.save') }}</PrimaryButton>

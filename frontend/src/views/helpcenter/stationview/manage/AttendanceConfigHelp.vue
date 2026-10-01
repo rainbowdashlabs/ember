@@ -29,7 +29,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceConfig.createFields') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Create button and template list -->
     <div class="space-y-4">
       <PrimaryButton :icon="['fas', 'plus']" disabled>
         {{ t('attendanceConfig.create') }}

@@ -189,7 +189,6 @@ function statusLabel(status: string): string {
 
     <div v-if="pendingRegistrations.length > 0" class="space-y-2">
       <SubHeader>{{ statusLabel('PENDING') }}</SubHeader>
-      <!-- Manager view: table with stats and action buttons -->
       <RegistrationStatsTable
           v-if="hasPermission(StationPermission.EVENT_REGISTRATION)"
           :fields="runsEvent ? fields : []"
@@ -201,7 +200,6 @@ function statusLabel(status: string): string {
           @deny="emit('deny', $event)"
           @edit-answers="emit('editAnswers', $event)"
       />
-      <!-- Non-manager view: card display matching confirmed registrations -->
       <template v-else>
         <NeutralContainer v-for="reg in pendingRegistrations" :key="reg.id">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

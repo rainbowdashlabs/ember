@@ -230,7 +230,6 @@ defineExpose({ currentEntry })
 </script>
 
 <template>
-  <!-- Rapid check: assigned item -->
   <NeutralContainer v-if="currentEntry?.type === 'item'" class="space-y-4">
     <div class="text-center space-y-2">
       <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
@@ -295,7 +294,6 @@ defineExpose({ currentEntry })
     </ButtonRow>
   </NeutralContainer>
 
-  <!-- Rapid check: empty slot -->
   <NeutralContainer v-else-if="currentEntry?.type === 'slot'" class="space-y-4">
     <div class="text-center space-y-2">
       <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
@@ -309,7 +307,6 @@ defineExpose({ currentEntry })
       </p>
     </div>
 
-    <!-- Assign from existing unassigned -->
     <div v-if="availableForInventory(currentEntry.req.inventoryId).length > 0" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
       <SelectInput v-model="rapidAssignSelection" class="flex-1">
         <option value="" disabled>{{ t('inventory.check.selectItem') }}</option>
@@ -322,7 +319,6 @@ defineExpose({ currentEntry })
       </PrimaryButton>
     </div>
 
-    <!-- Create new item -->
     <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
       <SelectInput v-if="currentEntry.req.hasSizes && currentEntry.req.sizes.length > 0" v-model="rapidCreateSizeId" class="flex-1">
         <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
@@ -357,7 +353,6 @@ defineExpose({ currentEntry })
     </ButtonRow>
   </NeutralContainer>
 
-  <!-- Rapid check: done -->
   <NeutralContainer v-else class="text-center py-4 space-y-2">
     <p class="text-lg font-medium">{{ t('inventory.check.rapidDone') }}</p>
     <SecondaryButton @click="emit('done')">{{ t('inventory.check.backToList') }}</SecondaryButton>

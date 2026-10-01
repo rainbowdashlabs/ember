@@ -40,7 +40,6 @@ defineEmits<{
           <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
         </div>
         <div class="text-sm text-(--text-muted) flex items-center gap-1">
-          <!-- An association orders for its own store, so there is nobody to name and no dash to hang -->
           <template v-if="entry.memberIdentity">
             <MemberName :identity="entry.memberIdentity"/>
             <span>,</span>

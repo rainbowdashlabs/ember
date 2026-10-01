@@ -45,10 +45,9 @@ const relaySecret = computed({
 const PROVIDERS = ['NONE', 'SMTP', 'RAPIDMAIL', 'TWILIO', 'SWEEGO', 'BREVO']
 
 onMounted(async () => {
-    try {
-        const [existing] = await getStationProviders()
+    await getStationProviders().then(([existing]) => {
         if (existing) cfg.value = {...existing, smtpPassword: '', apiKey: ''}
-    } catch { /* ignore */ }
+    }).catch(() => {})
     loading.value = false
 })
 

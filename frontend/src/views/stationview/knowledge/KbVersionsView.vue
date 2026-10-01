@@ -149,14 +149,12 @@ watch(loaded, (isLoaded) => {
 
             <Alert v-if="!canRevert" variant="info" class="mt-3">{{ t('kb.revertUnavailableForBlocks') }}</Alert>
 
-            <!-- Version content view -->
             <div v-if="selectedVersion" class="mt-6">
                 <SectionHeader class="text-lg font-semibold mb-2">
                     {{ t('kb.version') }} {{ selectedVersion.version }} - {{ t('kb.content') }}
                 </SectionHeader>
                 <Spinner v-if="loadingVersion"/>
 
-                <!-- First version: show full content -->
                 <template v-else-if="selectedVersion.isFull">
                     <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('kb.initialVersion') }}</p>
                     <NeutralContainer>
@@ -164,7 +162,6 @@ watch(loaded, (isLoaded) => {
                     </NeutralContainer>
                 </template>
 
-                <!-- Subsequent versions: colored diff -->
                 <template v-else>
                     <NeutralContainer class="!p-0 overflow-hidden">
                         <DiffView :patch="selectedVersion.patch" show-line-numbers/>
@@ -173,7 +170,6 @@ watch(loaded, (isLoaded) => {
             </div>
         </template>
 
-        <!-- Revert Confirmation -->
         <Modal v-model="showRevertModal">
             <template #title>{{ t('kb.revert') }}</template>
             <p class="mb-4">{{ t('kb.revertConfirm') }}</p>

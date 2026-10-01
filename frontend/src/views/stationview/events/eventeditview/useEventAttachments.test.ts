@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {useEventAttachments} from './useEventAttachments'
 import type {EventAttachment, StationFile} from '@/api/generated/schema'

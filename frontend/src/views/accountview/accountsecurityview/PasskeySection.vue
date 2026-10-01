@@ -54,18 +54,23 @@ const removal = useConfirmDelete<PasskeyEntryResponse>({
     const before = status.value
     const outcome = await removePasskey(entry.id)
     notice.value = outcome.passwordLoginReenabled ? t('passkeys.section.passwordReenabled') : ''
-    // Tell the device's own store which credentials still exist, so the removed passkey
-    // disappears from its picker instead of haunting it.
-    if (before?.rpId && before.userHandle) {
-      const remaining = before.passkeys
-          .filter(p => p.id !== entry.id && p.credentialId)
-          .map(p => p.credentialId as string)
-      await signalAcceptedCredentials(before.rpId, before.userHandle, remaining)
-    }
+    await forgetOnDevice(before, entry.id)
     await reload()
   },
   failure,
 })
+
+/**
+ * Tells the device's own store which credentials still exist, so the removed passkey disappears
+ * from its picker instead of haunting it.
+ */
+async function forgetOnDevice(before: PasskeysStatusResponse | null, removedId: PasskeyEntryResponse['id']) {
+  if (!before?.rpId || !before.userHandle) return
+  const remaining = before.passkeys
+      .filter(p => p.id !== removedId && p.credentialId)
+      .map(p => p.credentialId as string)
+  await signalAcceptedCredentials(before.rpId, before.userHandle, remaining)
+}
 
 /**
  * Removes the passkey, and says which refusal it was.

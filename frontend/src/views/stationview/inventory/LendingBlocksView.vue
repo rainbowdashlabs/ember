@@ -53,11 +53,14 @@ interface GroupedBlock {
   blockIds: number[]
 }
 
+/**
+ * Blocks sharing a date range and a reason, shown as one. A block without an inventory covers all
+ * of them, one with a piece names that piece, and the rest cover their whole inventory.
+ */
 const groupedBlocks = computed<GroupedBlock[]>(() => {
   const groups = new Map<string, GroupedBlock>()
 
   for (const block of blocks.value) {
-    // Group by same date range + reason
     const key = `${block.blockFrom}|${block.blockTo}|${block.reason}`
 
     if (!groups.has(key)) {
@@ -76,10 +79,8 @@ const groupedBlocks = computed<GroupedBlock[]>(() => {
     group.blockIds.push(block.id)
 
     if (!block.inventoryId) {
-      // Full block (all inventories)
       group.isFullBlock = true
     } else if (block.itemId) {
-      // Specific item - add to its inventory group
       let inv = group.inventories.find(i => i.inventoryId === block.inventoryId)
       if (!inv) {
         inv = {inventoryId: block.inventoryId, inventoryName: getInventoryName(block.inventoryId), allItems: false, items: []}
@@ -88,7 +89,6 @@ const groupedBlocks = computed<GroupedBlock[]>(() => {
       const resolved = getItemName(block.inventoryId, block.itemId)
       inv.items.push({id: block.itemId, name: resolved.name, internalId: resolved.internalId})
     } else {
-      // Entire inventory blocked
       let inv = group.inventories.find(i => i.inventoryId === block.inventoryId)
       if (!inv) {
         inv = {inventoryId: block.inventoryId, inventoryName: getInventoryName(block.inventoryId), allItems: true, items: []}

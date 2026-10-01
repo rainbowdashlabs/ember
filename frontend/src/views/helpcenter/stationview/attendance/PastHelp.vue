@@ -26,7 +26,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendancePast.entryCounts') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Past sessions list -->
     <div class="space-y-2">
       <NeutralContainer clickable>
         <div class="flex items-center justify-between flex-wrap gap-2">

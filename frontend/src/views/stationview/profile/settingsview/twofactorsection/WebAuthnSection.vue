@@ -84,8 +84,6 @@ async function confirmEnrollment() {
   enrolling.value = true
   failure.value = null
   try {
-    // First enrolment answers the step-up prompt like everything else on this screen; the
-    // password field this form used to carry is gone with the backend rule that needed it.
     const begin = await webauthnRegisterBegin()
     const credentialJson = await createWebAuthnCredential(begin.optionsJson)
     const result = await webauthnRegisterFinish(begin.challengeToken, credentialJson, newLabel.value.trim())

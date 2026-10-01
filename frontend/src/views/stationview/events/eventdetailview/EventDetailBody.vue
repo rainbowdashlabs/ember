@@ -115,7 +115,10 @@ watch(() => [props.eventId, props.effectiveDate] as const, async () => {
   }
 }, {immediate: true})
 
-/** Opens the date's own sheet, or the page that takes it where there is none yet. */
+/**
+ * Opens the date's own sheet, or the page that takes it where there is none yet. The day travels
+ * along, or the sheet is written for whichever day the button happened to be pressed.
+ */
 function toAttendance() {
   if (attendanceSessionId.value) {
     router.push({name: 'attendance-session', params: {id: attendanceSessionId.value}})
@@ -125,7 +128,6 @@ function toAttendance() {
     templateId: String(props.event.templateId),
     eventId: String(props.eventId),
   }
-  // The day travels, or the sheet is written for whichever day the button happened to be pressed.
   if (props.effectiveDate) query.date = props.effectiveDate
   router.push({name: 'attendance-new', query})
 }

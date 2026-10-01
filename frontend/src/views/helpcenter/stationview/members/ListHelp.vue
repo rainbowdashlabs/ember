@@ -48,11 +48,9 @@ const tabs = [
       <p>{{ t('helpCenter.membersList.tabManagerRole') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Tabs with all 6 options -->
     <HelpSection :title="t('helpCenter.membersList.exampleTitle')">
       <TabBar :model-value="activeTab" :tabs="tabs"/>
 
-      <!-- Dummy: Member table with user type column -->
       <DataTable class="mt-3">
         <template #head>
           <Th>{{ t('membersList.colName') }}</Th>

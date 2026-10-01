@@ -55,7 +55,6 @@ const activeView = ref('')
       <p>{{ t('helpCenter.dashboard.onboardingShared') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Profile incomplete banner -->
     <ErrorContainer class="flex items-center justify-between gap-4">
       <div>
         <p class="font-semibold text-sm">{{ t('dashboard.profileIncomplete') }}</p>
@@ -69,7 +68,6 @@ const activeView = ref('')
       <p>{{ t('helpCenter.dashboard.notificationsAction') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Notifications panel -->
     <NeutralContainer class="space-y-3">
       <div class="flex items-center justify-between">
         <SectionHeader>
@@ -110,7 +108,6 @@ const activeView = ref('')
       </NeutralContainer>
     </NeutralContainer>
 
-    <!-- Dummy: Exchange requests panel -->
     <NeutralContainer class="space-y-3">
       <SectionHeader>
         <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2"/>
@@ -126,7 +123,6 @@ const activeView = ref('')
       </NeutralContainer>
     </NeutralContainer>
 
-    <!-- Dummy: Registrations panel -->
     <NeutralContainer class="space-y-3">
       <SectionHeader>
         <font-awesome-icon :icon="['fas', 'calendar-days']" class="mr-2"/>
@@ -148,7 +144,6 @@ const activeView = ref('')
       </NeutralContainer>
     </NeutralContainer>
 
-    <!-- Dummy: Upcoming events panel -->
     <NeutralContainer class="space-y-3">
       <SectionHeader>
         <font-awesome-icon :icon="['fas', 'calendar-plus']" class="mr-2"/>

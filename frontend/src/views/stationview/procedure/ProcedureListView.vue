@@ -146,7 +146,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </div>
     </AsyncSection>
 
-    <!-- Delete Modal -->
     <Modal v-model="showDeleteModal">
       <SubHeader class="mb-3">{{ t('procedures.deleteConfirm') }}</SubHeader>
       <p class="mb-4">{{ deleteTarget?.name }}</p>

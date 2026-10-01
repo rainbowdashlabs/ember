@@ -44,6 +44,7 @@ async function continueToApp() {
   await navigateTo(landing.path)
 }
 
+/** Creates the passkey and moves on to the trial. A cancelled system sheet changes nothing, so the offer stands. */
 async function accept() {
   error.value = ''
   phase.value = 'creating'
@@ -53,7 +54,6 @@ async function accept() {
     await passkeys.passkeyCreateFinish(begin.challengeToken, credentialJson, t('passkeys.defaultLabel'))
     phase.value = 'trial'
   } catch (e) {
-    // A cancelled OS sheet is not an error: nothing changed, and the offer stands.
     error.value = t(webauthnErrorKey(e, 'create'))
     phase.value = 'offer'
   }

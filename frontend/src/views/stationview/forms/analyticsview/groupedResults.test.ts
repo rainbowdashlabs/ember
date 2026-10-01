@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {QuestionTypes, type QuestionType} from '@/api/forms'
 import type {FormQuestionInfo, FormQuestionTally, FormResultGroup} from '@/api/generated/schema'

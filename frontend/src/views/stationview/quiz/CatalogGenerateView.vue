@@ -55,8 +55,6 @@ const genPreviews = ref<GenPreview[]>([])
 
 const aiSettingsRef = ref<InstanceType<typeof AiSettingsPanel> | null>(null)
 
-// --- AI Question Generation ---
-
 function getAiParams() {
   const panel = aiSettingsRef.value
   return {

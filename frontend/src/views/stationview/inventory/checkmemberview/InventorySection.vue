@@ -65,7 +65,6 @@ const pieceCount = computed(() => props.assignedItems.length + props.emptySlotCo
       </MutedText>
     </div>
 
-    <!-- Assigned items -->
     <div class="space-y-2">
       <InventoryItemCard
         v-for="(item, index) in assignedItems"
@@ -84,7 +83,6 @@ const pieceCount = computed(() => props.assignedItems.length + props.emptySlotCo
       />
     </div>
 
-    <!-- Empty slots -->
     <EmptySlotCard
       v-for="slotIdx in emptySlotCount"
       :key="`empty-${req.inventoryId}-${slotIdx}`"

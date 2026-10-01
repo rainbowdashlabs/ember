@@ -29,7 +29,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminStationsOverview.pageSettings') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Station list overview -->
     <NeutralContainer class="space-y-3">
       <SectionHeader>{{ t('helpCenter.adminStationsOverview.dummyTitle') }}</SectionHeader>
       <div class="grid gap-4 sm:grid-cols-2">

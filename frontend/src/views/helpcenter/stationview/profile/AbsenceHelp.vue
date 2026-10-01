@@ -51,7 +51,6 @@ const activeView = ref('')
       </template>
     </HelpSection>
 
-    <!-- Dummy: Add absence form -->
     <NeutralContainer class="space-y-4">
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
@@ -68,7 +67,6 @@ const activeView = ref('')
         </div>
       </div>
 
-      <!-- Dummy: Member selection for managers -->
       <template v-if="activeView === 'memberManager'">
         <div class="space-y-2">
           <FieldLabel>{{ t('profile.absenceFor') }}</FieldLabel>
@@ -98,7 +96,6 @@ const activeView = ref('')
       <p>{{ t('helpCenter.absences.statusExpired') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Absence list -->
     <div class="space-y-2">
       <NeutralContainer>
         <div class="flex items-center justify-between flex-wrap gap-2">

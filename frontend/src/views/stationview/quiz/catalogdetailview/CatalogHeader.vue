@@ -62,7 +62,6 @@ defineExpose({ resetForm })
 </script>
 
 <template>
-  <!-- Federated: Copy to station button -->
   <NeutralContainer v-if="isFederated">
     <div class="space-y-4">
       <div class="flex items-center gap-2 flex-wrap">
@@ -84,7 +83,6 @@ defineExpose({ resetForm })
     </div>
   </NeutralContainer>
 
-  <!-- Catalog Metadata -->
   <NeutralContainer v-else>
     <div class="space-y-4">
       <PageHeader>{{ catalog.name }}</PageHeader>

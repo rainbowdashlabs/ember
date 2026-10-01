@@ -32,16 +32,20 @@ const emit = defineEmits<{
 const label = ref('')
 const {phase, error, start, runTrial, skipTrial, reset} = usePasskeyCreation()
 
-watch(open, (v) => {
+/**
+ * Starts afresh on opening. Closing after a creation reloads the parent again: the trial ran in
+ * between, and what it proved decides whether the password switch may show at all.
+ */
+function onOpenChange(v: boolean) {
   if (v) {
     label.value = ''
     reset()
     return
   }
-  // Closing after a creation reloads the parent again: the trial ran in between, and what it
-  // proved decides whether the password switch may show at all.
   if (phase.value !== 'idle') emit('created')
-})
+}
+
+watch(open, onOpenChange)
 
 async function create() {
   if (await start(label.value.trim() || t('passkeys.defaultLabel'))) emit('created')

@@ -56,15 +56,15 @@ const connectPairs = computed<Record<string, string>>(() => {
   return (props.answerParsed as { pairs?: Record<string, string> }).pairs ?? {}
 })
 
+/** Read from the sanitized config's hint where it has one, otherwise by counting correct options. */
 const isMultipleCorrect = computed(() => {
-  // Use the multiSelect hint from sanitized config, or fall back to counting correct options
   if (props.config.multiSelect !== undefined) return props.config.multiSelect as boolean
   const opts = props.config.options
   if (!Array.isArray(opts)) return false
   return (opts as { correct?: boolean }[]).filter(o => o.correct).length > 1
 })
 
-// Use the config with connect items injected for the shared component
+/** The config with the connect items injected, as the shared answer component expects it. */
 const effectiveConfig = computed<Record<string, unknown>>(() => {
   const cfg = { ...props.config }
   if (props.connectLeftItems.length > 0) cfg.leftItems = props.connectLeftItems

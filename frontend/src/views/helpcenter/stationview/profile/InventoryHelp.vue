@@ -68,7 +68,6 @@ const dummyStiefel = dummyPiece({
 
     <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
-    <!-- Dummy: Member selector for managers -->
     <template v-if="activeView === 'memberManager'">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('profile.inventory') }}</SectionHeader>
@@ -80,9 +79,7 @@ const dummyStiefel = dummyPiece({
       </div>
     </template>
 
-    <!-- Dummy: Inventory groups using real InventoryItemCard -->
     <div class="space-y-6">
-      <!-- Group: Helme -->
       <div>
         <div class="flex items-center justify-between mb-2">
           <SubHeader>{{ t('helpCenter.sample.equipment.helmets') }}</SubHeader>
@@ -93,7 +90,6 @@ const dummyStiefel = dummyPiece({
         </div>
       </div>
 
-      <!-- Group: Jacken (with exchange) -->
       <div>
         <div class="flex items-center justify-between mb-2">
           <SubHeader>{{ t('helpCenter.sample.equipment.jackets') }}</SubHeader>
@@ -104,7 +100,6 @@ const dummyStiefel = dummyPiece({
         </div>
       </div>
 
-      <!-- Group: Stiefel (with lost item) -->
       <div>
         <div class="flex items-center justify-between mb-2">
           <SubHeader>{{ t('helpCenter.sample.equipment.boots') }}</SubHeader>
@@ -137,7 +132,6 @@ const dummyStiefel = dummyPiece({
       <p>{{ t('helpCenter.inventoryMy.lostReplacementText') }}</p>
     </HelpSection>
 
-    <!-- Exchange request modal using real Modal -->
     <Modal v-model="showExchangeModal">
       <div class="space-y-3">
         <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>

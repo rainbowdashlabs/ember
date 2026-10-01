@@ -35,6 +35,10 @@ function clampColumn(value: number): number {
 
 const track = computed(() => PITCH_TRACKS[column.value]!)
 const slides = computed(() => trackSlides(track.value))
+/**
+ * The slide on show. A change overlaps the leaving and the entering slide, so a heavy screen never
+ * shows an empty frame in between.
+ */
 const slide = computed(() => slides.value[currentRow.value] ?? track.value.overview)
 
 function moveColumn(delta: number) {
@@ -78,13 +82,15 @@ async function toggleFullscreen() {
   else await stage.value?.requestFullscreen().catch(() => undefined)
 }
 
-/*
- * The address follows the position without going through the router: a navigation would tear the
- * page down and build it up again between two slides, which is visible as a flash.
+/**
+ * Writes the position into the address without going through the router: a navigation would tear
+ * the page down and build it up again between two slides, which is visible as a flash.
  */
-watch([column, currentRow],([nextColumn, nextRow]) => {
+function showPositionInAddress([nextColumn, nextRow]: [number, number]) {
   history.replaceState(history.state, '', `/pitch/${nextColumn + 1}/${nextRow + 1}`)
-})
+}
+
+watch([column, currentRow], showPositionInAddress)
 
 watch(() => [props.column, props.row], ([nextColumn, nextRow]) => {
   column.value = clampColumn(nextColumn ?? 1)
@@ -140,10 +146,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/*
- * The slides overlap while they change: the leaving one stays until the entering one has drawn,
- * so a heavy screen never shows an empty frame in between.
- */
 .slide-fade-enter-active {
   transition: opacity 220ms ease, transform 220ms ease;
 }

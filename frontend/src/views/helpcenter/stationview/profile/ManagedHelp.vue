@@ -39,7 +39,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.managed.accessPasswordText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Member selector -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('profileManaged.title') }}</SectionHeader>
       <div class="space-y-1">
@@ -52,7 +51,6 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
-    <!-- Dummy: Access panel for the selected member -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('profileManaged.access.title') }}</SectionHeader>
       <MutedText tag="p" size="sm">{{ t('profileManaged.access.hint') }}</MutedText>
@@ -81,7 +79,6 @@ const {t} = useI18n()
       <PrimaryButton>{{ t('profile.save') }}</PrimaryButton>
     </NeutralContainer>
 
-    <!-- Dummy: Profile fields for selected member -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('profileManaged.fields') }}</SectionHeader>
       <div class="space-y-1">

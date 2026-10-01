@@ -27,7 +27,6 @@ const route = useRoute()
 const {station, stationUid, stationTimezone, canonicalPath} = usePublicStationAddress()
 const slug = computed((): string => {
   const param = route.params.slug
-  // Nuxt catch-all routes provide an array; vue-router provides a string
   return Array.isArray(param) ? param.join('/') : (param ?? '')
 })
 

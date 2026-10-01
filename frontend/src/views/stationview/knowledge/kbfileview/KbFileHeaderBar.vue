@@ -53,6 +53,10 @@ const canPresent = computed(() => props.file.fileType === KbFileType.PDF
     || (props.file.fileType === KbFileType.PRESENTATION && props.file.conversionStatus === 'SUCCESS'))
 const hasVersions = computed(() => props.file.fileType === KbFileType.MARKDOWN)
 const hasOriginal = computed(() => props.file.fileType === KbFileType.PRESENTATION)
+/**
+ * Whether the share link shows. It keeps its own button rather than a menu entry: the whole answer
+ * it gives is the tick it turns into, and a menu that has closed itself cannot show one.
+ */
 const canShareLink = computed(() => props.isKbPublic && !props.isFederated)
 
 /**
@@ -93,11 +97,6 @@ const hasMenu = computed(() => canShareLink.value
             @click="$emit('toggleFavourite')"
         />
 
-        <!--
-          The share link keeps its own button although it is an action like the others: the whole
-          answer it gives is the tick it turns into, and a menu that has closed itself cannot show
-          one.
-        -->
         <IconButton
             v-if="canShareLink"
             :icon="['fas', shareCopied ? 'check' : 'share-nodes']"

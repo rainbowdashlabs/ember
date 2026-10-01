@@ -27,7 +27,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.discovery.connectText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Discovery cards -->
     <HelpSection :title="t('helpCenter.discovery.exampleTitle')">
       <p>{{ t('helpCenter.discovery.exampleText') }}</p>
     </HelpSection>

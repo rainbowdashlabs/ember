@@ -113,15 +113,14 @@ async function issueCode() {
   }
 }
 
-/** The abandoned attempt must not leave a photographed code alive for the rest of its window. */
+/**
+ * The abandoned attempt must not leave a photographed code alive for the rest of its window. A
+ * failed revoke is let go, since the code still dies with its five minutes.
+ */
 async function revokeCode() {
   if (!passkeyCode.value) return
   passkeyCode.value = null
-  try {
-    await managedMembers.revokePasskeyCode(props.memberId)
-  } catch {
-    // The code still dies with its five minutes.
-  }
+  await managedMembers.revokePasskeyCode(props.memberId).catch(() => {})
 }
 
 async function toggleLogin(enabled: boolean) {

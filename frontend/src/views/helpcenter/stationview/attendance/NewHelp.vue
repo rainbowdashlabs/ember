@@ -26,7 +26,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceNew.fromEventText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Today's events -->
     <SectionHeader>{{ t('attendanceNew.todayEvents') }}</SectionHeader>
     <div class="grid gap-3 sm:grid-cols-2">
       <PrimaryContainer class="space-y-2 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
@@ -42,7 +41,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceNew.fromTemplateText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Templates -->
     <SectionHeader>{{ t('attendanceNew.fromTemplate') }}</SectionHeader>
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <NeutralContainer clickable>

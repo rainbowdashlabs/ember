@@ -91,12 +91,15 @@ const effectiveName = computed(() => {
 
 const canTidy = computed(() => selectedPieces.value > 0 && effectiveName.value !== '')
 
+/**
+ * Ticks or unticks a name. The commonest ticked name is the likeliest right spelling, so it is
+ * offered as the target while none is chosen, rather than imposed.
+ */
 function toggleName(name: string) {
   const next = new Set(selectedNames.value)
   if (next.has(name)) next.delete(name)
   else next.add(name)
   selectedNames.value = next
-  // The commonest ticked name is the likeliest right spelling, so it is offered rather than imposed.
   if (!targetArtId.value && !targetName.value && next.size > 0) {
     targetName.value = names.value.find(row => next.has(row.name))?.name ?? ''
   }

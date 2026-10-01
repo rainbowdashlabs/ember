@@ -43,7 +43,6 @@ const radioValue = ref('a')
 </script>
 
 <template>
-  <!-- Text Inputs -->
   <section class="space-y-4">
     <SectionHeader>Text Inputs</SectionHeader>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -70,7 +69,6 @@ const radioValue = ref('a')
     </div>
   </section>
 
-  <!-- Number Inputs -->
   <section class="space-y-4">
     <SectionHeader>Number Inputs</SectionHeader>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -93,7 +91,6 @@ const radioValue = ref('a')
     </div>
   </section>
 
-  <!-- Date & Time Inputs -->
   <section class="space-y-4">
     <SectionHeader>Date & Time Inputs</SectionHeader>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -112,7 +109,6 @@ const radioValue = ref('a')
     </div>
   </section>
 
-  <!-- Select -->
   <section class="space-y-4">
     <SectionHeader>Select</SectionHeader>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -133,7 +129,6 @@ const radioValue = ref('a')
     </div>
   </section>
 
-  <!-- Toggle & Checkbox & Radio -->
   <section class="space-y-4">
     <SectionHeader>Toggle</SectionHeader>
     <div class="flex flex-wrap items-center gap-4 sm:gap-6">

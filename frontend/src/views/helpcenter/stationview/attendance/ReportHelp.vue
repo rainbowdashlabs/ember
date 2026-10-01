@@ -32,12 +32,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceReport.filterRounding') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Filter controls using real components -->
     <HelpSection :title="t('helpCenter.attendanceReport.filterExampleTitle')">
       <ReportFilterPanel />
     </HelpSection>
 
-    <!-- Saved presets -->
     <HelpSection :title="t('helpCenter.attendanceReport.presetsTitle')">
       <p>{{ t('helpCenter.attendanceReport.presetsText') }}</p>
     </HelpSection>
@@ -51,7 +49,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceReport.previewSave') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Report preview table -->
     <HelpSection :title="t('helpCenter.attendanceReport.tableTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('attendanceReport.summary') }} – {{ t('helpCenter.sample.groups.member') }}</SubHeader>

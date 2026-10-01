@@ -53,6 +53,10 @@ const {
   inventories.value = await inventory.listInventories()
 }, {autoLoad: false})
 
+/**
+ * Adds the chosen inventory with the pieces that are free to block. Free is read from the custody,
+ * not the assignment: gear in transit or already with a partner is not free either.
+ */
 async function addEntry() {
   const invId = Number(addInventoryId.value)
   if (!invId) return
@@ -72,7 +76,6 @@ async function addEntry() {
 
   try {
     const items = await inventory.listItems(invId)
-    // Custody, not the assignment: gear in transit or already with a partner is not free either
     entry.items = items.filter(item => isAvailable(item.custody))
   } catch (e) {
     loadFailure.value = {...describeFailure(e, t), message: t('lending.availableUnreadable')}

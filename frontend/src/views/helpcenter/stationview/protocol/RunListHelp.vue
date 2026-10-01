@@ -27,7 +27,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolRunList.statusText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Run list -->
     <HelpSection :title="t('helpCenter.protocolRunList.exampleTitle')">
       <div class="flex items-center justify-between mb-3">
         <SectionHeader>{{ t('protocol.runs') }}</SectionHeader>

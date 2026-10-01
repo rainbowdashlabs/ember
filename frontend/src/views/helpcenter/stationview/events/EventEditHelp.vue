@@ -52,7 +52,6 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Form sections -->
     <HelpSection :title="t('helpCenter.eventEdit.generalTitle')">
       <p>{{ t('helpCenter.eventEdit.generalText') }}</p>
       <NeutralContainer class="space-y-4 mt-3">

@@ -198,7 +198,6 @@ async function reorder(fromIndex: number, toIndex: number) {
       </div>
     </Modal>
 
-    <!-- Delete Confirmation Modal -->
     <Modal v-model="deleteOpen">
       <div class="space-y-4">
         <SectionHeader>{{ t('categoryManage.deleteConfirmTitle') }}</SectionHeader>

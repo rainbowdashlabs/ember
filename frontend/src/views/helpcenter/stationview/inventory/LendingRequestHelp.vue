@@ -36,7 +36,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryLendingRequest.chatText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Request detail -->
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('helpCenter.inventoryLendingRequest.dummyTitle') }}</SectionHeader>
@@ -68,7 +67,6 @@ const {t} = useI18n()
           {{ t('helpCenter.inventoryLendingRequest.dummyMarkReturned') }}
         </SecondaryButton>
       </ButtonRow>
-      <!-- Chat preview -->
       <NeutralContainer class="space-y-2">
         <p class="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wide">{{ t('helpCenter.inventoryLendingRequest.chatTitle') }}</p>
         <div class="flex flex-col gap-2">

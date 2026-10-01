@@ -29,7 +29,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolEvaluation.summaryText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Header with export buttons -->
     <HelpSection :title="t('helpCenter.protocolEvaluation.exportTitle')">
       <p>{{ t('helpCenter.protocolEvaluation.exportText') }}</p>
       <div class="flex items-center gap-2 mb-4">
@@ -48,7 +47,6 @@ const { t } = useI18n()
       </div>
     </HelpSection>
 
-    <!-- Dummy: Multi-member comparison table -->
     <HelpSection :title="t('helpCenter.protocolEvaluation.tableTitle')">
       <p>{{ t('helpCenter.protocolEvaluation.tableText') }}</p>
       <NeutralContainer>
@@ -60,7 +58,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Color coding -->
     <HelpSection :title="t('helpCenter.protocolEvaluation.colorsTitle')">
       <p>{{ t('helpCenter.protocolEvaluation.colorsText') }}</p>
     </HelpSection>

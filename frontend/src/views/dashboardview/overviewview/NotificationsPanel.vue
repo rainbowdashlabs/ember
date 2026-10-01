@@ -107,11 +107,11 @@ function withReadableDates(params: Record<string, string>): Record<string, strin
  * their locale namespace so they read in German. A movement called off is the exception with two
  * sentences rather than one: whether the piece came home cannot be said in a word, and it is the
  * half the reader cannot guess.
+ *
+ * <p>The panel shows this sentence and no body, so it stays scannable; the full body lives in the feed.
  */
 function renderMessage(n: NotificationResponse): string {
   const params = withReadableDates(n.params)
-  // Status fields arrive as raw enum names from the backend (PENDING, DONE, …);
-  // route each one through its locale namespace so the message reads in German.
   if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
     params.status = t(`dashboard.registrationStatus.${params.status}`)
   }
@@ -174,14 +174,13 @@ const feedCtaMessage = computed(() => {
 
 async function loadData() {
   loading.value = true
-  try {
-    const [n, fs] = await Promise.all([
-      notifications.listUnacknowledged(),
-      getFeedStatus().catch(() => null),
-    ])
+  await Promise.all([
+    notifications.listUnacknowledged(),
+    getFeedStatus().catch(() => null),
+  ]).then(([n, fs]) => {
     notifs.value = n
     feedStatus.value = fs
-  } catch { /* ignore */ }
+  }).catch(() => {})
   loading.value = false
 }
 
@@ -236,8 +235,6 @@ onMounted(loadData)
               <div>
                 <span class="text-xs font-semibold text-(--text-muted)">{{ t(`notification.typeLabel.${n.type}`) }}</span>
                 <p class="text-sm">{{ renderMessage(n) }}</p>
-                <!-- No body / preview snippet on the website: the dashboard panel stays
-                     scannable and the full rich body lives in the feed only. -->
                 <p class="text-xs text-(--text-muted)">{{ formatDateTime(n.createdAt) }}</p>
               </div>
             </div>

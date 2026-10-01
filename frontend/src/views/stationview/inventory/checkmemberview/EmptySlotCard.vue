@@ -57,7 +57,6 @@ const { t } = useI18n()
       </InfoButton>
     </div>
 
-    <!-- Assign existing unassigned item -->
     <div v-if="availableItems.length > 0" class="flex flex-col sm:flex-row gap-2">
       <SelectInput
         :model-value="slotSelections.get(`${req.inventoryId}-${slotIndex}`) ?? ''"
@@ -78,7 +77,6 @@ const { t } = useI18n()
       </PrimaryButton>
     </div>
 
-    <!-- Create new item on the fly -->
     <div class="flex flex-col sm:flex-row gap-2">
       <SelectInput
         v-if="req.hasSizes && req.sizes.length > 0"

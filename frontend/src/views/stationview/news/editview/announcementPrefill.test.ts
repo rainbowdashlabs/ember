@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {buildAnnouncementDraft, type AnnouncedEvent} from './announcementPrefill'
 import type {AppointmentField, StationEvent} from '@/api/generated/schema'

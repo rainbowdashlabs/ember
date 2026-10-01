@@ -18,6 +18,11 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import DummyNotificationMatrix from './notificationshelp/DummyNotificationMatrix.vue'
 
 const {t} = useI18n()
+
+/** A made-up address in the shape a personal feed link takes. */
+function exampleFeedUrl(format: string): string {
+  return `https://ember.beispiel.de/feed/${format}/abc123`
+}
 </script>
 
 <template>
@@ -59,7 +64,7 @@ const {t} = useI18n()
         <div class="space-y-1">
           <FieldLabel>{{ t('userSettings.feedIcal') }}</FieldLabel>
           <div class="flex items-center gap-2">
-            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-xs break-all select-all">https://ember.beispiel.de/feed/ical/abc123</code>
+            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-xs break-all select-all">{{ exampleFeedUrl('ical') }}</code>
             <SecondaryButton disabled>
               <font-awesome-icon :icon="['fas', 'copy']"/>
             </SecondaryButton>
@@ -68,7 +73,7 @@ const {t} = useI18n()
         <div class="space-y-1">
           <FieldLabel>{{ t('userSettings.feedRss') }}</FieldLabel>
           <div class="flex items-center gap-2">
-            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-xs break-all select-all">https://ember.beispiel.de/feed/rss/abc123</code>
+            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-xs break-all select-all">{{ exampleFeedUrl('rss') }}</code>
             <SecondaryButton disabled>
               <font-awesome-icon :icon="['fas', 'copy']"/>
             </SecondaryButton>
@@ -77,7 +82,7 @@ const {t} = useI18n()
         <div class="space-y-1">
           <FieldLabel>{{ t('userSettings.feedAtom') }}</FieldLabel>
           <div class="flex items-center gap-2">
-            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-xs break-all select-all">https://ember.beispiel.de/feed/atom/abc123</code>
+            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-xs break-all select-all">{{ exampleFeedUrl('atom') }}</code>
             <SecondaryButton disabled>
               <font-awesome-icon :icon="['fas', 'copy']"/>
             </SecondaryButton>

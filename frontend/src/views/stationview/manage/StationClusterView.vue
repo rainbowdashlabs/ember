@@ -31,8 +31,8 @@ const {config: state, loading, failure, runWith} = useConfigPanel<StationCluster
   initial: {clusterUid: null, clusterName: null, clusterDescription: null, applications: []},
   fetch: async () => {
     const current = await clusterStations.getStationCluster()
-    // Only worth asking which clusters exist while the station could still join one
-    available.value = current.clusterUid ? [] : await clusterStations.listAvailableClusters()
+    const couldStillJoin = !current.clusterUid
+    available.value = couldStillJoin ? await clusterStations.listAvailableClusters() : []
     return current
   },
 })

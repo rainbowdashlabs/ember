@@ -28,7 +28,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.statistics.eventRegistrations') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Summary cards -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <NeutralContainer class="text-center">
         <p class="text-2xl font-bold text-primary">42</p>
@@ -48,7 +47,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </div>
 
-    <!-- Dummy: Chart placeholders -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <NeutralContainer class="flex items-center justify-center" style="height: 200px">
         <div class="text-center text-(--text-muted)">

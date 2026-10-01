@@ -12,6 +12,10 @@ import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
+/**
+ * The bar over a selection of questions. Selecting and unselecting stay in sight, since they say
+ * what the bar acts on; the actions are a row, with setting the points the one it is opened for.
+ */
 defineProps<{
   selectedCount: number
   hasMultipleChoice: boolean
@@ -27,11 +31,6 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <!--
-    Selecting and unselecting stay where they are: they say what the bar is acting on, which is the
-    same reason a row of filters is never collapsed. What is done to the selection is a row of
-    actions, and setting the points is the one it is opened for.
-  -->
   <ButtonRow class="mb-3 p-2 rounded bg-primary/10 border border-primary/30">
     <MutedText size="sm" class="font-medium">{{ selectedCount }} {{ t('quiz.batch.selected') }}</MutedText>
     <SecondaryButton compact @click="emit('selectAll')">{{ t('quiz.batch.selectAll') }}</SecondaryButton>

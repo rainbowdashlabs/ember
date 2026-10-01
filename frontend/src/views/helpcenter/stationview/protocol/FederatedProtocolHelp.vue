@@ -27,7 +27,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federatedProtocol.howToStep1') }}</p>
       <p>{{ t('helpCenter.federatedProtocol.howToStep2') }}</p>
 
-      <!-- Dummy: shared protocol with sections -->
       <NeutralContainer class="mt-4 space-y-3">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap">

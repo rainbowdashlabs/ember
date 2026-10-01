@@ -146,7 +146,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </form>
     </Modal>
 
-    <!-- Archive Confirm Modal -->
     <Modal v-model="showArchiveModal">
       <SubHeader class="mb-3">{{ t('procedures.archiveConfirm') }}</SubHeader>
       <p class="mb-4">{{ archiveTarget?.name }}</p>

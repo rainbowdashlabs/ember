@@ -402,13 +402,11 @@ watch(() => [props.fileId, props.stationUid], () => {
                 {{ readOnlyReason }}
             </p>
 
-            <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
                 {{ t('kb.lastEditedAt') }}: {{ formatDateTime(file.updatedAt) }}
                 <span v-if="lastEditedByName">, {{ lastEditedByName }}</span>
             </p>
 
-            <!-- Tags (hide for federated files) -->
             <KbTagsSection
                 v-if="!isFederated"
                 :tags="fileTags"
@@ -418,7 +416,6 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @remove-tag="removeTag"
             />
 
-            <!-- Related files (hide for federated files) -->
             <KbRelatedFilesSection
                 v-if="!isFederated"
                 :related-files="relatedFiles"
@@ -429,7 +426,6 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @remove-related="removeRelatedFile"
             />
 
-            <!-- Save bar -->
             <div v-if="editing" class="flex items-center gap-2 mb-3">
                 <SaveButton :disabled="!hasUnsavedChanges" :action="saveContent"/>
                 <span v-if="hasUnsavedChanges" class="text-sm text-[var(--text-muted)]">
@@ -461,7 +457,6 @@ watch(() => [props.fileId, props.stationUid], () => {
 
             <CommentSection :source="commentSource" class="mt-6"/>
         </template>
-        <!-- Presentation Viewer Overlay -->
         <PresentationViewer
             v-if="showPresentation && file"
             :content-url="contentUrl"
@@ -469,7 +464,6 @@ watch(() => [props.fileId, props.stationUid], () => {
             @close="showPresentation = false"
         />
 
-        <!-- Edit metadata modal (name / description / visibility / restrictions / tags) -->
         <KbShareModal
             v-model:show="showShareModal"
             :entry="file"

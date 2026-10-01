@@ -44,8 +44,6 @@ function label(userType: string): string {
             {{ entry.publishedAt ? formatDateTime(entry.publishedAt) : formatDateTime(entry.createdAt) }}
             &middot; {{ t('adminNews.commentCount', {count: entry.commentCount}) }}
           </p>
-          <!-- No user types at all means the entry is for everyone, which is worth saying rather
-               than leaving as an empty space the reader has to interpret. -->
           <p class="text-xs text-(--text-muted)">
             <template v-if="entry.userTypes.length === 0">{{ t('adminNews.forEveryone') }}</template>
             <template v-else>

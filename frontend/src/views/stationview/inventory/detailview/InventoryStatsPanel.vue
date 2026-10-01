@@ -60,7 +60,6 @@ const { t } = useI18n()
     </NeutralContainer>
   </div>
 
-  <!-- Size distribution -->
   <template v-if="props.hasSizes && props.sizeStats.length > 0">
     <SubHeader>{{ t('inventory.detail.bySize') }}</SubHeader>
     <DataTable>

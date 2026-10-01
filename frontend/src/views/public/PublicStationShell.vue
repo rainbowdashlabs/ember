@@ -49,14 +49,16 @@ function childrenOf(parentId: number) {
 }
 
 /**
+ * Resolved here rather than inside the loader: the address comes from the runtime configuration,
+ * and reading that needs the Nuxt instance, which a loader running on its own no longer has.
+ */
+const apiBase = apiUrl('')
+
+/**
  * Fetched during the server render rather than after mount. Every public page of a station hangs
  * inside this shell, so loading it in the browser left a crawler, a link preview and a reader
  * without JavaScript with an empty frame where the station's blog, wiki and calendar should be.
  */
-// Resolved here rather than inside the loader: the address comes from the runtime configuration,
-// and reading that needs the Nuxt instance, which a loader running on its own no longer has.
-const apiBase = apiUrl('')
-
 const {data: shell, error: loadError, status} = await useAsyncData(
     `public-station-${route.params.stationUid}`,
     async () => {
@@ -85,8 +87,8 @@ onMounted(() => {
   const {applyStationOverride} = useTheme()
   applyStationOverride(station.value.defaultTheme, station.value.defaultFeel, station.value.customThemeColors)
 
-  // A station reached by its identifier moves to its readable address once the page is up.
-  if (station.value.publicSlug && UUID_REGEX.test(stationUid.value)) {
+  const reachedByIdentifier = UUID_REGEX.test(stationUid.value)
+  if (station.value.publicSlug && reachedByIdentifier) {
     router.replace(canonicalPath.value)
   }
 })
@@ -137,7 +139,6 @@ useHead(computed(() => {
       :subtitle="pageSubtitle"
   >
     <template #sidebar="{ close }">
-      <!-- Landing page (home) first -->
       <SidebarLink v-if="landingPage"
                    :icon="['fas', 'house']"
                    :name="'public-page-' + landingPage.slug"
@@ -145,26 +146,20 @@ useHead(computed(() => {
                    @navigate="close">
         {{ landingPage.title }}
       </SidebarLink>
-      <!-- Blog -->
       <SidebarLink v-if="station.hasPublicBlog" :icon="['fas', 'newspaper']" name="public-blog" :to="basePath + '/blog'" @navigate="close">
         {{ t('publicStation.blog') }}
       </SidebarLink>
-      <!-- Calendar -->
       <SidebarLink v-if="station.hasPublicCalendar" :icon="['fas', 'calendar-days']" name="public-station-calendar" :to="basePath + '/calendar'" @navigate="close">
         {{ t('publicStation.calendar') }}
       </SidebarLink>
-      <!-- Knowledge base -->
       <SidebarLink v-if="station.hasPublicKb" :icon="['fas', 'book-open']" name="public-kb" :to="basePath + '/knowledge'" @navigate="close">
         {{ t('publicStation.knowledgeBase') }}
       </SidebarLink>
-      <!-- Waitlist registration -->
       <SidebarLink v-if="station.hasPublicWaitlist" :icon="['fas', 'clipboard-list']" name="public-waitlist" :to="basePath + '/waitlist'" @navigate="close">
         {{ t('publicStation.waitlist') }}
       </SidebarLink>
-      <!-- Remaining pages (excluding landing page), with nested children -->
       <template v-if="station.hasPublicPages">
         <template v-for="page in topLevelPages" :key="page.id">
-          <!-- Page with children → SidebarGroup -->
           <SidebarGroup v-if="childrenOf(page.id).length > 0"
                         :icon="['fas', 'file-lines']"
                         :label="page.title"
@@ -180,7 +175,6 @@ useHead(computed(() => {
               {{ child.title }}
             </SidebarLink>
           </SidebarGroup>
-          <!-- Page without children → SidebarLink -->
           <SidebarLink v-else
                        :icon="['fas', 'file-lines']"
                        :name="'public-page-' + page.slug"

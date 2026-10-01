@@ -35,13 +35,12 @@ const showKb = ref(true)
 const loading = ref(true)
 
 onMounted(async () => {
-    try {
-        const info = await stationManage.getStationInfo()
+    await stationManage.getStationInfo().then(info => {
         stationName.value = info.name
         description.value = info.discoveryDescription ?? ''
         showKb.value = info.discoveryShowKb
         visibility.value = info.discoveryVisibility
-    } catch { /* ignore */ }
+    }).catch(() => {})
     loading.value = false
 })
 

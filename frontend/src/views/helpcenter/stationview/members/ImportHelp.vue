@@ -27,7 +27,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.whatIsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Import type selector -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <NeutralContainer class="space-y-2 border-primary ring-2 ring-primary/30">
         <div class="flex items-center gap-2">
@@ -49,7 +48,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.step1Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Upload step -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('csvImport.uploadTitle') }}</SubHeader>
       <div class="flex items-center gap-4 flex-wrap">
@@ -76,7 +74,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.step2Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Column mapping -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('memberImport.mappingTitle') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('memberImport.mappingHint') }}</p>
@@ -142,7 +139,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.step3Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Result -->
     <SuccessContainer class="space-y-3">
       <SubHeader>{{ t('memberImport.done') }}</SubHeader>
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">

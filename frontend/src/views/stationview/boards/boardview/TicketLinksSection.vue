@@ -153,7 +153,6 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
 
 <template>
     <div v-if="hasAnyContent" class="space-y-4">
-        <!-- Linked tickets -->
         <div v-if="links.length > 0 || showAddLink">
             <div class="flex items-center justify-between mb-2">
                 <SubHeader class="text-sm">{{ t('boards.linkedTickets') }}</SubHeader>
@@ -203,7 +202,6 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
             </div>
         </div>
 
-        <!-- Weblinks -->
         <div v-if="weblinks.length > 0 || showAddWeblink">
             <SubHeader class="text-sm mb-2">{{ t('boards.weblinks') }}</SubHeader>
             <div class="space-y-1">
@@ -221,7 +219,6 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
             </div>
         </div>
 
-        <!-- Attachments (tile grid) -->
         <div v-if="attachments.length > 0">
             <div class="flex items-center justify-between mb-2">
                 <SubHeader class="text-sm">{{ t('boards.attachments') }}</SubHeader>
@@ -231,17 +228,13 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                 <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg border border-(--border) overflow-hidden bg-(--bg-accent) cursor-pointer" style="aspect-ratio: 3/4"
                      role="presentation"
                      @click="canPreview(att) ? openPreview(att) : handleDownload(att)">
-                    <!-- Image thumbnail -->
                     <img v-if="isImage(att) && srcFor(att.id)" :src="srcFor(att.id) ?? undefined" :alt="att.originalName" class="w-full h-full object-contain" />
-                    <!-- File type icon fallback -->
                     <div v-else class="w-full h-full flex items-center justify-center">
                         <font-awesome-icon :icon="fileIcon(att)" class="text-3xl text-(--text-muted)" />
                     </div>
-                    <!-- Filename overlay (top) -->
                     <div class="absolute top-0 left-0 right-0 bg-black/50 px-2 py-1">
                         <p class="text-[0.65rem] text-white truncate">{{ att.originalName }}</p>
                     </div>
-                    <!-- Action bar (bottom) -->
                     <div class="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <span class="text-[0.55rem] text-white/80">{{ formatSize(att.sizeBytes) }}</span>
                         <div class="flex gap-1" @click.stop>

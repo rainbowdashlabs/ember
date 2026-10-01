@@ -26,7 +26,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolRunDetail.membersText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Member progress table -->
     <NeutralContainer>
       <div class="space-y-2 text-sm">
         <div class="font-semibold text-xs text-[var(--text-muted)] uppercase mb-1">{{ t('helpCenter.sample.protocol.runSpring') }}</div>

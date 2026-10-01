@@ -54,9 +54,7 @@ function openMemberImport() {
 }
 
 onMounted(async () => {
-    try {
-        groups.value = await memberGroups.listGroups()
-    } catch { /* ignore */ }
+    await memberGroups.listGroups().then(listed => { groups.value = listed }).catch(() => {})
     if (richRows.value.length === 0) addRichRow()
 })
 

@@ -52,7 +52,6 @@ const dummyPausedExport = ref(false)
       <p>{{ t('helpCenter.federation.partnerListText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Partner list -->
     <NeutralContainer>
       <div class="space-y-2">
         <div class="flex items-center gap-2">
@@ -106,7 +105,6 @@ const dummyPausedExport = ref(false)
       </ol>
     </HelpSection>
 
-    <!-- Dummy: Invite code -->
     <NeutralContainer>
       <div class="space-y-3">
         <div>
@@ -134,7 +132,6 @@ const dummyPausedExport = ref(false)
       <p>{{ t('helpCenter.federation.capabilitiesText2') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Capabilities table -->
     <NeutralContainer>
       <table class="w-full text-sm">
         <thead>
@@ -189,7 +186,6 @@ const dummyPausedExport = ref(false)
       <p>{{ t('helpCenter.federation.compatibilityText2') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Incompatible feature row -->
     <NeutralContainer>
       <table class="w-full text-sm">
         <tbody>

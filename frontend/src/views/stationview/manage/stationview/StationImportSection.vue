@@ -83,7 +83,6 @@ function pollStationImport() {
     <ImportProgressChecklist v-if="importProgress" :progress="{...importProgress, stationName: ''}"/>
   </NeutralContainer>
 
-  <!-- Import confirmation modal -->
   <ConfirmDeleteModal
       v-model="showImportConfirm"
       :title="t('stationManage.importConfirmTitle')"

@@ -34,12 +34,11 @@ const {source, managed, overflowed} = useClusterMemberSource(() => includeFormer
 /**
  * An association reads across its stations and reaches its own copies of the member screens. It
  * offers no column for a station's own groups or tags, because those belong to one station and most
- * of the list would have nothing under them.
+ * of the list would have nothing under them. There is no edit screen either: the association's
+ * detail screen lets what is asked of somebody be answered on the same page.
  */
 const port: MemberListPort = {
   source,
-  // One screen, not two: the association's copy shows what is asked of somebody and lets it be
-  // answered on the same page, so there is nothing a separate edit screen would add.
   routes: {detail: 'cluster-member-detail'},
   canExport: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_EXPORT)),
   canEdit: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)),

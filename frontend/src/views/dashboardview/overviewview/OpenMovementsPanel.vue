@@ -49,9 +49,7 @@ function chipOf(movement: MovementResponse) {
 }
 
 async function loadData() {
-  try {
-    rows.value = await movements.listMovements()
-  } catch { /* ignore */ }
+  await movements.listMovements().then(listed => { rows.value = listed }).catch(() => {})
 }
 
 onMounted(loadData)

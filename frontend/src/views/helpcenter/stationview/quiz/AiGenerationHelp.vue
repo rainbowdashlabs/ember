@@ -29,7 +29,6 @@ const { t } = useI18n()
       </div>
     </HelpSection>
 
-    <!-- Dummy: Generation config -->
     <NeutralContainer>
       <div class="space-y-3">
         <div class="flex items-center gap-2 p-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">

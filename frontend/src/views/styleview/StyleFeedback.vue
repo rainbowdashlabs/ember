@@ -26,7 +26,6 @@ const sidePanelOpen = ref(false)
 </script>
 
 <template>
-  <!-- Progress Bars -->
   <section class="space-y-4">
     <SectionHeader>Progress Bar</SectionHeader>
     <div class="space-y-3">
@@ -38,7 +37,6 @@ const sidePanelOpen = ref(false)
     </div>
   </section>
 
-  <!-- Alerts -->
   <section class="space-y-4">
     <SectionHeader>Alerts</SectionHeader>
     <div class="space-y-3">
@@ -48,7 +46,6 @@ const sidePanelOpen = ref(false)
     </div>
   </section>
 
-  <!-- Spinner -->
   <section class="space-y-4">
     <SectionHeader>Spinner</SectionHeader>
     <div class="flex flex-wrap items-center gap-4 sm:gap-6">
@@ -67,7 +64,6 @@ const sidePanelOpen = ref(false)
     </div>
   </section>
 
-  <!-- Empty State -->
   <section class="space-y-4">
     <SectionHeader>Empty State</SectionHeader>
     <EmptyState>No items found.</EmptyState>
@@ -75,7 +71,6 @@ const sidePanelOpen = ref(false)
     <EmptyState message="No items (message prop)."/>
   </section>
 
-  <!-- Async Section -->
   <section class="space-y-4">
     <SectionHeader>Async Section</SectionHeader>
     <AsyncSection :loading="true"/>
@@ -86,7 +81,6 @@ const sidePanelOpen = ref(false)
     </AsyncSection>
   </section>
 
-  <!-- Modal -->
   <section class="space-y-4">
     <SectionHeader>Modal</SectionHeader>
     <PrimaryButton @click="modalOpen = true">Open Modal</PrimaryButton>

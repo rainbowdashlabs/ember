@@ -159,7 +159,6 @@ watch(loaded, (v) => {
       </ButtonRow>
     </div>
 
-    <!-- Tab toggle -->
     <div class="flex gap-2 mb-4">
       <SelectionToggleButton :selected="activeTab === 'offers'" @toggle="activeTab = 'offers'">
         <font-awesome-icon :icon="['fas', 'boxes-stacked']" class="mr-1"/>

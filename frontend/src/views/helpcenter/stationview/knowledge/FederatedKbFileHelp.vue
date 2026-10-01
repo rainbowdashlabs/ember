@@ -32,7 +32,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federatedKbFile.howToStep2') }}</p>
       <p>{{ t('helpCenter.federatedKbFile.howToStep3') }}</p>
 
-      <!-- Dummy: header bar of a shared file -->
       <NeutralContainer class="mt-4 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
           <SecondaryButton compact>

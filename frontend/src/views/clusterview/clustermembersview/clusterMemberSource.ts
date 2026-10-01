@@ -85,9 +85,7 @@ export function useClusterMemberSource(includeFormer: () => boolean) {
                 }
             }
             managed.value = new Map(collected.map(m => [m.id, m]))
-            // No profile questions travel with the search, so none can be offered as a column. The
-            // association's own questions are asked of these people and belong here; the search would
-            // have to carry their answers first.
+            // TODO: offer the association's own questions as columns once the search carries their answers
             return {members: collected.map(toRich), fields: [], assignments: [], roles: []}
         },
     }

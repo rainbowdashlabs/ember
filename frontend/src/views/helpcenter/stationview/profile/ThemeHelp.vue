@@ -26,7 +26,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.themeUser.pickText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Theme selector -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('theme.title') }}</SubHeader>
       <ThemeSelector :show-themes="true" :show-feel="true"/>

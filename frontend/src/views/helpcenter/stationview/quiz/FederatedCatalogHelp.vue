@@ -27,7 +27,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federatedQuizCatalog.howToStep1') }}</p>
       <p>{{ t('helpCenter.federatedQuizCatalog.howToStep2') }}</p>
 
-      <!-- Dummy: shared catalog row -->
       <NeutralContainer class="mt-4">
         <div class="flex items-center justify-between gap-4">
           <div class="min-w-0">

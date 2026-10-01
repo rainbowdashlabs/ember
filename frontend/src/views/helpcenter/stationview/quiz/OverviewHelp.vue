@@ -29,7 +29,6 @@ const { t } = useI18n()
       </BulletList>
     </HelpSection>
 
-    <!-- Dummy: Overview cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <NeutralContainer>
         <div class="text-center space-y-2">

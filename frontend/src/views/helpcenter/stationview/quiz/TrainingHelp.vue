@@ -31,7 +31,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingStep1Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Catalog selection -->
     <div class="space-y-2">
       <NeutralContainer>
         <label class="flex items-center gap-2 cursor-pointer">
@@ -60,7 +59,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingStep2Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Question with progress -->
     <div class="space-y-3">
       <div class="space-y-1">
         <div class="flex justify-between text-sm text-(--text-muted)">
@@ -91,7 +89,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingStep3Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Revealed answer -->
     <SuccessContainer>
       <div>
         <span class="text-xs font-semibold block mb-1">{{ t('quiz.training.correctAnswer') }}</span>
@@ -108,7 +105,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingFinishText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Finished -->
     <SuccessContainer>
       <div class="text-center space-y-2 py-2">
         <font-awesome-icon :icon="['fas', 'trophy']" class="text-2xl" />

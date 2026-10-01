@@ -29,7 +29,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImportTeam.groupsFitText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Header with back button -->
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('teamImport.title') }}</SectionHeader>
       <SecondaryButton :icon="['fas', 'chevron-left']">
@@ -37,7 +36,6 @@ const dummySeparator = ref(';')
       </SecondaryButton>
     </div>
 
-    <!-- Dummy: Upload step -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('csvImport.uploadTitle') }}</SubHeader>
       <div class="flex items-center gap-4 flex-wrap">
@@ -60,7 +58,6 @@ const dummySeparator = ref(';')
       <PrimaryButton>{{ t('csvImport.next') }}</PrimaryButton>
     </NeutralContainer>
 
-    <!-- Dummy: Column mapping -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('memberImport.mappingTitle') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('memberImport.mappingHint') }}</p>
@@ -101,7 +98,6 @@ const dummySeparator = ref(';')
       </div>
     </NeutralContainer>
 
-    <!-- Dummy: Result -->
     <SuccessContainer class="space-y-3">
       <SubHeader>{{ t('memberImport.done') }}</SubHeader>
       <div class="grid grid-cols-3 gap-3 text-center">

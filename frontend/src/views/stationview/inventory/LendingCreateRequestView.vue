@@ -138,7 +138,6 @@ watch([dateFrom, dateTo], () => {
       <FailureAlert :failure="submitFailure" class="mb-4"/>
 
       <div class="flex flex-col gap-4">
-        <!-- Date range -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel class="mb-1">{{ t('lending.dateFrom') }}</FieldLabel>
@@ -150,19 +149,16 @@ watch([dateFrom, dateTo], () => {
           </div>
         </div>
 
-        <!-- Quantity -->
         <div>
           <FieldLabel class="mb-1">{{ t('lending.quantity') }}</FieldLabel>
           <NumberInput v-model="quantity" :min="1" :max="maxQuantity"/>
         </div>
 
-        <!-- Note -->
         <div>
           <FieldLabel class="mb-1">{{ t('lending.note') }}</FieldLabel>
           <TextAreaInput v-model="note" :placeholder="t('lending.notePlaceholder')" :rows="3"/>
         </div>
 
-        <!-- Submit -->
         <ButtonRow pair align="end" class="mt-2">
           <SecondaryButton @click="router.push({name: routes.lending})">
             {{ t('common.cancel') }}

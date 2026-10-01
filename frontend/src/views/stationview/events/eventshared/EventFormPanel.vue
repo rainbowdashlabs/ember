@@ -116,7 +116,6 @@ const labelId = useId()
       </div>
     </div>
 
-    <!-- Schedule section (only for single event creation) -->
     <template v-if="showSchedule && eventType !== undefined">
       <hr class="border-(--border)"/>
       <div class="space-y-2">
@@ -168,7 +167,6 @@ const labelId = useId()
 
     <slot name="after-schedule" />
 
-    <!-- Registration -->
     <template v-if="requiresRegistration !== undefined">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.registration') }}</SubHeader>
@@ -220,7 +218,6 @@ const labelId = useId()
       </template>
     </template>
 
-    <!-- Restrictions -->
     <template v-if="groups && tags">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
@@ -242,7 +239,6 @@ const labelId = useId()
       />
     </template>
 
-    <!-- Event Fields -->
     <hr class="border-(--border)"/>
     <EventFieldList
         v-model:fields="fields"

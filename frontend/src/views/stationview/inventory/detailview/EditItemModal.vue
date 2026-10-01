@@ -130,6 +130,10 @@ watch(() => props.item, async (item) => {
   await reloadFields()
 })
 
+/**
+ * Saves the piece. A kind typed into the picker is only written down now, so a form abandoned
+ * instead of saved leaves nothing behind.
+ */
 async function save() {
   if (!props.item) return
   failure.value = null
@@ -137,8 +141,6 @@ async function save() {
     const normalisedInternalId = internalId.value
         ? normaliseScannedPayload(internalId.value)
         : ''
-    // The kind typed into the picker is only written down now, so a form that was abandoned
-    // instead of saved leaves nothing behind.
     const resolvedArt = props.heterogeneous
         ? artDraft.value
             ? await inventoryArts.ensureArt(props.item.inventoryId, arts.value, artDraft.value)

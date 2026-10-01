@@ -32,7 +32,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersFormer.reactivateText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Former members table with formerAt column -->
     <HelpSection :title="t('helpCenter.membersFormer.exampleTitle')">
       <SectionHeader>{{ t('formerMembers.title') }}</SectionHeader>
 

@@ -32,7 +32,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceConfigEdit.nameText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Template name field -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('attendanceConfig.editTitle') }}</SectionHeader>
       <div class="space-y-1">
@@ -52,7 +51,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceConfigEdit.groupsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Groups list -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('attendanceConfig.groups') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('attendanceConfig.groupsHint') }}</p>
@@ -91,7 +89,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceConfigEdit.fieldsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Fields list -->
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('attendanceConfig.fields') }}</SectionHeader>

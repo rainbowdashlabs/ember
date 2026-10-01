@@ -36,7 +36,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestCreate.step3') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Test metadata -->
     <HelpSection :title="t('helpCenter.quizTestCreate.basicTitle')">
       <p>{{ t('helpCenter.quizTestCreate.basicText') }}</p>
       <NeutralContainer class="space-y-4">
@@ -72,7 +71,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Restrictions -->
     <HelpSection :title="t('helpCenter.quizTestCreate.restrictionsTitle')">
       <p>{{ t('helpCenter.quizTestCreate.restrictionsText') }}</p>
       <NeutralContainer class="space-y-3">
@@ -83,7 +81,6 @@ const { t } = useI18n()
 
     <DummySectionsSystem />
 
-    <!-- Actions -->
     <HelpSection :title="t('helpCenter.quizTestCreate.nextTitle')">
       <p>{{ t('helpCenter.quizTestCreate.nextText') }}</p>
       <ButtonRow pair align="end">

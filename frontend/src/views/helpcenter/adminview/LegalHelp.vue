@@ -48,12 +48,10 @@ const documents = ['privacy', 'tos', 'consent', 'imprint']
       <p>{{ t('helpCenter.adminLegal.generatedText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Legal document editor -->
     <HelpSection :title="t('helpCenter.adminLegal.exampleTitle')">
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('adminSettings.legal.title') }}</SectionHeader>
 
-        <!-- Tab navigation -->
         <div class="flex gap-2 flex-wrap">
           <SecondaryButton v-for="document in documents" :key="document"
                            :class="document === 'privacy' ? 'ring-2 ring-primary' : ''">
@@ -61,12 +59,10 @@ const documents = ['privacy', 'tos', 'consent', 'imprint']
           </SecondaryButton>
         </div>
 
-        <!-- Markdown editor placeholder -->
         <div class="rounded-lg border border-[var(--border)] p-4 min-h-32 text-sm text-(--text-muted)">
           {{ t('helpCenter.adminLegal.editorPlaceholder') }}
         </div>
 
-        <!-- Save button -->
         <div class="flex justify-end">
           <PrimaryButton>{{ t('adminSettings.legal.save') }}</PrimaryButton>
         </div>

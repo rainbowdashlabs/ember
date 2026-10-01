@@ -73,7 +73,6 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
 </script>
 
 <template>
-  <!-- Members by group -->
   <div v-for="section in memberSections" :key="section.key" class="space-y-2">
     <SubHeader>{{ section.title ?? t('attendanceSession.otherMembers') }}</SubHeader>
     <div class="space-y-1">
@@ -102,7 +101,6 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
     </div>
   </div>
 
-  <!-- Add member -->
   <MemberSelectInput
       v-if="!readonly && membersNotInSession.length > 0"
       v-model="picked"

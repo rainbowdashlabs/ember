@@ -39,7 +39,6 @@ onMounted(async () => {
     selectStation(onlyStation.stationId)
     return
   }
-  // Nothing to choose between: an account with no station and one cluster has exactly one place to be
   const [onlyCluster] = clusterList.value
   if (stationList.value.length === 0 && clusterList.value.length === 1 && onlyCluster) {
     selectCluster(onlyCluster.uid)

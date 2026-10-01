@@ -45,6 +45,10 @@ const item = ref<InventoryItem | null>(null)
 const historyEntries = ref<HistoryResponse[]>([])
 const checkHistory = ref<ItemCheckHistoryEntry[]>([])
 const sizes = ref<InventorySize[]>([])
+/**
+ * The people the assign modal offers. An association has none to read, so a refused list stays
+ * empty rather than blanking a page that is mostly about the piece itself.
+ */
 const members = ref<MemberWithName[]>([])
 const location = ref<ItemLocationResponse | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
@@ -102,9 +106,6 @@ const {loading, failure} = useAsyncLoader(async () => {
   item.value = i
   historyEntries.value = h
   checkHistory.value = ch
-  // The member list fills the assign modal, and an association has neither: its own station has nobody
-  // to hand gear to and it may not read anybody else's roster. Asking and being refused is fine; letting
-  // the refusal blank a page that is mostly about the piece itself is not.
   const [s, m, loc] = await Promise.all([
     inventory.listSizes(i.inventoryId),
     stationMembers.listMembers().catch(() => []),

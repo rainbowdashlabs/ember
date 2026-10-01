@@ -38,7 +38,6 @@ const {t} = useI18n()
 
     <MetadataSection/>
 
-    <!-- Dummy: Action buttons -->
     <HelpSection :title="t('helpCenter.itemDetail.actionsTitle')">
       <p>{{ t('helpCenter.itemDetail.actionsText') }}</p>
 
@@ -61,7 +60,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Assign modal -->
     <HelpSection :title="t('helpCenter.itemDetail.assignModalTitle')">
       <p>{{ t('helpCenter.itemDetail.assignModalText') }}</p>
 
@@ -79,7 +77,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Assignment history table -->
     <HelpSection :title="t('helpCenter.itemDetail.historyTitle')">
       <p>{{ t('helpCenter.itemDetail.historyText') }}</p>
 
@@ -115,7 +112,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.itemDetail.lossReportNoteText') }}</p>
     </HelpSection>
 
-    <!-- Notes -->
     <HelpSection :title="t('helpCenter.itemDetail.notesTitle')">
       <p>{{ t('helpCenter.itemDetail.notesText') }}</p>
     </HelpSection>

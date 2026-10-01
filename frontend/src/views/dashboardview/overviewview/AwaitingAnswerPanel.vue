@@ -52,15 +52,15 @@ function daysLeft(entry: AwaitingAnswer): number {
 
 const soonest = computed(() => awaiting.value.length > 0 ? daysLeft(awaiting.value[0]!) : 0)
 
+/** Loads the panel, which says nothing when it cannot load rather than breaking the page. */
 async function loadData() {
-  try {
-    const [entries, cats] = await Promise.all([
-      events.listAwaitingAnswer(),
-      events.listCategories().catch(() => []),
-    ])
+  await Promise.all([
+    events.listAwaitingAnswer(),
+    events.listCategories().catch(() => []),
+  ]).then(([entries, cats]) => {
     awaiting.value = entries
     categories.value = cats
-  } catch { /* a dashboard panel that cannot load says nothing rather than breaking the page */ }
+  }).catch(() => {})
 }
 
 onMounted(loadData)

@@ -100,17 +100,19 @@ watch(selectedInventory, async (inv) => {
   itemName.value = inv.name ?? ''
   if (inv.inventoryType === InventoryTypes.EXTERNAL) ownerKind.value = ItemOwner.CLUSTER
   else if (inv.inventoryType === InventoryTypes.INTERNAL) ownerKind.value = ItemOwner.STATION
-  try {
-    const [sizes, defs] = await Promise.all([
-      inv.hasSizes ? inventory.listSizes(inv.id) : Promise.resolve([] as InventorySize[]),
-      inventoryFields.listFields(inv.id).catch(() => [] as InventoryFieldDefinition[]),
-    ])
+  await loadSizesAndFields(inv)
+})
+
+/** Reads the sizes and fields of the chosen inventory. A failed read stays quiet; submitting surfaces it. */
+async function loadSizesAndFields(inv: Inventory) {
+  await Promise.all([
+    inv.hasSizes ? inventory.listSizes(inv.id) : Promise.resolve([] as InventorySize[]),
+    inventoryFields.listFields(inv.id).catch(() => [] as InventoryFieldDefinition[]),
+  ]).then(([sizes, defs]) => {
     availableSizes.value = sizes
     fieldDefs.value = defs
-  } catch {
-    /* swallow - surfaced on submit */
-  }
-})
+  }).catch(() => {})
+}
 
 watch(newInventoryName, (name) => {
   if (isCreatingInventory.value) itemName.value = name

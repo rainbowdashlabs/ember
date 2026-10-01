@@ -30,7 +30,6 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <!-- GDPR Data Export -->
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('userSettings.gdprTitle') }}</SubHeader>
     <p class="text-sm text-(--text-muted)">{{ t('userSettings.gdprHint') }}</p>
@@ -54,7 +53,6 @@ const {t} = useI18n()
     </template>
   </NeutralContainer>
 
-  <!-- Delete Account -->
   <ErrorContainer class="space-y-3">
     <SubHeader>{{ t('userSettings.deleteTitle') }}</SubHeader>
     <p class="text-sm">{{ t('userSettings.deleteWarning') }}</p>
@@ -63,7 +61,6 @@ const {t} = useI18n()
     </ErrorButton>
   </ErrorContainer>
 
-  <!-- Restart Tour -->
   <NeutralContainer class="space-y-2">
     <SubHeader>{{ t('tour.restartButton') }}</SubHeader>
     <p class="text-sm text-(--text-muted)">{{ t('tour.restartHint') }}</p>

@@ -28,7 +28,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizCatalogGenerate.step4') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Generate form -->
     <NeutralContainer>
       <div class="space-y-3 text-sm">
         <div class="text-xs text-[var(--text-muted)] uppercase font-semibold">{{ t('helpCenter.quizCatalogGenerate.previewLabel') }}</div>

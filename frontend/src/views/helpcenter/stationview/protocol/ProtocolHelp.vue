@@ -24,7 +24,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocol.structureText') }}</p>
     </HelpSection>
 
-    <!-- Demo structure -->
     <NeutralContainer>
       <div class="space-y-2 text-sm">
         <div class="font-medium">{{ t('helpCenter.sample.protocol.jugendflamme1') }}</div>
@@ -60,7 +59,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocol.gradingText') }}</p>
     </HelpSection>
 
-    <!-- Demo grading -->
     <NeutralContainer>
       <div class="space-y-2">
         <div class="flex items-center gap-2 p-2 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">

@@ -68,16 +68,15 @@ function statusBadgeComponent(status: string) {
 }
 
 async function loadData() {
-  try {
-    const [reg, ev, cats] = await Promise.all([
-      events.listMyRegistrations(),
-      events.listEvents(),
-      events.listCategories().catch(() => []),
-    ])
+  await Promise.all([
+    events.listMyRegistrations(),
+    events.listEvents(),
+    events.listCategories().catch(() => []),
+  ]).then(([reg, ev, cats]) => {
     registrations.value = reg
     allEvents.value = ev
     categories.value = cats
-  } catch { /* ignore */ }
+  }).catch(() => {})
 }
 
 onMounted(loadData)

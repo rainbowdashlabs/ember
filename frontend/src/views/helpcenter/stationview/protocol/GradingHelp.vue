@@ -32,7 +32,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolGrading.step3') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Header with save and exit -->
     <HelpSection :title="t('helpCenter.protocolGrading.headerTitle')">
       <p>{{ t('helpCenter.protocolGrading.headerText') }}</p>
       <div class="flex items-center justify-between mb-2">
@@ -43,7 +42,6 @@ const { t } = useI18n()
       </div>
     </HelpSection>
 
-    <!-- Dummy: Section navigation tabs -->
     <HelpSection :title="t('helpCenter.protocolGrading.sectionsTitle')">
       <p>{{ t('helpCenter.protocolGrading.sectionsText') }}</p>
       <div class="flex flex-wrap gap-1.5 mb-4">
@@ -62,14 +60,12 @@ const { t } = useI18n()
         </SelectionToggleButton>
       </div>
 
-      <!-- Total score -->
       <div class="flex items-center justify-between text-sm mb-4">
         <span class="text-[var(--text-muted)]">{{ t('protocol.totalScore') }}:</span>
         <span class="font-mono font-bold text-lg">{{ t('helpCenter.sample.protocol.pointsOf', {points: 7, total: 34}) }}</span>
       </div>
     </HelpSection>
 
-    <!-- Dummy: Grading view with checkboxes -->
     <HelpSection :title="t('helpCenter.protocolGrading.checkTitle')">
       <p>{{ t('helpCenter.protocolGrading.checkText') }}</p>
       <NeutralContainer class="space-y-3">
@@ -99,7 +95,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Navigation buttons -->
     <HelpSection :title="t('helpCenter.protocolGrading.navigationTitle')">
       <p>{{ t('helpCenter.protocolGrading.navigationText') }}</p>
       <div class="space-y-2">

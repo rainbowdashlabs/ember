@@ -17,7 +17,11 @@ const props = defineProps<{
   error: string
   loading: boolean
   registrationEnabled: boolean
-  /** Whether the instance offers the passkey path and this browser can walk it. */
+  /**
+   * Whether the instance offers the passkey path and this browser can walk it. Signing in from
+   * another device is not gated on it: that asks for a session, not a credential, and exists for
+   * exactly the browsers that cannot hold a passkey.
+   */
   passkeyAvailable?: boolean
 }>()
 
@@ -67,11 +71,6 @@ const {t} = useI18n()
                      :icon="['fas', 'fingerprint']" @click="emit('passkey')">
       {{ t('login.withPasskey') }}
     </SecondaryButton>
-    <!--
-      Not gated on passkeys, deliberately. Signing in from another device asks for a session and
-      not for a credential, so it needs neither a browser that can hold a passkey nor an instance
-      that uses them. Hiding it behind that check kept it from the browsers it exists for.
-    -->
     <router-link class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
                  to="/unlock-device">
       {{ t('login.passkeyElsewhere') }}

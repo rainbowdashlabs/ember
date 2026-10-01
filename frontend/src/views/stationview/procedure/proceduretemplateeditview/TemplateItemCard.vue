@@ -47,7 +47,6 @@ const emit = defineEmits<{
             <font-awesome-icon :icon="['fas', 'user']" class="w-3 h-3 mr-0.5" /> {{ t('procedures.itemUserAssigned') }}
           </span>
         </div>
-        <!-- Dependencies list -->
         <div v-if="dependencies.length > 0" class="mt-2">
           <span class="text-xs font-medium text-[var(--text-muted)]">{{ t('procedures.dependsOn') }}:</span>
           <div class="flex flex-wrap gap-1 mt-1">

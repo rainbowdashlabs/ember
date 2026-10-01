@@ -41,14 +41,19 @@ const title = ref('')
 const blankRows = ref(0)
 const instanceUrl = ref(true)
 
-// Opening the dialog forgets what the last export asked for: a sheet is printed for one appointment,
-// and the options of the one before it are rarely the ones wanted again.
-watch(open, isOpen => {
-  if (!isOpen) return
+/**
+ * Forgets what the last export asked for whenever the dialog opens: a sheet is printed for one
+ * appointment, and the options of the one before it are rarely the ones wanted again.
+ */
+function resetOptions() {
   signature.value = false
   title.value = props.sessionTitle
   blankRows.value = 0
   instanceUrl.value = props.showsInstanceUrl
+}
+
+watch(open, isOpen => {
+  if (isOpen) resetOptions()
 })
 
 function submit() {

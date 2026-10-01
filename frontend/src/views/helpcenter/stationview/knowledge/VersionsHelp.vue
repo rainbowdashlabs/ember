@@ -25,7 +25,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbVersions.listText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: version list -->
     <NeutralContainer class="space-y-2">
       <div class="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
@@ -75,7 +74,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbVersions.diffText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: diff view -->
     <NeutralContainer>
       <div class="font-mono text-xs space-y-0.5">
         <div class="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-sm">{{ t('helpCenter.sample.knowledge.diffRemoved') }}</div>

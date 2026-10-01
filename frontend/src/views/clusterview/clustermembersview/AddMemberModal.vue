@@ -38,8 +38,10 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-// Written out rather than through the shared proxy: this modal also emits an event carrying two
-// strings, and the proxy's generic then reads the wrong signature off the emit.
+/**
+ * Written out rather than through the shared proxy: this modal also emits an event carrying several
+ * strings, and the proxy's generic then reads the wrong signature off the emit.
+ */
 const open = computed({
   get: () => props.modelValue,
   set: (v: boolean) => emit('update:modelValue', v),

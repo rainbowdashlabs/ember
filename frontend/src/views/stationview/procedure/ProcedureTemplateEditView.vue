@@ -202,7 +202,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <FailureAlert :failure="failure" class="mb-4"/>
 
     <template v-if="detail && !loading">
-      <!-- Header -->
       <div class="flex items-start justify-between mb-4 gap-4">
         <div class="flex-1 min-w-0">
           <p v-if="detail.template.description" class="text-[var(--text-muted)] text-sm mt-1">{{ detail.template.description }}</p>
@@ -217,7 +216,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         </ButtonRow>
       </div>
 
-      <!-- Items -->
       <div class="flex items-center justify-between mb-3">
         <SubHeader>{{ t('procedures.items') }}</SubHeader>
         <PrimaryButton v-if="canManage" @click="openAddItemModal">
@@ -246,7 +244,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </div>
     </template>
 
-    <!-- Edit Template Modal -->
     <Modal v-model="showEditModal">
       <SubHeader class="mb-3">{{ t('procedures.editTemplate') }}</SubHeader>
       <form class="space-y-3" @submit.prevent="handleEdit">
@@ -258,7 +255,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </form>
     </Modal>
 
-    <!-- Add/Edit Item Modal -->
     <Modal v-model="showItemModal">
       <SubHeader class="mb-3">{{ editingItem ? t('procedures.editItem') : t('procedures.addItem') }}</SubHeader>
       <form class="space-y-3" @submit.prevent="handleSaveItem">
@@ -280,7 +276,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </form>
     </Modal>
 
-    <!-- Dependency Modal -->
     <Modal v-model="showDepModal">
       <SubHeader class="mb-3">{{ t('procedures.dependencies') }}: {{ depTargetItem?.title }}</SubHeader>
       <div v-if="detail" class="space-y-3">

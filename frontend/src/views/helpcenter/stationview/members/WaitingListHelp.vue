@@ -42,7 +42,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.waitingList.step4') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Waiting list overview -->
     <HelpSection :title="t('helpCenter.waitingList.overviewExampleTitle')">
       <NeutralContainer class="space-y-3">
         <SectionHeader>{{ t('waitingList.title') }}</SectionHeader>
@@ -57,7 +56,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Entry list with status badges -->
     <HelpSection :title="t('helpCenter.waitingList.entriesTitle')">
       <p>{{ t('helpCenter.waitingList.entriesText') }}</p>
     </HelpSection>
@@ -96,7 +94,6 @@ const { t } = useI18n()
       <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.invitationStays') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Create entry form -->
     <HelpSection :title="t('helpCenter.waitingList.createEntryTitle')">
       <p>{{ t('helpCenter.waitingList.createEntryText') }}</p>
       <NeutralContainer class="space-y-4 mt-2">
@@ -128,7 +125,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Entry detail with status -->
     <HelpSection :title="t('helpCenter.waitingList.entryDetailTitle')">
       <p>{{ t('helpCenter.waitingList.entryDetailText') }}</p>
       <NeutralContainer class="space-y-3 mt-2">
@@ -143,7 +139,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Field editor -->
     <HelpSection :title="t('helpCenter.waitingList.fieldEditorTitle')">
       <p>{{ t('helpCenter.waitingList.fieldEditorText') }}</p>
       <NeutralContainer class="space-y-3 mt-2">
@@ -178,12 +173,10 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Invites section -->
     <HelpSection :title="t('helpCenter.waitingList.invites')">
       <p>{{ t('helpCenter.waitingList.invitesText') }}</p>
     </HelpSection>
 
-    <!-- Score formula documentation -->
     <HelpSection :title="t('helpCenter.waitingList.scoring')">
       <p>{{ t('helpCenter.waitingList.scoringText') }}</p>
     </HelpSection>
@@ -229,7 +222,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Confirmation flow -->
     <HelpSection :title="t('helpCenter.waitingList.confirmation')">
       <p>{{ t('helpCenter.waitingList.confirmationText') }}</p>
     </HelpSection>

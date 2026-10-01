@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {hasMoved, lastMovedAt, queueOrder} from './movementFilter'
 import type {MovementResponse} from '@/api/generated/schema'

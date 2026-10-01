@@ -76,6 +76,11 @@ const canCancelSeries = computed(() =>
 const canRestoreDate = computed(() =>
     props.canManageEvents && props.dateCancelled && !props.event.cancelled && !props.datePast)
 
+/**
+ * Whether the actions menu shows. Editing stays a button of its own, because the appointment is
+ * opened to be changed; announcing and calling off are occasional, and calling off comes last and
+ * coloured, since a row under a harmless one reads as harmless otherwise.
+ */
 const hasMenu = computed(() =>
     props.canWriteNews || hasAttendance.value || canCancelDate.value || canCancelSeries.value || canRestoreDate.value)
 
@@ -115,11 +120,6 @@ function announce() {
       <SecondaryBadge v-if="repeatEnd" data-testid="event-repeat-end">{{ repeatEnd }}</SecondaryBadge>
       <ErrorBadge v-if="dateCancelled">{{ t('events.cancelled') }}</ErrorBadge>
     </div>
-    <!--
-      The appointment is opened to be changed, so editing stays a button of its own. Announcing it
-      and calling it off are both occasional, and calling it off comes last and coloured because a
-      full width row under a harmless one reads as harmless otherwise.
-    -->
     <ButtonRow align="end">
       <SecondaryButton @click="goBack"><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
       <PrimaryButton v-if="canManageEvents" @click="goEdit"><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>

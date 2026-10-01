@@ -54,11 +54,9 @@ const pageTitle = computed(() => catalogName.value
   ? t('pages.quiz-catalog-mc-fill.titleNamed', {name: catalogName.value})
   : t('pages.quiz-catalog-mc-fill.title'))
 
-// Config phase
 const countMode = ref<string>('fillTo')
 const count = ref(6)
 
-// Generation phase
 const generating = ref(false)
 const generatingProgress = ref('')
 
@@ -80,7 +78,6 @@ interface ReviewQuestion {
 const reviewItems = ref<ReviewQuestion[]>([])
 const phase = ref<'config' | 'review'>('config')
 
-// Save phase
 const savedCount = ref(0)
 
 async function buildReviewItem(q: MultipleChoiceQuestion, credentials: AiCredentials): Promise<ReviewQuestion | null> {
@@ -192,7 +189,6 @@ async function saveAll() {
         ...item.newAnswers.map(text => ({text, correct: false})),
       ]
       const updatedConfig = {...item.existingConfig, options: allOptions}
-      // Recalculate points if autoPoints is enabled
       let points = item.points
       if (item.autoPoints) {
         const correctCount = allOptions.filter(o => o.correct).length
@@ -234,7 +230,6 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
     <FailureAlert v-if="noKey" :message="t('quiz.ai.noKeyConfigured')" expected class="mb-4"/>
     <FailureAlert v-else :failure="failure" class="mb-4"/>
 
-    <!-- Config phase -->
     <template v-if="phase === 'config' && !loading">
       <AiSettingsPanel :catalog-id="catalogId" class="mb-4"/>
 
@@ -255,7 +250,6 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
       </NeutralContainer>
     </template>
 
-    <!-- Review phase -->
     <template v-if="phase === 'review'">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <MutedText>
@@ -279,19 +273,16 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
           </div>
 
           <div class="space-y-1.5">
-            <!-- Existing correct answers -->
             <div v-for="opt in item.existingOptions.filter(o => o.correct)" :key="'c-' + opt.text"
                  class="flex items-center gap-2 px-3 py-1.5 rounded bg-success/10 border border-success/30">
               <font-awesome-icon :icon="['fas', 'check']" class="text-success text-xs shrink-0"/>
               <span class="text-sm">{{ opt.text }}</span>
             </div>
-            <!-- Existing wrong answers -->
             <div v-for="opt in item.existingOptions.filter(o => !o.correct)" :key="'e-' + opt.text"
                  class="flex items-center gap-2 px-3 py-1.5 rounded bg-[var(--bg-accent)]">
               <MutedIcon :icon="['fas', 'xmark']" size="inline" class="shrink-0"/>
               <span class="text-sm text-(--text-muted)">{{ opt.text }}</span>
             </div>
-            <!-- New generated answers (highlighted) -->
             <div v-for="(answer, aIdx) in item.newAnswers" :key="'n-' + aIdx"
                  class="flex items-center gap-2 rounded border-2 border-primary/40 bg-primary/5">
               <font-awesome-icon :icon="['fas', 'star']" class="text-primary text-xs shrink-0 ml-3"/>

@@ -110,10 +110,12 @@ function setViewBadgeRef(el: unknown, newsId: number) {
   }
 }
 
+/**
+ * Every entry the list shows. One the instance published comes back in the station's own list,
+ * because that is where it is read, but marked as a system entry: it is not the station's to edit.
+ */
 const allNews = computed<UnifiedNewsItem[]>(() => {
   const local: UnifiedNewsItem[] = entries.value.map(e => ({
-    // An entry the instance published comes back in the station's own list, because that is where
-    // it is read, but it is not the station's to edit and it says where it came from.
     kind: e.systemEntry ? 'system' : 'local',
     id: e.id,
     title: e.title,

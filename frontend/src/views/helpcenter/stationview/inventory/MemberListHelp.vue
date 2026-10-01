@@ -32,7 +32,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryMembers.customizeText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Filters -->
     <HelpSection :title="t('helpCenter.inventoryMembers.filterTitle')">
       <p>{{ t('helpCenter.inventoryMembers.filterText') }}</p>
 
@@ -54,7 +53,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryMembers.restrictionText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Member inventory table -->
     <div class="space-y-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('inventoryMembers.title') }}</SectionHeader>

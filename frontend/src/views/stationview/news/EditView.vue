@@ -78,7 +78,6 @@ const publicBlog = ref(false)
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
 const rows = ref<RowEditData[]>([])
 
-// Federation sharing
 const federationShared = ref(false)
 const federationScope = ref<string>(ShareScope.ALL_PARTNERS)
 const federationVisibilityRole = ref<string>(news.NewsVisibilityRole.MEMBER)

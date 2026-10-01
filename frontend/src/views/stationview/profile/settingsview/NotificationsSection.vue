@@ -49,7 +49,6 @@ function getToggle(type: string): NotificationToggle {
 </script>
 
 <template>
-  <!-- Mail provider info -->
   <InfoContainer v-if="settings.mailConfigured" class="space-y-2">
     <p class="text-sm">
       {{ t('userSettings.mailProviderInfo', {provider: settings.mailProviderName || t('userSettings.mailProviderUnknown')}) }}
@@ -66,7 +65,6 @@ function getToggle(type: string): NotificationToggle {
     {{ t('userSettings.mailNotConfigured') }}
   </NeutralContainer>
 
-  <!-- Master email toggle -->
   <NeutralContainer class="space-y-4">
     <SubHeader class="text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
     <div class="flex items-center justify-between">
@@ -82,12 +80,10 @@ function getToggle(type: string): NotificationToggle {
     </div>
   </NeutralContainer>
 
-  <!-- Per-type notification toggles -->
   <NeutralContainer data-onboarding="notifications.matrix" class="space-y-4">
     <SubHeader class="text-sm">{{ t('userSettings.notifications') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
-    <!-- Header row -->
     <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
       <span/>
       <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
@@ -95,7 +91,6 @@ function getToggle(type: string): NotificationToggle {
       <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
     </div>
 
-    <!-- Notification rows -->
     <div v-for="row in notifyRows" :key="row.type"
          class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
       <div>

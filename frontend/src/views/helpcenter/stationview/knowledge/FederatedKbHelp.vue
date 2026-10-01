@@ -29,7 +29,6 @@ const showFederated = ref(true)
       <p>{{ t('helpCenter.federatedKb.badgeText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: File tile with station badge -->
     <NeutralContainer>
       <div class="grid grid-cols-3 gap-3">
         <div class="flex flex-col items-center gap-2 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
@@ -56,7 +55,6 @@ const showFederated = ref(true)
       <p>{{ t('helpCenter.federatedKb.filterText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Toggle filter -->
     <NeutralContainer>
       <div class="flex flex-wrap items-center gap-2">
         <SelectionToggleButton :selected="showFederated" @toggle="showFederated = !showFederated">
@@ -71,7 +69,6 @@ const showFederated = ref(true)
       <p>{{ t('helpCenter.federatedKb.copyText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Copy action -->
     <NeutralContainer>
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-primary" />

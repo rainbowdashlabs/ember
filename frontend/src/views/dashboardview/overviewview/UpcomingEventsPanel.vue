@@ -131,16 +131,15 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 })
 
 async function loadData() {
-  try {
-    const [ev, cats, br, elig, fs, regs, mine] = await Promise.all([
-      events.listEvents(),
-      events.listCategories().catch(() => []),
-      events.listBreaks().catch(() => []),
-      events.listEligibleMembers().catch(() => ({})),
-      getFeedStatus().catch(() => null),
-      events.listMyRegistrations().catch(() => []),
-      isGuardian() ? managedMembersApi.listManaged().catch(() => []) : Promise.resolve([]),
-    ])
+  await Promise.all([
+    events.listEvents(),
+    events.listCategories().catch(() => []),
+    events.listBreaks().catch(() => []),
+    events.listEligibleMembers().catch(() => ({})),
+    getFeedStatus().catch(() => null),
+    events.listMyRegistrations().catch(() => []),
+    isGuardian() ? managedMembersApi.listManaged().catch(() => []) : Promise.resolve([]),
+  ]).then(([ev, cats, br, elig, fs, regs, mine]) => {
     allEvents.value = ev
     categories.value = cats
     eventBreaks.value = br
@@ -148,7 +147,7 @@ async function loadData() {
     feedStatus.value = fs
     myRegistrations.value = regs
     managed.value = mine
-  } catch { /* ignore */ }
+  }).catch(() => {})
 }
 
 /** The dialog is open exactly while an appointment is waiting to be refused for somebody. */

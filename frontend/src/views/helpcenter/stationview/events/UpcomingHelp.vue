@@ -48,7 +48,6 @@ const activeView = ref('')
 
     <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
-    <!-- Dummy: Filter bar -->
     <HelpSection :title="t('helpCenter.eventsUpcoming.filterTitle')">
       <p>{{ t('helpCenter.eventsUpcoming.filterText') }}</p>
       <NeutralContainer class="flex flex-wrap items-center gap-3 mt-3">
@@ -65,7 +64,6 @@ const activeView = ref('')
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Today's events -->
     <HelpSection :title="t('eventsUpcoming.today')">
       <SectionHeader>{{ t('eventsUpcoming.today') }}</SectionHeader>
       <div class="grid gap-3 sm:grid-cols-2">
@@ -87,7 +85,6 @@ const activeView = ref('')
       <p>{{ t('helpCenter.eventsUpcoming.statusDeclined') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Upcoming event with registration -->
     <HelpSection :title="t('eventsUpcoming.upcoming')">
       <SectionHeader>{{ t('eventsUpcoming.upcoming') }}</SectionHeader>
       <div class="space-y-2">
@@ -127,7 +124,6 @@ const activeView = ref('')
       </div>
     </HelpSection>
 
-    <!-- Federated events -->
     <HelpSection :title="t('helpCenter.eventsUpcoming.federatedTitle')">
       <p>{{ t('helpCenter.eventsUpcoming.federatedText') }}</p>
     </HelpSection>

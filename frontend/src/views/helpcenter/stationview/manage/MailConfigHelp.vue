@@ -80,7 +80,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.senderName') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Provider selection -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('stationManage.mailTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('stationManage.mailHint') }}</p>
@@ -131,7 +130,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.smtpProviderInfo') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Custom SMTP -->
     <NeutralContainer class="space-y-4">
       <SubHeader>SMTP</SubHeader>
       <div class="grid gap-4 sm:grid-cols-2">
@@ -170,7 +168,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.limitsUsage') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Limits -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('stationManage.mailLimits') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-2">
@@ -191,7 +188,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.testText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Save & Test buttons -->
     <NeutralContainer class="space-y-4">
       <ButtonRow pair>
         <PrimaryButton disabled>{{ t('stationManage.save') }}</PrimaryButton>

@@ -58,14 +58,12 @@ const dummyGroupIds = new Set([1, 3])
       <p>{{ t('helpCenter.membersEdit.whatShownText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Back button + header -->
     <HelpSection :title="t('helpCenter.membersEdit.exampleTitle')">
       <SecondaryButton :icon="['fas', 'chevron-left']">
         {{ t('memberEdit.back') }}
       </SecondaryButton>
       <SectionHeader class="mt-3">{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
 
-      <!-- Dummy: Tab bar with correct 4 tabs -->
       <TabBar :model-value="activeTab" :tabs="tabs" class="mt-3"/>
     </HelpSection>
 
@@ -82,7 +80,6 @@ const dummyGroupIds = new Set([1, 3])
       <p>{{ t('helpCenter.membersEdit.permissionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Permissions tab content -->
     <HelpSection :title="t('helpCenter.membersEdit.permissionsExampleTitle')">
       <NeutralContainer class="space-y-4">
         <div class="space-y-2">
@@ -127,7 +124,6 @@ const dummyGroupIds = new Set([1, 3])
       <p>{{ t('helpCenter.membersEdit.relationsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Relations tab content -->
     <HelpSection :title="t('helpCenter.membersEdit.relationsExampleTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>

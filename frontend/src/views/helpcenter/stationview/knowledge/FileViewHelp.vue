@@ -32,7 +32,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbFileView.typesText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: file header -->
     <NeutralContainer class="space-y-3">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -124,7 +123,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbFileView.presentationsFormats') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Presentation conversion states -->
     <NeutralContainer class="space-y-4">
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'file-powerpoint']" class="text-[var(--accent)]"/>
@@ -154,7 +152,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbFileView.presentationModeAutoHide') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Conversion pending -->
     <NeutralContainer class="text-center py-4">
       <Spinner size="lg"/>
       <MutedText tag="p" class="mt-2">{{ t('helpCenter.sample.knowledge.converting') }}</MutedText>

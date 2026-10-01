@@ -49,7 +49,6 @@ const dummyColors = [
       <p>{{ t('helpCenter.themeManage.defaultText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Theme management panel -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('theme.stationTheme') }}</SectionHeader>
       <div class="space-y-1">
@@ -79,7 +78,6 @@ const dummyColors = [
       <p>{{ t('helpCenter.themeManage.customText2') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Custom colors section -->
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
         <SubHeader>{{ t('theme.customColors') }}</SubHeader>

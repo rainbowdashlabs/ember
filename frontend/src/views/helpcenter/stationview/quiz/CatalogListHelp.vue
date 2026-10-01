@@ -28,7 +28,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.catalogListHowText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Catalog list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <SubHeader>{{ t('quiz.catalogs.title') }}</SubHeader>

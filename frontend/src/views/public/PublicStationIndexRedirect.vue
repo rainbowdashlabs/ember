@@ -27,7 +27,6 @@ function redirect(info: PublicStationInfo | null) {
   }
 }
 
-// Station info is provided by PublicStationShell - redirect once available
 if (station.value) {
   redirect(station.value)
 }

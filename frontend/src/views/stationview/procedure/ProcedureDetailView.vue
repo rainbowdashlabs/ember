@@ -216,7 +216,6 @@ watch(loaded, (v) => {
     <FailureAlert :failure="failure" class="mb-4"/>
 
     <template v-if="detail && !loading">
-      <!-- Header -->
       <div class="flex items-start justify-between mb-4 gap-4">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -258,7 +257,6 @@ watch(loaded, (v) => {
         </ButtonRow>
       </div>
 
-      <!-- Assignees -->
       <NeutralContainer v-if="detail.assignees.length > 0" class="mb-4">
         <SubHeader class="mb-2">{{ t('procedures.assignees') }}</SubHeader>
         <div class="flex flex-wrap gap-2">
@@ -266,7 +264,6 @@ watch(loaded, (v) => {
         </div>
       </NeutralContainer>
 
-      <!-- Progress bar -->
       <NeutralContainer class="mb-4">
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium">{{ t('procedures.progress') }}</span>
@@ -277,7 +274,6 @@ watch(loaded, (v) => {
         </div>
       </NeutralContainer>
 
-      <!-- Checklist items -->
       <SubHeader class="mb-3">{{ t('procedures.items') }}</SubHeader>
 
       <div class="space-y-2">
@@ -299,7 +295,6 @@ watch(loaded, (v) => {
       </div>
     </template>
 
-    <!-- Resolve/Reopen Modal -->
     <Modal v-model="showResolveModal">
       <SubHeader class="mb-3">
         {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}

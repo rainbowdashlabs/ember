@@ -42,10 +42,8 @@ const dummySelected = new Set([1])
       <p>{{ t('helpCenter.typePermissions.howToText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Two-column grid matching the real view -->
     <HelpSection :title="t('helpCenter.typePermissions.exampleTitle')">
       <div class="grid gap-6 lg:grid-cols-2">
-        <!-- User type list -->
         <div class="space-y-4">
           <SectionHeader>{{ t('userTypePermissions.title') }}</SectionHeader>
           <MutedText size="sm">{{ t('userTypePermissions.description') }}</MutedText>
@@ -63,7 +61,6 @@ const dummySelected = new Set([1])
           </div>
         </div>
 
-        <!-- Permission picker -->
         <div class="space-y-4">
           <SectionHeader>{{ t('helpCenter.typePermissions.typeTeam') }}</SectionHeader>
           <PermissionPicker :model-value="dummySelected" :all-roles="dummyRoles"/>

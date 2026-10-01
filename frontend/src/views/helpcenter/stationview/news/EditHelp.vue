@@ -47,7 +47,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.newsEdit.markdownEditorText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Editor -->
     <NeutralContainer class="space-y-4">
       <div class="space-y-1">
         <FieldLabel>{{ t('news.titleField') }}</FieldLabel>
@@ -73,7 +72,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.newsEdit.previewText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Preview -->
     <NeutralContainer class="space-y-2">
       <SubHeader>{{ t('news.preview') }}</SubHeader>
       <NeutralContainer class="prose prose-sm dark:prose-invert max-w-none">
@@ -91,7 +89,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.newsEdit.tagRestrictionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Visibility groups -->
     <NeutralContainer class="space-y-3">
       <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
@@ -118,7 +115,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.newsEdit.attachmentsTravelText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Attachments -->
     <NeutralContainer class="space-y-3">
       <SubHeader>{{ t('news.attachments') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('news.attachmentsHint') }}</p>
@@ -138,7 +134,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.newsEdit.federationText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Save buttons -->
     <ButtonRow pair align="end">
       <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton>{{ t('common.save') }}</PrimaryButton>

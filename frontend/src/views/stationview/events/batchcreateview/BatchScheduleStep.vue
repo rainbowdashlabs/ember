@@ -34,7 +34,6 @@ const csvFileId = useId()
 
 const mode = ref<'schedule' | 'csv'>('schedule')
 
-// Schedule
 const intervalType = ref('RECURRING')
 const dayOfWeek = ref(1)
 const startDate = ref('')
@@ -43,7 +42,6 @@ const startTime = ref('')
 const endTime = ref('')
 const ignoreBreaks = ref(false)
 
-// CSV
 const csvColumns = ref<string[]>([])
 const csvRows = ref<string[][]>([])
 const columnMapping = ref<Record<string, string>>({})
@@ -123,15 +121,19 @@ function parseCsv(text: string) {
   const mapped = Object.values(mapping)
   csvHasTimeColumns.value = mapped.includes('__startTime__') || mapped.includes('__endTime__')
 
-  // Auto-detect date format
   const dateColName = Object.entries(mapping).find(([, v]) => v === '__date__')?.[0]
   if (dateColName && csvRows.value.length > 0) {
     const sample = csvRows.value[0]?.[csvColumns.value.indexOf(dateColName)]?.trim() ?? ''
-    if (/^\d{2}\.\d{2}\.\d{4}$/.test(sample)) csvDateFormat.value = 'DD.MM.YYYY'
-    else if (/^\d{4}-\d{2}-\d{2}$/.test(sample)) csvDateFormat.value = 'YYYY-MM-DD'
-    else if (/^\d{2}\/\d{2}\/\d{4}$/.test(sample)) csvDateFormat.value = 'MM/DD/YYYY'
-    else csvDateFormat.value = 'auto'
+    csvDateFormat.value = detectedDateFormat(sample)
   }
+}
+
+/** The date format a sample from the date column is written in, or `auto` where none fits. */
+function detectedDateFormat(sample: string): typeof csvDateFormat.value {
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(sample)) return 'DD.MM.YYYY'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(sample)) return 'YYYY-MM-DD'
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(sample)) return 'MM/DD/YYYY'
+  return 'auto'
 }
 
 function parseDateStr(raw: string): string {
@@ -190,7 +192,6 @@ function applyCsvToRows() {
         @update:model-value="mode = $event as 'schedule' | 'csv'"
     />
 
-    <!-- Schedule mode -->
     <template v-if="mode === 'schedule'">
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
@@ -235,7 +236,6 @@ function applyCsvToRows() {
       </PrimaryButton>
     </template>
 
-    <!-- CSV mode -->
     <template v-if="mode === 'csv'">
       <div class="space-y-2">
         <FieldLabel :for="csvFileId">{{ t('batchCreate.uploadCsv') }}</FieldLabel>

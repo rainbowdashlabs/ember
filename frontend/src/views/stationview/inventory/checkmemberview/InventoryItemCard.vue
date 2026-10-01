@@ -46,7 +46,6 @@ function resultClass(): string {
     class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 transition-all"
     :class="resultClass()"
   >
-    <!-- Item info + action buttons -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
       <div class="flex-1 min-w-0">
         <div class="font-medium text-sm truncate">
@@ -66,7 +65,6 @@ function resultClass(): string {
       />
     </div>
 
-    <!-- Note -->
     <TextInput
       :model-value="note"
       :placeholder="t('inventory.check.notePlaceholder')"

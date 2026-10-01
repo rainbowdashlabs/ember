@@ -41,7 +41,6 @@ const dummyInventorySend = ref(false)
       <p>{{ t('helpCenter.federationPartner.whatIsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: partner header with action buttons -->
     <NeutralContainer class="space-y-2">
       <div class="flex items-center gap-2">
         <div class="flex-1">
@@ -60,7 +59,6 @@ const dummyInventorySend = ref(false)
       <p>{{ t('helpCenter.federationPartner.capabilitiesText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: capabilities table -->
     <NeutralContainer>
       <table class="w-full text-sm">
         <thead>

@@ -31,7 +31,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryOverview.openProcurement') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Open exchanges table -->
     <NeutralContainer class="space-y-3">
       <SubHeader>
         <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2" />
@@ -59,7 +58,6 @@ const {t} = useI18n()
       </DataTable>
     </NeutralContainer>
 
-    <!-- Dummy: Open procurement -->
     <NeutralContainer class="space-y-3">
       <SubHeader>
         <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
@@ -79,7 +77,6 @@ const {t} = useI18n()
       </DataTable>
     </NeutralContainer>
 
-    <!-- Dummy: Lost items -->
     <NeutralContainer class="space-y-3">
       <SubHeader>{{ t('inventory.overview.lost') }}</SubHeader>
       <DataTable>

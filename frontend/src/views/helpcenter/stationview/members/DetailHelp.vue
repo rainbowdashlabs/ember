@@ -38,7 +38,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.whatShownText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Member header with action buttons -->
     <HelpSection :title="t('helpCenter.membersDetail.headerTitle')">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SecondaryButton :icon="['fas', 'chevron-left']">
@@ -60,7 +59,6 @@ const tabs = [
       <SectionHeader class="mt-3">{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">max@example.com</p>
 
-      <!-- Dummy: Tab bar showing all tabs -->
       <TabBar :model-value="activeTab" :tabs="tabs" class="mt-3"/>
     </HelpSection>
 
@@ -68,7 +66,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.fieldsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Profile fields -->
     <HelpSection :title="t('helpCenter.membersDetail.profileExampleTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
@@ -97,7 +94,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.permissionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Permissions tab -->
     <HelpSection :title="t('helpCenter.membersDetail.permissionsExampleTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader class="text-sm">{{ t('memberDetail.userType') }}</SubHeader>
@@ -134,7 +130,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.missingHandOutText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Inventory items -->
     <HelpSection :title="t('helpCenter.membersDetail.inventoryExampleTitle')">
       <NeutralContainer class="space-y-3">
         <div class="flex items-center justify-between">

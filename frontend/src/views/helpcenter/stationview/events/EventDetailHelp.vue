@@ -45,7 +45,6 @@ const sampleCancellation: CancellationNotice = {
       <p>{{ t('helpCenter.eventDetail.memberAccess') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Event detail view -->
     <HelpSection :title="t('helpCenter.eventDetail.answeringTitle')">
       <p>{{ t('helpCenter.eventDetail.answeringText') }}</p>
     </HelpSection>
@@ -63,7 +62,6 @@ const sampleCancellation: CancellationNotice = {
     </HelpSection>
 
     <HelpSection :title="t('events.general')">
-      <!-- Event header -->
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="flex items-center gap-3">
           <SectionHeader>{{ t('helpCenter.sample.events.competitionPrep') }}</SectionHeader>
@@ -82,7 +80,6 @@ const sampleCancellation: CancellationNotice = {
         </ButtonRow>
       </div>
 
-      <!-- Date/time/category info -->
       <NeutralContainer class="space-y-3 mt-3">
         <SubHeader>{{ t('events.general') }}</SubHeader>
         <div class="grid gap-4 sm:grid-cols-2">
@@ -106,7 +103,6 @@ const sampleCancellation: CancellationNotice = {
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Registration section -->
     <HelpSection :title="t('helpCenter.eventDetail.registrationTitle')">
       <NeutralContainer class="space-y-3">
         <div class="flex items-center gap-2 flex-wrap">
@@ -124,7 +120,6 @@ const sampleCancellation: CancellationNotice = {
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Registrations list -->
     <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventManage')">
       <HelpSection :title="t('eventDetail.registrations')">
         <NeutralContainer class="space-y-2">

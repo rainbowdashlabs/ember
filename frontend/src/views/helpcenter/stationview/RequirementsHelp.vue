@@ -29,7 +29,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.requirements.registrationsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: requirement items -->
     <NeutralContainer>
       <div class="flex items-center gap-3">
         <font-awesome-icon :icon="['fas', 'user']" class="text-primary text-xl"/>
@@ -74,7 +73,6 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
-    <!-- Dummy: all done -->
     <SuccessContainer>
       <div class="flex items-center gap-3">
         <font-awesome-icon :icon="['fas', 'circle-check']" class="text-xl"/>

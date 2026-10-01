@@ -25,7 +25,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestEvaluate.autoText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Answer list -->
     <NeutralContainer>
       <div class="space-y-3 text-sm">
         <div class="space-y-1">

@@ -42,6 +42,10 @@ function emptyCounts(): StatusCounts {
   return {PENDING: 0, ACCEPTED: 0, DENIED: 0, DECLINED: 0, WITHDRAWN: 0}
 }
 
+/**
+ * The appointments with pending registrations, soonest deadline first. The pending count never
+ * falls below the pending list, in case the counts lagged behind it.
+ */
 const eventGroups = computed((): EventGroup[] => {
   const pendingByEvent = new Map<number, RegistrationResponse[]>()
   for (const reg of pendingRegistrations.value) {
@@ -50,7 +54,6 @@ const eventGroups = computed((): EventGroup[] => {
     pendingByEvent.set(reg.eventId, list)
   }
 
-  // Aggregate counts per event across all dates from listRegistrationCounts.
   const countsByEvent = new Map<number, StatusCounts>()
   for (const rc of registrationCounts.value) {
     const cur = countsByEvent.get(rc.eventId) ?? emptyCounts()
@@ -63,7 +66,6 @@ const eventGroups = computed((): EventGroup[] => {
     const event = allEvents.value.find(e => e.id === eventId)
     if (!event) continue
     const counts = countsByEvent.get(eventId) ?? emptyCounts()
-    // Ensure the pending list size is reflected even if counts endpoint lagged.
     if (counts.PENDING < regs.length) counts.PENDING = regs.length
     const deadlineExpired = event.registrationDeadline
         ? new Date(event.registrationDeadline) < new Date()
@@ -71,7 +73,6 @@ const eventGroups = computed((): EventGroup[] => {
     result.push({event, pending: regs, counts, deadlineExpired})
   }
 
-  // Sort by deadline ascending (null = end)
   result.sort((a, b) => {
     const da = a.event.registrationDeadline ?? '9999'
     const db = b.event.registrationDeadline ?? '9999'

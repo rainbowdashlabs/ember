@@ -46,6 +46,10 @@ const { hasPermission } = useSession()
 const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
+/**
+ * The kinds of a drawer of different things. Most drawers have none, so an empty list is the
+ * ordinary answer and leaves the flat list exactly as it was.
+ */
 const arts = ref<InventoryArt[]>([])
 const memberMap = ref<Map<number, MemberWithName>>(new Map())
 const openProcurement = ref<ProcurementResponse[]>([])
@@ -95,6 +99,10 @@ const canProcure = computed(() => hasPermission(StationPermission.INVENTORY_PROC
 const canCreateInternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_INTERNAL))
 const canCreateExternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_EXTERNAL))
 
+/**
+ * What this screen offers. Ordering more needs something to be more of, which a drawer of different
+ * things has not got, so procurement is not offered there.
+ */
 const permissions = computed(() => {
   const type = detail.value?.inventoryType ?? InventoryTypes.INTERNAL
   const canCreateItem = type === InventoryTypes.INTERNAL ? canCreateInternal.value
@@ -102,8 +110,6 @@ const permissions = computed(() => {
     : canCreateInternal.value || canCreateExternal.value
   return {
     canEdit: canEdit.value,
-    // Ordering three more needs something to be three more of, which a drawer of different things
-    // has not got, so this screen does not offer it there either
     canProcure: canProcure.value && (detail.value?.homogeneous ?? true),
     canCreateItem,
     canQuickAssign: (type === InventoryTypes.EXTERNAL || type === InventoryTypes.MIXED) && canCreateExternal.value,
@@ -209,8 +215,6 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   detail.value = inv
   items.value = allItems
   containers.value = allContainers
-  // Only a drawer of different things has kinds, and most drawers have none, so an empty list here
-  // is the ordinary answer and leaves the flat list exactly as it was.
   arts.value = inv.homogeneous === false
       ? await inventoryArts.listArts(inventoryId.value).catch(() => [] as InventoryArt[])
       : []

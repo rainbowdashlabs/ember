@@ -22,12 +22,17 @@ import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {usePageHeader} from '@/composables/usePageHeader'
 
+/**
+ * The instance administration shell and its sidebar.
+ *
+ * <p>The beacon settings entry always shows, since setting a beacon up is how an instance becomes
+ * one; what a beacon gathers shows only once it is active, rather than as empty pages everywhere else.
+ */
 const {t} = useI18n()
 const {loaded, load} = useSession()
 const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 
-// Dev-mode-only inspector tools are only visible when the dev server is running
-// (production bundles tree-shake the branch out via Vite's import.meta.env).
+/** Shows the inspector tools, which production builds drop entirely. */
 const isDev = import.meta.env.DEV
 
 const {open: openQuickSearch} = useQuickSearchShortcut('admin')
@@ -142,11 +147,6 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <!--
-        Setting a beacon up is how an instance becomes one, so that entry stands whatever the answer is:
-        hidden with the rest, nobody could find the switch that shows them. What it gathers appears only
-        once it is gathering, rather than as three empty pages on every other instance.
-      -->
       <SidebarGroup
           :badge="counts.beaconFaults + counts.beaconReports"
           :icon="['fas', 'tower-broadcast']"

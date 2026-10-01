@@ -31,7 +31,6 @@ const allPages = ref<StationPage[]>([])
 const preview = ref(false)
 const hasUnsavedChanges = ref(false)
 
-// Editable fields
 const title = ref('')
 const slug = ref('')
 const parentId = ref<number | null>(null)

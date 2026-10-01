@@ -48,21 +48,24 @@ const token = route.query.token as string
 const status = ref<TokenStatus | null>(null)
 const checking = ref(true)
 
+/**
+ * Sends the link on to passkey enrolment on a passwordless instance, where the setup mail's token
+ * creates a passkey instead of asking for a password. A legacy member who still rotates a password
+ * comes back with `?password=1`, and the server decides the rest. A failed lookup counts as not sent
+ * on, because it must never block setting a password.
+ *
+ * @returns whether the link was sent on
+ */
+async function sentOnToEnrolment(): Promise<boolean> {
+  if (route.query.password === '1') return false
+  const {publicPasskeyMode} = await import('@/api/passkeys')
+  if (await publicPasskeyMode() !== 'PASSWORDLESS') return false
+  await navigateTo({path: '/enroll', query: {code: token, fromSetup: '1'}}, {replace: true})
+  return true
+}
+
 onMounted(async () => {
-  // On a passwordless instance the same token is an enrolment door: the screen behind the
-  // setup mail creates a passkey instead of asking for a password. A legacy member who still
-  // rotates a password comes back here with ?password=1, and the server decides the rest.
-  if (route.query.password !== '1') {
-    try {
-      const {publicPasskeyMode} = await import('@/api/passkeys')
-      if (await publicPasskeyMode() === 'PASSWORDLESS') {
-        await navigateTo({path: '/enroll', query: {code: token, fromSetup: '1'}}, {replace: true})
-        return
-      }
-    } catch {
-      // The mode read failing must never block setting a password.
-    }
-  }
+  if (await sentOnToEnrolment().catch(() => false)) return
   try {
     status.value = await auth.passwordLinkStatus(token)
   } catch {

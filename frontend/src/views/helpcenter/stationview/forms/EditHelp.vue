@@ -27,7 +27,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.formsEdit.questionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: question list -->
     <NeutralContainer class="space-y-3">
       <div class="flex items-center justify-between gap-2 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>

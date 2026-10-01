@@ -14,7 +14,8 @@ import {useSession} from '@/composables/useSession'
  * The parts of the association's gear, as addresses rather than as state.
  *
  * <p>Each tab is its own page, so reloading keeps you where you were and a notification about a
- * movement waiting on the association can point straight at the tab that shows it.
+ * movement waiting on the association can point straight at the tab that shows it. The settings tab
+ * shows on either right, and each section on it under its own.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -50,7 +51,6 @@ const tabs = computed(() => [
     name: 'cluster-inventory-settings',
     to: '/cluster/inventory/settings',
     label: t('clusterInventory.tabSettings'),
-    // Either right is enough to have something to see there, and each section shows under its own.
     shown: hasClusterPermission(ClusterPermission.CLUSTER_MODULES)
         || hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_MANAGER),
   },

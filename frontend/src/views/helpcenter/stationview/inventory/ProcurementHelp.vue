@@ -31,7 +31,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryProcurement.createNotes') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Procurement list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('procurement.title') }}</SectionHeader>

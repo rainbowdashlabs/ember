@@ -39,7 +39,6 @@ async function loadReport() {
 
 <template>
   <div class="space-y-4">
-    <!-- What the instance can check about itself; what a browser sees it cannot. -->
     <InfoContainer class="space-y-1 text-sm">
       <div class="font-medium">{{ t('adminSecurity.passkeys.readinessTitle') }}</div>
       <div>{{ t('adminSecurity.passkeys.rpIdLine', {rpId: config.rpId}) }}</div>

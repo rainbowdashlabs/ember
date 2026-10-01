@@ -36,7 +36,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryEdit.fieldsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Settings section -->
     <HelpSection :title="t('helpCenter.inventoryEdit.settingsTitle')">
       <p>{{ t('helpCenter.inventoryEdit.settingsText') }}</p>
 
@@ -58,7 +57,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Sizes section -->
     <HelpSection :title="t('helpCenter.inventoryEdit.sizesTitle')">
       <p>{{ t('helpCenter.inventoryEdit.sizesText') }}</p>
       <p>{{ t('helpCenter.inventoryEdit.sizesDragText') }}</p>

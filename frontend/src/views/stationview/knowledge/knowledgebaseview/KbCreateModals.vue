@@ -35,35 +35,29 @@ const emit = defineEmits<{
     error: [failure: Failure]
 }>()
 
-// Create folder
 const showCreateFolderModal = ref(false)
 const newFolderName = ref('')
 const newFolderDescription = ref('')
 
-// Create markdown file
 const showCreateFileModal = ref(false)
 const newFileName = ref('')
 const newFileDescription = ref('')
 
-// Upload file
 const showUploadModal = ref(false)
 const uploadFileName = ref('')
 const uploadFileDescription = ref('')
 const uploadFileRef = ref<File | null>(null)
 
-// YouTube
 const showYoutubeModal = ref(false)
 const youtubeName = ref('')
 const youtubeDescription = ref('')
 const youtubeUrl = ref('')
 
-// Link
 const showLinkModal = ref(false)
 const linkUrl = ref('')
 const linkName = ref('')
 const linkDescription = ref('')
 
-// Import document
 const showImportModal = ref(false)
 const importFileName = ref('')
 const importFileDescription = ref('')
@@ -231,7 +225,6 @@ defineExpose({
 </script>
 
 <template>
-    <!-- Create Folder Modal -->
     <Modal v-model="showCreateFolderModal">
         <SubHeader class="mb-3">{{ t('kb.newFolder') }}</SubHeader>
         <form class="flex flex-col gap-3" @submit.prevent="handleCreateFolder">
@@ -241,7 +234,6 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- Create File Modal -->
     <Modal v-model="showCreateFileModal">
         <SubHeader class="mb-3">{{ t('kb.newFile') }}</SubHeader>
         <form class="flex flex-col gap-3" @submit.prevent="handleCreateFile">
@@ -251,7 +243,6 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- Upload File Modal -->
     <Modal v-model="showUploadModal">
         <SubHeader class="mb-3">{{ t('kb.uploadFile') }}</SubHeader>
         <form class="flex flex-col gap-3" @submit.prevent="handleUploadFile">
@@ -262,7 +253,6 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- Import Document Modal -->
     <Modal v-model="showImportModal">
         <SubHeader class="mb-3">{{ t('kb.importDocument') }}</SubHeader>
         <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('kb.importDocumentHint') }}</p>
@@ -277,7 +267,6 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- YouTube Modal -->
     <Modal v-model="showYoutubeModal">
         <SubHeader class="mb-3">{{ t('kb.addYoutube') }}</SubHeader>
         <form class="flex flex-col gap-3" @submit.prevent="handleCreateYoutube">
@@ -288,7 +277,6 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- Link Modal -->
     <Modal v-model="showLinkModal">
         <SubHeader class="mb-3">{{ t('kb.addLink') }}</SubHeader>
         <form class="flex flex-col gap-3" @submit.prevent="handleCreateLink">

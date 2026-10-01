@@ -147,12 +147,10 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </PrimaryButton>
     </ButtonRow>
 
-    <!-- Search -->
     <div class="mb-4">
       <SearchInput v-model="searchQuery" :placeholder="t('protocol.search')" />
     </div>
 
-    <!-- Filters -->
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <SelectionToggleButton :selected="showFederated" @toggle="showFederated = !showFederated">
         <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-3 h-3 mr-1" />
@@ -210,7 +208,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </form>
     </Modal>
 
-    <!-- Delete Modal -->
     <Modal v-model="showDeleteModal">
       <SubHeader class="mb-3">{{ t('protocol.deleteConfirm') }}</SubHeader>
       <p class="mb-4">{{ deleteTarget?.name }}</p>

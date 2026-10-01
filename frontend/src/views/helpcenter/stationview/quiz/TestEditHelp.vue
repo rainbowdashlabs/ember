@@ -25,7 +25,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestEdit.basicText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Basic test settings -->
     <NeutralContainer class="space-y-3">
       <TextInput model-value="Jugendflamme Stufe 1 - Theorieteil" disabled :placeholder="t('helpCenter.quizTestEdit.nameLabel')" />
       <div class="flex items-center gap-2 text-xs">
@@ -42,7 +41,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestEdit.sectionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Section config -->
     <NeutralContainer>
       <div class="space-y-2 text-sm">
         <div class="font-semibold">{{ t('helpCenter.sample.quiz.section', {number: 1}) }}</div>

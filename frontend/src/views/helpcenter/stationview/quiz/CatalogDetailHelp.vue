@@ -36,7 +36,6 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.addQuestionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Add question buttons -->
     <div class="flex flex-wrap gap-2">
       <SecondaryButton v-for="questionType in questionTypes" :key="questionType" :icon="['fas', 'plus']" disabled>
         {{ t(`quiz.questionTypes.${questionType}`) }}
@@ -51,7 +50,6 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.typeMultipleChoiceText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Multiple choice question -->
     <NeutralContainer>
       <div class="space-y-3">
         <div class="flex items-center justify-between">
@@ -96,7 +94,6 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.categoriesText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Categories -->
     <NeutralContainer>
       <div class="space-y-2">
         <div class="flex items-center justify-between">
@@ -115,7 +112,6 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.reportsAcknowledge') }}</p>
     </HelpSection>
 
-    <!-- Dummy: an open note on a question -->
     <InfoContainer class="space-y-2">
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'flag']" />

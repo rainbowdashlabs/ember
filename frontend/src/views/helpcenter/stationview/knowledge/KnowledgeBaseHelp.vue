@@ -29,7 +29,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.kb.viewToggleText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Tile browser -->
     <NeutralContainer>
       <div class="grid grid-cols-3 gap-3">
         <div class="flex flex-col items-center gap-1 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">

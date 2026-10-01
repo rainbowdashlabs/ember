@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {FieldTypes} from '@/api/fieldTypes'
 import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'

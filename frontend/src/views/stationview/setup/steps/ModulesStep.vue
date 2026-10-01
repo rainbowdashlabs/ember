@@ -32,10 +32,9 @@ const disabled = ref<Set<StationModule>>(new Set([
 const loading = ref(true)
 
 onMounted(async () => {
-  try {
-    const res = await stationManage.getDisabledModules()
+  await stationManage.getDisabledModules().then(res => {
     disabled.value = new Set(res.disabledModules)
-  } catch { /* ignore */ }
+  }).catch(() => {})
   loading.value = false
 })
 

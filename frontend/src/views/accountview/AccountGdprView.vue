@@ -54,10 +54,9 @@ const {running: deletingAccount, failure: deleteFailure, run: confirmDeleteAccou
 
 onMounted(async () => {
   if (isGuardian()) {
-    try {
-      const managed = await managedMembersApi.listManaged()
-      managedMembers.value = managed.map(m => ({id: m.id, name: m.name}))
-    } catch { /* ignore */ }
+    await managedMembersApi.listManaged()
+      .then(managed => { managedMembers.value = managed.map(m => ({id: m.id, name: m.name})) })
+      .catch(() => {})
   }
 })
 </script>

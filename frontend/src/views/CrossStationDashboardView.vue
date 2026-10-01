@@ -37,16 +37,15 @@ const loading = ref(true)
 onMounted(async () => {
   if (!sessionLoaded.value) void loadSession()
   await Promise.all([loadStations(), loadClusters()])
-  try {
-    dashboard.value = await getCrossStationDashboard()
-  } catch { /* ignore */ }
+  dashboard.value = await getCrossStationDashboard().catch(() => null)
   loading.value = false
 })
 
+/**
+ * The deep link to continue to, read from the route and failing that from the browser's own address,
+ * since during hydration the route can briefly lag behind it and a deep link must never drop silently.
+ */
 function resolveRedirect(): string | null {
-  // Prefer the route query (Vue Router state) but fall back to the raw window URL
-  // - during SSR hydration the route can briefly lag behind the browser bar, and
-  // we never want to drop a deep link silently.
   const fromRoute = typeof route.query.redirect === 'string' ? route.query.redirect : null
   if (usableRedirect(fromRoute)) return fromRoute
   if (typeof window !== 'undefined') {

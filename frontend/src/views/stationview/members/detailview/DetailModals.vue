@@ -50,20 +50,16 @@ const emit = defineEmits<{
   exchangeStarted: []
 }>()
 
-// Former modal
 const showFormerModal = ref(false)
 
-// Delete modal
 const showDeleteModal = ref(false)
 const showDeleteConfirm = ref(false)
 
-// Assign modal
 const showAssignModal = ref(false)
 const pickedItemId = ref<number | null>(null)
 const assignScanError = ref('')
 const handOutMode = ref<HandOutMode>('NOW')
 
-// Reassign modal
 const showReassignModal = ref(false)
 const reassignItemRef = ref<MyInventoryItem | null>(null)
 const reassignTargetId = ref('')
@@ -142,7 +138,6 @@ defineExpose({
 </script>
 
 <template>
-  <!-- Former confirmation modal -->
   <Modal v-model="showFormerModal">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.markFormerTitle') }}</SubHeader>
@@ -168,7 +163,6 @@ defineExpose({
     </div>
   </Modal>
 
-  <!-- Delete member modal (first step) -->
   <ConfirmDeleteModal
       v-model="showDeleteModal"
       :title="t('memberDetail.deleteTitle')"
@@ -179,7 +173,6 @@ defineExpose({
     <MutedText tag="p">{{ t('memberDetail.deleteHint') }}</MutedText>
   </ConfirmDeleteModal>
 
-  <!-- Delete member modal (second confirmation) -->
   <Modal v-model="showDeleteConfirm">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SubHeader>
@@ -193,7 +186,6 @@ defineExpose({
     </div>
   </Modal>
 
-  <!-- Assign item modal -->
   <Modal v-model="showAssignModal">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.assignItem') }}</SubHeader>
@@ -211,7 +203,6 @@ defineExpose({
     </div>
   </Modal>
 
-  <!-- Reassign item modal -->
   <Modal v-model="showReassignModal">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.reassignItem') }}</SubHeader>

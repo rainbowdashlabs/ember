@@ -34,7 +34,6 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
       <SetupChecklist/>
       <OnboardingTaskCard v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" level="STATION"/>
       <OnboardingTaskCard level="MEMBER"/>
-      <!-- Onboarding banner -->
       <ErrorContainer v-if="profileIncomplete" class="flex items-center justify-between gap-4">
         <div>
           <p class="font-semibold text-sm">{{ t('dashboard.profileIncomplete') }}</p>
@@ -45,7 +44,6 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
         </PrimaryButton>
       </ErrorContainer>
 
-      <!-- Tile layout for all panels -->
       <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
         <NotificationsPanel/>
         <OpenMovementsPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>

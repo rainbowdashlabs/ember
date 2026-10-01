@@ -38,11 +38,12 @@ const code = ref('')
 const useBackupCode = ref(false)
 
 const rememberDevice = ref(false)
+/**
+ * How long a device may be trusted. The pre-auth token cannot read the second-factor status, so a
+ * failed read falls back to 30 days and the checkbox still shows a sensible cap.
+ */
 const trustedDeviceMaxDays = ref(0)
 
-// The pre-auth token doesn't grant access to /account/2fa/status, but the value only
-// affects an unauthenticated view of the trusted-device window. Fall back to a
-// default of 30 when the call fails so the checkbox still shows a sensible cap.
 onMounted(async () => {
   try {
     const status = await getTwoFactorStatus()
@@ -120,9 +121,9 @@ async function finalizeSession() {
     if (landing.stationId) setActiveStation(landing.stationId)
     if (landing.clusterUid) setActiveCluster(landing.clusterUid)
     leaveFor(landing.path)
-    return
-  } catch { /* fall through to default redirect */ }
-  leaveFor(redirect || '/station/requirements')
+  } catch {
+    leaveFor(redirect || '/station/requirements')
+  }
 }
 </script>
 

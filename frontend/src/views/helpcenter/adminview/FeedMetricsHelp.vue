@@ -41,8 +41,6 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.adminFeedMetrics.histogramTitle')">
       <p>{{ t('helpCenter.adminFeedMetrics.histogramText') }}</p>
-      <!-- Buckets explained with their canonical colour coding so admins recognise it
-           when they see it on the live panel. -->
       <NeutralContainer class="mt-2">
         <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 text-sm">
           <div class="space-y-1">

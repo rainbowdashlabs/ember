@@ -11,14 +11,16 @@ import {provideEventRoutes} from '~/composables/useEventRoutes'
 import {provideNewsRoutes} from '~/composables/useNewsRoutes'
 import {useClusterHomeStation} from '~/composables/useClusterHomeStation'
 
+/**
+ * An association's appointment. The news routes are the association's own too, so announcing the
+ * appointment never drops somebody into the station panel.
+ */
 definePageMeta({
   layout: 'cluster',
   name: 'cluster-event-detail',
 })
 
 provideEventRoutes(CLUSTER_EVENT_ROUTES)
-// Announcing an appointment leads into the news screens, and the association keeps its own. Without
-// this the button would drop somebody who never left the association into the station panel.
 provideNewsRoutes(CLUSTER_NEWS_ROUTES)
 
 const {homeStationId} = useClusterHomeStation()

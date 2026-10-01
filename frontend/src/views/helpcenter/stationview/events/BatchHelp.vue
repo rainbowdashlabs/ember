@@ -25,7 +25,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.batchCreate.stepsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Step progress bar -->
     <HelpSection :title="t('batchCreate.title')">
       <SectionHeader>{{ t('batchCreate.title') }}</SectionHeader>
       <StepProgressBar
