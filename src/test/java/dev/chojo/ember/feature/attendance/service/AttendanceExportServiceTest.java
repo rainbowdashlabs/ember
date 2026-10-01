@@ -9,6 +9,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
+import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -157,6 +160,64 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 AttendanceEntry.EntrySource.EXPECTED);
+    }
+
+    private static AttendanceTemplateField fieldOf(int id, String name, AttendanceFieldType type) {
+        return new AttendanceTemplateField(id, 0, name, type, AttendanceFieldConfig.parse("{}"), id);
+    }
+
+    /**
+     * The sheet's own answers are printed the way every export prints one: a yes in any stored shape
+     * as a word in the station's language, a day as a day, members by name, and an empty answer not
+     * at all.
+     */
+    @Test
+    void theSheetsAnswersArePrintedAsEveryExportPrintsThem() {
+        var fields = List.of(
+                fieldOf(1, "Fahrzeug geprüft", AttendanceFieldType.BOOLEAN),
+                fieldOf(2, "Funk geprüft", AttendanceFieldType.BOOLEAN),
+                fieldOf(3, "Datum", AttendanceFieldType.DATE),
+                fieldOf(4, "Leitung", AttendanceFieldType.MEMBER_LIST_OF_GROUP),
+                fieldOf(5, "Bemerkung", AttendanceFieldType.STRING),
+                fieldOf(6, "Thema", AttendanceFieldType.STRING));
+        var values = Map.of(
+                1, "\"1\"",
+                2, "true",
+                3, "\"2026-03-06\"",
+                4, "[7,8]",
+                5, "\"Übung \\\"Brand\\\"\"",
+                6, "\"\"");
+
+        var lines = AttendanceExportService.fieldLines(fields, values, Map.of(7, "Anna Berg", 8, "#8"), "de");
+
+        assertEquals(
+                List.of(
+                        new AttendanceExportService.NameValue("Fahrzeug geprüft", "Ja"),
+                        new AttendanceExportService.NameValue("Funk geprüft", "Ja"),
+                        new AttendanceExportService.NameValue("Datum", "06.03.2026"),
+                        new AttendanceExportService.NameValue("Leitung", "Anna Berg, #8"),
+                        new AttendanceExportService.NameValue("Bemerkung", "Übung \"Brand\"")),
+                lines);
+        assertEquals(
+                "Yes",
+                AttendanceExportService.fieldLines(fields.subList(0, 1), values, Map.of(), "en")
+                        .getFirst()
+                        .value());
+    }
+
+    /** A sheet whose fields hold answers still renders, members named in them included. */
+    @Test
+    void aSheetWithAnsweredFieldsRenders() {
+        int templateId = attendanceRepo.findSessionById(sessionId).orElseThrow().templateId();
+        attendanceRepo.createTemplateField(
+                templateId, "Fahrzeug geprüft", AttendanceFieldType.BOOLEAN, AttendanceFieldConfig.parse("{}"), 0);
+        attendanceRepo.createTemplateField(
+                templateId, "Leitung", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 1);
+        var fields = attendanceRepo.findTemplateFields(templateId);
+        attendanceRepo.setSessionField(sessionId, fields.get(0).id(), "\"1\"");
+        attendanceRepo.setSessionField(sessionId, fields.get(1).id(), String.valueOf(member.id()));
+
+        assertTrue(export(AttendanceExportService.SheetOptions.PLAIN).length > 0);
     }
 
     /** More blank lines than fit on a page are cut back rather than refused. */

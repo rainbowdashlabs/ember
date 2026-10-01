@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.QuestionText;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -39,6 +40,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,7 +48,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -149,15 +150,11 @@ public class AttendanceExportService {
         var station = stationRepository.findById(stationId).orElse(null);
         ZoneId zone = StationFormat.timezoneOf(station);
 
-        var data = buildExportData(session.get(), entries, sessionFields, templateFields, zone);
+        String language = StationFormat.languageOf(station);
+        var data = buildExportData(session.get(), entries, sessionFields, templateFields, zone, language);
         data.put(
                 "sections",
-                sections(
-                        audience,
-                        entries,
-                        stationId,
-                        StationFormat.languageOf(station),
-                        entry -> buildEntryMap(entry, session.get(), zone)));
+                sections(audience, entries, stationId, language, entry -> buildEntryMap(entry, session.get(), zone)));
         data.put("stationName", station != null ? station.name() : "");
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
@@ -190,7 +187,8 @@ public class AttendanceExportService {
             List<AttendanceEntry> entries,
             List<AttendanceSessionField> sessionFields,
             List<AttendanceTemplateField> templateFields,
-            ZoneId zone) {
+            ZoneId zone,
+            String language) {
         var data = new LinkedHashMap<String, Object>();
         data.put("title", session.title() != null ? session.title() : "Anwesenheit");
         data.put("startTime", formatDateTime(session.startTime(), zone));
@@ -198,28 +196,12 @@ public class AttendanceExportService {
         Integer countedMinutes = session.countedMinutes();
         data.put("countedHours", countedMinutes != null ? String.format("%.1f", countedMinutes / 60.0) : "");
 
-        // Build field name→value map (skip member/attendance fields)
-        var fieldMap = new LinkedHashMap<Integer, String>();
-        for (var sf : sessionFields) {
-            fieldMap.put(sf.fieldId(), sf.value());
+        var values = new LinkedHashMap<Integer, String>();
+        for (var sessionField : sessionFields) {
+            values.put(sessionField.fieldId(), sessionField.value());
         }
+        data.put("fields", fieldLines(templateFields, values, memberNames(templateFields, values), language));
 
-        var fieldList = new ArrayList<NameValue>();
-        for (var tf : templateFields) {
-            String rawValue = fieldMap.get(tf.id());
-            if (rawValue == null || rawValue.isBlank()) continue;
-            String displayValue;
-            if (tf.fieldType().fieldType().namesMembers()) {
-                displayValue = resolveMemberFieldValue(rawValue);
-            } else {
-                displayValue = formatFieldValue(rawValue);
-            }
-            if (displayValue.isBlank()) continue;
-            fieldList.add(new NameValue(tf.name(), displayValue));
-        }
-        data.put("fields", fieldList);
-
-        // Flat entries list for summary counts
         var allEntries = new ArrayList<StatusEntry>();
         for (var entry : entries) {
             allEntries.add(new StatusEntry(entry.status()));
@@ -333,19 +315,42 @@ public class AttendanceExportService {
         return name.isEmpty() ? acc.email() : name;
     }
 
-    private String resolveMemberFieldValue(String rawValue) {
-        var ids = QuestionValues.memberIds(rawValue);
-        if (ids.isEmpty()) return "";
-        return ids.stream().map(this::resolveMemberName).collect(Collectors.joining(", "));
+    /**
+     * The sheet's own answers as they are printed above the people, in the template's order.
+     *
+     * <p>Each answer is written the way every export writes one, so a yes reads as a word in the
+     * station's language however it was stored. A field nobody filled in is left out rather than
+     * printed empty.
+     *
+     * @param fields   the template's fields
+     * @param values   the sheet's answers, by field id
+     * @param names    the names of the members the answers name, by member id
+     * @param language the station's language
+     * @return one line per answered field
+     */
+    static List<NameValue> fieldLines(
+            List<AttendanceTemplateField> fields,
+            Map<Integer, String> values,
+            Map<Integer, String> names,
+            String language) {
+        var lines = new ArrayList<NameValue>();
+        for (var field : fields) {
+            String text = QuestionText.format(field.fieldType().fieldType(), values.get(field.id()), names, language);
+            if (!text.isBlank()) lines.add(new NameValue(field.name(), text));
+        }
+        return lines;
     }
 
-    private String formatFieldValue(String rawValue) {
-        if (rawValue == null) return "";
-        String val = rawValue.trim();
-        if (val.startsWith("\"") && val.endsWith("\"")) {
-            val = val.substring(1, val.length() - 1);
+    /** The names of everybody the sheet's member fields name, written as the lines of people are. */
+    private Map<Integer, String> memberNames(List<AttendanceTemplateField> fields, Map<Integer, String> values) {
+        var names = new HashMap<Integer, String>();
+        for (var field : fields) {
+            if (!field.fieldType().fieldType().namesMembers()) continue;
+            for (int memberId : QuestionValues.memberIds(QuestionValues.read(values.get(field.id())))) {
+                names.computeIfAbsent(memberId, this::resolveMemberName);
+            }
         }
-        return val;
+        return names;
     }
 
     private String formatMoment(Instant instant, ZoneId zone, boolean withDay) {

@@ -6,11 +6,15 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.QuestionText;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
@@ -56,6 +60,7 @@ public class EventExportService {
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventFieldRepository eventFieldRepository;
     private final StationRepository stationRepository;
+    private final StationMemberRepository memberRepository;
     private final Api apiConfig;
 
     @Inject
@@ -65,12 +70,14 @@ public class EventExportService {
             OccurrenceCalendar occurrenceCalendar,
             EventFieldRepository eventFieldRepository,
             StationRepository stationRepository,
+            StationMemberRepository memberRepository,
             Api apiConfig) {
         this.eventRepository = eventRepository;
         this.categoryRepository = categoryRepository;
         this.occurrenceCalendar = occurrenceCalendar;
         this.eventFieldRepository = eventFieldRepository;
         this.stationRepository = stationRepository;
+        this.memberRepository = memberRepository;
         this.apiConfig = apiConfig;
     }
 
@@ -158,11 +165,7 @@ public class EventExportService {
             Map<String, String> fieldMap = Map.of();
             if (needsFields) {
                 var fields = eventFieldRepository.findByEventOn(event.id(), expanded.date());
-                var map = new LinkedHashMap<String, String>();
-                for (var f : fields) {
-                    map.put(f.name(), f.value());
-                }
-                fieldMap = map;
+                fieldMap = fieldCells(fields, memberNames(fields), language);
             }
             var values = new ArrayList<String>();
             for (var col : columns) {
@@ -175,6 +178,34 @@ public class EventExportService {
             rows.add(new EventRow(values));
         }
         return rows;
+    }
+
+    /**
+     * An appointment's fields as the sheet prints them, by field name.
+     *
+     * <p>Each value is written the way every export writes one: members by name, a yes as a word in
+     * the station's language, a date as a day.
+     *
+     * @param fields   the appointment's fields on the day printed
+     * @param names    the names of the members the fields name, by member id
+     * @param language the station's language
+     * @return the printed value of each field, by its name
+     */
+    static Map<String, String> fieldCells(List<AppointmentField> fields, Map<Integer, String> names, String language) {
+        var cells = new LinkedHashMap<String, String>();
+        for (var field : fields) {
+            cells.put(field.name(), QuestionText.format(field.fieldType(), field.value(), names, language));
+        }
+        return cells;
+    }
+
+    private Map<Integer, String> memberNames(List<AppointmentField> fields) {
+        var ids = fields.stream()
+                .filter(field -> field.fieldType().namesMembers())
+                .flatMap(field -> QuestionValues.memberIds(QuestionValues.read(field.value())).stream())
+                .distinct()
+                .toList();
+        return ids.isEmpty() ? Map.of() : memberRepository.findDisplayNames(ids);
     }
 
     /**

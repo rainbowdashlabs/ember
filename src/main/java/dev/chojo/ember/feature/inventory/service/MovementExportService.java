@@ -157,11 +157,8 @@ public class MovementExportService {
 
         String locale = StationFormat.languageOf(station);
 
-        // Resolve extra profile field names
-        var extraFieldNames = new ArrayList<String>();
-        for (int fieldId : extraFieldIds) {
-            profileFieldRepository.findById(fieldId).ifPresent(f -> extraFieldNames.add(f.name()));
-        }
+        var profileColumns = ProfileColumns.of(profileFieldRepository, extraFieldIds, locale);
+        var extraFieldNames = profileColumns.names();
 
         // Group exchanges by member
         var exchangesByMember = new LinkedHashMap<Integer, List<ItemMovement>>();
@@ -184,19 +181,9 @@ public class MovementExportService {
             String firstName = account != null ? account.firstName() : "";
             String lastName = account != null ? account.lastName() : "";
 
-            // Extra field values
-            var extraFieldValues = new ArrayList<String>();
-            if (!extraFieldIds.isEmpty()) {
-                var values = profileFieldRepository.findValues(memberId);
-                for (int fieldId : extraFieldIds) {
-                    String val = values.stream()
-                            .filter(v -> v.fieldId() == fieldId)
-                            .map(v -> formatFieldValue(v.value()))
-                            .findFirst()
-                            .orElse("");
-                    extraFieldValues.add(val);
-                }
-            }
+            var extraFieldValues = extraFieldNames.isEmpty()
+                    ? List.<String>of()
+                    : profileColumns.cellsOf(profileFieldRepository.findValues(memberId));
 
             // Build exchange columns (one per inventory, with old/new sizes)
             var exchanges = new ArrayList<SizeChange>();
@@ -280,15 +267,6 @@ public class MovementExportService {
             case EXCHANGE -> DocumentWord.EXCHANGE;
             case REQUEST -> DocumentWord.REQUEST;
         };
-    }
-
-    private String formatFieldValue(String rawValue) {
-        if (rawValue == null) return "";
-        String val = rawValue.trim();
-        if (val.startsWith("\"") && val.endsWith("\"")) {
-            val = val.substring(1, val.length() - 1);
-        }
-        return val;
     }
 
     private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)

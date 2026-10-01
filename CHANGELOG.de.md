@@ -29,6 +29,7 @@
 - **Gruppen und Tags oben in den Berechtigungen eines Mitglieds.** Auf der Bearbeitungsseite eines Mitglieds stehen Gruppen und Tags als kompakte Chips über der Liste der Berechtigungen, und die Gruppen eines Sets sind eine einzige Auswahl. Gruppen für andere Mitgliedstypen erscheinen ausgegraut, mit den Typen, die sie aufnehmen.
 - **Bearbeitete Kommentare zu Neuigkeiten sind gekennzeichnet.** Ein Kommentar zu einer Neuigkeit, den seine Verfasserin oder sein Verfasser geändert hat, ist als bearbeitet markiert, wie Kommentare zu Terminen, Wiki-Dateien und Board-Tickets.
 - **Hinweise auf Kommentare lesen sich überall gleich.** Der Auszug, den ein Hinweis aus einem langen Kommentar zu einer Neuigkeit oder einer Wiki-Datei zitiert, endet jetzt mit „…“, wie schon bei Terminen und Board-Tickets. Ein Hinweis, dass du in einem Kommentar an einem Ticket erwähnt wurdest, nennt die Person, die ihn geschrieben hat, wo er bisher das Ticket nannte.
+- **Exporte geben Antworten einheitlich aus.** Die Mitgliederliste, die Anmeldetabelle, die Anwesenheitsliste, die Terminliste und die Inventarlisten der Mitglieder zeigen Ja und Nein als Wörter in der Sprache der Wache, Daten als Tage und genannte Mitglieder mit Namen. Manche gaben bisher den gespeicherten Wert aus, etwa „true“ oder die Nummer eines Mitglieds.
 
 ### Sicherheit
 

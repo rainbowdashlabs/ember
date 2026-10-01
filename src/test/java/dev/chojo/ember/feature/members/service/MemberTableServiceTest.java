@@ -18,10 +18,12 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.BooleanNode;
 import tools.jackson.databind.node.StringNode;
 
 import java.time.LocalDate;
@@ -243,7 +245,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
                 new MemberTablePeople(List.of(member.id()), Map.of(member.id(), Map.of(4711, "43")), Map.of()),
                 List.of(MemberTableColumn.registrationField(4711)),
                 Set.of(StationPermission.USER),
-                Map.of(4711, new MemberTableQuestion("Schuhgröße", MemberTableCellType.NUMBER)));
+                Map.of(4711, new MemberTableQuestion("Schuhgröße", FieldType.NUMBER)));
         assertEquals("Schuhgröße", withAppointment.columns().getFirst().label());
         assertEquals(
                 MemberTableCellType.NUMBER, withAppointment.columns().getFirst().type());
@@ -309,6 +311,81 @@ class MemberTableServiceTest extends RepositoryTestBase {
         var values = table.rows().getFirst().values();
         assertEquals("Ja", values.getFirst());
         assertEquals("", values.get(1), "a question nobody answered says nothing, rather than no");
+    }
+
+    /** A yes kept in any of its stored shapes is a yes, and a no is a no rather than whatever is not yes. */
+    @Test
+    void everyStoredShapeOfYesReadsAsYes() {
+        var flag = profileFieldRepo.create(
+                station.id(),
+                "Atemschutz",
+                ProfileFieldType.BOOLEAN,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(flag.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        var column = List.of(MemberTableColumn.profileField(flag.id()));
+
+        var printed = new java.util.ArrayList<String>();
+        for (var stored :
+                List.of(BooleanNode.TRUE, StringNode.valueOf("1"), StringNode.valueOf("true"), BooleanNode.FALSE)) {
+            profileFieldRepo.setValue(member.id(), flag.id(), stored);
+            printed.add(service.build(station, thisMember(), column, Set.of(StationPermission.USER), Map.of())
+                    .rows()
+                    .getFirst()
+                    .values()
+                    .getFirst());
+        }
+
+        assertEquals(List.of("Ja", "Ja", "Ja", "Nein"), printed);
+    }
+
+    /** A station that reads English gets its yes in English, on screen and in every export of the table. */
+    @Test
+    void aYesFollowsTheStationsLanguage() {
+        var english = stationRepo.create("EnglishTableStation");
+        stationRepo.updateLocale(english.id(), "en");
+        var someone = stationMemberRepo.create(
+                english.id(),
+                accountRepo.create("english-table@test.com", "Eve", "English").id());
+        var flag = profileFieldRepo.create(
+                english.id(),
+                "Driving licence",
+                ProfileFieldType.BOOLEAN,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(flag.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.setValue(someone.id(), flag.id(), BooleanNode.TRUE);
+
+        var table = service.build(
+                stationRepo.findById(english.id()).orElseThrow(),
+                MemberTablePeople.of(List.of(someone.id())),
+                List.of(MemberTableColumn.profileField(flag.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertEquals("Yes", table.rows().getFirst().values().getFirst());
+        stationRepo.delete(english.id());
+    }
+
+    /** A registration answer naming members prints their names, and one naming nobody known prints the number. */
+    @Test
+    void aRegistrationAnswerNamingMembersReadsByName() {
+        var table = service.build(
+                station,
+                new MemberTablePeople(
+                        List.of(member.id()),
+                        Map.of(member.id(), Map.of(4712, "[" + member.id() + ",987654]")),
+                        Map.of()),
+                List.of(MemberTableColumn.registrationField(4712)),
+                Set.of(StationPermission.USER),
+                Map.of(4712, new MemberTableQuestion("Fahrer", FieldType.MEMBER_LIST)));
+
+        var cell = table.rows().getFirst().values().getFirst();
+        assertTrue(cell.contains("Toni") && cell.endsWith(", 987654"), cell);
     }
 
     /**

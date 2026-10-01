@@ -17,6 +17,9 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.QuestionText;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import jakarta.inject.Inject;
@@ -116,14 +119,15 @@ public class MemberTableService {
         }
 
         var members = membersById(station.id());
-        var values = valuesOfChosenFields(kept, readable);
+        var cellsOf =
+                new Cells(people, valuesOfChosenFields(kept, readable), readable, questions, namesOf(members), station);
         var rows = new ArrayList<MemberTable.MemberTableRow>();
         for (var memberId : people.memberIds()) {
             var member = members.get(memberId);
             if (member == null) continue;
             var cells = new ArrayList<String>(kept.size());
             for (var column : kept) {
-                cells.add(valueOf(column, member, people, values, readable, station));
+                cells.add(cellsOf.valueOf(column, member));
             }
             rows.add(new MemberTable.MemberTableRow(memberId, cells));
         }
@@ -183,6 +187,16 @@ public class MemberTableService {
         return byId;
     }
 
+    /** The name of every member of the station, which is whom an answer naming members can name. */
+    private static Map<Integer, String> namesOf(Map<Integer, RichMember> members) {
+        var names = new HashMap<Integer, String>();
+        for (var member : members.values()) {
+            String name = member.name();
+            if (name != null && !name.isBlank()) names.put(member.id(), name);
+        }
+        return names;
+    }
+
     /**
      * The answers to the chosen questions, read one question at a time.
      *
@@ -214,7 +228,7 @@ public class MemberTableService {
         if (field == null) return;
         var answers = new HashMap<Integer, String>();
         for (var value : profileFieldRepository.findValuesOfField(fieldId)) {
-            answers.put(value.memberId(), value.plainValue());
+            answers.put(value.memberId(), value.value());
         }
         into.put(fieldId, answers);
         var source = ageSourceOf(field, readable);
@@ -227,7 +241,7 @@ public class MemberTableService {
      * <p>The name is the older way of saying it and is still what an untouched field carries.
      * Renaming the question it counted from used to empty the age, which is why the id is preferred.
      */
-    private @Nullable ProfileField ageSourceOf(ProfileField field, Map<Integer, ProfileField> readable) {
+    private static @Nullable ProfileField ageSourceOf(ProfileField field, Map<Integer, ProfileField> readable) {
         if (field.fieldType() != ProfileFieldType.AGE) return null;
         var config = field.config();
         if (config == null) return null;
@@ -241,43 +255,62 @@ public class MemberTableService {
                 .orElse(null);
     }
 
-    private String valueOf(
-            MemberTableColumn column,
-            RichMember member,
+    /**
+     * Everything one drawing of the table reads its cells from.
+     *
+     * <p>A stored answer is printed the way every export prints one: a yes as a word in the station's
+     * language, a date as a day, members by name. An age is the exception, being counted rather than
+     * read.
+     *
+     * @param people    who the table is about, with their registration answers
+     * @param values    the stored answers to the chosen profile questions, by question and member
+     * @param readable  the profile questions this reader may read, by id
+     * @param questions the appointment's own questions, by id
+     * @param names     the station's members by name, for answers naming members
+     * @param station   the station, whose language and time zone the cells are written in
+     */
+    private record Cells(
             MemberTablePeople people,
             Map<Integer, Map<Integer, String>> values,
             Map<Integer, ProfileField> readable,
+            Map<Integer, MemberTableQuestion> questions,
+            Map<Integer, String> names,
             Station station) {
-        Integer fieldId = column.fieldId();
-        return switch (column.kind()) {
-            case BUILTIN -> Builtin.valueOf(column.key(), member, people);
-            case PROFILE_FIELD -> fieldId == null ? "" : profileValue(fieldId, member.id(), values, readable, station);
-            case REGISTRATION_FIELD -> people.answersOf(member.id()).getOrDefault(column.fieldId(), "");
-        };
-    }
 
-    private String profileValue(
-            int fieldId,
-            int memberId,
-            Map<Integer, Map<Integer, String>> values,
-            Map<Integer, ProfileField> readable,
-            Station station) {
-        var field = readable.get(fieldId);
-        if (field == null) return "";
-        if (field.fieldType() == ProfileFieldType.AGE) {
+        String valueOf(MemberTableColumn column, RichMember member) {
+            Integer fieldId = column.fieldId();
+            if (column.kind() == MemberTableColumnKind.BUILTIN) return Builtin.valueOf(column.key(), member, people);
+            if (fieldId == null) return "";
+            return column.kind() == MemberTableColumnKind.PROFILE_FIELD
+                    ? profileValue(fieldId, member.id())
+                    : registrationAnswer(fieldId, member.id());
+        }
+
+        private String profileValue(int fieldId, int memberId) {
+            var field = readable.get(fieldId);
+            if (field == null) return "";
+            if (field.fieldType() == ProfileFieldType.AGE) return ageAnswer(field, memberId);
+            var stored = values.getOrDefault(fieldId, Map.of()).get(memberId);
+            return printed(field.fieldType().fieldType(), stored);
+        }
+
+        private String registrationAnswer(int questionId, int memberId) {
+            var question = questions.get(questionId);
+            if (question == null) return "";
+            return printed(question.fieldType(), people.answersOf(memberId).get(questionId));
+        }
+
+        private String ageAnswer(ProfileField field, int memberId) {
             var source = ageSourceOf(field, readable);
             if (source == null) return "";
             var born = values.getOrDefault(source.id(), Map.of()).get(memberId);
             var config = field.config();
-            return ageOf(born, config == null ? null : config.ageMode(), station);
+            return ageOf(QuestionValues.read(born), config == null ? null : config.ageMode(), station);
         }
-        var stored = values.getOrDefault(fieldId, Map.of()).get(memberId);
-        if (stored == null || stored.isBlank()) return "";
-        return switch (field.fieldType()) {
-            case DATE, BIRTH_DATE, EXPIRY_DATE -> day(stored);
-            case BOOLEAN -> "true".equalsIgnoreCase(stored) ? "Ja" : "Nein";
-            default -> stored;
-        };
+
+        private String printed(FieldType type, @Nullable String stored) {
+            return QuestionText.format(type, stored, names, StationFormat.languageOf(station));
+        }
     }
 
     /**
@@ -286,8 +319,8 @@ public class MemberTableService {
      * <p>A station that asks how old its people are on the last day of the year is asking who turns
      * old enough this year, which is a different question from who is old enough today.
      */
-    private String ageOf(@Nullable String born, @Nullable String ageMode, Station station) {
-        if (born == null || born.isBlank()) return "";
+    private static String ageOf(String born, @Nullable String ageMode, Station station) {
+        if (born.isBlank()) return "";
         try {
             var day = LocalDate.parse(born.length() > 10 ? born.substring(0, 10) : born);
             var today = LocalDate.now(StationFormat.timezoneOf(station));
@@ -296,15 +329,6 @@ public class MemberTableService {
             return String.valueOf(Period.between(day, on).getYears());
         } catch (Exception e) {
             return "";
-        }
-    }
-
-    private String day(String stored) {
-        try {
-            return LocalDate.parse(stored.length() > 10 ? stored.substring(0, 10) : stored)
-                    .format(DAY);
-        } catch (Exception e) {
-            return stored;
         }
     }
 

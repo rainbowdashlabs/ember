@@ -9,12 +9,10 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.members.entity.MemberTable;
-import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.MemberTableQuestion;
 import dev.chojo.ember.feature.members.service.MemberTableService;
-import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -66,19 +64,9 @@ public class EventMemberTableService {
         var questions = new LinkedHashMap<Integer, MemberTableQuestion>();
         for (var field : registrationFieldService.findByEvent(eventId)) {
             if (hidden.contains(field.id())) continue;
-            questions.put(field.id(), new MemberTableQuestion(field.name(), cellTypeOf(field.fieldType())));
+            questions.put(field.id(), new MemberTableQuestion(field.name(), field.fieldType()));
         }
         return questions;
-    }
-
-    /**
-     * What an answer to a question of this kind holds in the table.
-     *
-     * <p>The same as for a profile question of the same type: a choice and a named member stay text,
-     * because the table writes the answer as it was given.
-     */
-    static MemberTableCellType cellTypeOf(FieldType type) {
-        return MemberTableCellType.of(type);
     }
 
     /**

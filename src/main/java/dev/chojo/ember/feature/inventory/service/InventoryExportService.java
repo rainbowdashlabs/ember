@@ -132,11 +132,8 @@ public class InventoryExportService {
 
         String locale = StationFormat.languageOf(station);
 
-        // Resolve extra profile field names
-        var extraFieldNames = new ArrayList<String>();
-        for (int fieldId : extraFieldIds) {
-            profileFieldRepository.findById(fieldId).ifPresent(f -> extraFieldNames.add(f.name()));
-        }
+        var profileColumns = ProfileColumns.of(profileFieldRepository, extraFieldIds, locale);
+        var extraFieldNames = profileColumns.names();
 
         // Build rows for each member
         var rows = new ArrayList<Map<String, Object>>();
@@ -150,19 +147,9 @@ public class InventoryExportService {
             String name = account != null ? NameParts.of(account).official() : null;
             if (name == null || name.isEmpty()) name = "#" + memberId;
 
-            // Extra field values
-            var extraFieldValues = new ArrayList<String>();
-            if (!extraFieldIds.isEmpty()) {
-                var values = profileFieldRepository.findValues(memberId);
-                for (int fieldId : extraFieldIds) {
-                    String val = values.stream()
-                            .filter(v -> v.fieldId() == fieldId)
-                            .map(v -> formatFieldValue(v.value()))
-                            .findFirst()
-                            .orElse("");
-                    extraFieldValues.add(val);
-                }
-            }
+            var extraFieldValues = extraFieldNames.isEmpty()
+                    ? List.<String>of()
+                    : profileColumns.cellsOf(profileFieldRepository.findValues(memberId));
 
             // Build items per inventory column (each item: {label, lost})
             var itemColumns = new ArrayList<List<ItemEntry>>();
@@ -270,15 +257,6 @@ public class InventoryExportService {
             lines.add(List.copyOf(cells));
         }
         return CsvWriter.write(headers, lines, separator);
-    }
-
-    private String formatFieldValue(String rawValue) {
-        if (rawValue == null) return "";
-        String val = rawValue.trim();
-        if (val.startsWith("\"") && val.endsWith("\"")) {
-            val = val.substring(1, val.length() - 1);
-        }
-        return val;
     }
 
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)

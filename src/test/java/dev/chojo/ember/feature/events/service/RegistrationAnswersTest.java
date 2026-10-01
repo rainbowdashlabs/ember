@@ -31,6 +31,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a registration question takes today beyond what the question service tests already say, how
@@ -117,22 +118,32 @@ class RegistrationAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aYesIsStoredAndPrintedAsTrueHoweverItWasSent() {
+    void aYesIsStoredAsTrueAndPrintedAsAWordHoweverItWasSent() {
         int field = ask(FieldType.BOOLEAN);
 
         assertEquals("true", kept(field, "true"));
-        assertEquals("true", printed(field));
+        assertEquals("Ja", printed(field));
         assertEquals("true", kept(field, "1"));
-        assertEquals("true", printed(field));
+        assertEquals("Ja", printed(field));
+        assertEquals("false", kept(field, "0"));
+        assertEquals("Nein", printed(field));
     }
 
     @Test
-    void aMemberIsKeptAndPrintedAsTheirNumber() {
+    void aMemberIsKeptAsTheirNumberAndPrintedByName() {
         int field = ask(FieldType.MEMBER);
         String named = String.valueOf(memberId);
 
         assertEquals(named, kept(field, "\"" + named + "\""));
-        assertEquals(named, printed(field));
+        assertTrue(printed(field).contains("Rita"), printed(field));
+    }
+
+    @Test
+    void aDateIsPrintedAsADay() {
+        int field = ask(FieldType.DATE);
+
+        assertEquals("2027-05-08", kept(field, "2027-05-08"));
+        assertEquals("08.05.2027", printed(field));
     }
 
     @Test
