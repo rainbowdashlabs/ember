@@ -5,11 +5,11 @@
  */
 <script lang="ts" setup>
 import RecordTable from '@/components/table/RecordTable.vue'
+import MovementStandingBadges from '@/components/inventory/MovementStandingBadges.vue'
 import type {DataTableApi} from '@/composables/useDataTable'
 import type {MovementResponse} from '@/api/generated/schema'
 import MovementMemberCell from './MovementMemberCell.vue'
 import MovementPurposeCell from './MovementPurposeCell.vue'
-import MovementStandingCell from './MovementStandingCell.vue'
 import MovementSubjectCell from './MovementSubjectCell.vue'
 import {MovementColumn} from './movementColumns'
 
@@ -59,7 +59,7 @@ defineSlots<{
       <MovementMemberCell :movement="row" :text="text"/>
     </template>
     <template #[`cell-${MovementColumn.STANDING}`]="{row}">
-      <MovementStandingCell :movement="row"/>
+      <MovementStandingBadges :movement="row"/>
     </template>
     <template v-if="$slots.actions" #actions="{row}">
       <slot :row="row" name="actions"/>

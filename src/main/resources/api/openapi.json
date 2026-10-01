@@ -57274,6 +57274,35 @@
         },
         "required" : [ "id", "purpose", "state", "memberId", "memberName", "memberIdentity", "inventoryId", "inventoryName", "inventoryType", "currentStepLabel", "reachedStepLabel", "currentStepActor", "reason", "oldSizeId", "newSizeId", "oldSizeName", "newSizeName", "createdAt", "updatedAt", "closedAt", "closeReason", "ownerAnswersHere", "ownerName", "ownerClusterId", "itemName", "itemId", "itemStillWithMember", "party", "ownerKind", "currentStepSubject", "currentStepCustody", "actionable", "incomingItemId", "incomingItemName", "itemInternalId", "itemSizeName", "icon", "color", "belongsOnAnotherFlow" ]
       },
+      "MovementStanding" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/MovementState"
+          },
+          "reachedStepLabel" : {
+            "type" : [ "string", "null" ]
+          },
+          "currentStepActor" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepActor"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "ownerKind" : {
+            "$ref" : "#/components/schemas/ItemOwner"
+          },
+          "ownerName" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "state", "reachedStepLabel", "currentStepActor", "ownerKind", "ownerName" ]
+      },
       "MovementState" : {
         "type" : "string",
         "enum" : [ "OPEN", "DONE", "DECLINED", "CANCELLED" ]
@@ -57431,12 +57460,12 @@
           "custody" : {
             "$ref" : "#/components/schemas/ItemCustody"
           },
-          "movementId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "movementStep" : {
-            "type" : [ "string", "null" ]
+          "movement" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MovementStanding"
+            }, {
+              "type" : "null"
+            } ]
           },
           "ownerKind" : {
             "$ref" : "#/components/schemas/ItemOwner"
@@ -57462,7 +57491,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "id", "inventoryId", "name", "internalId", "inventoryName", "inventoryHomogeneous", "sizeId", "sizeName", "lostAt", "custody", "movementId", "movementStep", "ownerKind", "ownerClusterId", "lostNote", "lostNoteBy", "icon", "color" ]
+        "required" : [ "id", "inventoryId", "name", "internalId", "inventoryName", "inventoryHomogeneous", "sizeId", "sizeName", "lostAt", "custody", "movement", "ownerKind", "ownerClusterId", "lostNote", "lostNoteBy", "icon", "color" ]
       },
       "MyQuizAttempt" : {
         "oneOf" : [ {

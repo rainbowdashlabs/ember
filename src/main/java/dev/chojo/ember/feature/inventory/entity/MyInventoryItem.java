@@ -12,8 +12,11 @@ import java.time.Instant;
 
 /**
  * One piece of a member's own gear as the member, or a guardian acting for them, reads it: carrying
- * the step of whatever movement it is on, so an exchange can be watched rather than seen as a jacket
+ * where whatever movement it is on stands, so an exchange can be watched rather than seen as a jacket
  * vanishing.
+ *
+ * @param movement             the open movement the piece is on, worded exactly as the movement's own
+ *                             row words it, or {@code null} when nothing is running on it
  *
  * @param inventoryHomogeneous whether the inventory holds one thing in many copies, which is what makes
  *                             a piece exchangeable. Among a drawer of different things there is nothing
@@ -36,8 +39,7 @@ public record MyInventoryItem(
         @Nullable String sizeName,
         @Nullable Instant lostAt,
         ItemCustody custody,
-        @Nullable Integer movementId,
-        @Nullable String movementStep,
+        @Nullable MovementStanding movement,
         ItemOwner ownerKind,
         @Nullable Integer ownerClusterId,
         @Nullable String lostNote,

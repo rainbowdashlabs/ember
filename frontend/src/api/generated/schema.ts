@@ -59804,6 +59804,15 @@ export interface components {
             state: components["schemas"]["MovementState"];
             updatedAt: components["schemas"]["Instant"];
         };
+        MovementStanding: {
+            currentStepActor: components["schemas"]["StepActor"] | null;
+            /** Format: int32 */
+            id: number;
+            ownerKind: components["schemas"]["ItemOwner"];
+            ownerName: string | null;
+            reachedStepLabel: string | null;
+            state: components["schemas"]["MovementState"];
+        };
         /** @enum {string} */
         MovementState: "OPEN" | "DONE" | "DECLINED" | "CANCELLED";
         MovementStepResponse: {
@@ -59869,9 +59878,7 @@ export interface components {
             lostAt: components["schemas"]["Instant"] | null;
             lostNote: string | null;
             lostNoteBy: components["schemas"]["MemberIdentity"] | null;
-            /** Format: int32 */
-            movementId: number | null;
-            movementStep: string | null;
+            movement: components["schemas"]["MovementStanding"] | null;
             name: string;
             /** Format: uuid */
             ownerClusterId: string | null;
@@ -65235,6 +65242,7 @@ export type MovementDetail = components['schemas']['MovementDetail'];
 export type MovementParty = components['schemas']['MovementParty'];
 export type MovementPurpose = components['schemas']['MovementPurpose'];
 export type MovementResponse = components['schemas']['MovementResponse'];
+export type MovementStanding = components['schemas']['MovementStanding'];
 export type MovementState = components['schemas']['MovementState'];
 export type MovementStepResponse = components['schemas']['MovementStepResponse'];
 export type MovePreview = components['schemas']['MovePreview'];

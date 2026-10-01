@@ -43,7 +43,7 @@ const emit = defineEmits<{
  * can watch what is happening to it, and it is dimmed so they can see it is not theirs to wear.
  */
 const awayFromMember = computed(() =>
-    !!props.item.movementStep && props.item.custody !== ItemCustody.WITH_MEMBER)
+    !!props.item.movement && props.item.custody !== ItemCustody.WITH_MEMBER)
 </script>
 
 <template>
@@ -58,13 +58,13 @@ const awayFromMember = computed(() =>
       <div class="flex items-center gap-1">
         <MutedIconButton
             v-if="props.showExchangeButton && props.item.inventoryHomogeneous !== false
-              && !props.item.movementStep"
+              && !props.item.movement"
             :icon="['fas', 'rotate']"
             :label="t('profile.requestExchange')"
             @click="emit('requestExchange', props.item)"
         />
         <MutedIconButton
-            v-if="props.showLostButton && !props.item.lostAt && !props.item.movementStep"
+            v-if="props.showLostButton && !props.item.lostAt && !props.item.movement"
             :icon="['fas', 'triangle-exclamation']"
             :label="t('profile.reportLost')"
             data-testid="item-report-lost"

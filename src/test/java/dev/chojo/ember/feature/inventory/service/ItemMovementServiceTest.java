@@ -486,10 +486,11 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     /**
      * A member's inventory says what they hold, and stops saying it the moment they hand it over.
      *
-     * <p>Before the handover the row stays and carries the step, because the jacket is still on them
+     * <p>Before the handover the row stays and names the movement, because the jacket is still on them
      * and the exchange is merely asked for. After it, neither piece is theirs: the old one is in the
      * post and the replacement is not theirs until it is handed to them. What runs in between is read
-     * as a movement, not as a possession.
+     * as a movement, not as a possession. The replacement names the movement too while the chain waits
+     * for the member to say they have it.
      */
     @Test
     void aMemberSeesTheirGearUntilTheyHandItOver() {
@@ -499,7 +500,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         var asked = entryFor(old).orElseThrow(() -> new AssertionError("it is still on the member"));
         assertEquals(movement.id(), asked.movementId(), "and it says an exchange is running");
-        assertNotNull(asked.movementStep());
         assertEquals(ItemCustody.WITH_MEMBER, asked.item().custody());
 
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
@@ -515,8 +515,33 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", replacement);
         assertTrue(entryFor(replacement).isEmpty(), "the replacement is not theirs before it is handed over");
 
+        while (entryFor(replacement).isEmpty()) {
+            movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        }
+        assertEquals(
+                movement.id(),
+                entryFor(replacement).orElseThrow().movementId(),
+                "once handed over it is, still on the movement while the member has not confirmed it");
+
         walkToEnd(movement, replacement);
-        assertTrue(entryFor(replacement).isPresent(), "once handed over it is");
+        assertNull(entryFor(replacement).orElseThrow().movementId(), "and on nothing once the chain is over");
+    }
+
+    @Test
+    void standingNamesTheStepThatHappenedAndWhoseTurnItIs() {
+        int old = itemWithMember(ItemOwner.STATION);
+        ItemMovement movement = announceExchange(old);
+        var steps = itemMovementService.stepsOf(movement);
+
+        var standing = itemMovementService.standingOf(movement.id()).orElseThrow();
+
+        assertEquals(movement.id(), standing.id());
+        assertEquals(MovementState.OPEN, standing.state());
+        assertEquals(steps.getFirst().label(), standing.reachedStepLabel());
+        assertEquals(steps.get(1).actor(), standing.currentStepActor());
+        assertEquals(ItemOwner.STATION, standing.ownerKind());
+        assertNull(standing.ownerName());
+        assertTrue(itemMovementService.standingOf(-1).isEmpty());
     }
 
     /**

@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
@@ -618,6 +619,28 @@ public class ItemMovementService {
     public List<MovementFlowStep> stepsOf(ItemMovement movement) {
         if (movement.flowId() == null) return List.of();
         return walkable(flowService.findAllSteps(movement.flowId()), movement.lostReport());
+    }
+
+    /**
+     * Where a movement stands, worded the way its own row in the queue words it, for a screen that
+     * shows it on the piece of gear it runs on.
+     *
+     * @param movementId the movement
+     * @return where it stands, or empty when it is gone
+     */
+    public Optional<MovementStanding> standingOf(int movementId) {
+        return movementRepository.findById(movementId).map(this::standingOf);
+    }
+
+    private MovementStanding standingOf(ItemMovement movement) {
+        List<MovementFlowStep> steps = stepsOf(movement);
+        MovementFlowStep current = steps.stream()
+                .filter(step -> Objects.equals(step.id(), movement.currentStepId()))
+                .findFirst()
+                .orElse(null);
+        var target = targeting.belongsOn(movement);
+        String ownerName = targeting.owningCluster(target).map(Cluster::name).orElse(null);
+        return MovementStanding.of(movement, steps, current, target.ownerKind(), ownerName);
     }
 
     /**

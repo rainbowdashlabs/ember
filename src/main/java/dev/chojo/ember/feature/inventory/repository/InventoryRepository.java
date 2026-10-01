@@ -871,8 +871,10 @@ public class InventoryRepository {
      * and therefore what the list should say. What is between the two is a movement, and the
      * movements of a member are read as movements.
      *
-     * <p>The join is for a piece they are still holding while something runs on it: it carries the
-     * step, so the row can say why the exchange button is missing. The distinct keeps an item that
+     * <p>The join is for a piece they are holding while something still runs on it, at either end: the
+     * one they asked to swap, which is still on them until the station takes it, and the one handed to
+     * them, which the chain may still be waiting for them to confirm. The row names the movement so it
+     * can say where that stands and why the exchange button is missing. The distinct keeps an item that
      * somehow reached two movements to one line.
      *
      * @param memberId the member
@@ -882,14 +884,12 @@ public class InventoryRepository {
         return query("""
                 SELECT DISTINCT ON (ii.id)
                     %s,
-                    m.id AS movement_id,
-                    s.label AS movement_step
+                    m.id AS movement_id
                 FROM inventory_item ii
                 LEFT JOIN item_movement m
                        ON m.state = 'OPEN'
                       AND m.member_id = :member_id
-                      AND m.outgoing_item_id = ii.id
-                LEFT JOIN movement_flow_step s ON s.id = m.current_step_id
+                      AND (m.outgoing_item_id = ii.id OR m.incoming_item_id = ii.id)
                 WHERE ii.assigned_to = :member_id
                 ORDER BY ii.id, m.id;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
                 .single(call().bind("member_id", memberId))

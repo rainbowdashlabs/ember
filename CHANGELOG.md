@@ -157,6 +157,7 @@
 - **Registration answers ignored the question's limits.** In some cases the box for answering a number question took numbers outside its range, and a member question limited to a group or a tag offered every member, so saving then failed. The box now keeps to the range and offers only the members the question takes.
 - **Association gear kept by the association could not be opened at the station.** A piece the association lists in its own store and has sent to a station appeared in the station's lists and under its scanner, but opening it there said it was not found. The station now opens it, hands it out and reports it like any other piece it holds.
 - **Choosing a movement chain could fail when saved twice at once.** In some cases, when the chain for an inventory was chosen from two places at the same moment, one of them was refused with an error saying the entry already existed. Both saves now go through, and the last one is the chain that applies.
+- **Gear on a member's page disagreed with the movement list.** A piece with an exchange or return running named the step still being waited on, so a jacket read as taken back while it was still on the member, and a replacement waiting for the member to confirm it showed nothing at all. Each piece now shows the last step that happened and whose turn it is, exactly as the movement list does.
 
 ## v26.19.5
 

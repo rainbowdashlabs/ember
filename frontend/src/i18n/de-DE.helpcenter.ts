@@ -1777,7 +1777,7 @@ volumes:
             exchangeTitle: 'Tausch anfragen',
             exchangeText: 'Wenn ein Gegenstand nicht mehr passt oder kaputt ist, kannst du einen Tausch anfragen. Klicke auf den Button beim Gegenstand, gib einen Grund an und wähle die gewünschte neue Größe.',
             runningTitle: 'Laufende Vorgänge',
-            runningText: 'Deine Liste zeigt, was du gerade hast. Sobald du ein Teil an der Wache abgibst, verschwindet es daraus und steht stattdessen unter den laufenden Vorgängen, mit dem Namen des Teils und dem Schritt, auf den gewartet wird. Der Ersatz erscheint in deiner Liste, wenn er dir übergeben wird.',
+            runningText: 'Deine Liste zeigt, was du gerade hast. Läuft für ein Teil ein Vorgang, steht daran der letzte erledigte Schritt und auf wen gerade gewartet wird, genau wie unter den laufenden Vorgängen. Sobald du ein Teil an der Wache abgibst, verschwindet es aus deiner Liste und steht nur noch unter den laufenden Vorgängen. Der Ersatz erscheint in deiner Liste, wenn er dir übergeben wird.',
             withdrawTitle: 'Tausch zurücknehmen',
             withdrawText: 'Solange du das Teil noch hast, kannst du deine Anfrage bei den laufenden Vorgängen selbst zurücknehmen. Danach entscheidet die Wache darüber, denn ab der Abgabe liegt das Teil bei ihr.',
             lostTitle: 'Als vermisst melden',

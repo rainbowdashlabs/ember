@@ -7,8 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import MovementStandingBadges from '@/components/inventory/MovementStandingBadges.vue'
 import {glyphFor} from '@/util/glyph'
 import type {MyInventoryItem} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
@@ -16,8 +16,9 @@ import {formatDate} from '@/util/format'
 /**
  * What one piece of gear says about itself on a member's list: what it is, and where it stands.
  *
- * <p>Where it stands is the step of whatever movement is running on it, which travels with the row. No
- * status is read from anywhere else, because a movement has none.
+ * <p>Where it stands is the standing of whatever movement is running on it, which travels with the row
+ * and is drawn with the very badges the movement's own row in the queue wears: the last step that has
+ * happened and whose turn it is now.
  */
 const props = defineProps<{
   item: MyInventoryItem
@@ -46,6 +47,6 @@ const {t} = useI18n()
       {{ props.item.lostNote }}
       <span v-if="props.item.lostNoteBy?.name">({{ props.item.lostNoteBy.name }})</span>
     </div>
-    <InfoBadge v-if="props.item.movementStep" class="mt-1">{{ props.item.movementStep }}</InfoBadge>
+    <MovementStandingBadges v-if="props.item.movement" class="mt-1" :movement="props.item.movement"/>
   </div>
 </template>

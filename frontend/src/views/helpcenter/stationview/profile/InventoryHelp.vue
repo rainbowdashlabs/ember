@@ -24,6 +24,7 @@ import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.v
 import Modal from '@/components/feedback/Modal.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import {ItemCustody, ItemOwner} from '@/api/inventory'
+import {MovementState, StepActor} from '@/api/movements'
 import type {MyInventoryItem} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -39,7 +40,7 @@ const showExchangeModal = ref(false)
 function dummyPiece(piece: Partial<MyInventoryItem> & Pick<MyInventoryItem, 'id' | 'inventoryId' | 'inventoryName' | 'name'>): MyInventoryItem {
   return {
     internalId: null, inventoryHomogeneous: true, sizeId: null, sizeName: null, lostAt: null,
-    custody: ItemCustody.WITH_MEMBER, movementId: null, movementStep: null, ownerKind: ItemOwner.STATION,
+    custody: ItemCustody.WITH_MEMBER, movement: null, ownerKind: ItemOwner.STATION,
     ownerClusterId: null, lostNote: null, lostNoteBy: null, icon: null, color: null, ...piece,
   }
 }
@@ -48,11 +49,17 @@ const dummyHelm = dummyPiece({
   id: 1, inventoryId: 1, inventoryName: 'Helme', name: 'Helm #12',
   sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012',
 })
-/** A piece with something running on it says the step it stands on, in the chain's own words. */
+/**
+ * A piece with something running on it says the last step that happened, in the chain's own words,
+ * and whose turn it is now.
+ */
 const dummyJackeOnItsWay = dummyPiece({
   id: 2, inventoryId: 2, inventoryName: 'Jacken', name: 'Einsatzjacke #7',
   sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007',
-  movementId: 1, movementStep: 'Tausch angefordert',
+  movement: {
+    id: 1, state: MovementState.OPEN, reachedStepLabel: 'Tausch angefordert',
+    currentStepActor: StepActor.STATION, ownerKind: ItemOwner.STATION, ownerName: null,
+  },
 })
 const dummyStiefel = dummyPiece({
   id: 3, inventoryId: 3, inventoryName: 'Stiefel', name: 'Stiefel #3',

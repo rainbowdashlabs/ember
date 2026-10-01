@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
@@ -561,6 +562,12 @@ public class MovementRoutes implements Routes {
         Glyph glyph = subject != null
                 ? glyphResolver.forItemId(subject)
                 : glyphResolver.forInventoryId(movement.inventoryId());
+        MovementStanding standing = MovementStanding.of(
+                movement,
+                steps,
+                current.orElse(null),
+                target.ownerKind(),
+                owner.map(Cluster::name).orElse(null));
         return new MovementResponse(
                 movement.id(),
                 movement.purpose(),
@@ -574,8 +581,8 @@ public class MovementRoutes implements Routes {
                 inventoryName(movement.inventoryId()),
                 inventoryType(movement.inventoryId()),
                 current.map(s -> s.label()).orElse(null),
-                reachedLabel(steps, current.orElse(null)),
-                current.map(s -> s.actor()).orElse(null),
+                standing.reachedStepLabel(),
+                standing.currentStepActor(),
                 movement.reason(),
                 movement.oldSizeId(),
                 movement.newSizeId(),
@@ -586,7 +593,7 @@ public class MovementRoutes implements Routes {
                 movement.closedAt(),
                 movement.closeReason(),
                 movementService.ownerAnswersHere(movement),
-                owner.map(Cluster::name).orElse(null),
+                standing.ownerName(),
                 owner.map(cluster -> cluster.uid().toString()).orElse(null),
                 itemName(movement.outgoingItemId()),
                 movement.outgoingItemId(),
@@ -606,25 +613,6 @@ public class MovementRoutes implements Routes {
                 glyph.icon(),
                 glyph.color(),
                 movement.flowId() != null && movement.flowId() != target.flowId());
-    }
-
-    /**
-     * The step whose words are true of the world right now, which is the one before the step being
-     * waited on.
-     *
-     * <p>A step is named after the state it brings about, so the one a movement stands on has not
-     * happened yet: a row wearing that label says a piece has been taken in while it is still on the
-     * member. What has happened is everything before it, and the last of those is where it stands.
-     *
-     * @param steps   the chain, in order
-     * @param current the step being waited on, or {@code null} once the chain is over
-     * @return the words for where it stands, or {@code null} at a chain's very beginning
-     */
-    private @Nullable String reachedLabel(List<MovementFlowStep> steps, MovementFlowStep current) {
-        if (steps.isEmpty()) return null;
-        if (current == null) return steps.getLast().label();
-        int standing = steps.indexOf(current);
-        return standing > 0 ? steps.get(standing - 1).label() : null;
     }
 
     /** What the piece that set out is called, which is how a list of movements says which jacket this is. */

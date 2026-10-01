@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
+import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import jakarta.inject.Inject;
@@ -20,20 +21,23 @@ import java.util.List;
 
 /**
  * A member's own gear as it is shown to the member, and to a guardian looking after them: one list,
- * so both read the same pieces with the same movement steps, owners and pictures.
+ * so both read the same pieces with the same movement standing, owners and pictures.
  */
 @Singleton
 public class MemberGearService {
     private final InventoryService inventoryService;
+    private final ItemMovementService movementService;
     private final GlyphResolver glyphResolver;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public MemberGearService(
             InventoryService inventoryService,
+            ItemMovementService movementService,
             GlyphResolver glyphResolver,
             MemberIdentityFactory memberIdentityFactory) {
         this.inventoryService = inventoryService;
+        this.movementService = movementService;
         this.glyphResolver = glyphResolver;
         this.memberIdentityFactory = memberIdentityFactory;
     }
@@ -73,14 +77,22 @@ public class MemberGearService {
                 sizeName(item.inventoryId(), item.sizeId()),
                 item.lostAt(),
                 item.custody(),
-                entry.movementId(),
-                entry.movementStep(),
+                standing(entry.movementId()),
                 item.ownerKind(),
                 item.ownerClusterId(),
                 item.lostNote(),
                 noteAuthor(item.lostNoteBy()),
                 glyph.icon(),
                 glyph.color());
+    }
+
+    /**
+     * Where the movement on a piece stands, read from the movement itself rather than from the step it
+     * is waiting on, so the piece and the movement's own row cannot tell two different stories.
+     */
+    private @Nullable MovementStanding standing(@Nullable Integer movementId) {
+        if (movementId == null) return null;
+        return movementService.standingOf(movementId).orElse(null);
     }
 
     private @Nullable String sizeName(int inventoryId, @Nullable Integer sizeId) {
