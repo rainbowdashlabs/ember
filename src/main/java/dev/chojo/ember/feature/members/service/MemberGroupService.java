@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -52,9 +53,27 @@ public class MemberGroupService {
         return groupRepository.findById(id);
     }
 
+    /**
+     * Removes a group, unless anything is still limited to it.
+     *
+     * <p>A limit that names a group goes with the group, and something limited to nothing else is
+     * limited to nobody: it would open to the whole station the moment its last group was removed.
+     * So the group stays until whoever manages that content has said who should see it instead.
+     *
+     * @param id the group
+     * @return whether a group was removed
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse
+     *         {@link MemberRefusal#GROUP_STILL_LIMITS_CONTENT_ON_DELETE} naming how many things are limited to it
+     */
     public boolean delete(int id) {
+        requireNothingLimitedTo(id, MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_DELETE);
         log.info("Group deleted: id={}", id);
         return groupRepository.delete(id);
+    }
+
+    private void requireNothingLimitedTo(int groupId, MemberRefusal refusal) {
+        int limited = groupRepository.countContentLimitedTo(groupId);
+        if (limited > 0) throw refusal.raise(String.valueOf(limited));
     }
 
     public List<StationMember> findMembers(int groupId) {
@@ -93,7 +112,17 @@ public class MemberGroupService {
         return groupRepository.findGroupPermissions(groupId);
     }
 
+    /**
+     * Turns a group into a tag with the same people in it, unless anything is still limited to the group.
+     *
+     * <p>The group goes, and with it every limit that names it, for the same reason as {@link #delete(int)}.
+     *
+     * @param groupId the group
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse
+     *         {@link MemberRefusal#GROUP_STILL_LIMITS_CONTENT_ON_CONVERT} naming how many things are limited to it
+     */
     public void convertToTag(int groupId) {
+        requireNothingLimitedTo(groupId, MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_CONVERT);
         var group = groupRepository.findById(groupId).orElseThrow();
         var members = groupRepository.findMembers(groupId);
         var tag = tagRepository.create(group.stationId(), group.name());

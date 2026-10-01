@@ -10,10 +10,12 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -32,6 +35,11 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class MemberGroupRepository {
     private static final String MEMBER_GROUP_COLUMNS = MemberGroup.COLUMNS;
     private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
+    /** Every restricted thing whose lists name the group, one row per thing, as its table and id. */
+    private static final String CONTENT_LIMITED_TO_GROUP = Arrays.stream(RestrictionType.values())
+            .map(type -> "SELECT '%s' AS kind, %s AS id FROM %s WHERE group_id = :group_id AND %s IS NOT NULL"
+                    .formatted(type.entityTable(), type.fkColumn(), type.table(), type.fkColumn()))
+            .collect(Collectors.joining(" UNION "));
 
     /**
      * Finds a member group by its identifier.
@@ -196,6 +204,26 @@ public class MemberGroupRepository {
                         .bind("id", id))
                 .update()
                 .changed();
+    }
+
+    /**
+     * How many appointments, templates, news entries, forms, quizzes and wiki entries are limited to one
+     * group, so a refused delete can say what is in the way.
+     *
+     * <p>Each counts once, however many of its lists name the group: an appointment limited to it both
+     * in who sees it and in who registers is one appointment.
+     *
+     * @param groupId the group
+     * @return how many things are limited to it
+     */
+    public int countContentLimitedTo(int groupId) {
+        return query("""
+                        SELECT count(*) AS limited
+                        FROM (%s) AS limited_to_group;""", CONTENT_LIMITED_TO_GROUP)
+                .single(call().bind("group_id", groupId))
+                .map(row -> row.getInt("limited"))
+                .first()
+                .orElse(0);
     }
 
     /**

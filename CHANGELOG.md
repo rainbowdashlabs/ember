@@ -58,6 +58,7 @@
 - **Any member could write notes on procedure steps.** A member of the station could write or replace the note on a step of any procedure, including ones not handed to them, by sending it to the server directly. Only those who run procedures can write notes now, as the procedure page already showed.
 - **Any member could read and change other members' profiles.** A member of the station could read and overwrite the profile answers of any other member there by sending the request to the server directly. Profile answers are now read and changed only by the member, their guardian and those who may read or edit members.
 - **Association questions could be answered past their locks.** A station could write answers to its association's profile questions that were locked for the member, kept from the station or not asked of that member at all, and an association's member management could write answers to questions of any station. Every answer now passes the same locks as an answer to the station's own questions.
+- **Removing a group could open restricted content to everybody.** An appointment, template, news entry, form, quiz or wiki entry limited only to a group became visible to the whole station once that group was removed or turned into a tag. A group can now only be removed or turned into a tag once nothing is limited to it any more.
 
 ### Changes
 

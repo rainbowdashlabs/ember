@@ -700,7 +700,21 @@ public enum MemberRefusal implements Refusal {
     PROFILE_ASSOCIATION_FIELD_NOT_HERE_ON_ANSWER(
             193,
             HttpStatus.NOT_FOUND,
-            "That association question is not asked at this member's station, so nothing was saved");
+            "That association question is not asked at this member's station, so nothing was saved"),
+
+    /** A group deleted while appointments, news, forms, quizzes or wiki entries are limited to it, naming how many. */
+    GROUP_STILL_LIMITS_CONTENT_ON_DELETE(
+            194,
+            HttpStatus.CONFLICT,
+            "Content is still limited to this group, so it was not removed. "
+                    + "Change who may see it first. Items limited to the group"),
+
+    /** A group turned into a tag while appointments, news, forms, quizzes or wiki entries are limited to it, naming how many. */
+    GROUP_STILL_LIMITS_CONTENT_ON_CONVERT(
+            195,
+            HttpStatus.CONFLICT,
+            "Content is still limited to this group, so it was not turned into a tag. "
+                    + "Change who may see it first. Items limited to the group");
 
     private final Definition definition;
 
