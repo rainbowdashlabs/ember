@@ -11,9 +11,11 @@ import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.comment.service.CommentService;
@@ -76,6 +78,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static final UUID REMOTE_MEMBER_1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID REMOTE_MEMBER_2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final UUID REMOTE_MEMBER_3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    private static final DomainEventBus COMMENT_BUS = mock(DomainEventBus.class);
 
     private static EventFederationService service;
     private static FederationService federationService;
@@ -107,7 +110,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
         crudService = newEventServices(eventBus).crud();
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         commentService = new CommentService(
-                eventCommentRepo, eventBus, memberSvc, stationRepo, new CommentMentions(memberLookupService, eventBus));
+                eventCommentRepo,
+                COMMENT_BUS,
+                memberSvc,
+                stationRepo,
+                new CommentMentions(memberLookupService, COMMENT_BUS));
         when(httpClient.canSign(anyInt())).thenReturn(true);
         transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new EventFederationService(
@@ -969,6 +976,33 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.deleteRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1));
+    }
+
+    /**
+     * A partner's reply to a member here, mentioning that member, tells nobody here; its removal
+     * still withdraws what was written about it.
+     */
+    @Test
+    @Order(58)
+    void aPartnersCommentTellsNobodyButItsRemovalIsAnnounced() {
+        var local = eventCommentRepo.create(eventId, null, testMemberIdentity, "Frage von hier", null);
+        reset(COMMENT_BUS);
+
+        var reply = service.createRemoteComment(
+                localPartner,
+                eventId,
+                REMOTE_MEMBER_3,
+                "Partner",
+                local.id(),
+                "@[%s/%s:Hier] Antwort".formatted(testMemberIdentity.stationUid(), testMemberIdentity.memberUid()),
+                null);
+        verify(COMMENT_BUS, never()).publish(any());
+
+        service.deleteRemoteComment(localPartner, reply.id(), REMOTE_MEMBER_3);
+        verify(COMMENT_BUS)
+                .publish(argThat(event -> event instanceof CommentDeleted deleted
+                        && deleted.commentId() == reply.id()
+                        && deleted.entityType() == CommentEntityType.EVENT));
     }
 
     // -- Comment support: toCommentResponse --
