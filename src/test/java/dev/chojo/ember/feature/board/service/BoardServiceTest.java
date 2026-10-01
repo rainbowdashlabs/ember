@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
@@ -399,7 +400,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(62)
     void invisibleBoardIsNotFoundWhileUneditableBoardIsForbidden() {
         var guards = new BoardRouteGuards(boardService, ticketService, memberIdentityFactory);
-        var session = new UserSession(account, 1, station.id(), station.uid(), member, Set.of(), Set.of(), null);
+        var session = StationSession.of(
+                new UserSession(account, 1, station.id(), station.uid(), member, Set.of(), Set.of(), null));
 
         boardService.setViewAccess(boardId, List.of(StationUserType.MANAGER), List.of(), List.of());
         when(memberService.findById(member.id()))

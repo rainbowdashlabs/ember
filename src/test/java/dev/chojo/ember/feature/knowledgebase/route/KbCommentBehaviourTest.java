@@ -109,7 +109,7 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
     }
 
     private static UserSession as(StationMember member, StationPermission... permissions) {
-        return signedIn(member, permissions);
+        return stationSession(member, permissions).user();
     }
 
     private static Response post(StationMember member, int file, String requestBody) {

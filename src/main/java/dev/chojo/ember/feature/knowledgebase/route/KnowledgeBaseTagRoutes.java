@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -68,7 +68,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void listTags(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(tagService.findTagsByStation(session.stationId()));
     }
 
@@ -77,7 +77,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TagScopeResponse.class)))
     private void getTagScope(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String tagName = ctx.pathParam("name");
         int stationId = session.stationId();
 
@@ -130,7 +130,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbTagRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void setFileTags(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(KbTagRequest.class);
@@ -154,7 +154,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbTagRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void setFolderTags(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         var req = ctx.bodyAsClass(KbTagRequest.class);

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.CancellationNotice;
 import dev.chojo.ember.feature.events.entity.CancelledEventDate;
@@ -87,7 +87,7 @@ public class EventCancellationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void cancelSeries(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(CancelRequest.class);
         cancellationService.cancelSeries(session.stationId(), id, req.reason());
@@ -112,11 +112,11 @@ public class EventCancellationRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void cancelDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var event = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
         var req = ctx.bodyAsClass(CancelRequest.class);
-        Integer cancelledBy = session.member() != null ? session.member().id() : null;
-        cancellationService.cancelDate(event, pathDate(ctx), req.reason(), cancelledBy);
+        cancellationService.cancelDate(
+                event, pathDate(ctx), req.reason(), session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -137,7 +137,7 @@ public class EventCancellationRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void restoreDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var event = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
         cancellationService.restoreDate(event, pathDate(ctx));
         ctx.status(HttpStatus.NO_CONTENT);
@@ -154,7 +154,7 @@ public class EventCancellationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void listCancelledDates(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
         ctx.json(cancellationService.findCancelledDates(event.id()));
     }
@@ -168,7 +168,7 @@ public class EventCancellationRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CancelledEventDate[].class)))
     private void listStationCancelledDates(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var visible = crudService.findFilteredForMembers(
                 session.stationId(), EventVisibility.memberIdsSeenBy(session, guardianPolicy), null, null);
         ctx.json(cancellationService.findCancelledDates(

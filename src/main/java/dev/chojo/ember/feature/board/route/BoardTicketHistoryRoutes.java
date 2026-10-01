@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
@@ -65,7 +65,7 @@ public class BoardTicketHistoryRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = BoardTicketTransitionResponse[].class)))
     private void getTransitions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findTransitions(guards.viewableTicketId(ctx, session)).stream()
                 .map(transition -> {
                     var resolved = memberNameResolver.resolveDisplay(transition.actor());
@@ -88,7 +88,7 @@ public class BoardTicketHistoryRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = BoardTicketHistoryResponse[].class)))
     private void getHistory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findHistory(guards.viewableTicketId(ctx, session)).stream()
                 .map(entry -> {
                     var resolved = memberNameResolver.resolveDisplay(entry.actor());
@@ -108,7 +108,7 @@ public class BoardTicketHistoryRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardActivityEntry[].class)))
     private void getActivity(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findActivity(guards.viewableTicketId(ctx, session)));
     }
 }

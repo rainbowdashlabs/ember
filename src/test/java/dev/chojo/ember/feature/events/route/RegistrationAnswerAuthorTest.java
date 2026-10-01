@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.route;
 
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -67,16 +68,16 @@ class RegistrationAnswerAuthorTest {
                 id, STATION_ID, UUID.randomUUID(), id, false, null, "Mitglied " + id, StationUserType.MEMBER, null);
     }
 
-    private static UserSession sessionOf(int memberId, StationPermission... permissions) {
-        return new UserSession(
+    private static StationSession sessionOf(int memberId, StationPermission... permissions) {
+        return StationSession.of(new UserSession(
                 new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
                 1,
                 STATION_ID,
-                null,
+                UUID.randomUUID(),
                 member(memberId),
                 Set.of(permissions),
                 Set.of(),
-                null);
+                null));
     }
 
     private static EventRegistration registrationOf(int memberId) {
@@ -107,9 +108,9 @@ class RegistrationAnswerAuthorTest {
     }
 
     /** Runs the check the way the route does, unwrapping what reflection wraps a refusal in. */
-    private void check(UserSession session, EventRegistration registration) throws Exception {
+    private void check(StationSession session, EventRegistration registration) throws Exception {
         Method guard = EventRegistrationRoutes.class.getDeclaredMethod(
-                "requireAnswerAuthor", UserSession.class, EventRegistration.class);
+                "requireAnswerAuthor", StationSession.class, EventRegistration.class);
         guard.setAccessible(true);
         try {
             guard.invoke(routes, session, registration);

@@ -118,7 +118,7 @@ class TicketCommentTargetTest extends RepositoryTestBase {
 
     @Test
     void aMemberOfAnotherStationFindsNoBoard() {
-        var session = signedIn(stranger, StationPermission.BOARD_USE, StationPermission.BOARD_MANAGER);
+        var session = stationSession(stranger, StationPermission.BOARD_USE, StationPermission.BOARD_MANAGER);
 
         var read = assertThrows(RefusalResponse.class, () -> target.requireReadable(session, info()));
         var write = assertThrows(RefusalResponse.class, () -> target.requireWritable(session, info()));
@@ -129,8 +129,8 @@ class TicketCommentTargetTest extends RepositoryTestBase {
 
     @Test
     void aBoardManagerRemovesButNeverRewritesSomebodyElsesComment() {
-        var manager = signedIn(member, StationPermission.BOARD_USE, StationPermission.BOARD_MANAGER);
-        var user = signedIn(member, StationPermission.BOARD_USE);
+        var manager = stationSession(member, StationPermission.BOARD_USE, StationPermission.BOARD_MANAGER);
+        var user = stationSession(member, StationPermission.BOARD_USE);
 
         assertTrue(target.mayModerate(manager, info(), Moderation.DELETE));
         assertFalse(target.mayModerate(manager, info(), Moderation.EDIT));

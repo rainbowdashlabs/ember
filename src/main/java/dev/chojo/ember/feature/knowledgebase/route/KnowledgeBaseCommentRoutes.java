@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -78,7 +78,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void listComments(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
-        commentService.requireReadable(UserSession.from(ctx), CommentEntityType.KB, fileId);
+        commentService.requireReadable(StationSession.from(ctx), CommentEntityType.KB, fileId);
         ctx.json(commentService.list(CommentEntityType.KB, fileId, CommentFilter.ALL).stream()
                 .map(this::toResponse)
                 .toList());
@@ -91,7 +91,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void createComment(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
         var comment = commentService.create(
                 session,
@@ -109,7 +109,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void updateComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var comment = requireOwnedComment(session, commentId);
         if (!commentService.mayModify(session, actor(session), comment, Moderation.EDIT)) {
             throw Refusal.KB_COMMENT_NOT_YOURS_TO_CHANGE.raise();
@@ -127,7 +127,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var comment = requireOwnedComment(session, commentId);
         if (!commentService.mayModify(session, actor(session), comment, Moderation.DELETE)) {
             throw Refusal.KB_COMMENT_NOT_YOURS_TO_DELETE.raise();
@@ -142,7 +142,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
      * Loads a comment and asserts the caller's station owns the file it belongs to, returning the
      * comment. Answers 404 when the comment is absent or the file belongs to another station.
      */
-    private Comment requireOwnedComment(UserSession session, int commentId) {
+    private Comment requireOwnedComment(StationSession session, int commentId) {
         var comment = commentService
                 .findById(CommentEntityType.KB, commentId)
                 .orElseThrow(Refusal.KB_COMMENT_NOT_HERE::raise);
@@ -150,11 +150,11 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         return comment;
     }
 
-    private MemberIdentity actor(UserSession session) {
+    private MemberIdentity actor(StationSession session) {
         return memberIdentityFactory.local(session.stationId(), session.member().id());
     }
 
-    private CommentWriter writer(UserSession session) {
+    private CommentWriter writer(StationSession session) {
         return CommentWriter.local(
                 actor(session),
                 authorNameService.resolveMemberName(session.member().id()));

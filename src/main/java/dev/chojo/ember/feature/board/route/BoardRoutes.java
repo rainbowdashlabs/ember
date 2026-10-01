@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.board.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -134,13 +134,9 @@ public class BoardRoutes implements Routes {
             queryParams = @OpenApiParam(name = "visible", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Board[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            ctx.json(List.of());
-            return;
-        }
+        StationSession session = StationSession.from(ctx);
         boolean visibleOnly = "true".equals(ctx.queryParam("visible"));
-        if (session.permissions().contains(StationPermission.BOARD_MANAGER) && !visibleOnly) {
+        if (session.hasPermission(StationPermission.BOARD_MANAGER) && !visibleOnly) {
             ctx.json(boardService.findByStation(session.stationId()));
         } else {
             ctx.json(boardService.findVisibleBoards(
@@ -159,7 +155,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateBoardRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.BOARD_NEEDS_A_NAME.raise();
         if (req.shortKey() == null || req.shortKey().isBlank()) throw Refusal.BOARD_NEEDS_A_SHORT_KEY.raise();
@@ -184,11 +180,10 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var board = resolveBoard(ctx, session.stationId());
-        boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
-        if (session.member() != null
-                && !boardService.canView(board.id(), session.member().id(), isManager))
+        boolean isManager = session.hasPermission(StationPermission.BOARD_MANAGER);
+        if (!boardService.canView(board.id(), session.member().id(), isManager))
             throw Refusal.BOARD_NOT_YOURS_TO_OPEN.raise();
         ctx.json(board);
     }
@@ -201,11 +196,10 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CanEditResponse.class)))
     private void canEdit(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
-        boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
-        boolean editable = session.member() != null
-                && boardService.canEdit(id, session.member().id(), isManager);
+        boolean isManager = session.hasPermission(StationPermission.BOARD_MANAGER);
+        boolean editable = boardService.canEdit(id, session.member().id(), isManager);
         ctx.json(new CanEditResponse(editable));
     }
 
@@ -221,7 +215,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var board = resolveBoard(ctx, session.stationId());
         var req = ctx.bodyAsClass(UpdateBoardRequest.class);
         sharedBoardChanges.updateBoard(board.id(), req.name(), req.description(), req.hideDoneAfterDays());
@@ -241,7 +235,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         if (boardService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -258,7 +252,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLane[].class)))
     private void getLanes(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findLanes(id));
     }
@@ -275,7 +269,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setLanes(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(LaneRequest[].class);
         boardService.replaceLanes(
@@ -294,7 +288,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)))
     private void getFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findFields(id));
     }
@@ -311,7 +305,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(FieldRequest[].class);
         boardService.replaceFields(
@@ -333,7 +327,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getViewAccess(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var access = boardService.getViewAccess(id);
         ctx.json(access);
@@ -348,7 +342,7 @@ public class BoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccessRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessRequest.class)))
     private void setViewAccess(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(AccessRequest.class);
         boardService.setViewAccess(
@@ -370,7 +364,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getEditAccess(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var access = boardService.getEditAccess(id);
         ctx.json(access);
@@ -385,7 +379,7 @@ public class BoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccessRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessRequest.class)))
     private void setEditAccess(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(AccessRequest.class);
         boardService.setEditAccess(
@@ -404,7 +398,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardLane.class)))
     private void enableBacklog(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var lane = boardService.enableBacklog(id);
         ctx.status(HttpStatus.CREATED).json(lane);
@@ -418,7 +412,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void disableBacklog(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         boardService.disableBacklog(id);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -432,7 +426,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void getLabels(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findLabels(id));
     }
@@ -449,7 +443,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createLabel(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(LabelRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.BOARD_LABEL_NEEDS_A_NAME.raise();
@@ -469,7 +463,7 @@ public class BoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LabelRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateLabel(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         if (boardService.findLabels(boardId).stream().noneMatch(l -> l.id() == labelId)) {
@@ -491,7 +485,7 @@ public class BoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteLabel(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         if (boardService.findLabels(boardId).stream().noneMatch(l -> l.id() == labelId)) {
@@ -509,7 +503,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketLabelMapping[].class)))
     private void getAllTicketLabels(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findAllTicketLabels(id));
     }
@@ -522,7 +516,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCompletion[].class)))
     private void listBoardMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         resolveBoardId(ctx, session.stationId());
         ctx.json(memberIdentityFactory.enrichCompletions(memberService.findCompletions(session.stationId())));
     }
@@ -539,7 +533,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCompletion[].class)))
     private void listAssignableMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
         var allowed = boardService.findMembersWhoMayEdit(boardId, session.stationId());
         ctx.json(memberIdentityFactory.enrichCompletions(memberService.findCompletions(session.stationId()).stream()
@@ -558,7 +552,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getFederationConfig(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var targets = federatedBoardService.findShareTargets(id).stream()
                 .map(t -> new FederationTargetResponse(t.partnerId(), t.shareMode(), t.requiredUserType()))
@@ -579,7 +573,7 @@ public class BoardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFederationConfig(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(FederationConfigRequest.class);
         var configs = (req.targets() != null ? req.targets() : List.<FederationTargetRequest>of())

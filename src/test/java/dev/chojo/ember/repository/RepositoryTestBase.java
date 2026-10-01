@@ -922,8 +922,7 @@ public abstract class RepositoryTestBase {
      * service that works at a station.
      */
     protected static StationSession stationSession(StationMember member, StationPermission... permissions) {
-        return new StationSession(
-                signedIn(member, permissions), member.stationId(), stationRepo.requireUid(member.stationId()), member);
+        return StationSession.of(signedIn(member, permissions));
     }
 
     /**

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.content.entity.ContentMode;
@@ -244,7 +245,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFolder[].class)))
     private void listFolders(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         Integer parentId = optionalFolderId(ctx, "parentId");
         var folders = service.findFolders(session.stationId(), parentId);
         var levels = accessService.childLevels(
@@ -276,7 +277,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FolderRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFolder.class)))
     private void createFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(FolderRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.KB_FOLDER_NEEDS_A_NAME.raise();
         requireWriteInFolder(ctx, req.parentId());
@@ -330,11 +331,11 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
-        if (!trashService.deleteFolder(id, memberIdOf(session))) throw Refusal.KB_FOLDER_NOT_TRASHED.raise();
+        if (!trashService.deleteFolder(id, session.member().id())) throw Refusal.KB_FOLDER_NOT_TRASHED.raise();
         ctx.status(204);
     }
 
@@ -347,7 +348,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FolderTreeEntry[].class)))
     private void folderTree(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var access = KbGuards.accessOf(ctx, accessService);
         var folders = service.findAllFolders(session.stationId());
         var levels = accessService.treeLevels(
@@ -379,7 +380,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MoveFolderRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MoveResponse.class)))
     private void moveFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         var req = ctx.bodyAsClass(MoveFolderRequest.class);
@@ -397,7 +398,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MoveFileRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MoveResponse.class)))
     private void moveFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(MoveFileRequest.class);
@@ -411,7 +412,7 @@ public class KnowledgeBaseRoutes implements Routes {
      * into. The target failing is the whole request failing, unlike a single entry of a selection.
      */
     private void requireUsableTarget(Context ctx, @Nullable Integer targetFolderId) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var problem =
                 moveService.checkTarget(KbGuards.accessOf(ctx, accessService), session.stationId(), targetFolderId);
         if (problem != null) throw Refusal.KB_MOVE_TARGET_NOT_USABLE.raise();
@@ -426,7 +427,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovePreview.class)))
     private void movePreview(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         Integer folderId = optionalFolderId(ctx, "folderId");
         Integer fileId = optionalFolderId(ctx, "fileId");
         if (folderId != null) requireOwnedFolder(ctx, service, folderId);
@@ -441,7 +442,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkMoveRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkOutcome.class)))
     private void bulkMove(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BulkMoveRequest.class);
         requireUsableTarget(ctx, req.targetFolderId());
         ctx.json(bulkService.move(
@@ -462,7 +463,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkDeleteRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkOutcome.class)))
     private void bulkDelete(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BulkDeleteRequest.class);
         ctx.json(bulkService.delete(
                 KbGuards.accessOf(ctx, accessService),
@@ -482,7 +483,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkDeleteRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeleteImpact.class)))
     private void bulkDeleteImpact(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BulkDeleteRequest.class);
         ctx.json(trashService.impactOf(
                 session.stationId(),
@@ -501,7 +502,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TrashView.class)))
     private void listTrash(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(trashService.list(KbGuards.accessOf(ctx, accessService), session.stationId()));
     }
 
@@ -513,7 +514,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EmptyTrashResponse.class)))
     private void emptyTrash(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(
                 new EmptyTrashResponse(trashService.empty(KbGuards.accessOf(ctx, accessService), session.stationId())));
     }
@@ -575,21 +576,13 @@ public class KnowledgeBaseRoutes implements Routes {
         return id;
     }
 
-    /**
-     * The member behind a session, or {@code null} for a session that holds station rights without
-     * a member row of its own, which is what the trash then records as the deleting member.
-     */
-    private static @Nullable Integer memberIdOf(UserSession session) {
-        return session.member() == null ? null : session.member().id();
-    }
-
     @OpenApi(
             path = "/api/v1/kb/bulk/tags",
             methods = HttpMethod.POST,
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkTagsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkOutcome.class)))
     private void bulkTags(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BulkTagsRequest.class);
         ctx.json(bulkService.tag(
                 KbGuards.accessOf(ctx, accessService),
@@ -611,7 +604,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = SearchResultResponse[].class)))
     private void listRecentFiles(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var access = KbGuards.accessOf(ctx, accessService);
         int limit =
                 Math.min(Math.max(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10), 1), 50);
@@ -638,7 +631,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFileSummary[].class)))
     private void listFiles(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var files = service.findFiles(session.stationId(), optionalFolderId(ctx, "folderId"));
         var readable = accessService.readableFiles(
                 KbGuards.accessOf(ctx, accessService),
@@ -690,11 +683,11 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     @OpenApi(path = "/api/v1/kb/files/{id}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void deleteFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
-        if (!trashService.deleteFile(id, memberIdOf(session))) throw Refusal.KB_ARTICLE_NOT_TRASHED.raise();
+        if (!trashService.deleteFile(id, session.member().id())) throw Refusal.KB_ARTICLE_NOT_TRASHED.raise();
         ctx.status(204);
     }
 
@@ -704,7 +697,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MarkdownFileRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void createMarkdownFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(MarkdownFileRequest.class);
         requireWriteInFolder(ctx, req.folderId());
         if (req.name() == null || req.name().isBlank()) throw Refusal.KB_ARTICLE_NEEDS_A_NAME.raise();
@@ -723,7 +716,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = YoutubeFileRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void createYoutubeFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(YoutubeFileRequest.class);
         requireWriteInFolder(ctx, req.folderId());
         if (req.name() == null || req.name().isBlank()) throw Refusal.KB_VIDEO_NEEDS_A_NAME.raise();
@@ -743,7 +736,7 @@ public class KnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LinkFileRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void createLinkFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(LinkFileRequest.class);
         requireWriteInFolder(ctx, req.folderId());
         if (req.linkUrl() == null || req.linkUrl().isBlank()) throw Refusal.KB_LINK_NEEDS_AN_ADDRESS.raise();
@@ -761,7 +754,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void uploadFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var file = requireUpload(ctx);
         String name = ctx.formParam("name");
         if (name == null || name.isBlank()) name = file.filename();
@@ -794,7 +787,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)))
     private void importDocument(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var file = requireUpload(ctx);
 
         String name = ctx.formParam("name");
@@ -892,7 +885,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void updateMarkdownContent(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         var req = ctx.bodyAsClass(ContentUpdateRequest.class);
@@ -928,7 +921,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BlocksResponse.class)))
     private void saveBlocks(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         var request = ctx.bodyAsClass(SaveBlocksRequest.class);
@@ -1069,7 +1062,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void revertToVersion(Context ctx) {
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         requireOwnedFile(ctx, service, fileId);
         requireLevel(ctx, accessService, null, fileId, KbAccessLevel.WRITE);
         contentService.revertToVersion(fileId, version, session.member().id());
@@ -1141,7 +1134,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = SearchResultResponse[].class)))
     private void search(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String query = ctx.queryParam("q");
         boolean federated = !"false".equals(ctx.queryParam("federated"));
         if (query == null || query.isBlank()) {
@@ -1188,7 +1181,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BrowseResponse.class)))
     private void browse(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(browseService.browse(
                 session.stationId(),
                 optionalFolderId(ctx, "folderId"),
@@ -1224,7 +1217,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200"))
     private void getFolderIcon(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
         iconService
@@ -1244,7 +1237,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void uploadFolderIcon(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var folder = requireOwnedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("icon");
@@ -1273,7 +1266,7 @@ public class KnowledgeBaseRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ImageUploadResponse.class)))
     private void uploadKbImage(Context ctx) {
         int fileId = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         requireOwnedFile(ctx, service, fileId);
         requireLevel(ctx, accessService, null, fileId, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("image");
@@ -1301,7 +1294,7 @@ public class KnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200"))
     private void getKbImage(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String imageId = ctx.pathParam("imageId");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(1024);
         imageService

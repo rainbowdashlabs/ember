@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
@@ -64,19 +64,19 @@ public class BoardTicketLinkRoutes implements Routes {
      * ticket in the path is resolved through its board key and is scoped by that; a second ticket
      * named in the body is not, and linking one pulls its title into a panel the caller can read.
      */
-    private void requireTicketInStation(int ticketId, UserSession session) {
+    private void requireTicketInStation(int ticketId, StationSession session) {
         var ticket = ticketService.findById(ticketId).orElseThrow(Refusal.LINKED_TICKET_NOT_HERE::raise);
         var board = boardService.findById(ticket.boardId()).orElseThrow(Refusal.LINKED_TICKET_BOARD_NOT_HERE::raise);
-        RouteSupport.requireSameStation(session, board.stationId());
+        RouteSupport.requireSameStation(session.user(), board.stationId());
     }
 
     /**
      * Asserts a knowledge base file named in the path belongs to the caller's station, for the same
      * reason: the link list shows what it points at.
      */
-    private void requireKbFileInStation(int kbFileId, UserSession session) {
+    private void requireKbFileInStation(int kbFileId, StationSession session) {
         var file = knowledgeBaseService.findFile(kbFileId).orElseThrow(Refusal.LINKED_WIKI_FILE_NOT_HERE::raise);
-        RouteSupport.requireSameStation(session, file.stationId());
+        RouteSupport.requireSameStation(session.user(), file.stationId());
     }
 
     @Override
@@ -111,7 +111,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketLink[].class)))
     private void getLinks(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findLinks(guards.viewableTicketId(ctx, session)));
     }
 
@@ -127,7 +127,7 @@ public class BoardTicketLinkRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LinkRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardTicketLink[].class)))
     private void createLink(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(LinkRequest.class);
         requireTicketInStation(req.linkedTicketId(), session);
@@ -147,7 +147,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteLink(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         ticketService.unlinkTickets(ticketId, pathInt(ctx, "linkedId"), guards.actor(session));
         ctx.status(HttpStatus.NO_CONTENT);
@@ -164,7 +164,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardWeblink[].class)))
     private void getWeblinks(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findWeblinks(guards.viewableTicketId(ctx, session)));
     }
 
@@ -183,7 +183,7 @@ public class BoardTicketLinkRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void addWeblink(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(WeblinkRequest.class);
         if (req.url() == null || req.url().isBlank()) throw Refusal.WEBLINK_NEEDS_AN_ADDRESS.raise();
@@ -203,7 +203,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteWeblink(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         int weblinkId = pathInt(ctx, "weblinkId");
         if (ticketService.findWeblinks(ticketId).stream().noneMatch(w -> w.id() == weblinkId)) {
@@ -224,7 +224,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void getTicketLabels(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(boardService.findLabelsForTicket(guards.viewableTicketId(ctx, session)));
     }
 
@@ -240,7 +240,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardLabel[].class)))
     private void addTicketLabel(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireEditAccess(boardId, session);
         int ticketId = guards.resolveTicketId(ctx, boardId);
@@ -263,7 +263,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void removeTicketLabel(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireEditAccess(boardId, session);
         int ticketId = guards.resolveTicketId(ctx, boardId);
@@ -285,7 +285,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketKbLink[].class)))
     private void getKbLinks(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findKbLinks(guards.viewableTicketId(ctx, session)));
     }
 
@@ -304,7 +304,7 @@ public class BoardTicketLinkRoutes implements Routes {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketKbLink[].class))
             })
     private void addKbLink(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         int kbFileId = pathInt(ctx, "kbFileId");
         requireKbFileInStation(kbFileId, session);
@@ -325,7 +325,7 @@ public class BoardTicketLinkRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void removeKbLink(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         guards.requireEditAccess(guards.resolveBoardId(ctx, session.stationId()), session);
         ticketService.removeKbLink(pathInt(ctx, "linkId"));
         ctx.status(HttpStatus.NO_CONTENT);

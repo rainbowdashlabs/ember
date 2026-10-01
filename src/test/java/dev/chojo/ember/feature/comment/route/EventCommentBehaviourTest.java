@@ -127,7 +127,7 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
     }
 
     private static UserSession as(StationMember member, StationPermission... permissions) {
-        return signedIn(member, permissions);
+        return stationSession(member, permissions).user();
     }
 
     private static int write(StationMember member, int event, String content) {

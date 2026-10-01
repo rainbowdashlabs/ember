@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
@@ -86,10 +86,10 @@ public class EventAttachmentRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventAttachment[].class)))
     private void list(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, eventId);
-        ctx.json(attachmentService.listFor(eventId, session.permissions()));
+        ctx.json(attachmentService.listFor(eventId, session.user().permissions()));
     }
 
     @OpenApi(
@@ -106,12 +106,12 @@ public class EventAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void download(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
-                .findReadable(pathInt(ctx, "attachmentId"), session.permissions())
+                .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
                 .filter(found -> found.eventId() == eventId)
                 .orElseThrow(Refusal.EVENT_FILE_NOT_HERE::raise);
 
@@ -162,12 +162,12 @@ public class EventAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void picture(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
-                .findReadable(pathInt(ctx, "attachmentId"), session.permissions())
+                .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
                 .filter(found -> found.eventId() == eventId)
                 .orElseThrow(Refusal.EVENT_FILE_NOT_HERE_FOR_PICTURE::raise);
 
@@ -198,7 +198,7 @@ public class EventAttachmentRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AttachmentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventAttachment.class)))
     private void attach(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
@@ -242,7 +242,7 @@ public class EventAttachmentRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AttachmentOrderRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void reorder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         var request = ctx.bodyAsClass(AttachmentOrderRequest.class);
@@ -271,7 +271,7 @@ public class EventAttachmentRoutes implements Routes {
      * event cannot be written through the address of another.
      */
     private EventAttachment requireOwnedAttachment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         return attachmentService

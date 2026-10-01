@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -52,6 +53,10 @@ class KbCommentTargetTest {
         target = new KbCommentTarget(files);
     }
 
+    private static StationSession memberAt(int stationId, StationPermission... permissions) {
+        return StationSession.of(TestSessions.member(stationId, permissions));
+    }
+
     @Test
     void aFileIsFoundWithItsStationAndName() {
         assertEquals(Optional.of(TARGET), target.find(FILE));
@@ -61,8 +66,8 @@ class KbCommentTargetTest {
 
     @Test
     void onlyTheOwningStationReadsAndWrites() {
-        var own = TestSessions.member(STATION);
-        var foreign = TestSessions.member(STATION + 1);
+        var own = memberAt(STATION);
+        var foreign = memberAt(STATION + 1);
 
         assertDoesNotThrow(() -> target.requireReadable(own, TARGET));
         assertDoesNotThrow(() -> target.requireWritable(own, TARGET));
@@ -78,11 +83,11 @@ class KbCommentTargetTest {
 
     @Test
     void aKnowledgeManagerRemovesButNeverRewritesAnotherMembersComment() {
-        var manager = TestSessions.member(STATION, StationPermission.KNOWLEDGE_MANAGER);
+        var manager = memberAt(STATION, StationPermission.KNOWLEDGE_MANAGER);
 
         assertTrue(target.mayModerate(manager, TARGET, Moderation.DELETE));
         assertFalse(target.mayModerate(manager, TARGET, Moderation.EDIT));
-        assertFalse(target.mayModerate(TestSessions.member(STATION), TARGET, Moderation.DELETE));
+        assertFalse(target.mayModerate(memberAt(STATION), TARGET, Moderation.DELETE));
     }
 
     @Test

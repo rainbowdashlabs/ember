@@ -10,7 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -64,7 +64,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -221,9 +220,9 @@ public class EventRegistrationRoutes implements Routes {
      * that a direct call cannot read them either.
      */
     private boolean readsAnswersOf(Context ctx, EventRegistration registration) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         if (session.hasPermission(StationPermission.EVENT_EDIT)) return true;
-        return guardianPolicy.mayActFor(session, registration.memberId());
+        return guardianPolicy.mayActFor(session.user(), registration.memberId());
     }
 
     private static RegistrationResponse toRegistrationResponse(
@@ -262,9 +261,9 @@ public class EventRegistrationRoutes implements Routes {
                 registrations.stream().map(EventRegistration::id).toList());
         var lookups = lookupsFor(
                 registrations.stream().map(EventRegistration::memberId).toList());
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         boolean runsTheEvents = session.hasPermission(StationPermission.EVENT_EDIT);
-        var household = runsTheEvents ? Set.<Integer>of() : Set.copyOf(guardianPolicy.household(session));
+        var household = runsTheEvents ? Set.<Integer>of() : Set.copyOf(guardianPolicy.household(session.user()));
         var hiddenByEvent = new HashMap<Integer, Set<Integer>>();
         var requiredByEvent = new HashMap<Integer, Set<Integer>>();
         return registrations.stream()
@@ -292,11 +291,11 @@ public class EventRegistrationRoutes implements Routes {
     /**
      * Resolves and authorises the member id a register or decline call targets, defaulting to the caller.
      */
-    private int resolveTargetMemberId(UserSession session, EventRegisterRequest req) {
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_REGISTRATION.raise();
+    private int resolveTargetMemberId(StationSession session, EventRegisterRequest req) {
         if (req.memberId() == null) return session.member().id();
         int memberId = req.memberId();
-        if (!guardianPolicy.mayActFor(session, memberId) && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
+        if (!guardianPolicy.mayActFor(session.user(), memberId)
+                && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
             throw Refusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
         }
         return memberId;
@@ -312,17 +311,13 @@ public class EventRegistrationRoutes implements Routes {
                     + "only while their registration is still open.",
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AwaitingAnswer[].class)))
     private void listAwaitingAnswer(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            ctx.json(Collections.emptyList());
-            return;
-        }
-
-        var household = guardianPolicy.household(session);
+        StationSession session = StationSession.from(ctx);
+        var household = guardianPolicy.household(session.user());
 
         var byEvent = new LinkedHashMap<Integer, AwaitingAnswer>();
         for (var row : registrationService.findAwaitingAnswer(household)) {
-            if (!restrictionService.canRegister(row.eventId(), row.memberId(), session.permissions())) {
+            if (!restrictionService.canRegister(
+                    row.eventId(), row.memberId(), session.user().permissions())) {
                 continue;
             }
             var entry = byEvent.computeIfAbsent(
@@ -359,13 +354,9 @@ public class EventRegistrationRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse[].class)))
     private void listMyRegistrations(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            ctx.json(Collections.emptyList());
-            return;
-        }
+        StationSession session = StationSession.from(ctx);
         var registrations = new ArrayList<EventRegistration>();
-        for (int memberId : guardianPolicy.household(session)) {
+        for (int memberId : guardianPolicy.household(session.user())) {
             registrations.addAll(registrationService.findByMember(memberId));
         }
         ctx.json(toRegistrationResponses(ctx, registrations));
@@ -379,7 +370,7 @@ public class EventRegistrationRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse[].class)))
     private void listPendingRegistrations(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var regs = registrationService.findPendingByStation(session.stationId());
         ctx.json(toRegistrationResponses(ctx, regs));
     }
@@ -399,7 +390,7 @@ public class EventRegistrationRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = RegistrationStatsResponse[].class)))
     private void getRegistrationStats(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var event = visibility.requireVisibleEvent(session, eventId);
         String catParam = ctx.queryParam("categoryId");
@@ -453,7 +444,7 @@ public class EventRegistrationRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = RegistrationFieldResponse[].class)))
     private void listRegistrationFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         visibility.requireVisibleEvent(session, eventId);
         ctx.json(registrationFieldService.findByEvent(eventId).stream()
@@ -471,7 +462,7 @@ public class EventRegistrationRoutes implements Routes {
                     @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationFieldDefinitionsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void setRegistrationFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         requireOwnedEvent(crudService, eventId, session);
         var req = ctx.bodyAsClass(RegistrationFieldDefinitionsRequest.class);
@@ -494,7 +485,7 @@ public class EventRegistrationRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateRegistrationFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int registrationId = pathInt(ctx, "id");
         var registration = registrationService
                 .findById(registrationId)
@@ -517,11 +508,10 @@ public class EventRegistrationRoutes implements Routes {
      * right, and asking the member to correct it while the list is being read from is how a wrong
      * answer stays wrong.
      */
-    private void requireAnswerAuthor(UserSession session, EventRegistration registration) {
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_ANSWER_CHANGE.raise();
+    private void requireAnswerAuthor(StationSession session, EventRegistration registration) {
         if (session.hasPermission(StationPermission.EVENT_EDIT)) return;
         if (session.hasPermission(StationPermission.EVENT_REGISTRATION)) return;
-        if (!guardianPolicy.mayActFor(session, registration.memberId())) {
+        if (!guardianPolicy.mayActFor(session.user(), registration.memberId())) {
             throw Refusal.REGISTRATION_ANSWERS_NOT_YOURS.raise();
         }
     }
@@ -537,12 +527,13 @@ public class EventRegistrationRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TableColumnsResponse.class)))
     private void tableColumns(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         visibility.requireVisibleEvent(session, eventId);
         var questions = eventMemberTableService.offerableQuestions(eventId, readsHiddenAnswers(session));
         ctx.json(new TableColumnsResponse(
-                memberTableService.offerableColumns(session.stationId(), session.permissions()),
+                memberTableService.offerableColumns(
+                        session.stationId(), session.user().permissions()),
                 questions.entrySet().stream()
                         .map(entry -> new QuestionColumn(
                                 entry.getKey(),
@@ -570,7 +561,7 @@ public class EventRegistrationRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationTableRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void exportTableCsv(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var event = requireOwnedEvent(crudService, pathInt(ctx, "eventId"), session);
         var station = stationService
                 .findById(session.stationId())
@@ -600,7 +591,7 @@ public class EventRegistrationRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationTableRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void exportTablePdf(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var event = requireOwnedEvent(crudService, eventId, session);
         var station = stationService
@@ -613,7 +604,7 @@ public class EventRegistrationRoutes implements Routes {
                     station,
                     event.name(),
                     tableDate(ctx).format(DAY_STAMP),
-                    NameParts.of(session.account()).official());
+                    NameParts.of(session.user().account()).official());
             ctx.contentType("application/pdf");
             ctx.header("Content-Disposition", registrationsName(station, event.name(), ctx, "pdf"));
             ctx.result(pdf);
@@ -624,7 +615,7 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     private MemberTable tableOf(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var event = visibility.requireVisibleEvent(session, eventId);
         var station = stationService
@@ -635,7 +626,7 @@ public class EventRegistrationRoutes implements Routes {
                 ? List.<MemberTableColumn>of()
                 : req.columns().stream().filter(MemberTableColumn::isWellFormed).toList();
         return eventMemberTableService.table(
-                station, eventId, tableDate(ctx), columns, session.permissions(), readsHiddenAnswers(session));
+                station, eventId, tableDate(ctx), columns, session.user().permissions(), readsHiddenAnswers(session));
     }
 
     /**
@@ -650,7 +641,7 @@ public class EventRegistrationRoutes implements Routes {
         return LocalDate.parse(req.date());
     }
 
-    private boolean readsHiddenAnswers(UserSession session) {
+    private boolean readsHiddenAnswers(StationSession session) {
         return session.hasPermission(StationPermission.EVENT_EDIT);
     }
 
@@ -662,7 +653,7 @@ public class EventRegistrationRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse[].class)))
     private void listRegistrations(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         visibility.requireVisibleEvent(session, eventId);
         String dateStr = ctx.queryParam("date");
@@ -684,7 +675,7 @@ public class EventRegistrationRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void register(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(EventRegisterRequest.class);
 
@@ -707,7 +698,9 @@ public class EventRegistrationRoutes implements Routes {
 
         boolean isManagerRegistration =
                 req.memberId() != null && req.memberId() != session.member().id() && runsTheEvent;
-        if (!isManagerRegistration && !restrictionService.canRegister(eventId, memberId, session.permissions())) {
+        if (!isManagerRegistration
+                && !restrictionService.canRegister(
+                        eventId, memberId, session.user().permissions())) {
             throw Refusal.MEMBER_NOT_INVITED_TO_EVENT.raise();
         }
 
@@ -745,7 +738,7 @@ public class EventRegistrationRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void decline(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(EventRegisterRequest.class);
 
@@ -765,7 +758,7 @@ public class EventRegistrationRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationCount[].class)))
     private void listRegistrationCounts(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(visibility.keepVisible(
                 session, registrationService.findCountsByStation(session.stationId()), RegistrationCount::eventId));
     }
@@ -817,7 +810,7 @@ public class EventRegistrationRoutes implements Routes {
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void changeAnswer(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(AnswerRequest.class);
         var registration =
@@ -825,7 +818,7 @@ public class EventRegistrationRoutes implements Routes {
         var event = requireOwnedEvent(crudService, registration.eventId(), session);
         occurrenceCalendar.dateToAnswerFor(event, registration.eventDate());
 
-        boolean manages = guardianPolicy.mayActFor(session, registration.memberId());
+        boolean manages = guardianPolicy.mayActFor(session.user(), registration.memberId());
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER)
                 || session.hasPermission(StationPermission.EVENT_REGISTRATION);
         if (!manages && !runsTheEvent) {
@@ -863,7 +856,7 @@ public class EventRegistrationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void withdrawRegistration(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var reg =
                 registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_WITHDRAWAL::raise);
@@ -890,7 +883,7 @@ public class EventRegistrationRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "204"))
     private void undoWithdrawal(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var reg = registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_UNDO::raise);
         requireOwnedEvent(crudService, reg.eventId(), session);
@@ -906,8 +899,8 @@ public class EventRegistrationRoutes implements Routes {
      * Whether this session may answer for that member: themselves, somebody in their care, or
      * anybody where they keep the list.
      */
-    private void requireMayAnswerFor(UserSession session, int memberId) {
-        if (!guardianPolicy.mayActFor(session, memberId)
+    private void requireMayAnswerFor(StationSession session, int memberId) {
+        if (!guardianPolicy.mayActFor(session.user(), memberId)
                 && !session.hasPermission(StationPermission.EVENT_MANAGER)
                 && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
             throw Refusal.WITHDRAWAL_NOT_YOURS_TO_ANSWER.raise();
@@ -930,7 +923,7 @@ public class EventRegistrationRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AbsentMemberResponse[].class)))
     private void listAbsencesForDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String dateStr = ctx.queryParam("date");
         LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
         var absences = attendanceService.findAbsencesByStationOnDate(session.stationId(), date);

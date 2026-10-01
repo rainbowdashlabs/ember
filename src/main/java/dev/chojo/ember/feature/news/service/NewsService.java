@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
@@ -214,7 +214,7 @@ public class NewsService {
      * @param newsId  the entry
      * @return the entry
      */
-    public News requireReadable(UserSession session, int newsId) {
+    public News requireReadable(StationSession session, int newsId) {
         var news = findById(newsId).orElseThrow(Refusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
         if (!isVisibleForMember(newsId, session.member().id(), session.hasPermission(StationPermission.NEWS_MANAGER))) {
             throw Refusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();

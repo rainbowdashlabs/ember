@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventCategory;
@@ -85,7 +85,7 @@ public class EventEmbedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reference(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
         if (event.restricted()) throw Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
         var uid = crudService
@@ -106,7 +106,7 @@ public class EventEmbedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var uid = pathUuid(ctx, "uid");
         var event = crudService
                 .findOpenByUid(session.stationId(), BlockAudience.MEMBERS, uid)

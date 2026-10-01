@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
@@ -166,7 +166,7 @@ public class EventRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventSummary[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var filter = parseCategoryFilter(ctx);
         List<Integer> memberIds = resolveVisibleMemberIds(session);
         var events = crudService.findFilteredForMembers(
@@ -202,7 +202,7 @@ public class EventRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PickerEvent[].class)))
     private void searchPicker(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String q = ctx.queryParam("q");
         var mode = parsePickerMode(ctx.queryParam("mode"));
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
@@ -231,7 +231,7 @@ public class EventRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventSummary[].class)))
     private void listToday(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(occurrenceService.findTodayEvents(session.stationId()).stream()
                 .map(EventSummary::of)
                 .toList());
@@ -262,7 +262,7 @@ public class EventRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
     private void listUpcoming(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(occurrenceService.findUpcomingOccurrences(
                 session.stationId(), resolveVisibleMemberIds(session), parseOccurrenceQuery(ctx)));
     }
@@ -292,7 +292,7 @@ public class EventRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
     private void listPast(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(occurrenceService.findPastOccurrences(
                 session.stationId(), resolveVisibleMemberIds(session), parseOccurrenceQuery(ctx)));
     }
@@ -322,7 +322,7 @@ public class EventRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DatedEvent[].class)))
     private void listPaged(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var query = new EventOccurrenceService.EventPageQuery(
                 parseState(ctx.queryParam("state")), parseKind(ctx.queryParam("kind")), parseOccurrenceQuery(ctx));
         ctx.json(occurrenceService.findEventsPage(session.stationId(), resolveVisibleMemberIds(session), query));
@@ -388,7 +388,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
         var eventType = req.eventType();
@@ -433,7 +433,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         ctx.json(visibility.requireVisibleEvent(session, id));
     }
@@ -458,7 +458,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getNextDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var event = visibility.requireVisibleEvent(session, id);
         ctx.json(new NextDate(occurrenceCalendar.dateInView(event).orElse(null)));
@@ -476,7 +476,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(EventRequest.class);
@@ -526,7 +526,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         if (crudService.delete(id)) {
@@ -536,7 +536,7 @@ public class EventRoutes implements Routes {
         }
     }
 
-    private @Nullable List<Integer> resolveVisibleMemberIds(UserSession session) {
+    private @Nullable List<Integer> resolveVisibleMemberIds(StationSession session) {
         return EventVisibility.memberIdsSeenBy(session, guardianPolicy);
     }
 
@@ -583,15 +583,11 @@ public class EventRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = EventRegistrationOpening[].class)))
     private void listEligibleMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            ctx.json(List.of());
-            return;
-        }
+        StationSession session = StationSession.from(ctx);
         ctx.json(restrictionService.registrationOpenings(
                 crudService.findByStation(session.stationId()),
-                guardianPolicy.household(session),
-                session.permissions()));
+                guardianPolicy.household(session.user()),
+                session.user().permissions()));
     }
 
     @OpenApi(
@@ -602,7 +598,7 @@ public class EventRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void getRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(audiencesOf(id));
@@ -624,7 +620,7 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRestrictions.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void setRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(EventRestrictions.class);
@@ -651,7 +647,7 @@ public class EventRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200"))
     private void listAllRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var events = crudService.findByStation(session.stationId());
         var restrictionsMap = new HashMap<Integer, EventRestrictions>();
         for (var event : events) {
@@ -673,7 +669,7 @@ public class EventRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getReminders(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(reminderService.findDays(id));
@@ -687,7 +683,7 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRemindersRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void setReminders(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(SetRemindersRequest.class);
@@ -703,7 +699,7 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GenerateDatesRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchRow[].class)))
     private void generateDates(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateDatesRequest.class);
         var interval = new IntervalConfig(
                 req.intervalType(),
@@ -725,7 +721,7 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BatchCreateRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void batchCreate(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BatchCreateRequest.class);
         if (req.rows() == null || req.rows().isEmpty()) {
             throw Refusal.BATCH_NEEDS_ROWS.raise();
@@ -772,9 +768,9 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventExportRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void exportPdf(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(EventExportRequest.class);
-        String generatedBy = NameParts.of(session.account()).official();
+        String generatedBy = NameParts.of(session.user().account()).official();
         var columns = req.columns() != null
                 ? req.columns().stream()
                         .map(c -> new EventExportService.ExportColumn(

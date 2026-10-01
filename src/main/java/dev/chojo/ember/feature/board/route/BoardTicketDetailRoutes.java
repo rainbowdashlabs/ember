@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.board.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
@@ -106,7 +106,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void getComments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.viewableTicketId(ctx, session);
         commentService.requireReadable(session, CommentEntityType.BOARD_TICKET, ticketId);
         ctx.json(commentService.list(CommentEntityType.BOARD_TICKET, ticketId, CommentFilter.ALL).stream()
@@ -129,7 +129,7 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) throw Refusal.TICKET_COMMENT_NEEDS_TEXT.raise();
@@ -155,7 +155,7 @@ public class BoardTicketDetailRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketCommentRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
         if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.EDIT)) {
             throw Refusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
@@ -179,7 +179,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
         if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.DELETE)) {
             throw Refusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
@@ -199,7 +199,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardChecklistItem[].class)))
     private void getChecklist(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findChecklistItems(guards.viewableTicketId(ctx, session)));
     }
 
@@ -218,7 +218,7 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void addChecklistItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ChecklistItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw Refusal.CHECKLIST_ITEM_NEEDS_A_TITLE.raise();
@@ -240,7 +240,7 @@ public class BoardTicketDetailRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChecklistItemRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateChecklistItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ChecklistItemRequest.class);
         ticketService.updateChecklistItem(
@@ -264,7 +264,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteChecklistItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         ticketService.deleteChecklistItem(
                 pathInt(ctx, "itemId"), ticketId, session.member().id());
@@ -283,7 +283,7 @@ public class BoardTicketDetailRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderChecklistRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void reorderChecklist(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ReorderChecklistRequest.class);
         ticketService.reorderChecklistItems(ticketId, req.orderedIds());
@@ -301,7 +301,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getWatchers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findWatchers(guards.viewableTicketId(ctx, session)));
     }
 
@@ -316,7 +316,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "201"))
     private void watchTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ticketService.watchTicket(
                 guards.viewableTicketId(ctx, session), session.member().id());
         ctx.status(HttpStatus.CREATED);
@@ -333,7 +333,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void unwatchTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ticketService.unwatchTicket(
                 guards.viewableTicketId(ctx, session), session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -351,7 +351,7 @@ public class BoardTicketDetailRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketFieldValue[].class)))
     private void getFieldValues(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findFieldValues(guards.viewableTicketId(ctx, session)));
     }
 
@@ -372,7 +372,7 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFieldValue(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireEditAccess(boardId, session);
         int ticketId = guards.resolveTicketId(ctx, boardId);
@@ -401,7 +401,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteFieldValue(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ticketService.deleteFieldValue(guards.editableTicketId(ctx, session), pathInt(ctx, "fieldId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -418,9 +418,9 @@ public class BoardTicketDetailRoutes implements Routes {
                 .orElseThrow(Refusal.TICKET_COMMENT_NOT_HERE::raise);
     }
 
-    private CommentWriter writer(UserSession session) {
+    private CommentWriter writer(StationSession session) {
         return CommentWriter.local(
-                guards.actor(session), NameParts.of(session.account()).called());
+                guards.actor(session), NameParts.of(session.user().account()).called());
     }
 
     private CommentResponse toResponse(Comment comment) {

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.board.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
@@ -74,7 +74,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketAttachment[].class)))
     private void getAttachments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findAttachments(guards.viewableTicketId(ctx, session)));
     }
 
@@ -92,7 +92,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void uploadAttachment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var file = ctx.uploadedFile("file");
         if (file == null) throw Refusal.TICKET_UPLOAD_MISSING_FILE.raise();
@@ -127,7 +127,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void downloadAttachment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var att = requireAttachmentOfTicket(ctx, guards.viewableTicketId(ctx, session));
         var path = ticketService.getAttachmentPath(session.stationId(), att);
         if (!Files.exists(path)) throw Refusal.TICKET_ATTACHMENT_CONTENT_NOT_HERE.raise();
@@ -158,7 +158,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteAttachment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var att = requireAttachmentOfTicket(ctx, guards.editableTicketId(ctx, session));
         if (ticketService.deleteAttachment(session.stationId(), att.id())) {
             ctx.status(HttpStatus.NO_CONTENT);

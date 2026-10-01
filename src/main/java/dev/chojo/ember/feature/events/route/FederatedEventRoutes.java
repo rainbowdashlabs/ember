@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
@@ -37,7 +37,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -124,7 +123,7 @@ public class FederatedEventRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = EventFederationService.FederatedEventItem[].class)))
     private void federatedListEvents(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(eventFederationService.browseFederatedEvents(session.stationId()));
     }
 
@@ -145,7 +144,7 @@ public class FederatedEventRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = RemoteEventRoutes.RemoteEventDetail.class)))
     private void federatedGetEvent(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "id");
         ctx.json(eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId));
@@ -162,7 +161,7 @@ public class FederatedEventRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = RemoteEventRoutes.RemoteAttachment[].class)))
     private void federatedListAttachments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(eventFederationService.listFederatedAttachments(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id")));
     }
@@ -180,7 +179,7 @@ public class FederatedEventRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200"))
     private void federatedDownloadAttachment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var content = eventFederationService.getFederatedAttachment(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), pathInt(ctx, "attachmentId"));
         if (content == null || content.base64() == null) throw Refusal.FEDERATED_FILE_NOT_HERE.raise();
@@ -290,7 +289,7 @@ public class FederatedEventRoutes implements Routes {
      * addressed partner, the target event, the date, and the effective remote member id.
      */
     private FederatedRegContext resolveFederatedRegContext(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(FederatedRegBody.class);
@@ -325,11 +324,7 @@ public class FederatedEventRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = RemoteEventRoutes.RemoteMemberRegistration[].class)))
     private void federatedMyRegistrations(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            ctx.json(List.of());
-            return;
-        }
+        StationSession session = StationSession.from(ctx);
         var memberUids = new ArrayList<UUID>();
         memberUids.add(session.member().uid());
         var managed = stationMemberService.findManaged(session.member().id());
@@ -346,7 +341,7 @@ public class FederatedEventRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void federatedListComments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "eventId");
         ctx.json(eventFederationService.listFederatedComments(session.stationId(), partnerUid, eventId));
@@ -362,7 +357,7 @@ public class FederatedEventRoutes implements Routes {
                             content = @OpenApiContent(from = EventCommentRoutes.CreateCommentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedCreateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(EventCommentRoutes.CreateCommentRequest.class);
@@ -374,7 +369,7 @@ public class FederatedEventRoutes implements Routes {
                 partnerUid,
                 eventId,
                 session.member().uid(),
-                NameParts.of(session.account()).called(),
+                NameParts.of(session.user().account()).called(),
                 req.parentId(),
                 req.content(),
                 req.eventDate());
@@ -391,7 +386,7 @@ public class FederatedEventRoutes implements Routes {
                             content = @OpenApiContent(from = EventCommentRoutes.UpdateCommentRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedUpdateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(EventCommentRoutes.UpdateCommentRequest.class);
@@ -409,7 +404,7 @@ public class FederatedEventRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "204"))
     private void federatedDeleteComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         eventFederationService.deleteFederatedComment(

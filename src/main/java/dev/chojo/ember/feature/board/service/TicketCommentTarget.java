@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.board.route.BoardRouteGuards;
@@ -72,12 +72,12 @@ public class TicketCommentTarget implements CommentTarget {
     }
 
     @Override
-    public void requireReadable(UserSession session, TargetInfo target) {
+    public void requireReadable(StationSession session, TargetInfo target) {
         access.requireViewAccess(boardOf(session, target), session);
     }
 
     @Override
-    public void requireWritable(UserSession session, TargetInfo target) {
+    public void requireWritable(StationSession session, TargetInfo target) {
         access.requireEditAccess(boardOf(session, target), session);
     }
 
@@ -85,7 +85,7 @@ public class TicketCommentTarget implements CommentTarget {
      * The board holding the ticket, which has to be one of the member's own station; any other
      * answers as a board that is not there.
      */
-    private int boardOf(UserSession session, TargetInfo target) {
+    private int boardOf(StationSession session, TargetInfo target) {
         if (!Objects.equals(target.stationId(), session.stationId())) {
             throw Refusal.BOARD_NOT_HERE_OR_NOT_YOURS.raise();
         }
@@ -95,7 +95,7 @@ public class TicketCommentTarget implements CommentTarget {
     }
 
     @Override
-    public boolean mayModerate(UserSession session, TargetInfo target, Moderation action) {
+    public boolean mayModerate(StationSession session, TargetInfo target, Moderation action) {
         return action == Moderation.DELETE && session.hasPermission(StationPermission.BOARD_MANAGER);
     }
 

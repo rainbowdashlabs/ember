@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentOrigin;
@@ -65,17 +65,17 @@ public class NewsCommentTarget implements CommentTarget {
     }
 
     @Override
-    public void requireReadable(UserSession session, TargetInfo target) {
+    public void requireReadable(StationSession session, TargetInfo target) {
         news.requireReadable(session, target.id());
     }
 
     @Override
-    public void requireWritable(UserSession session, TargetInfo target) {
+    public void requireWritable(StationSession session, TargetInfo target) {
         news.requireReadable(session, target.id());
     }
 
     @Override
-    public boolean mayModerate(UserSession session, TargetInfo target, Moderation action) {
+    public boolean mayModerate(StationSession session, TargetInfo target, Moderation action) {
         return action == Moderation.DELETE && session.hasPermission(StationPermission.NEWS_MANAGER);
     }
 

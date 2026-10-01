@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.board.route;
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -243,7 +243,7 @@ public class FederatedBoardRoutes implements Routes {
     }
 
     private int resolvePartnerId(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         UUID partnerUid = pathUuid(ctx, "partnerUid");
         return federationService
                 .findPartnerByRemoteUid(session.stationId(), partnerUid)
@@ -255,7 +255,7 @@ public class FederatedBoardRoutes implements Routes {
      * Rejects the request unless the session may view the federated board. A board that cannot be
      * resolved locally is owned by a remote partner, which enforces access on its own side.
      */
-    private void requireView(int partnerId, String boardKey, UserSession session) {
+    private void requireView(int partnerId, String boardKey, StationSession session) {
         var board = locator.resolveFederatedBoard(partnerId, boardKey);
         if (board == null) return;
         if (!accessService.canView(
@@ -268,7 +268,7 @@ public class FederatedBoardRoutes implements Routes {
      * Rejects the request unless the session may write to the federated board. A board that cannot
      * be resolved locally is owned by a remote partner, which enforces access on its own side.
      */
-    private void requireWrite(int partnerId, String boardKey, UserSession session) {
+    private void requireWrite(int partnerId, String boardKey, StationSession session) {
         var board = locator.resolveFederatedBoard(partnerId, boardKey);
         if (board == null) return;
         if (!accessService.canWrite(
@@ -277,10 +277,10 @@ public class FederatedBoardRoutes implements Routes {
         }
     }
 
-    private String resolveDisplayName(UserSession session) {
+    private String resolveDisplayName(StationSession session) {
         String name = session.member().displayName();
         if (name == null || name.isBlank()) {
-            name = NameParts.of(session.account()).called();
+            name = NameParts.of(session.user().account()).called();
         }
         return name;
     }
@@ -292,7 +292,7 @@ public class FederatedBoardRoutes implements Routes {
             tags = {"Federated Boards"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoveredBoard[].class)))
     private void federatedLocalDiscoverBoards(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(discoveryService.discoverBoards(session.stationId()));
     }
 
@@ -303,7 +303,7 @@ public class FederatedBoardRoutes implements Routes {
             tags = {"Federated Boards"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EnrichedBookmark[].class)))
     private void federatedLocalListBookmarks(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var bookmarks = federatedBoardService.findBookmarks(session.member().id());
         var enriched = bookmarks.stream()
                 .map(bm -> {
@@ -333,7 +333,7 @@ public class FederatedBoardRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationBoardBookmark.class)))
     private void federatedLocalCreateBookmark(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(LocalBookmarkRequest.class);
         UUID partnerUid = req.partnerUid();
         int partnerId = federationService
@@ -359,7 +359,7 @@ public class FederatedBoardRoutes implements Routes {
     private void federatedLocalDeleteBookmark(Context ctx) {
         int bookmarkId = ctx.pathParamAsClass("bookmarkId", Integer.class).get();
         federatedBoardService.deleteBookmark(
-                bookmarkId, UserSession.from(ctx).member().id());
+                bookmarkId, StationSession.from(ctx).member().id());
         ctx.status(204);
     }
 
@@ -374,7 +374,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederatedBoardDetail.class)))
     private void federatedLocalGetBoard(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -396,7 +396,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLane[].class)))
     private void federatedLocalGetLanes(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -414,7 +414,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void federatedLocalGetLabels(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -432,7 +432,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketLabelMapping[].class)))
     private void federatedLocalGetAllTicketLabels(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -450,7 +450,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCompletion[].class)))
     private void federatedLocalGetMembers(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -468,7 +468,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)))
     private void federatedLocalGetFields(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -486,7 +486,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketSummary[].class)))
     private void federatedLocalListTickets(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -505,7 +505,7 @@ public class FederatedBoardRoutes implements Routes {
             queryParams = @OpenApiParam(name = "q", type = String.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketSummary[].class)))
     private void federatedLocalSearchTickets(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -525,7 +525,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)))
     private void federatedLocalGetTicket(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -545,7 +545,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void federatedLocalGetComments(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -565,7 +565,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardChecklistItem[].class)))
     private void federatedLocalGetChecklist(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -585,7 +585,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketLink[].class)))
     private void federatedLocalGetLinks(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -605,7 +605,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void federatedLocalGetTicketLabels(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -628,7 +628,7 @@ public class FederatedBoardRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = BoardTicketTransitionResponse[].class)))
     private void federatedLocalGetTransitions(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -651,7 +651,7 @@ public class FederatedBoardRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = BoardTicketHistoryResponse[].class)))
     private void federatedLocalGetHistory(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -672,7 +672,7 @@ public class FederatedBoardRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketAttachment[].class)))
     private void federatedLocalGetAttachments(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -692,7 +692,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void federatedLocalGetWatchers(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
@@ -714,7 +714,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCreateTicketRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)))
     private void federatedLocalCreateTicket(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -743,7 +743,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalUpdateTicketRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)))
     private void federatedLocalUpdateTicket(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -774,7 +774,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteTicket(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -796,20 +796,19 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalMoveTicketRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)))
     private void federatedLocalMoveTicket(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalMoveTicketRequest.class);
-        UUID memberUid = session.member() != null ? session.member().uid() : null;
         ctx.json(ticketProxy.proxyMoveTicket(
                 partnerId,
                 boardKey,
                 ticketNumber,
                 req.toLaneId(),
                 req.position(),
-                memberUid,
+                session.member().uid(),
                 resolveDisplayName(session)));
     }
 
@@ -831,7 +830,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalReorderRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalReorderTickets(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -853,7 +852,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCommentRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardComment.class)))
     private void federatedLocalAddComment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -883,7 +882,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCommentRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalEditComment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -914,7 +913,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteComment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -938,7 +937,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalChecklistItemRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardChecklistItem.class)))
     private void federatedLocalAddChecklistItem(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -962,7 +961,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalUpdateChecklistItemRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalUpdateChecklistItem(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -994,7 +993,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteChecklistItem(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -1018,7 +1017,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void federatedLocalAddTicketLabel(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -1041,7 +1040,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalRemoveTicketLabel(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -1064,7 +1063,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCreateLabelRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel.class)))
     private void federatedLocalCreateLabel(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -1084,7 +1083,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalWatchTicket(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -1106,7 +1105,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalUnwatchTicket(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -1129,7 +1128,7 @@ public class FederatedBoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalLinkRequest.class)),
             responses = @OpenApiResponse(status = "201"))
     private void federatedLocalCreateLink(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
@@ -1159,7 +1158,7 @@ public class FederatedBoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteLink(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);

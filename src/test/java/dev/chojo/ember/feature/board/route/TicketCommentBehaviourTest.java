@@ -165,11 +165,12 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
     }
 
     private static UserSession as(StationMember member) {
-        return signedIn(member, StationPermission.BOARD_USE);
+        return stationSession(member, StationPermission.BOARD_USE).user();
     }
 
     private static UserSession asManager(StationMember member) {
-        return signedIn(member, StationPermission.BOARD_USE, StationPermission.BOARD_MANAGER);
+        return stationSession(member, StationPermission.BOARD_USE, StationPermission.BOARD_MANAGER)
+                .user();
     }
 
     private static Response post(StationMember member, int number, String requestBody) {

@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -89,15 +88,7 @@ class EventRegistrationStatsRouteTest {
     }
 
     private static UserSession session() {
-        return new UserSession(
-                new Account(1, null, "manager@test.com", null, "Mara", "Nager", true, null, "Mara Nager", null, null),
-                1,
-                STATION_ID,
-                null,
-                null,
-                Set.of(StationPermission.EVENT_REGISTRATION),
-                Set.of(),
-                null);
+        return TestSessions.member(STATION_ID, StationPermission.EVENT_REGISTRATION);
     }
 
     @BeforeEach

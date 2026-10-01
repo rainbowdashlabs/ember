@@ -82,11 +82,11 @@ class NewsCommentTargetTest extends RepositoryTestBase {
     @Test
     void onlyANewsManagerRemovesSomebodyElsesCommentAndNobodyRewritesIt() {
         var info = target.find(entryId).orElseThrow();
-        var manager = signedIn(member, StationPermission.NEWS_MANAGER);
+        var manager = stationSession(member, StationPermission.NEWS_MANAGER);
 
         assertTrue(target.mayModerate(manager, info, Moderation.DELETE));
         assertFalse(target.mayModerate(manager, info, Moderation.EDIT));
-        assertFalse(target.mayModerate(signedIn(member), info, Moderation.DELETE));
+        assertFalse(target.mayModerate(stationSession(member), info, Moderation.DELETE));
     }
 
     @Test

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
@@ -97,7 +97,7 @@ public class EventTemplateRoutes implements Routes {
             tags = {"Event Templates"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventTemplate[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(eventTemplateService.findByStation(session.stationId()));
     }
 
@@ -109,7 +109,7 @@ public class EventTemplateRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateTemplateRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventTemplate.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) {
             throw Refusal.EVENT_TEMPLATE_NEEDS_A_NAME.raise();

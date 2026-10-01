@@ -244,7 +244,7 @@ class NewsServiceTest extends RepositoryTestBase {
         var open = service.createSystem("Offen", "Für alle.", List.of(), true, false);
         var kept =
                 service.createSystem("Nur Betreuer", "Für die Leitung.", List.of(StationUserType.MANAGER), true, false);
-        var reader = signedIn(member);
+        var reader = stationSession(member);
         try {
             assertEquals(open.id(), service.requireReadable(reader, open.id()).id());
             assertEquals(

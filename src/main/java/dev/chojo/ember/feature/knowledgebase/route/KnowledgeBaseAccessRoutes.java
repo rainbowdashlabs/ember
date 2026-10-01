@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -157,7 +157,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EntryAudience[].class)))
     private void getAudiences(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(federationService.findAudiences(session.stationId()));
     }
 
@@ -167,7 +167,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AudienceRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void setAudience(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(AudienceRequest.class);
         federationService.setAudience(
                 session.stationId(),

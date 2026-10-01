@@ -108,7 +108,7 @@ public class EquipmentNeedRoutes implements Routes {
                 .findById(pathInt(ctx, "eventId"))
                 .orElseThrow(Refusal.EQUIPMENT_APPOINTMENT_NOT_HERE::raise);
         RouteSupport.requireSameStation(session.user(), event.stationId());
-        if (!visibility.canSee(session.user(), event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
+        if (!visibility.canSee(session, event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
         return event;
     }
 

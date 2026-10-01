@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.news.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -76,7 +76,7 @@ public class FederatedNewsRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederatedNewsItem[].class)))
     private void federatedListNews(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(newsFederationService.browseFederatedNews(session.stationId()));
     }
 
@@ -85,7 +85,7 @@ public class FederatedNewsRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederatedNewsData.class)))
     private void federatedGetNews(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int newsId = pathInt(ctx, "newsId");
         ctx.json(newsFederationService.getFederatedNews(session.stationId(), stationUid, newsId));
@@ -96,7 +96,7 @@ public class FederatedNewsRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void federatedListComments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int newsId = pathInt(ctx, "newsId");
         ctx.json(newsFederationService.listFederatedComments(session.stationId(), stationUid, newsId));
@@ -108,7 +108,7 @@ public class FederatedNewsRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsRoutes.CommentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedCreateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int newsId = pathInt(ctx, "newsId");
         var req = requireContent(ctx);
@@ -123,7 +123,7 @@ public class FederatedNewsRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsRoutes.CommentRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedUpdateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         var req = requireContent(ctx);
@@ -136,7 +136,7 @@ public class FederatedNewsRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void federatedDeleteComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         newsFederationService.deleteFederatedComment(session.stationId(), stationUid, commentId, author(session));
@@ -151,10 +151,10 @@ public class FederatedNewsRoutes implements Routes {
         return req;
     }
 
-    private FederatedCommentAuthor author(UserSession session) {
+    private FederatedCommentAuthor author(StationSession session) {
         return new FederatedCommentAuthor(
                 memberIdentityFactory.fromMemberId(session.member().id()),
                 session.member().uid(),
-                NameParts.of(session.account()).called());
+                NameParts.of(session.user().account()).called());
     }
 }

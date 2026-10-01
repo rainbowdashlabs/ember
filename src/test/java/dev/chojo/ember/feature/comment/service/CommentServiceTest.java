@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.comment.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
@@ -133,13 +133,9 @@ class CommentServiceTest extends RepositoryTestBase {
         return CommentWriter.local(identity(member), name);
     }
 
-    private static UserSession session(StationMember member, StationPermission... permissions) {
-        return signedIn(member, permissions);
-    }
-
     private static Comment write(StationMember member, String name, Integer parentId, String content) {
         return service.create(
-                session(member),
+                stationSession(member),
                 CommentEntityType.EVENT,
                 eventId,
                 writer(member, name),
@@ -168,12 +164,13 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     void aMissingTargetIsRefusedTheWayItsKindNamesIt() {
         var refused = assertThrows(
-                RefusalResponse.class, () -> service.requireReadable(session(alice), CommentEntityType.EVENT, -1));
+                RefusalResponse.class,
+                () -> service.requireReadable(stationSession(alice), CommentEntityType.EVENT, -1));
 
         assertEquals(Refusal.EVENT_NOT_HERE, refused.refusal());
         assertEquals(
                 eventId,
-                service.requireReadable(session(alice), CommentEntityType.EVENT, eventId)
+                service.requireReadable(stationSession(alice), CommentEntityType.EVENT, eventId)
                         .id());
     }
 
@@ -210,20 +207,20 @@ class CommentServiceTest extends RepositoryTestBase {
     void anAnswerTakesItsParentsOccurrenceDateWhateverItWasSentWith() {
         var day = LocalDate.of(2026, 3, 14);
         var parent = service.create(
-                session(alice),
+                stationSession(alice),
                 CommentEntityType.EVENT,
                 eventId,
                 writer(alice, "Alice"),
                 new NewComment(null, day, "An diesem Tag"));
 
         var undated = service.create(
-                session(bob),
+                stationSession(bob),
                 CommentEntityType.EVENT,
                 eventId,
                 writer(bob, "Bob"),
                 new NewComment(parent.id(), null, "Antwort ohne Tag"));
         var otherDay = service.create(
-                session(bob),
+                stationSession(bob),
                 CommentEntityType.EVENT,
                 eventId,
                 writer(bob, "Bob"),
@@ -236,7 +233,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     void anAnswerToACommentOnAnotherTargetIsRefused() {
         var elsewhereComment = service.create(
-                session(alice),
+                stationSession(alice),
                 CommentEntityType.EVENT,
                 otherEventId,
                 writer(alice, "Alice"),
@@ -292,13 +289,13 @@ class CommentServiceTest extends RepositoryTestBase {
     void theListingFollowsTheFilter() {
         int event = event("Liste");
         var whole = service.create(
-                session(alice),
+                stationSession(alice),
                 CommentEntityType.EVENT,
                 event,
                 writer(alice, "Alice"),
                 new NewComment(null, null, "ganz"));
         var dated = service.create(
-                session(alice),
+                stationSession(alice),
                 CommentEntityType.EVENT,
                 event,
                 writer(alice, "Alice"),
@@ -330,21 +327,22 @@ class CommentServiceTest extends RepositoryTestBase {
     void onlyTheAuthorOrAModeratorMayModify() {
         var comment = write(alice, "Alice", null, "meins");
 
-        assertTrue(service.mayModify(session(alice), identity(alice), comment, Moderation.EDIT));
-        assertFalse(service.mayModify(session(bob), identity(bob), comment, Moderation.EDIT));
-        assertFalse(service.mayModify(session(bob), identity(bob), comment, Moderation.DELETE));
+        assertTrue(service.mayModify(stationSession(alice), identity(alice), comment, Moderation.EDIT));
+        assertFalse(service.mayModify(stationSession(bob), identity(bob), comment, Moderation.EDIT));
+        assertFalse(service.mayModify(stationSession(bob), identity(bob), comment, Moderation.DELETE));
         assertTrue(service.mayModify(
-                session(bob, StationPermission.EVENT_MANAGER), identity(bob), comment, Moderation.DELETE));
+                stationSession(bob, StationPermission.EVENT_MANAGER), identity(bob), comment, Moderation.DELETE));
         assertFalse(service.mayModify(
-                session(bob, StationPermission.EVENT_MANAGER), identity(bob), comment, Moderation.EDIT));
+                stationSession(bob, StationPermission.EVENT_MANAGER), identity(bob), comment, Moderation.EDIT));
     }
 
     @Test
     void anotherStationIsRefusedTheComment() {
         var comment = write(alice, "Alice", null, "intern");
 
-        service.requireSameStation(session(bob), comment);
-        var refused = assertThrows(RefusalResponse.class, () -> service.requireSameStation(session(carol), comment));
+        service.requireSameStation(stationSession(bob), comment);
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.requireSameStation(stationSession(carol), comment));
         assertEquals(Refusal.NOT_YOURS_TO_OPEN, refused.refusal());
     }
 
@@ -451,13 +449,13 @@ class CommentServiceTest extends RepositoryTestBase {
         }
 
         @Override
-        public void requireReadable(UserSession session, TargetInfo target) {}
+        public void requireReadable(StationSession session, TargetInfo target) {}
 
         @Override
-        public void requireWritable(UserSession session, TargetInfo target) {}
+        public void requireWritable(StationSession session, TargetInfo target) {}
 
         @Override
-        public boolean mayModerate(UserSession session, TargetInfo target, Moderation action) {
+        public boolean mayModerate(StationSession session, TargetInfo target, Moderation action) {
             return false;
         }
 

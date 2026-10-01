@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -36,7 +36,6 @@ import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
-import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.readerUserType;
 
 /**
  * User-facing routes over content held by federation partners: browsing and reading their
@@ -98,8 +97,8 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederatedKbBrowse.class)))
     private void browseKb(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(federationService.browseFederatedKb(session.stationId(), readerUserType(session)));
+        var session = StationSession.from(ctx);
+        ctx.json(federationService.browseFederatedKb(session.stationId(), session.userType()));
     }
 
     @OpenApi(
@@ -107,9 +106,9 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederatedKbBrowse.class)))
     private void browseKbFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(federationService.browseFederatedKbFolder(
-                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), readerUserType(session)));
+                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), session.userType()));
     }
 
     /**
@@ -121,7 +120,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RemoteKbFile.class)))
     private void getFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         UUID partner = pathUuid(ctx, "stationuid");
         int fileId = pathInt(ctx, "id");
         var file = federationService.getFederatedKbFile(session.stationId(), partner, fileId);
@@ -134,7 +133,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FileContentResponse.class)))
     private void getFileContent(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int fileId = pathInt(ctx, "id");
         var content =
                 federationService.getFederatedKbFileContent(session.stationId(), pathUuid(ctx, "stationuid"), fileId);
@@ -146,13 +145,13 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200"))
     private void getFilePdf(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         try {
             var rendered = federationService.renderFederatedKbFilePdf(
                     session.stationId(),
                     pathUuid(ctx, "stationuid"),
                     pathInt(ctx, "id"),
-                    NameParts.of(session.account()).called());
+                    NameParts.of(session.user().account()).called());
             ctx.contentType("application/pdf");
             ctx.header(
                     "Content-Disposition",
@@ -175,7 +174,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = KbFile.class)))
     private void copyFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var copied = federationService.copyKbFile(
                 pathInt(ctx, "id"), session.stationId(), session.member().id());
         favourites.carryOverToCopy(session.member().id(), copied.id());
@@ -187,7 +186,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void listComments(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(federationService.listFederatedComments(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "fileId")));
     }
@@ -198,14 +197,14 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateKbCommentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void createComment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
         var created = federationService.createFederatedComment(
                 session.stationId(),
                 pathUuid(ctx, "stationuid"),
                 pathInt(ctx, "fileId"),
                 session.member().uid(),
-                NameParts.of(session.account()).called(),
+                NameParts.of(session.user().account()).called(),
                 req.parentId(),
                 requireContent(req.content()));
         ctx.status(HttpStatus.CREATED).json(created);
@@ -217,7 +216,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateKbCommentRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void updateComment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
         ctx.json(federationService.updateFederatedComment(
                 session.stationId(),
@@ -232,7 +231,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         federationService.deleteFederatedComment(
                 session.stationId(),
                 pathUuid(ctx, "stationuid"),

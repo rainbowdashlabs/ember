@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.comment.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
@@ -107,7 +107,7 @@ public class CommentService {
      * @param targetId the target
      * @return the target
      */
-    public TargetInfo requireReadable(UserSession session, CommentEntityType type, int targetId) {
+    public TargetInfo requireReadable(StationSession session, CommentEntityType type, int targetId) {
         var target = targetOf(type);
         var info = target.find(targetId).orElseThrow(() -> target.missing().raise());
         target.requireReadable(session, info);
@@ -164,7 +164,7 @@ public class CommentService {
      * @return the stored comment
      */
     public Comment create(
-            UserSession session, CommentEntityType type, int targetId, CommentWriter writer, NewComment comment) {
+            StationSession session, CommentEntityType type, int targetId, CommentWriter writer, NewComment comment) {
         var target = targetOf(type);
         var info = target.find(targetId).orElseThrow(() -> target.missing().raise());
         target.requireWritable(session, info);
@@ -279,7 +279,7 @@ public class CommentService {
      * @param action  what they want to do with it
      * @return {@code true} when they may
      */
-    public boolean mayModify(UserSession session, MemberIdentity actor, Comment comment, Moderation action) {
+    public boolean mayModify(StationSession session, MemberIdentity actor, Comment comment, Moderation action) {
         var author = comment.author();
         if (author != null && author.sameMember(actor)) return true;
         var target = targetOf(comment.type());
@@ -296,8 +296,8 @@ public class CommentService {
      * @param session the member
      * @param comment the comment
      */
-    public void requireSameStation(UserSession session, Comment comment) {
-        RouteSupport.requireSameStation(session, owningStation(comment));
+    public void requireSameStation(StationSession session, Comment comment) {
+        RouteSupport.requireSameStation(session.user(), owningStation(comment));
     }
 
     private int owningStation(Comment comment) {

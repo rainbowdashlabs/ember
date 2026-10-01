@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -54,17 +54,13 @@ public class EventVisibility {
      *
      * @param session        the reader
      * @param guardianPolicy who the reader looks after
-     * @return those members, null where nothing narrows the listing, and a member nobody is where the
-     *     reader is no member of the station at all
+     * @return those members, null where nothing narrows the listing
      */
-    static @Nullable List<Integer> memberIdsSeenBy(UserSession session, GuardianPolicy guardianPolicy) {
+    static @Nullable List<Integer> memberIdsSeenBy(StationSession session, GuardianPolicy guardianPolicy) {
         if (session.hasPermission(StationPermission.EVENT_MANAGER)) {
             return null;
         }
-        if (session.member() == null) {
-            return List.of(-1);
-        }
-        return guardianPolicy.household(session);
+        return guardianPolicy.household(session.user());
     }
 
     /**
@@ -74,7 +70,7 @@ public class EventVisibility {
      * @param eventId the event being read
      * @return the event
      */
-    public StationEvent requireVisibleEvent(UserSession session, int eventId) {
+    public StationEvent requireVisibleEvent(StationSession session, int eventId) {
         var event = requireOwnedEvent(crudService, eventId, session);
         if (!canSee(session, event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
         return event;
@@ -86,9 +82,12 @@ public class EventVisibility {
      * @param session the reader
      * @param event   an event of the reader's station
      */
-    public boolean canSee(UserSession session, StationEvent event) {
+    public boolean canSee(StationSession session, StationEvent event) {
         if (seesEverything(session)) return true;
-        return restrictionService.canViewAny(event.id(), guardianPolicy.household(session), session.permissions());
+        return restrictionService.canViewAny(
+                event.id(),
+                guardianPolicy.household(session.user()),
+                session.user().permissions());
     }
 
     /**
@@ -99,21 +98,20 @@ public class EventVisibility {
      * @param eventId the event a row is about
      * @return the rows about visible events, in their order
      */
-    public <T> List<T> keepVisible(UserSession session, List<T> rows, ToIntFunction<T> eventId) {
+    public <T> List<T> keepVisible(StationSession session, List<T> rows, ToIntFunction<T> eventId) {
         if (seesEverything(session)) return rows;
-        Set<Integer> visible =
-                crudService
-                        .findFilteredForMembers(session.stationId(), guardianPolicy.household(session), null, null)
-                        .stream()
-                        .map(StationEvent::id)
-                        .collect(Collectors.toSet());
+        Set<Integer> visible = crudService
+                .findFilteredForMembers(session.stationId(), guardianPolicy.household(session.user()), null, null)
+                .stream()
+                .map(StationEvent::id)
+                .collect(Collectors.toSet());
         return rows.stream()
                 .filter(row -> visible.contains(eventId.applyAsInt(row)))
                 .toList();
     }
 
-    private static boolean seesEverything(UserSession session) {
-        return session.permissions().contains(StationPermission.EVENT_EDIT)
-                || session.permissions().contains(StationPermission.EVENT_MANAGER);
+    private static boolean seesEverything(StationSession session) {
+        return session.hasPermission(StationPermission.EVENT_EDIT)
+                || session.hasPermission(StationPermission.EVENT_MANAGER);
     }
 }

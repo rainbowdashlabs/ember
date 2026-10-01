@@ -26,7 +26,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -93,7 +92,6 @@ class KbGuardsTest {
                 .thenReturn(resolved);
 
         assertEquals(resolved, KbGuards.accessOf(ctx, access));
-        assertEquals(StationUserType.MEMBER, KbGuards.readerUserType(TestSessions.member(3)));
     }
 
     @Test
@@ -106,7 +104,6 @@ class KbGuardsTest {
 
         assertEquals(0, reader.memberId());
         assertEquals(true, reader.canManage());
-        assertNull(KbGuards.readerUserType(session));
     }
 
     @Test

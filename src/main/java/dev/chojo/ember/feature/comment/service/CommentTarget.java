@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentOrigin;
 import dev.chojo.ember.feature.comment.entity.CreatedAudience;
@@ -53,7 +53,7 @@ public interface CommentTarget {
      * @param session the reader
      * @param target  the target
      */
-    void requireReadable(UserSession session, TargetInfo target);
+    void requireReadable(StationSession session, TargetInfo target);
 
     /**
      * Refuses unless the member may write a comment here.
@@ -61,7 +61,7 @@ public interface CommentTarget {
      * @param session the writer
      * @param target  the target
      */
-    void requireWritable(UserSession session, TargetInfo target);
+    void requireWritable(StationSession session, TargetInfo target);
 
     /**
      * Whether the member may edit or delete a comment somebody else wrote.
@@ -71,7 +71,7 @@ public interface CommentTarget {
      * @param action  what they want to do with it
      * @return {@code true} when they may
      */
-    boolean mayModerate(UserSession session, TargetInfo target, Moderation action);
+    boolean mayModerate(StationSession session, TargetInfo target, Moderation action);
 
     /**
      * Who a new comment on this target tells.

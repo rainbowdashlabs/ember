@@ -74,6 +74,7 @@ class RegistrationListReadsTest {
     private static final int STATION_ID = 3;
     private static final int EVENT_ID = 9;
     private static final int GUARDIAN_ID = 500;
+    private static final int MANAGER_ID = 900;
     private static final int FIELD_ID = 77;
     private static final LocalDate DATE = LocalDate.of(2026, 9, 2);
     private static final UUID STATION_UID = UUID.randomUUID();
@@ -189,8 +190,8 @@ class RegistrationListReadsTest {
                                 null),
                         1,
                         STATION_ID,
-                        null,
-                        null,
+                        STATION_UID,
+                        member(MANAGER_ID),
                         Set.of(StationPermission.EVENT_EDIT),
                         Set.of(),
                         null));

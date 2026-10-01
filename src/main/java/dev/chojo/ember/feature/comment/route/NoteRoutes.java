@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.comment.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
@@ -48,7 +48,7 @@ public class NoteRoutes implements Routes {
         return entityType == NoteEntityType.EVENT ? StationPermission.EVENT_EDIT : StationPermission.MEMBER_NOTES;
     }
 
-    private static void requireNoteAccess(UserSession session, NoteEntityType entityType) {
+    private static void requireNoteAccess(StationSession session, NoteEntityType entityType) {
         StationPermission required = requiredPermission(entityType);
         if (!session.hasPermission(required)) {
             throw Refusal.NOTES_NOT_YOURS.raise();
@@ -58,12 +58,12 @@ public class NoteRoutes implements Routes {
     private NoteAccess resolveAccess(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = pathInt(ctx, "entityId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         requireNoteAccess(session, entityType);
         return new NoteAccess(entityType, entityId, session);
     }
 
-    private record NoteAccess(NoteEntityType entityType, int entityId, UserSession session) {}
+    private record NoteAccess(NoteEntityType entityType, int entityId, StationSession session) {}
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {

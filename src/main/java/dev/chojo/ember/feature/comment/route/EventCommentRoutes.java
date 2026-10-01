@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -105,7 +105,7 @@ public class EventCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
         int eventId = pathInt(ctx, "eventId");
-        commentService.requireReadable(UserSession.from(ctx), CommentEntityType.EVENT, eventId);
+        commentService.requireReadable(StationSession.from(ctx), CommentEntityType.EVENT, eventId);
         var filter = filterOf(ctx);
         ctx.json(commentService.list(CommentEntityType.EVENT, eventId, filter).stream()
                 .map(this::toResponse)
@@ -122,7 +122,7 @@ public class EventCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void create(Context ctx) {
         int eventId = pathInt(ctx, "eventId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
             throw Refusal.COMMENT_NEEDS_TEXT.raise();
@@ -149,7 +149,7 @@ public class EventCommentRoutes implements Routes {
             })
     private void update(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var comment = commentService
                 .findById(CommentEntityType.EVENT, commentId)
                 .orElseThrow(Refusal.COMMENT_NOT_HERE_ON_CHANGE::raise);
@@ -178,7 +178,7 @@ public class EventCommentRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var comment = commentService
                 .findById(CommentEntityType.EVENT, commentId)
                 .orElseThrow(Refusal.COMMENT_NOT_HERE_ON_DELETE::raise);
@@ -192,13 +192,13 @@ public class EventCommentRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private MemberIdentity actor(UserSession session) {
+    private MemberIdentity actor(StationSession session) {
         return memberIdentityFactory.local(session.stationId(), session.member().id());
     }
 
-    private CommentWriter writer(UserSession session) {
+    private CommentWriter writer(StationSession session) {
         return CommentWriter.local(
-                actor(session), NameParts.of(session.account()).called());
+                actor(session), NameParts.of(session.user().account()).called());
     }
 
     private CommentResponse toResponse(Comment comment) {

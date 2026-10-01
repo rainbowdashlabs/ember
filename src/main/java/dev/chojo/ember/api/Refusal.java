@@ -888,14 +888,8 @@ public enum Refusal {
     /** A ticket that is not on the board its key names. */
     BOARD_TICKET_NOT_HERE(Area.BOARDS, 2, HttpStatus.NOT_FOUND, Sentences.BOARD_TICKET_NOT_HERE),
 
-    /** A board changed by a session that stands for no member of the station. */
-    NOT_A_MEMBER_FOR_BOARD_EDIT(Area.BOARDS, 3, HttpStatus.BAD_REQUEST, Sentences.NOT_A_MEMBER_FOR_BOARDS),
-
     /** A board changed by somebody who may read it but not write to it. */
     BOARD_NOT_YOURS_TO_EDIT(Area.BOARDS, 4, HttpStatus.FORBIDDEN, "This board is not yours to change"),
-
-    /** A board read by a session that stands for no member of the station. */
-    NOT_A_MEMBER_FOR_BOARD_VIEW(Area.BOARDS, 5, HttpStatus.BAD_REQUEST, Sentences.NOT_A_MEMBER_FOR_BOARDS),
 
     /** A board created without a name. */
     BOARD_NEEDS_A_NAME(Area.BOARDS, 6, HttpStatus.BAD_REQUEST, "A board needs a name, so nothing was saved"),
@@ -1847,14 +1841,8 @@ public enum Refusal {
     /** An appointment that was already gone when its cancellation was asked for. */
     EVENT_NOT_HERE_ON_CANCELLATION(Area.EVENTS, 15, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
-    /** A registration or a decline sent by a session that stands for no member of this station. */
-    NOT_A_MEMBER_ON_REGISTRATION(Area.EVENTS, 16, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** A registration made for somebody the caller neither is nor looks after. */
     MEMBER_NOT_YOURS_TO_REGISTER(Area.EVENTS, 17, HttpStatus.FORBIDDEN, Sentences.MEMBER_NOT_YOURS),
-
-    /** Answers being changed by a session that stands for no member of this station. */
-    NOT_A_MEMBER_ON_ANSWER_CHANGE(Area.EVENTS, 18, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
 
     /** The answers of somebody the caller neither is nor looks after. */
     REGISTRATION_ANSWERS_NOT_YOURS(Area.EVENTS, 19, HttpStatus.FORBIDDEN, Sentences.MEMBER_NOT_YOURS),
@@ -3352,10 +3340,6 @@ public enum Refusal {
 
     /** A comment that is gone, asked for by a route that then checks whose article it hangs on. */
     KB_COMMENT_NOT_HERE(Area.KNOWLEDGE_BASE, 50, HttpStatus.NOT_FOUND, Sentences.KB_COMMENT_NOT_HERE),
-
-    /** Favourites, asked for by a session that holds station rights without being a member. */
-    KB_FAVOURITES_NEED_A_MEMBER(
-            Area.KNOWLEDGE_BASE, 51, HttpStatus.NOT_FOUND, "This sign-in keeps no favourites of its own"),
 
     /** A favourite being marked without saying what kind of thing it is. */
     KB_FAVOURITE_NEEDS_A_TARGET(
@@ -5853,7 +5837,6 @@ public enum Refusal {
         private static final String BOARD_NOT_HERE = "That board is not here any more";
         private static final String BOARD_TICKET_NOT_HERE = "That ticket is not here any more";
         private static final String BOARD_LABEL_NOT_HERE = "That label is not here any more";
-        private static final String NOT_A_MEMBER_FOR_BOARDS = "You are not a member of this station";
         private static final String FEDERATED_BOARD_NOT_HERE = "That shared board is not here any more";
         private static final String FEDERATION_PARTNER_NOT_HERE_FOR_BOARDS =
                 "That partner instance is not one this station knows";

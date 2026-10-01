@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -44,7 +45,7 @@ class EventGuardsTest {
         when(crud.findById(1)).thenReturn(Optional.of(own));
         when(crud.findById(2)).thenReturn(Optional.of(foreign));
         when(crud.findById(3)).thenReturn(Optional.empty());
-        var session = TestSessions.member(3);
+        var session = StationSession.of(TestSessions.member(3));
 
         assertSame(own, EventOwnership.requireOwnedEvent(crud, 1, session));
         assertEquals(

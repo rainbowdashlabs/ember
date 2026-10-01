@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
@@ -127,7 +127,7 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventCategory[].class)))
     private void listCategories(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(categoryService.findByStation(session.stationId()));
     }
 
@@ -142,7 +142,7 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createCategory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
@@ -190,7 +190,7 @@ public class EventStructureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderCategoriesRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventCategory[].class)))
     private void reorderCategories(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ReorderCategoriesRequest.class);
         for (int id : req.orderedIds()) {
             requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
@@ -226,7 +226,7 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventBreak[].class)))
     private void listBreaks(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(breakService.findByStation(session.stationId()));
     }
 
@@ -241,7 +241,7 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createBreak(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BreakRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_BREAK_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
@@ -296,7 +296,7 @@ public class EventStructureRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void getFieldDefaults(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(fieldDefaultService.findByEvent(id));
@@ -311,7 +311,7 @@ public class EventStructureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldDefaultEntry[].class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void setFieldDefaults(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(FieldDefaultEntry[].class);
@@ -331,7 +331,7 @@ public class EventStructureRoutes implements Routes {
             queryParams = @OpenApiParam(name = "date", type = String.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void getFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(eventFieldService.findByEvent(id, askedDate(ctx)));
@@ -364,7 +364,7 @@ public class EventStructureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEventFieldsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void setFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
@@ -399,7 +399,7 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFieldValueOnDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedEvent(crudService, eventId, session);
@@ -420,7 +420,7 @@ public class EventStructureRoutes implements Routes {
             queryParams = @OpenApiParam(name = "date", type = String.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)))
     private void selfRegisterField(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
         visibility.requireVisibleEvent(session, eventId);
@@ -445,7 +445,7 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200"))
     private void getOverviewFields(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var events = crudService.findByStation(session.stationId());
         var nextDates = occurrenceCalendar.datesInView(events);
         ctx.json(eventFieldService.findOverviewFieldsByEvents(
@@ -459,7 +459,7 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void listFieldNames(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(eventFieldService.findDistinctFieldNames(session.stationId()));
     }
 
