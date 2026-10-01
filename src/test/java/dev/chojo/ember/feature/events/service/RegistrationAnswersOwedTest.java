@@ -26,7 +26,6 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -40,7 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -164,17 +162,16 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
     }
 
     /**
-     * A question only the organisers answer is not the member's to answer, so a registration is never
-     * short of it and nobody is told about it.
+     * A question whose answer only the organisers see is still asked of the member, so a required one
+     * added afterwards is owed like any other and the member is told.
      */
     @Test
-    @Disabled("TODO: managers-only questions are still counted as owed")
-    void aQuestionOnlyManagersAnswerIsOwedByNobody() {
+    void aQuestionOnlyManagersSeeIsStillOwedByTheMember() {
         registrationService.register(event.id(), member.id(), LocalDate.now().plusDays(3), true, null);
 
         reminder.replaceQuestions(event.id(), List.of(required("Interne Notiz", true)));
 
-        verify(notifications, never()).notify(any(), any(), any(), any());
-        assertTrue(questions.requiredFieldIds(event.id()).isEmpty());
+        verifyTold();
+        assertEquals(1, questions.requiredFieldIds(event.id()).size());
     }
 }

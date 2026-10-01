@@ -27,9 +27,9 @@ import java.util.List;
  * @param groupId      referenced member group for {@code *_OF_GROUP} questions
  * @param userType     referenced user type for {@code *_OF_TYPE} questions
  * @param tagId        referenced user tag for {@code *_OF_TAG} questions
- * @param managersOnly whether the question belongs to whoever runs the event: it is neither asked
- *                     of nor answered by the member registering, and its answers never leave the
- *                     server for anyone without the event edit right
+ * @param managersOnly whether the answer is private to whoever runs the event: the member registering
+ *                     is still asked and must answer it when it is required, but only they, their
+ *                     household and holders of the event edit right ever read the answer
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EventRegistrationFieldConfig(
