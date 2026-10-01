@@ -109,10 +109,12 @@ fun testForks(): Int {
  * reach, so a suite that does not exclude the engine runs them whatever it is meant to hold. Importing
  * the codebase for them takes a few hundred megabytes of a fork's heap, and a fork that had already
  * spent its heap on database tests ran out of memory halfway through the import. Only the suite
- * without a database keeps them.
+ * without a database keeps them, and it gets a larger heap: the same forks also decode and draw full
+ * size pictures and pages, and the import plus one such picture outgrew the default.
  *
  * @property packages the test name patterns this suite holds; empty for the suite of the rest
  * @property forks the forks this suite may use at most; the tracking tests share one database
+ * @property heap the heap of each fork, where the default for every test task is not enough
  */
 data class TestSuite(
     val name: String,
@@ -120,13 +122,19 @@ data class TestSuite(
     val packages: List<String> = emptyList(),
     val architectureRules: Boolean = false,
     val forks: Int? = null,
+    val heap: String? = null,
 )
 
 val testSuites = listOf(
     TestSuite("testRepositories", "Runs the repository tests", listOf("*.repository.*")),
     TestSuite("testServices", "Runs the service tests", listOf("*.service.*")),
     TestSuite("testTracking", "Runs the data tracking verification tests", listOf("dev.chojo.ember.tracking.*"), forks = 1),
-    TestSuite("testOther", "Runs every test the other suites leave, the architecture rules included", architectureRules = true),
+    TestSuite(
+        "testOther",
+        "Runs every test the other suites leave, the architecture rules included",
+        architectureRules = true,
+        heap = "1536m",
+    ),
 )
 
 val testSuiteNames = testSuites.map { it.name }
@@ -320,6 +328,7 @@ tasks {
                 }
             }
             suite.forks?.let { maxParallelForks = it }
+            suite.heap?.let { maxHeapSize = it }
         }
     }
 
