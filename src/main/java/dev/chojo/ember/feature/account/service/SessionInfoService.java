@@ -112,7 +112,7 @@ public class SessionInfoService {
             tagIds = tags.stream().map(UserTag::id).toList();
             memberInfo = new MemberInfo(
                     session.member().id(),
-                    session.stationUid() != null ? session.stationUid().toString() : null,
+                    textOf(session.stationUid()),
                     session.account().id(),
                     session.member().uid(),
                     nameResolver.called(session.member().id()),
@@ -146,7 +146,7 @@ public class SessionInfoService {
                         session.account().username(),
                         session.account().firstName(),
                         session.account().lastName()),
-                session.stationUid() != null ? session.stationUid().toString() : null,
+                textOf(session.stationUid()),
                 memberInfo,
                 roleNames,
                 session.userType(),
@@ -162,7 +162,7 @@ public class SessionInfoService {
                 resolveTheme(session, currentStation),
                 currentStation != null ? currentStation.publicKbMode() : null,
                 currentStation != null ? currentStation.setupCompletedAt() : null,
-                session.clusterUid() != null ? session.clusterUid().toString() : null,
+                textOf(session.clusterUid()),
                 session.clusterUserType(),
                 session.clusterPermissions().stream().map(Enum::name).sorted().toList(),
                 ClusterPermission.atOwnStation(session.clusterPermissions()).stream()
@@ -321,6 +321,10 @@ public class SessionInfoService {
             @Nullable String username,
             String firstName,
             String lastName) {}
+
+    private static @Nullable String textOf(@Nullable UUID uid) {
+        return uid != null ? uid.toString() : null;
+    }
 
     /**
      * Minimal member information for the current session.

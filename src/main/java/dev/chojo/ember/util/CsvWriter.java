@@ -8,6 +8,7 @@ package dev.chojo.ember.util;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.QuoteMode;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,7 +37,7 @@ public final class CsvWriter {
         }
 
         /** The comma when asked for, otherwise the semicolon German spreadsheets expect. */
-        public static Separator of(String asked) {
+        public static Separator of(@Nullable String asked) {
             return "comma".equalsIgnoreCase(asked) ? COMMA : SEMICOLON;
         }
     }
@@ -77,7 +78,7 @@ public final class CsvWriter {
      * Puts an apostrophe before a cell a spreadsheet would run as a formula, so a typed value cannot reach
      * into the sheet or make the machine fetch something. Empty becomes {@code null}, which prints as nothing.
      */
-    private static String defused(String value) {
+    private static @Nullable String defused(@Nullable String value) {
         if (value == null || value.isEmpty()) return null;
         return FORMULA_STARTS.indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
     }

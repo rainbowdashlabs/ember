@@ -6,6 +6,7 @@
 package dev.chojo.ember.util.sql;
 
 import de.chojo.sadu.queries.api.call.Call;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,22 +50,22 @@ public final class WhereBuilder {
     }
 
     /** Appends a predicate with one bind, unless the value is {@code null}. */
-    public WhereBuilder add(String fragment, String parameter, Integer value) {
+    public WhereBuilder add(String fragment, String parameter, @Nullable Integer value) {
         return value == null ? this : append(fragment, call -> call.bind(parameter, value));
     }
 
     /** Appends a predicate with one bind, unless the value is {@code null}. */
-    public WhereBuilder add(String fragment, String parameter, Boolean value) {
+    public WhereBuilder add(String fragment, String parameter, @Nullable Boolean value) {
         return value == null ? this : append(fragment, call -> call.bind(parameter, value));
     }
 
     /** Appends a predicate with one bind, unless the value is {@code null}. */
-    public WhereBuilder add(String fragment, String parameter, String value) {
+    public WhereBuilder add(String fragment, String parameter, @Nullable String value) {
         return value == null ? this : append(fragment, call -> call.bind(parameter, value));
     }
 
     /** Appends a predicate with one bind, unless the value is {@code null}. */
-    public WhereBuilder add(String fragment, String parameter, Enum<?> value) {
+    public WhereBuilder add(String fragment, String parameter, @Nullable Enum<?> value) {
         return value == null ? this : append(fragment, call -> call.bind(parameter, value));
     }
 
@@ -72,7 +73,7 @@ public final class WhereBuilder {
      * Appends a case-insensitive substring search, binding the trimmed lower-cased term inside {@code %}, so the
      * fragment reads {@code LOWER(column) LIKE :parameter}. A blank search is dropped.
      */
-    public WhereBuilder like(String fragment, String parameter, String search) {
+    public WhereBuilder like(String fragment, String parameter, @Nullable String search) {
         if (search == null || search.isBlank()) return this;
         return add(fragment, parameter, "%" + search.trim().toLowerCase() + "%");
     }

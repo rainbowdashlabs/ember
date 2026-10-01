@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Array;
 import java.sql.SQLException;
@@ -103,7 +104,7 @@ public class NotificationScheduleRepository {
      * <p>An empty list and no list at all mean the same thing here, which is that the operator's
      * number decides, so both are stored as nothing rather than as an array holding nothing.
      */
-    private static String literalOf(List<LocalTime> sendTimes) {
+    private static @Nullable String literalOf(List<LocalTime> sendTimes) {
         if (sendTimes == null || sendTimes.isEmpty()) return null;
         var parts = new ArrayList<String>();
         for (LocalTime time : sendTimes.stream().sorted().distinct().toList()) {

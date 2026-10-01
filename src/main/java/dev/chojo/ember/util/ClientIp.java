@@ -8,6 +8,7 @@ package dev.chojo.ember.util;
 import dev.chojo.ember.conf.file.elements.Network;
 import io.javalin.config.ContextResolverConfig;
 import io.javalin.http.Context;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,7 +104,7 @@ public final class ClientIp {
         return false;
     }
 
-    private static Optional<InetAddress> parseHeader(String value) {
+    private static Optional<InetAddress> parseHeader(@Nullable String value) {
         if (value == null) return Optional.empty();
         String trimmed = value.trim();
         if (trimmed.isEmpty()) return Optional.empty();

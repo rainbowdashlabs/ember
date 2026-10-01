@@ -7,6 +7,7 @@ package dev.chojo.ember.conf.file.elements;
 
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Instance-default storage backend selection plus per-backend connection settings. Only the
@@ -268,7 +269,7 @@ public class StorageBackendSettings {
             return passwordEnc;
         }
 
-        public void passwordEnc(EncryptedBlob passwordEnc) {
+        public void passwordEnc(@Nullable EncryptedBlob passwordEnc) {
             this.passwordEnc = passwordEnc;
         }
 
@@ -284,7 +285,7 @@ public class StorageBackendSettings {
             return privateKeyEnc;
         }
 
-        public void privateKeyEnc(EncryptedBlob privateKeyEnc) {
+        public void privateKeyEnc(@Nullable EncryptedBlob privateKeyEnc) {
             this.privateKeyEnc = privateKeyEnc;
         }
 

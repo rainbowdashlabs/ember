@@ -7,6 +7,7 @@ package dev.chojo.ember.util;
 
 import dev.chojo.ember.api.Refusal;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.jspecify.annotations.Nullable;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -69,7 +70,7 @@ public final class PixelBudget {
      * @return the picture, or {@code null} when no installed reader recognises the bytes, as {@link ImageIO#read}
      * @throws IOException when the bytes are recognised but cannot be read
      */
-    public static BufferedImage read(byte[] data) throws IOException {
+    public static @Nullable BufferedImage read(byte[] data) throws IOException {
         try (var stream = streamOf(data)) {
             var reader = readerFor(stream);
             if (reader.isEmpty()) return null;

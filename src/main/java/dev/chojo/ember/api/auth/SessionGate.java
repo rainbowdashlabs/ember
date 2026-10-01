@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -62,7 +63,8 @@ public class SessionGate {
      * @param cluster the cluster the request named, or {@code null}
      * @return the session, or empty when the token names no live one
      */
-    public Optional<UserSession> admit(Context ctx, String token, Station station, Cluster cluster) {
+    public Optional<UserSession> admit(
+            Context ctx, String token, @Nullable Station station, @Nullable Cluster cluster) {
         Optional<UserSession> session = accessManager.resolveUserSession(token, station, cluster);
         if (session.isEmpty()) {
             sessionCookies.clear(ctx);
@@ -84,7 +86,7 @@ public class SessionGate {
      * @param token   the session token its cookie carries
      * @param station the station the request named, or {@code null}
      */
-    public void attach(Context ctx, String token, Station station) {
+    public void attach(Context ctx, String token, @Nullable Station station) {
         if (!csrfGuard.permits(ctx, token)) return;
         accessManager.resolveUserSession(token, station).ifPresent(s -> ctx.attribute(ApiServer.ATTR_SESSION, s));
     }

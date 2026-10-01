@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.beacon.repository;
 
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -45,7 +46,11 @@ public class BeaconIntakeRepository {
      * clears it in their configuration clears it here too.
      */
     public void touchInstance(
-            String instanceId, String publicKey, String contactName, String contactMail, String version) {
+            String instanceId,
+            String publicKey,
+            @Nullable String contactName,
+            @Nullable String contactMail,
+            @Nullable String version) {
         query("""
                         INSERT INTO beacon_instance (instance_id, public_key, contact_name, contact_mail, last_version)
                         VALUES (:id, :key, :name, :mail, :version)
@@ -102,7 +107,7 @@ public class BeaconIntakeRepository {
      * check the instance's own version passed.
      */
     public void upsertProblemInstance(
-            int problemId, String instanceId, String version, BeaconPayloads.ProblemPayload payload) {
+            int problemId, String instanceId, @Nullable String version, BeaconPayloads.ProblemPayload payload) {
         query("""
                         INSERT INTO beacon_problem_instance (problem_id, instance_id, version, occurrences, first_seen, last_seen)
                         VALUES (:problem, :instance, :version, :count, :first, :last)

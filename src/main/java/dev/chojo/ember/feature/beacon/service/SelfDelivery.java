@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +107,7 @@ public class SelfDelivery {
         }
     }
 
-    private static String host(String url) {
+    private static @Nullable String host(String url) {
         try {
             return url == null ? null : URI.create(url).getHost();
         } catch (IllegalArgumentException e) {

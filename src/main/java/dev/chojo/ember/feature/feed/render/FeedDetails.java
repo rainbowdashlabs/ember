@@ -49,7 +49,7 @@ public final class FeedDetails {
         return rows;
     }
 
-    private static boolean notBlank(String s) {
+    private static boolean notBlank(@Nullable String s) {
         return s != null && !s.isBlank();
     }
 
@@ -163,7 +163,7 @@ public final class FeedDetails {
     }
 
     /** Adds a row where the value says something. */
-    public void putIfPresent(String label, String value) {
+    public void putIfPresent(String label, @Nullable String value) {
         if (notBlank(value)) rows.put(label, value);
     }
 
@@ -171,8 +171,8 @@ public final class FeedDetails {
      * Adds a long-form snippet (preview, description, change text) where there is one, cut to the
      * length every snippet shares so a long article does not blow up a feed entry.
      */
-    public void putSnippetIfPresent(String label, String value) {
-        if (!notBlank(value)) return;
+    public void putSnippetIfPresent(String label, @Nullable String value) {
+        if (value == null || value.isBlank()) return;
         rows.put(label, NotificationText.truncateSnippet(value, NotificationText.BODY_SNIPPET_MAX));
     }
 }

@@ -12,6 +12,7 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.ForeignKey;
 import dev.chojo.ember.tracking.Lookup;
 import dev.chojo.ember.tracking.TableEntry;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Base64;
@@ -66,7 +67,7 @@ public final class GenericTableImporter {
                 .orElse(null);
     }
 
-    private String lookupColumnType(String tableName, String columnName) {
+    private @Nullable String lookupColumnType(String tableName, String columnName) {
         var t = tracking.tables().get(tableName);
         if (t == null) return null;
         for (ColumnEntry col : t.columns()) {
@@ -75,7 +76,7 @@ public final class GenericTableImporter {
         return null;
     }
 
-    private static ColumnEntry findColumn(TableEntry table, String column) {
+    private static @Nullable ColumnEntry findColumn(TableEntry table, String column) {
         for (var c : table.columns()) if (column.equals(c.name())) return c;
         return null;
     }
@@ -92,7 +93,7 @@ public final class GenericTableImporter {
         return "tsvector".equals(col.type());
     }
 
-    private static Integer toInteger(Object val) {
+    private static @Nullable Integer toInteger(Object val) {
         if (val instanceof Number n) return n.intValue();
         if (val instanceof String s) {
             try {
@@ -180,7 +181,7 @@ public final class GenericTableImporter {
         };
     }
 
-    private static Double toDouble(Object val) {
+    private static @Nullable Double toDouble(Object val) {
         if (val == null) return null;
         if (val instanceof Number n) return n.doubleValue();
         if (val instanceof String s && !s.isBlank()) {
@@ -193,7 +194,7 @@ public final class GenericTableImporter {
         return null;
     }
 
-    private static Instant asInstant(Object val) {
+    private static @Nullable Instant asInstant(Object val) {
         if (val instanceof Instant i) return i;
         if (val instanceof java.sql.Timestamp ts) return ts.toInstant();
         if (val instanceof java.util.Date d) return d.toInstant();
@@ -205,7 +206,7 @@ public final class GenericTableImporter {
         return null;
     }
 
-    private static byte[] asBytes(Object val) {
+    private static byte @Nullable [] asBytes(Object val) {
         if (val instanceof byte[] b) return b;
         if (val instanceof String s) return Base64.getDecoder().decode(s);
         return null;
@@ -327,7 +328,7 @@ public final class GenericTableImporter {
         return true;
     }
 
-    private Integer tryResolveViaLookup(TableEntry table, String fkColumn, Map<String, Object> row) {
+    private @Nullable Integer tryResolveViaLookup(TableEntry table, String fkColumn, Map<String, Object> row) {
         for (Lookup lk : LookupSql.lookupsOf(table)) {
             if (!lk.via().equals(fkColumn)) continue;
             Object pickedValue = row.get(lk.emitAs());
@@ -356,7 +357,7 @@ public final class GenericTableImporter {
             maps.computeIfAbsent(table, k -> new LinkedHashMap<>()).put(sourceId, targetId);
         }
 
-        public Integer get(String table, int sourceId) {
+        public @Nullable Integer get(String table, int sourceId) {
             var m = maps.get(table);
             return m == null ? null : m.get(sourceId);
         }

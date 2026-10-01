@@ -14,6 +14,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,7 +187,7 @@ public class BeaconIntakeService {
         return stored;
     }
 
-    private static String clamp(String value, int max) {
+    private static @Nullable String clamp(@Nullable String value, int max) {
         if (value == null) return null;
         String trimmed = value.strip();
         if (trimmed.isEmpty()) return null;
@@ -194,19 +195,23 @@ public class BeaconIntakeService {
     }
 
     /** A contact address that is not one is dropped rather than stored and later rendered. */
-    private static String validMail(String value) {
+    private static @Nullable String validMail(@Nullable String value) {
         String clamped = clamp(value, MAX_FIELD);
         return clamped != null && MAIL.matcher(clamped).matches() ? clamped : null;
     }
 
     /** A version that is not one is dropped, so nothing arbitrary reaches a screen as a version. */
-    private static String validVersion(String value) {
+    private static @Nullable String validVersion(@Nullable String value) {
         String clamped = clamp(value, 60);
         return clamped != null && VERSION.matcher(clamped).matches() ? clamped : null;
     }
 
-    /** The longest message a report may carry, so one sender cannot fill the disk with prose. */
-    public static String clampMessage(String message) {
+    /**
+     * The longest message a report may carry, so one sender cannot fill the disk with prose.
+     *
+     * @return the message cut to length, or {@code null} where nothing but blanks was sent
+     */
+    public static @Nullable String clampMessage(String message) {
         return clamp(message, MAX_MESSAGE);
     }
 }

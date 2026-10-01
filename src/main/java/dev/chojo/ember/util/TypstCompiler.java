@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -40,7 +42,7 @@ public final class TypstCompiler {
         }
     }
 
-    public static byte[] compileTemplate(Map<String, Object> data, String templateName, StationLogo logo)
+    public static byte[] compileTemplate(Map<String, Object> data, String templateName, @Nullable StationLogo logo)
             throws IOException, InterruptedException {
         return compileTemplate(data, templateName, logo, Map.of());
     }
@@ -51,7 +53,7 @@ public final class TypstCompiler {
      * {@code data.json} - a Typst markup fragment, say - reaches the document.
      */
     public static byte[] compileTemplate(
-            Map<String, Object> data, String templateName, StationLogo logo, Map<String, String> resources)
+            Map<String, Object> data, String templateName, @Nullable StationLogo logo, Map<String, String> resources)
             throws IOException, InterruptedException {
         return compileTemplate(data, templateName, logo, resources, Map.of());
     }
@@ -63,7 +65,7 @@ public final class TypstCompiler {
     public static byte[] compileTemplate(
             Map<String, Object> data,
             String templateName,
-            StationLogo logo,
+            @Nullable StationLogo logo,
             Map<String, String> resources,
             Map<String, byte[]> files)
             throws IOException, InterruptedException {

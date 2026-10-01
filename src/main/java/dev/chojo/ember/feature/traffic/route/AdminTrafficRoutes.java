@@ -20,6 +20,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -53,7 +54,7 @@ public class AdminTrafficRoutes implements Routes {
         }
     }
 
-    private static Integer parseOptionalInt(Context ctx, String paramName) {
+    private static @Nullable Integer parseOptionalInt(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) return null;
         try {
@@ -63,7 +64,7 @@ public class AdminTrafficRoutes implements Routes {
         }
     }
 
-    private static AuthBucket parseOptionalAuth(Context ctx) {
+    private static @Nullable AuthBucket parseOptionalAuth(Context ctx) {
         String raw = ctx.queryParam("auth");
         if (raw == null || raw.isBlank()) return null;
         try {

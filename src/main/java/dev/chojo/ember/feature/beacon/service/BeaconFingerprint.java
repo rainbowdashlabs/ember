@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -38,7 +40,7 @@ public final class BeaconFingerprint {
      * @param logger         the logger that reported it, which stands in when there is no exception
      * @return a stable name for this fault
      */
-    public static String of(String exceptionClass, String stacktrace, String logger) {
+    public static String of(@Nullable String exceptionClass, @Nullable String stacktrace, String logger) {
         var frames = frameNames(stacktrace);
         if (frames.isEmpty()) {
             return (exceptionClass != null && !exceptionClass.isBlank() ? exceptionClass : logger) + "|";
@@ -55,7 +57,7 @@ public final class BeaconFingerprint {
      * @param stacktrace the printed stacktrace
      * @return the frames worth naming, at most {@value #FRAMES_KEPT} of them
      */
-    public static List<String> frameNames(String stacktrace) {
+    public static List<String> frameNames(@Nullable String stacktrace) {
         var names = new ArrayList<String>();
         if (stacktrace == null || stacktrace.isBlank()) return names;
         for (String raw : stacktrace.split("\n")) {

@@ -33,7 +33,11 @@ public record MemberIdentity(
         this(stationUid, memberUid, null, null, null, null);
     }
 
-    public MemberIdentity withDisplay(String name, String stationName, String nameColor, DisplayTag displayTag) {
+    public MemberIdentity withDisplay(
+            @Nullable String name,
+            @Nullable String stationName,
+            @Nullable String nameColor,
+            @Nullable DisplayTag displayTag) {
         return new MemberIdentity(stationUid, memberUid, name, stationName, nameColor, displayTag);
     }
 
@@ -45,7 +49,7 @@ public record MemberIdentity(
      * enrichment fields (name, color, tag) that may differ between a bare DB-loaded identity
      * and an enriched session identity even when they point to the same person.
      */
-    public boolean sameMember(MemberIdentity other) {
+    public boolean sameMember(@Nullable MemberIdentity other) {
         if (other == null) return false;
         return Objects.equals(stationUid, other.stationUid) && Objects.equals(memberUid, other.memberUid);
     }

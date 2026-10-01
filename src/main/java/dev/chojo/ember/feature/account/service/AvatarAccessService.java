@@ -177,10 +177,9 @@ public class AvatarAccessService {
      * other's rows and see nobody, which is what the roll and the group screens showed.
      */
     private boolean sharesCluster(UserSession session, int targetAccountId) {
-        if (session.clusterId() == null) return false;
-        return clusterRepository
-                .findMember(session.clusterId(), targetAccountId)
-                .isPresent();
+        Integer clusterId = session.clusterId();
+        if (clusterId == null) return false;
+        return clusterRepository.findMember(clusterId, targetAccountId).isPresent();
     }
 
     /**
@@ -190,7 +189,8 @@ public class AvatarAccessService {
      * are theirs to see as well, whether or not they are a member of that station themselves.
      */
     private boolean governsStation(UserSession session, int targetStationId) {
-        if (session.clusterId() == null) return false;
-        return clusterRepository.findStationIds(session.clusterId()).contains(targetStationId);
+        Integer clusterId = session.clusterId();
+        if (clusterId == null) return false;
+        return clusterRepository.findStationIds(clusterId).contains(targetStationId);
     }
 }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.lifecycle;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +62,7 @@ public final class SerialLane {
         }
     }
 
-    private synchronized Runnable poll() {
+    private synchronized @Nullable Runnable poll() {
         if (scheduler.isStopping() && !queue.isEmpty()) {
             log.warn("Abandoning {} queued items of {}: the scheduler is stopping", queue.size(), name);
             queue.clear();

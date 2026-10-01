@@ -7,7 +7,7 @@
 import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import type {LayerGroup, Map as LeafletMap, Marker} from 'leaflet'
 import {useMapsConfig} from '@/composables/useMapsConfig'
-import {loadLeaflet} from '@/util/leaflet'
+import {addTileLayer, loadLeaflet} from '@/util/leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -71,11 +71,7 @@ async function init() {
     zoom: props.initialZoom,
     scrollWheelZoom: true,
   })
-  L.tileLayer(config.urlTemplate, {
-    minZoom: config.minZoom,
-    maxZoom: config.maxZoom,
-    attribution: config.attribution,
-  }).addTo(mapInstance)
+  addTileLayer(L, mapInstance, config)
   markerLayer = props.cluster ? L.markerClusterGroup() : L.layerGroup()
   markerLayer.addTo(mapInstance)
   renderMarkers(L)

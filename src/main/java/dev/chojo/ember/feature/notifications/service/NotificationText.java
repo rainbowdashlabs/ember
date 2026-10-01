@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.i18n.Localizer;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -101,7 +102,7 @@ public class NotificationText {
      * Returns a localized string from a section of the {@code notifications} bundle, with optional
      * {@code {param}} substitutions. Falls back to {@code key} when no translation is configured.
      */
-    public String resolveLocalized(String locale, String section, String key, Map<String, String> params) {
+    public String resolveLocalized(String locale, String section, String key, @Nullable Map<String, String> params) {
         var entries = LOCALIZER.get("notifications", locale, section);
         String value = entries.getOrDefault(key, key);
         if (params != null) {
@@ -199,7 +200,7 @@ public class NotificationText {
     /**
      * Returns a short detail string (e.g. news preview, denial reason) when the notification type carries one.
      */
-    public String resolveDetail(Notification n) {
+    public @Nullable String resolveDetail(Notification n) {
         var params = n.data().params();
         if (params == null) return null;
         return switch (n.type()) {
@@ -228,20 +229,20 @@ public class NotificationText {
      * @param data       the notification's link metadata
      * @return the resolved URL or {@code null} when the notification has no link
      */
-    public String resolveNotificationUrl(String baseUrl, UUID stationUid, NotificationData data) {
-        if (data.link() == null) return null;
-        String route = data.link().route();
-        String pathTemplate = ROUTE_PATHS.get(route);
+    public @Nullable String resolveNotificationUrl(String baseUrl, @Nullable UUID stationUid, NotificationData data) {
+        var link = data.link();
+        if (link == null) return null;
+        String pathTemplate = ROUTE_PATHS.get(link.route());
         if (pathTemplate == null) return appendStation(baseUrl + "/station/dashboard/overview", stationUid);
 
         String path = pathTemplate;
-        var routeParams = data.link().routeParams();
+        var routeParams = link.routeParams();
         if (routeParams != null) {
             for (var entry : routeParams.entrySet()) {
                 path = path.replace("{" + entry.getKey() + "}", String.valueOf(entry.getValue()));
             }
         }
-        return appendStation(baseUrl + path + queryString(data.link().query()), stationUid);
+        return appendStation(baseUrl + path + queryString(link.query()), stationUid);
     }
 
     /**
@@ -323,7 +324,7 @@ public class NotificationText {
      * plural variant. Returns {@code null} when no recognised count param is present or parseable,
      * trying the next candidate after one that is not a number.
      */
-    private static Integer extractCountParam(Map<String, String> params) {
+    private static @Nullable Integer extractCountParam(Map<String, String> params) {
         for (String key : COUNT_PARAMS) {
             Integer count = parseCount(params.get(key));
             if (count != null) return count;
@@ -331,7 +332,7 @@ public class NotificationText {
         return null;
     }
 
-    private static Integer parseCount(String value) {
+    private static @Nullable Integer parseCount(String value) {
         if (value == null) return null;
         try {
             return Integer.parseInt(value);
@@ -344,7 +345,7 @@ public class NotificationText {
      * Renders the link's query, which is how a mail or feed entry about a comment opens on that
      * comment rather than on the top of the page it hangs under.
      */
-    private static String queryString(Map<String, Object> query) {
+    private static String queryString(@Nullable Map<String, Object> query) {
         if (query == null || query.isEmpty()) return "";
         var rendered = new StringJoiner("&", "?", "");
         for (var entry : query.entrySet()) {
@@ -359,7 +360,7 @@ public class NotificationText {
      * is non-null and the URL points at a station-scoped path. Leaves non-station paths untouched
      * so help-center or admin URLs don't accidentally carry station context.
      */
-    private static String appendStation(String url, UUID stationUid) {
+    private static String appendStation(String url, @Nullable UUID stationUid) {
         if (stationUid == null) return url;
         int pathStart = url.indexOf("/", url.indexOf("://") + 3);
         if (pathStart < 0 || !url.substring(pathStart).startsWith("/station/")) return url;

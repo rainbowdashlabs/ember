@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Objects;
+
 @Singleton
 public class EventCreatedHandler implements DomainEventHandler<EventCreated> {
     private final Notifier notifier;
@@ -48,7 +50,7 @@ public class EventCreatedHandler implements DomainEventHandler<EventCreated> {
     @Override
     public void handle(EventCreated event) {
         var e = event.event();
-        String description = e.description() == null ? "" : e.description();
+        String description = Objects.requireNonNullElse(e.description(), "");
         var data = NotificationData.of(
                 new NotificationParams.NewEvent(e.name(), description), NotificationLinks.event(e.id()));
 

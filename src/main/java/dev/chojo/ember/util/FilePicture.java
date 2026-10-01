@@ -7,6 +7,7 @@ package dev.chojo.ember.util;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.jspecify.annotations.Nullable;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -25,7 +26,7 @@ public final class FilePicture {
     private FilePicture() {}
 
     /** Whether a file of this stored type has a picture. */
-    public static boolean exists(String mimeType) {
+    public static boolean exists(@Nullable String mimeType) {
         return mimeType != null && (mimeType.startsWith("image/") || PDF.equals(mimeType));
     }
 
@@ -35,7 +36,7 @@ public final class FilePicture {
      * @param dpi how finely a PDF page is drawn
      * @return the file itself for an image, its first page as a PNG for a PDF, and empty otherwise
      */
-    public static Optional<byte[]> of(String mimeType, byte[] data, int dpi) throws IOException {
+    public static Optional<byte[]> of(@Nullable String mimeType, byte[] data, int dpi) throws IOException {
         if (mimeType != null && mimeType.startsWith("image/")) return Optional.of(data);
         if (!PDF.equals(mimeType)) return Optional.empty();
         var page = firstPage(data, dpi);
@@ -51,7 +52,7 @@ public final class FilePicture {
      *
      * @return the page, or {@code null} without pages or when no scale fits the budget
      */
-    public static BufferedImage firstPage(byte[] pdf, int dpi) throws IOException {
+    public static @Nullable BufferedImage firstPage(byte[] pdf, int dpi) throws IOException {
         try (var document = Loader.loadPDF(pdf)) {
             if (document.getNumberOfPages() == 0) return null;
             var cropBox = document.getPage(0).getCropBox();

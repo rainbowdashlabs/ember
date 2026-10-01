@@ -11,6 +11,7 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.TableEntry;
 import dev.chojo.ember.tracking.TrackingStatus;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -89,7 +90,7 @@ public final class GenericTableExporter {
      * a {@code List<Map>} for {@code ROWS}, a single {@code Map} (or null) for {@code SINGLE},
      * a {@code List<Object>} for {@code FLAT}.
      */
-    public Object exportShaped(String tableName, int stationId, int offset, int limit) {
+    public @Nullable Object exportShaped(String tableName, int stationId, int offset, int limit) {
         var table = tableEntry(tableName);
         OutputShape shape = table.effectiveShape();
         return switch (shape) {
@@ -185,8 +186,9 @@ public final class GenericTableExporter {
         sb.append(" FROM ").append(customScope.viaTable()).append(' ').append(vt);
 
         var via = tracking.tables().get(customScope.viaTable());
-        if (via != null && via.customScope() != null) {
-            sb.append(" WHERE ").append(buildCustomScopeFilter(via.customScope(), vt, depth + 1));
+        CustomScope nestedScope = via != null ? via.customScope() : null;
+        if (nestedScope != null) {
+            sb.append(" WHERE ").append(buildCustomScopeFilter(nestedScope, vt, depth + 1));
             sb.append(" AND ")
                     .append(vt)
                     .append('.')

@@ -219,8 +219,8 @@ public class OnboardingService {
 
     private OnboardingTaskView view(
             OnboardingTask task,
-            String subject,
-            Integer subjectId,
+            @Nullable String subject,
+            @Nullable Integer subjectId,
             Map<String, OnboardingMark> marks,
             DerivedCheck derived) {
         String id = subjectId == null ? task.key() : task.key() + ":" + subjectId;

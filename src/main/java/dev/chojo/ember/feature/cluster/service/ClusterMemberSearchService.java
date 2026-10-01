@@ -17,6 +17,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -86,7 +87,11 @@ public class ClusterMemberSearchService {
                         row.name(),
                         row.stationName(),
                         nameColor,
-                        tag == null ? null : new MemberIdentity.DisplayTag(tag.name(), tag.color())),
+                        tag == null
+                                ? null
+                                : new MemberIdentity.DisplayTag(
+                                        tag.name(),
+                                        Objects.requireNonNull(tag.color(), "display tags are found by their color"))),
                 row.stationNames());
     }
 

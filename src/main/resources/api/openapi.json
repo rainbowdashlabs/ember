@@ -46238,7 +46238,7 @@
             }
           }
         },
-        "required" : [ "version", "schemaHash", "generatedAt", "tables" ]
+        "required" : [ "version", "generatedAt", "tables" ]
       },
       "Date" : {
         "type" : "object",
@@ -60729,10 +60729,10 @@
             "$ref" : "#/components/schemas/MapTileProvider"
           },
           "urlTemplate" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "attribution" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "minZoom" : {
             "type" : "integer",
@@ -68189,7 +68189,7 @@
         "type" : "object",
         "properties" : {
           "url" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "status" : {
             "type" : "integer",

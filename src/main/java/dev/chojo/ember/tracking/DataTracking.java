@@ -24,7 +24,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record DataTracking(
         int version,
-        String schemaHash,
+        @Nullable String schemaHash,
         Instant generatedAt,
         Map<String, TableEntry> tables,
         @Nullable Map<String, FileStoreEntry> fileStores) {

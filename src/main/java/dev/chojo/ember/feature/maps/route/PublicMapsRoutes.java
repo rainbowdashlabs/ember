@@ -22,6 +22,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Anonymous-internet routes for the maps feature:
@@ -125,5 +126,9 @@ public class PublicMapsRoutes implements Routes {
      * Public-facing tile config - never includes the API key. Frontend reads only this.
      */
     public record PublicMapsConfig(
-            MapTileProvider provider, String urlTemplate, String attribution, int minZoom, int maxZoom) {}
+            MapTileProvider provider,
+            @Nullable String urlTemplate,
+            @Nullable String attribution,
+            int minZoom,
+            int maxZoom) {}
 }

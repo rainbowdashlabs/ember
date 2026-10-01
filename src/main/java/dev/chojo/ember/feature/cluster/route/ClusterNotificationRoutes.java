@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes.CountResponse;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes.NotificationResponse;
@@ -132,9 +133,9 @@ public class ClusterNotificationRoutes implements Routes {
     }
 
     private static int clusterMemberId(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.clusterMember() == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_NOTIFICATIONS.raise();
-        return session.clusterMember().id();
+        ClusterMember member = UserSession.from(ctx).clusterMember();
+        if (member == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_NOTIFICATIONS.raise();
+        return member.id();
     }
 
     /**

@@ -55780,7 +55780,7 @@ export interface components {
                 [key: string]: components["schemas"]["FileStoreEntry"];
             };
             generatedAt: components["schemas"]["Instant"];
-            schemaHash: string;
+            schemaHash?: string;
             tables: {
                 [key: string]: components["schemas"]["TableEntry"];
             };
@@ -60890,13 +60890,13 @@ export interface components {
             stationUid: string;
         };
         PublicMapsConfig: {
-            attribution: string;
+            attribution: string | null;
             /** Format: int32 */
             maxZoom: number;
             /** Format: int32 */
             minZoom: number;
             provider: components["schemas"]["MapTileProvider"];
-            urlTemplate: string;
+            urlTemplate: string | null;
         };
         PublicModeResponse: {
             mode: components["schemas"]["Mode"];
@@ -63471,7 +63471,7 @@ export interface components {
         TestTileResult: {
             /** Format: int32 */
             status: number;
-            url: string;
+            url: string | null;
         };
         Text: {
             longAnswer?: boolean;

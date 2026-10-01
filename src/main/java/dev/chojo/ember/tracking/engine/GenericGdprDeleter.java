@@ -15,6 +15,7 @@ import dev.chojo.ember.tracking.IdentityType;
 import dev.chojo.ember.tracking.Strategy;
 import dev.chojo.ember.tracking.TableEntry;
 import dev.chojo.ember.tracking.TrackingStatus;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ public final class GenericGdprDeleter {
         this.deletionOrder = List.copyOf(topo);
     }
 
-    private static ColumnEntry resolveColumn(TableEntry table, String name) {
+    private static @Nullable ColumnEntry resolveColumn(TableEntry table, String name) {
         for (var c : table.columns()) if (c.name().equals(name)) return c;
         return null;
     }

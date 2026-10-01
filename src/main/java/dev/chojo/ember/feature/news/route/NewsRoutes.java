@@ -532,7 +532,9 @@ public class NewsRoutes implements Routes {
      * separate.
      */
     private static CommentFilter commentFilter(UserSession session, TargetInfo target) {
-        return target.systemEntry() ? new CommentFilter.FromStation(session.stationUid()) : CommentFilter.ALL;
+        if (!target.systemEntry()) return CommentFilter.ALL;
+        return new CommentFilter.FromStation(
+                Objects.requireNonNull(session.stationUid(), "a reader of a news entry is a member of a station"));
     }
 
     @OpenApi(

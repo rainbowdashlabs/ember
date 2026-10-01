@@ -24,6 +24,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Admin-only routes for the maps feature: read/write the full config (API key included),
@@ -145,7 +146,8 @@ public class AdminMapsRoutes implements Routes {
 
     /**
      * Response for the "test tile" button: the URL the backend would hit upstream and the
-     * status code it got back (or {@code -1} on transport error).
+     * status code it got back (or {@code -1} on transport error). The URL is {@code null} where no
+     * template is configured.
      */
-    public record TestTileResult(String url, int status) {}
+    public record TestTileResult(@Nullable String url, int status) {}
 }

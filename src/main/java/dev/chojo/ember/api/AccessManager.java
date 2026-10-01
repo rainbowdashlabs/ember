@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,7 @@ public class AccessManager {
         return session;
     }
 
-    public Optional<UserSession> resolveUserSession(String token, Station station) {
+    public Optional<UserSession> resolveUserSession(String token, @Nullable Station station) {
         return resolveUserSession(token, station, null);
     }
 
@@ -115,7 +116,8 @@ public class AccessManager {
      * @param cluster the cluster the request named, or {@code null}
      * @return the session, or empty when the token is no good
      */
-    public Optional<UserSession> resolveUserSession(String token, Station station, Cluster cluster) {
+    public Optional<UserSession> resolveUserSession(
+            String token, @Nullable Station station, @Nullable Cluster cluster) {
         Optional<AccountSession> sessionOpt = resolveSession(token);
         if (sessionOpt.isEmpty()) {
             return Optional.empty();
@@ -185,7 +187,7 @@ public class AccessManager {
      * permissions at all, rather than an error: the request is answered by whatever route roles apply, and
      * every cluster route asks for a permission they will not have.
      */
-    private UserSession withCluster(UserSession session, Cluster cluster, int accountId) {
+    private UserSession withCluster(UserSession session, @Nullable Cluster cluster, int accountId) {
         if (cluster == null) return session;
         var memberOpt = clusterRepository.findMember(cluster.id(), accountId);
         Set<ClusterPermission> permissions = memberOpt

@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplication;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
+import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -142,9 +143,8 @@ public class ClusterStationRoutes implements Routes {
             })
     private void decide(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        UserSession session = UserSession.from(ctx);
-        Integer decidedBy =
-                session.clusterMember() != null ? session.clusterMember().id() : null;
+        ClusterMember decider = UserSession.from(ctx).clusterMember();
+        Integer decidedBy = decider != null ? decider.id() : null;
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(ApplicationDecisionRequest.class);
 

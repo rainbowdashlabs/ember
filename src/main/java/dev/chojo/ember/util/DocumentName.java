@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +35,7 @@ public final class DocumentName {
      *
      * @param extension the extension without its dot, for example {@code pdf}
      */
-    public static String of(String extension, String... parts) {
+    public static String of(String extension, @Nullable String... parts) {
         List<String> kept = new ArrayList<>(parts.length);
         for (String part : parts) {
             if (part == null) continue;
@@ -45,7 +47,7 @@ public final class DocumentName {
     }
 
     /** Makes a part out of text a person wrote; empty where nothing usable is left, which {@link #of} skips. */
-    public static String part(String borrowed) {
+    public static String part(@Nullable String borrowed) {
         if (borrowed == null) return "";
         String cleaned = strip(Normalizer.normalize(borrowed, Normalizer.Form.NFC));
         return cut(cleaned.trim());

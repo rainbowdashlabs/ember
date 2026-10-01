@@ -15,6 +15,7 @@ import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.HourlyCounters;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,7 @@ public class PageHitRecorder implements ShutdownFlush, TaskSource {
         this.counters = new HourlyCounters<>("page hits", 1, clock);
     }
 
-    private static String normalizeCountry(String country) {
+    private static String normalizeCountry(@Nullable String country) {
         if (country == null || country.isBlank()) return "XX";
         String trimmed = country.trim();
         if (trimmed.length() != 2) return "XX";
@@ -86,7 +87,7 @@ public class PageHitRecorder implements ShutdownFlush, TaskSource {
      * blank values fall back to {@code XX}. {@code refererDomain} is taken verbatim - the
      * caller is expected to have reduced it via {@code RefererDomainExtractor}.
      */
-    public void record(int pageId, String country, String refererDomain, boolean isBot) {
+    public void record(int pageId, @Nullable String country, String refererDomain, boolean isBot) {
         if (!metrics.webStatsEnabled()) return;
         String normalizedCountry = normalizeCountry(country);
         String normalizedReferer = refererDomain == null || refererDomain.isBlank() ? "direct" : refererDomain;

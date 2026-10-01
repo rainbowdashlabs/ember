@@ -14,6 +14,7 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -262,7 +263,8 @@ public class BeaconReportService {
      * @param contentType what those bytes are
      * @return whether the work was queued, false when the queue is full
      */
-    public boolean sendReportNow(ProblemReport report, String version, byte[] picture, String contentType) {
+    public boolean sendReportNow(
+            ProblemReport report, String version, byte @Nullable [] picture, @Nullable String contentType) {
         if (picture == null || picture.length == 0) {
             return enqueue(() -> deliver("/api/v1/beacon/reports", reportPayloadFor(report, version, null)));
         }
@@ -360,7 +362,8 @@ public class BeaconReportService {
      *
      * @param imageId what the beacon numbered the picture, or null where the report carries none
      */
-    public BeaconPayloads.ReportPayload reportPayloadFor(ProblemReport report, String version, Integer imageId) {
+    public BeaconPayloads.ReportPayload reportPayloadFor(
+            ProblemReport report, String version, @Nullable Integer imageId) {
         return new BeaconPayloads.ReportPayload(
                 envelope(),
                 version,
@@ -383,7 +386,7 @@ public class BeaconReportService {
      * searched for and sometimes who they looked at, and none of that says which call went wrong,
      * so the same rule applies to each of them as to the page the report was written on.
      */
-    private static String requestsWithoutQueries(String recentRequests) {
+    private static @Nullable String requestsWithoutQueries(@Nullable String recentRequests) {
         if (recentRequests == null || recentRequests.isBlank()) return null;
         String stripped = REQUEST_URL
                 .matcher(recentRequests)
@@ -398,7 +401,7 @@ public class BeaconReportService {
      * a beacon needs to know which page went wrong. The screen already sends the path alone; this is
      * the guarantee rather than the hope, because what leaves the instance is decided here.
      */
-    private static String withoutQuery(String page) {
+    private static @Nullable String withoutQuery(@Nullable String page) {
         if (page == null) return null;
         int query = page.indexOf('?');
         return query < 0 ? page : page.substring(0, query);
@@ -416,7 +419,7 @@ public class BeaconReportService {
                 config.url());
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value;
     }
 }

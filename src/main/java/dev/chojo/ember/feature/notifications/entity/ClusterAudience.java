@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.notifications.entity;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -25,7 +26,10 @@ import java.util.Set;
  * @param excluded         cluster members left out whatever else reaches them
  */
 public record ClusterAudience(
-        Set<Integer> memberIds, Integer holdersClusterId, Set<ClusterPermission> permissions, Set<Integer> excluded)
+        Set<Integer> memberIds,
+        @Nullable Integer holdersClusterId,
+        Set<ClusterPermission> permissions,
+        Set<Integer> excluded)
         implements Audience {
 
     public ClusterAudience {
@@ -68,7 +72,7 @@ public record ClusterAudience(
      *
      * @param actorClusterMemberId the cluster member to leave out, or {@code null} to leave out nobody
      */
-    public ClusterAudience except(Integer actorClusterMemberId) {
+    public ClusterAudience except(@Nullable Integer actorClusterMemberId) {
         if (actorClusterMemberId == null) return this;
         return and(new ClusterAudience(Set.of(), null, Set.of(), Set.of(actorClusterMemberId)));
     }

@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import jakarta.inject.Singleton;
 
+import java.time.LocalDate;
+
 /**
  * What a feed entry says about members: an expiring profile value, a group somebody was added to,
  * and a profile field that changed.
@@ -24,8 +26,9 @@ public class MemberFeedDetails implements FeedDetailsContributor {
             case NotificationParams.ExpiryReminder p -> {
                 details.putIfPresent(details.label("field", "Field"), p.fieldName());
                 details.putIfPresent(details.label("member", "Member"), p.memberName());
-                if (p.expiresOn() != null) {
-                    details.put(details.label("expiresOn", "Valid until"), details.date(p.expiresOn()));
+                LocalDate expiresOn = p.expiresOn();
+                if (expiresOn != null) {
+                    details.put(details.label("expiresOn", "Valid until"), details.date(expiresOn));
                 }
                 details.putIfPresent(details.label("members", "Members"), p.members());
             }

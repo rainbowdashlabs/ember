@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import io.javalin.http.Context;
+import io.javalin.http.UnauthorizedResponse;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -147,8 +149,19 @@ public record UserSession(
                 Set.of());
     }
 
+    /**
+     * The session the request was admitted with.
+     *
+     * @param ctx the Javalin context
+     * @return the session stored as a context attribute
+     * @throws UnauthorizedResponse when the request carries no session
+     */
     public static UserSession from(Context ctx) {
-        return ctx.attribute(ApiServer.ATTR_SESSION);
+        UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
+        if (session == null) {
+            throw new UnauthorizedResponse("Not signed in");
+        }
+        return session;
     }
 
     public int accountId() {
@@ -189,11 +202,11 @@ public record UserSession(
         return Optional.ofNullable(clusterId);
     }
 
-    public ClusterUserType clusterUserType() {
+    public @Nullable ClusterUserType clusterUserType() {
         return clusterMember != null ? clusterMember.userType() : null;
     }
 
-    public StationUserType userType() {
+    public @Nullable StationUserType userType() {
         return member != null ? member.userType() : null;
     }
 

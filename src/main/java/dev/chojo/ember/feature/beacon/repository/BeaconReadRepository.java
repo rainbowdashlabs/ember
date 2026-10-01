@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.beacon.entity.BeaconFault;
 import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
 import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -139,7 +140,7 @@ public class BeaconReadRepository {
     }
 
     /** Marks a fault as seen, or says which version put it right. */
-    public boolean resolveFault(int id, boolean acknowledged, String resolvedIn) {
+    public boolean resolveFault(int id, boolean acknowledged, @Nullable String resolvedIn) {
         return query("UPDATE beacon_problem SET acknowledged = :ack, resolved_in = :version WHERE id = :id;")
                 .single(call().bind("ack", acknowledged)
                         .bind("version", resolvedIn)

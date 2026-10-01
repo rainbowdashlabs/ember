@@ -23,6 +23,8 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
 /**
  * The endpoints that only make sense while the application is being built: the frontend's error log
  * and the reset the end-to-end suite starts from.
@@ -63,10 +65,10 @@ public class DevRoutes implements Routes {
     private void reportError(Context ctx) {
         var report = ctx.bodyAsClass(DevErrorReport.class);
         DevErrorWriter.writeFrontend(
-                report.source() != null ? report.source() : "unknown",
-                report.message() != null ? report.message() : "",
-                report.stack() != null ? report.stack() : "",
-                report.context() != null ? report.context() : "");
+                Objects.requireNonNullElse(report.source(), "unknown"),
+                Objects.requireNonNullElse(report.message(), ""),
+                Objects.requireNonNullElse(report.stack(), ""),
+                Objects.requireNonNullElse(report.context(), ""));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

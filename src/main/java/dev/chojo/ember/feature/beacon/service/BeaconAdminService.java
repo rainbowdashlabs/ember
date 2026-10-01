@@ -95,7 +95,7 @@ public class BeaconAdminService {
     }
 
     /** Marks a fault as seen, or names the version that put it right. */
-    public void resolveFault(int id, boolean acknowledged, String resolvedIn) {
+    public void resolveFault(int id, boolean acknowledged, @Nullable String resolvedIn) {
         requireBeacon();
         if (!collected.resolveFault(id, acknowledged, resolvedIn)) {
             throw Refusal.BEACON_FAULT_NOT_HERE.raise();

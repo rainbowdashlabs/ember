@@ -24,6 +24,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -305,7 +306,8 @@ public class MemberNameResolver {
         return tags.stream()
                 .filter(t -> t.visible() && hasColor(t.color()))
                 .max(Comparator.comparingInt(UserTag::position))
-                .map(t -> new MemberIdentity.DisplayTag(t.name(), t.color()))
+                .map(t -> new MemberIdentity.DisplayTag(
+                        t.name(), Objects.requireNonNull(t.color(), "only tags with a color are shown")))
                 .orElse(null);
     }
 

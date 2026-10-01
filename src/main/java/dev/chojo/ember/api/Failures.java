@@ -7,6 +7,7 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
 import dev.chojo.ember.util.RandomTokens;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 
 import java.sql.SQLException;
@@ -98,7 +99,7 @@ public final class Failures {
      * @param message the message an exception carried, possibly {@code null}
      * @return the message when it reads as prose, and empty when it reads as machinery
      */
-    public static Optional<String> readable(String message) {
+    public static Optional<String> readable(@Nullable String message) {
         if (message == null) return Optional.empty();
         String trimmed = message.trim();
         if (trimmed.isEmpty() || trimmed.length() > MAX_READABLE_LENGTH) return Optional.empty();
@@ -152,7 +153,7 @@ public final class Failures {
         return false;
     }
 
-    private static String sqlStateOf(Throwable err) {
+    private static @Nullable String sqlStateOf(Throwable err) {
         Throwable current = err;
         for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
             if (current instanceof SQLException refused && refused.getSQLState() != null) {

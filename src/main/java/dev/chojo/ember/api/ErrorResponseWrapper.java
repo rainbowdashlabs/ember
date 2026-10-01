@@ -32,11 +32,11 @@ public record ErrorResponseWrapper(
         @Nullable String code,
         @Nullable Long retryAfterSeconds,
         @Nullable String reference) {
-    public ErrorResponseWrapper(String error, String message, Long retryAfterSeconds) {
+    public ErrorResponseWrapper(String error, @Nullable String message, @Nullable Long retryAfterSeconds) {
         this(error, message, null, retryAfterSeconds, null);
     }
 
-    public ErrorResponseWrapper(String error, String message) {
+    public ErrorResponseWrapper(String error, @Nullable String message) {
         this(error, message, null);
     }
 
@@ -79,7 +79,7 @@ public record ErrorResponseWrapper(
      * @param retryAfterSeconds how long to wait before asking again
      * @return the body, carrying the refusal's code
      */
-    public static ErrorResponseWrapper of(Refusal refusal, String message, Long retryAfterSeconds) {
+    public static ErrorResponseWrapper of(Refusal refusal, String message, @Nullable Long retryAfterSeconds) {
         return new ErrorResponseWrapper(
                 refusal.status().getMessage(), message, refusal.code(), retryAfterSeconds, null);
     }

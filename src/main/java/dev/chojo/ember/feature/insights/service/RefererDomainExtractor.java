@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.insights.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,7 @@ public class RefererDomainExtractor {
         this.ownHost = parseHost(api.baseUrl());
     }
 
-    private static String parseHost(String baseUrl) {
+    private static @Nullable String parseHost(String baseUrl) {
         if (baseUrl == null || baseUrl.isBlank()) return null;
         try {
             String host = URI.create(baseUrl).getHost();
@@ -57,7 +58,7 @@ public class RefererDomainExtractor {
     /**
      * Returns the reduced domain label for the given raw {@code Referer} header value.
      */
-    public String extract(String rawReferer) {
+    public String extract(@Nullable String rawReferer) {
         if (rawReferer == null || rawReferer.isBlank()) return DIRECT;
         String host;
         try {

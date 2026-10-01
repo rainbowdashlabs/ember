@@ -91,9 +91,10 @@ public class Notifier {
     private int notifyCluster(
             ClusterAudience audience, NotificationType type, NotificationData data, Delivery delivery) {
         var ids = new HashSet<>(audience.memberIds());
-        if (audience.holdersClusterId() != null) {
+        Integer holdersClusterId = audience.holdersClusterId();
+        if (holdersClusterId != null) {
             for (ClusterPermission permission : audience.permissions()) {
-                ids.addAll(clusterService.get().findMemberIdsWith(audience.holdersClusterId(), permission));
+                ids.addAll(clusterService.get().findMemberIdsWith(holdersClusterId, permission));
             }
         }
         if (ids.isEmpty()) return 0;

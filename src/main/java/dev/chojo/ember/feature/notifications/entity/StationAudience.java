@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.notifications.entity;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -29,8 +30,8 @@ import java.util.Set;
  */
 public record StationAudience(
         Set<Integer> memberIds,
-        Integer wholeStationId,
-        Integer holdersStationId,
+        @Nullable Integer wholeStationId,
+        @Nullable Integer holdersStationId,
         Set<StationPermission> permissions,
         Set<Integer> wardIds,
         Set<Integer> excluded)
@@ -103,7 +104,7 @@ public record StationAudience(
      *
      * @param actorMemberId the member to leave out, or {@code null} to leave out nobody
      */
-    public StationAudience except(Integer actorMemberId) {
+    public StationAudience except(@Nullable Integer actorMemberId) {
         if (actorMemberId == null) return this;
         return and(new StationAudience(Set.of(), null, null, Set.of(), Set.of(), Set.of(actorMemberId)));
     }
@@ -119,7 +120,7 @@ public record StationAudience(
         return all;
     }
 
-    private static Integer sameStation(Integer first, Integer second) {
+    private static @Nullable Integer sameStation(@Nullable Integer first, @Nullable Integer second) {
         if (first == null) return second;
         if (second != null && !Objects.equals(first, second)) {
             throw new IllegalArgumentException(

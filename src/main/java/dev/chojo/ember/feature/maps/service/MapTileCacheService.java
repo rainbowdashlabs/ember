@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +87,7 @@ public class MapTileCacheService {
      * @param root          the directory the tiles are kept in
      * @param fetcher       what asks the upstream for a tile, or {@code null} for the HTTP client
      */
-    public MapTileCacheService(MapsConfigService configService, Path root, TileFetcher fetcher) {
+    public MapTileCacheService(MapsConfigService configService, Path root, @Nullable TileFetcher fetcher) {
         this.configService = configService;
         this.root = root;
         this.fetcher = fetcher != null ? fetcher : this::fetchOverHttp;
@@ -104,7 +105,7 @@ public class MapTileCacheService {
         }
     }
 
-    private static String buildUrl(MapsTilesConfig tiles, int z, int x, int y) {
+    private static @Nullable String buildUrl(MapsTilesConfig tiles, int z, int x, int y) {
         String template = tiles.resolvedUrlTemplate();
         if (template == null || template.isBlank()) return null;
         String sub =
@@ -143,7 +144,7 @@ public class MapTileCacheService {
      *
      * @return the tile, or {@code null} when no provider is configured or the upstream failed
      */
-    public TileResponse fetch(int z, int x, int y) {
+    public @Nullable TileResponse fetch(int z, int x, int y) {
         var tiles = configService.tilesConfig();
         if (tiles.provider() == null) return null;
         requireOnTheMap(tiles, z, x, y);
@@ -167,7 +168,7 @@ public class MapTileCacheService {
         }
     }
 
-    private TileResponse fetchOnce(MapsTilesConfig tiles, TileKey key) {
+    private @Nullable TileResponse fetchOnce(MapsTilesConfig tiles, TileKey key) {
         var mine = new CompletableFuture<TileResponse>();
         var running = inFlight.putIfAbsent(key, mine);
         if (running != null) return running.join();
@@ -187,7 +188,7 @@ public class MapTileCacheService {
      * Returns the resolved tile URL for the given coordinates, for the admin "test tile"
      * button. Does NOT touch the cache.
      */
-    public String resolveUpstreamUrl(int z, int x, int y) {
+    public @Nullable String resolveUpstreamUrl(int z, int x, int y) {
         var tiles = configService.tilesConfig();
         return buildUrl(tiles, z, x, y);
     }
@@ -256,7 +257,7 @@ public class MapTileCacheService {
         });
     }
 
-    private TileResponse fetchUpstreamAndStore(MapsTilesConfig tiles, TileKey key) {
+    private @Nullable TileResponse fetchUpstreamAndStore(MapsTilesConfig tiles, TileKey key) {
         String url = buildUrl(tiles, key.z(), key.x(), key.y());
         if (url == null) return null;
         Optional<UpstreamTile> upstream;

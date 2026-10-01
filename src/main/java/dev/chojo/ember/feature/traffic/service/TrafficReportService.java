@@ -36,7 +36,8 @@ public class TrafficReportService {
      * @param stationId only this station's traffic, or null for all of it
      * @param auth      only this kind of request, or null for every kind
      */
-    public HourlyTrafficResponse hourly(Instant from, Instant to, Integer stationId, AuthBucket auth) {
+    public HourlyTrafficResponse hourly(
+            Instant from, Instant to, @Nullable Integer stationId, @Nullable AuthBucket auth) {
         return new HourlyTrafficResponse(traffic.findHourly(from, to, stationId, auth).stream()
                 .map(HourlyTrafficRow::from)
                 .toList());

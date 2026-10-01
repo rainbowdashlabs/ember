@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.insights.service;
 
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -43,7 +44,7 @@ public class BotClassifier {
      * keyword denylist. A {@code null} or blank User-Agent counts as a bot - real browsers
      * always send one, scripts often don't.
      */
-    public boolean isBot(String userAgent) {
+    public boolean isBot(@Nullable String userAgent) {
         if (userAgent == null || userAgent.isBlank()) return true;
         for (String name : KNOWN) {
             if (userAgent.contains(name)) return true;

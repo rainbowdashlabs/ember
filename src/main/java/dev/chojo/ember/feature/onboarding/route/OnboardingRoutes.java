@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingLevel;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingStatus;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingTaskState;
@@ -54,8 +55,7 @@ public class OnboardingRoutes implements Routes {
             tags = {"Onboarding"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void getMemberTasks(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ctx.json(onboardingService.forMember(session.member(), session.userType()));
+        ctx.json(memberTasks(UserSession.from(ctx)));
     }
 
     @OpenApi(
@@ -70,7 +70,12 @@ public class OnboardingRoutes implements Routes {
     private void markMemberTask(Context ctx) {
         UserSession session = UserSession.from(ctx);
         mark(ctx, session, OnboardingLevel.MEMBER);
-        ctx.json(onboardingService.forMember(session.member(), session.userType()));
+        ctx.json(memberTasks(session));
+    }
+
+    private OnboardingStatus memberTasks(UserSession session) {
+        StationMember member = session.member();
+        return onboardingService.forMember(member, member.userType());
     }
 
     @OpenApi(
