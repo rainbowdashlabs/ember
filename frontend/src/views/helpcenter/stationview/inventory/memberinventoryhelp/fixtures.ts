@@ -15,7 +15,7 @@ export const member: MemberLike = {id: 1, name: 'Max Mustermann'}
 function piece(fields: Pick<MyInventoryItem, 'id' | 'inventoryId' | 'inventoryName' | 'name'> & Partial<MyInventoryItem>): MyInventoryItem {
     return {
         color: null, custody: ItemCustody.WITH_MEMBER, icon: null, internalId: null, inventoryHomogeneous: true,
-        lostAt: null, lostNote: null, lostNoteBy: null, movementId: null, movementStep: null,
+        lostAt: null, lostNote: null, lostNoteBy: null, movement: null,
         ownerClusterId: null, ownerKind: ItemOwner.STATION, sizeId: null, sizeName: null, ...fields,
     }
 }
@@ -27,7 +27,7 @@ const lostHelmet = piece({
 })
 const jacket = piece({
     id: 3, inventoryId: 2, inventoryName: 'Jacken', name: 'Jacke', sizeName: 'L', sizeId: 3, internalId: 'INV-0015',
-    movementId: 1, movementStep: 'Tausch angefordert',
+    movement: {id: 1, state: 'OPEN', reachedStepLabel: 'Tausch angefordert', currentStepActor: 'STATION', ownerKind: 'STATION', ownerName: null},
 })
 
 /** Two helmets, one of them lost, and a jacket that is already being exchanged. */

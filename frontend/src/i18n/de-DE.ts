@@ -4414,7 +4414,6 @@ export default {
             ask: 'Beim Verband anfragen',
         },
         requirements: {
-            title: 'Benötigt',
             hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen '
                 + 'sollen. Nur ein einheitliches Inventar kommt dafür in Frage, denn in einer Sammlung gibt es nichts, '
                 + 'wovon jeder eines braucht.',
@@ -5288,20 +5287,6 @@ export default {
             lockFeelHint: 'Verhindert, dass Wachen und Nutzer den Stil ändern.',
         },
         auth: {
-            title: 'Authentifizierung',
-            tokenBytes: 'Token-Länge (Bytes)',
-            tokenBytesHint: 'Anzahl der Zufallsbytes für neue Token. Empfohlen: 32.',
-            verifyTokenHours: 'Gültigkeitsdauer Verifizierungs-Token (Stunden)',
-            verifyTokenHoursHint: 'Wie lange ein Link zur E-Mail-Bestätigung gültig bleibt.',
-            passwordTokenHours: 'Gültigkeitsdauer Passwort-Reset-Token (Stunden)',
-            passwordTokenHoursHint: 'Wie lange ein Link zum Zurücksetzen des Passworts gültig bleibt.',
-            sessionMinutes: 'Sitzungsdauer auf vertrauten Geräten (Minuten)',
-            sessionMinutesHint: 'Gilt, wenn beim Anmelden „Auf diesem Gerät angemeldet bleiben" '
-                + 'angekreuzt wurde. Bis zu 30 Tage sind möglich: häufiges Anmelden frustriert mehr, '
-                + 'als es schützt.',
-            untrustedSessionMinutes: 'Sitzungsdauer sonst (Minuten)',
-            untrustedSessionMinutesHint: 'Gilt ohne dieses Häkchen, also auf geteilten oder '
-                + 'geliehenen Rechnern. Darf nicht länger sein als die Dauer für vertraute Geräte.',
         },
         logging: {
             title: 'Log',
@@ -7303,10 +7288,6 @@ export default {
         },
         restrictions: {
             title: 'Einschränkungen',
-            roles: 'Rollen',
-            groups: 'Gruppen',
-            tags: 'Tags',
-            noRestrictions: 'Für alle sichtbar',
         },
         contactSubmissions: {
             title: 'Kontaktanfragen',
@@ -7384,7 +7365,6 @@ export default {
     boards: {
         labelsPlaceholder: 'Labels...',
         noLabelsFound: 'Keine Labels gefunden',
-        manageTitle: 'Boards verwalten',
         createBoard: 'Board erstellen',
         boardName: 'Name',
         boardDescription: 'Beschreibung',
@@ -8787,7 +8767,6 @@ export default {
         statusDraft: 'Entwurf',
         statusActive: 'Aktiv',
         statusClosed: 'Geschlossen',
-        statusSubmitted: 'Abgegeben',
         attemptCount: 'Teilnehmer',
         createCatalog: 'Neuer Katalog',
         points: 'Punkte',
@@ -8866,7 +8845,6 @@ export default {
             },
         },
         tests: {
-            title: 'Tests',
             tabTest: 'Test',
             tabTests: 'Tests',
             tabResults: 'Ergebnisse',
