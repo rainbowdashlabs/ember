@@ -55849,7 +55849,7 @@ export interface components {
         };
         DemoAccount: {
             clusterPermissions: string[];
-            email: string;
+            email: string | null;
             firstName: string;
             groups: string[];
             instanceAdministrator: boolean;

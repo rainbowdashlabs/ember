@@ -220,6 +220,7 @@ const {running: passkeySigningIn, error: passkeyError, run: handlePasskeyLogin} 
 }})
 
 const {running: demoLoggingIn, error: demoError, run: loginAsDemo} = useAsyncAction(async (account: DemoAccount) => {
+  if (!account.email) return
   await auth.demoLogin(account.email)
   await resolveStationAndRedirect()
 })

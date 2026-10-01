@@ -36,8 +36,8 @@ const {t} = useI18n()
           : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2'"
     >
       <NeutralContainer
-          v-for="account in group.accounts"
-          :key="account.email"
+          v-for="(account, index) in group.accounts"
+          :key="account.email ?? index"
           :class="[
             { 'opacity-50 pointer-events-none': loading },
             compact

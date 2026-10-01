@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -170,7 +171,7 @@ public class DemoAccountService {
     /**
      * One account the demo instance offers for signing in.
      *
-     * @param email                 the address it signs in with
+     * @param email                 the address it signs in with, or null for somebody who has none
      * @param firstName             the first name
      * @param lastName              the last name
      * @param userType              its user type at the station, or the bucket it is listed under without one
@@ -184,7 +185,7 @@ public class DemoAccountService {
      * @param clusterPermissions    everything it may do for any association, expanded
      */
     public record DemoAccount(
-            String email,
+            @Nullable String email,
             String firstName,
             String lastName,
             StationUserType userType,

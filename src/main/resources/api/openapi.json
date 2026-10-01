@@ -46397,7 +46397,7 @@
         "type" : "object",
         "properties" : {
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "firstName" : {
             "type" : "string"

@@ -93,13 +93,13 @@ export function useDemoAccounts() {
    */
   function buildRoleGroups(source: DemoAccount[]): RoleGroup[] {
     const groups: RoleGroup[] = []
-    const seen = new Set<string>()
+    const seen = new Set<DemoAccount>()
 
     function addGroup(label: string, filter: (a: DemoAccount) => boolean) {
-      const matching = source.filter(a => !seen.has(a.email) && filter(a))
+      const matching = source.filter(a => !seen.has(a) && filter(a))
       if (!matching.length) return
       groups.push({label, accounts: matching})
-      matching.forEach(a => seen.add(a.email))
+      matching.forEach(a => seen.add(a))
     }
 
     addGroup('Admin', a => a.userType === StationUserType.MANAGER)
@@ -123,34 +123,37 @@ export function useDemoAccounts() {
     const everybody = [...noStationAccounts.value, ...stationGroups.value.flatMap(g => g.accounts)]
     const seen = new Set<string>()
     const acting = everybody.filter(a => {
-      if (seen.has(a.email) || !a.clusterPermissions.length) return false
+      if (!a.email || seen.has(a.email) || !a.clusterPermissions.length) return false
       seen.add(a.email)
       return true
     })
 
     const groups: RoleGroup[] = []
-    const taken = new Set<string>()
+    const taken = new Set<DemoAccount>()
 
     function addGroup(label: string, holds: string) {
-      const matching = acting.filter(a => !taken.has(a.email) && a.clusterPermissions.includes(holds))
+      const matching = acting.filter(a => !taken.has(a) && a.clusterPermissions.includes(holds))
       if (!matching.length) return
       groups.push({label, accounts: matching})
-      matching.forEach(a => taken.add(a.email))
+      matching.forEach(a => taken.add(a))
     }
 
     addGroup(t('demo.clusterRoles.administrator'), 'CLUSTER_ADMINISTRATOR')
     addGroup(t('demo.clusterRoles.memberManager'), 'CLUSTER_MEMBER_MANAGER')
     addGroup(t('demo.clusterRoles.inventoryManager'), 'CLUSTER_INVENTORY_MANAGER')
-    const rest = acting.filter(a => !taken.has(a.email))
+    const rest = acting.filter(a => !taken.has(a))
     if (rest.length) groups.push({label: t('demo.clusterRoles.other'), accounts: rest})
     return groups
   })
 
-  /** Everything about somebody the search reads: who they are, how they sign in, and what they are. */
+  /**
+   * Everything about somebody the search reads: who they are, how they sign in, and what they are.
+   * Somebody without an address of their own is still found by everything else.
+   */
   function haystack(account: DemoAccount): string[] {
     return [
       `${account.firstName} ${account.lastName}`,
-      account.email,
+      ...(account.email ? [account.email] : []),
       roleLabel(account),
       ...account.groups,
       ...account.tags,
