@@ -189,14 +189,6 @@ Backend
   be-spotbugs           Check null use in the main classes: a null where the type says non-null,
                         or a @Nullable value used unchecked. be-verify and be-report run it too;
                         the findings are in build/reports/spotbugs/main.html
-  be-rewrite-dry <recipe> [name=value ...]
-                        Show what an OpenRewrite recipe of src/rewrite would change, as a patch in
-                        build/reports/rewrite/rewrite.patch, without changing anything. Options
-                        follow the recipe, e.g.
-                        `be-rewrite-dry AddNullMarkedPackageInfo packages=dev.chojo.ember.feature.inventory`
-  be-rewrite <recipe> [name=value ...]
-                        Apply that recipe to the sources. Run be-spotless afterwards
-  be-rewrite-test       The tests of the recipes; be-report runs them too
   be-wrapper <version>  Move the Gradle wrapper to a version, e.g. be-wrapper 9.7.1
   be-federation-version Regenerate the federation contract version
   be-api-spec           Rewrite src/main/resources/api/openapi.json from the route annotations and the
@@ -502,23 +494,6 @@ case "$cmd" in
     be-report)     cd "$ROOT"; run ./gradlew spotbugsMain testAll jacocoFullReport "$@" ;;
     be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
     be-spotbugs)   cd "$ROOT"; run ./gradlew spotbugsMain "$@" ;;
-    be-rewrite-test) cd "$ROOT"; run ./gradlew testRewrite "$@" ;;
-    be-rewrite-dry|be-rewrite)
-        [ $# -ge 1 ] || { echo "$cmd needs a recipe, e.g. $cmd AddNullMarkedPackageInfo packages=dev.chojo.ember.feature.inventory" >&2; exit 2; }
-        recipe="$1"; shift
-        options=""
-        for option in "$@"; do
-            case "$option" in
-                *=*) options="${options:+$options;}$option" ;;
-                *) echo "$cmd takes recipe options as name=value, got '$option'" >&2; exit 2 ;;
-            esac
-        done
-        task=rewriteRun
-        [ "$cmd" = be-rewrite-dry ] && task=rewriteDryRun
-        cd "$ROOT"
-        run ./gradlew --no-daemon "$task" "-PrewriteRecipe=$recipe" "-PrewriteOptions=$options" \
-            "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
-        ;;
     be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
     be-api-spec)           cd "$ROOT"; run ./gradlew generateApiSpec "$@" ;;

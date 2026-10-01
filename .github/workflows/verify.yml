@@ -38,8 +38,6 @@ jobs:
         run: ./toolchain.sh format-check
       - name: Check null use
         run: ./toolchain.sh be-spotbugs --build-cache
-      - name: Test the rewrite recipes
-        run: ./toolchain.sh be-rewrite-test --build-cache
       - name: Generate Javadoc
         run: ./toolchain.sh be-javadoc --build-cache
       - name: Pack the distribution
