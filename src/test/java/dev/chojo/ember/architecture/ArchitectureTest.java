@@ -17,8 +17,11 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.comment.repository.CommentRepository;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -26,12 +29,16 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.stream.Stream;
 
 import static com.tngtech.archunit.core.domain.JavaAccess.Predicates.target;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.ENUMS;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.belongToAnyOf;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
 import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
 import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
 /**
  * Structural conventions enforced across the backend. Every rule here holds for the whole
@@ -116,6 +123,20 @@ public class ArchitectureTest {
             .and(DescribedPredicate.not(tests()))
             .should()
             .resideInAPackage("dev.chojo.ember.feature.*.handler");
+
+    /**
+     * {@link FieldType} is the one list of field types. A feature that spelled its own list would map
+     * each of its constants onto it, so no enum outside the field kernel declares a method answering
+     * a {@code FieldType}. The two that do are the names shared appointments and shared boards still
+     * send to partner stations, which nothing but the wire reads.
+     */
+    @ArchTest
+    static final ArchRule noFeatureSpellsItsOwnFieldTypes = noMethods()
+            .that()
+            .areDeclaredInClassesThat(ENUMS.and(resideOutsideOfPackage("dev.chojo.ember.feature.question.."))
+                    .and(DescribedPredicate.not(belongToAnyOf(EventFieldType.class, BoardFieldType.class))))
+            .should()
+            .haveRawReturnType(FieldType.class);
 
     @ArchTest
     static final ArchRule routesDoNotConstructJsonMappers = noClasses()

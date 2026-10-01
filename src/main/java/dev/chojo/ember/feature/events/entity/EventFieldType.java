@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.entity;
 import dev.chojo.ember.feature.question.FieldType;
 
 /**
- * The type of an appointment's question under the names screens and partner stations read.
+ * The type of an appointment's question under the names partner stations read.
  *
  * <p>Only what crosses the wire speaks these names. Everything the server decides about a question
  * goes by its {@link FieldType}, and the two map onto each other one to one. The names stay because a
@@ -50,6 +50,6 @@ public enum EventFieldType {
      * @throws IllegalArgumentException for a type no appointment offers
      */
     public static EventFieldType of(FieldType type) {
-        return FieldType.featureType(EventFieldType.class, type.name(), EventFieldType::fieldType);
+        return type.spelledAs(EventFieldType.class, EventFieldType::fieldType);
     }
 }

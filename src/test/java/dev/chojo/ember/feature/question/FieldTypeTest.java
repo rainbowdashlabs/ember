@@ -191,18 +191,19 @@ class FieldTypeTest {
         assertThrows(UnsupportedOperationException.class, () -> FieldTypes.PROFILE.add(FieldType.URL));
     }
 
-    /** Every feature type is stored under its shared name and read back from it. */
+    /** Every wire name stands for one shared type and is found again from it. */
     @Test
-    void featureTypesAreStoredUnderTheSharedNames() {
+    void wireNamesMapOntoTheSharedTypes() {
         for (var type : EventFieldType.values()) {
             assertEquals(type, EventFieldType.of(type.fieldType()));
         }
         for (var type : BoardFieldType.values()) {
-            assertEquals(type, BoardFieldType.stored(type.fieldType().name()));
+            assertEquals(type, BoardFieldType.of(type.fieldType()));
         }
         assertEquals(EventFieldType.STRING, EventFieldType.of(FieldType.TEXT));
         assertEquals(EventFieldType.TEXTAREA, EventFieldType.of(FieldType.LONG_TEXT));
-        assertEquals(BoardFieldType.ENUM, BoardFieldType.stored("CHOICE"));
+        assertEquals(BoardFieldType.ENUM, BoardFieldType.of(FieldType.CHOICE));
+        assertThrows(IllegalArgumentException.class, () -> BoardFieldType.of(FieldType.URL));
     }
 
     @Test

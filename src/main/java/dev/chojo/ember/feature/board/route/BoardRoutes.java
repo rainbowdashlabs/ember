@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
-import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
@@ -613,8 +612,7 @@ public class BoardRoutes implements Routes {
          */
         public BoardFieldDefinition definition(int boardId) {
             if (!FieldTypes.BOARD.contains(fieldType)) throw Refusal.BOARD_FIELD_TYPE_NOT_OFFERED.raise();
-            return new BoardFieldDefinition(
-                    0, boardId, name, fieldType, BoardFieldConfig.parse(BoardFieldType.of(fieldType), config), 0);
+            return new BoardFieldDefinition(0, boardId, name, fieldType, BoardFieldConfig.parse(fieldType, config), 0);
         }
     }
 

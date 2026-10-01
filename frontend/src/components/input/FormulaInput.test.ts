@@ -20,7 +20,7 @@ function mountInput(value = '') {
             'onUpdate:modelValue': (next: string) => wrapper.setProps({modelValue: next}),
             fields: [
                 {name: 'Alter', type: 'NUMBER'},
-                {name: 'Erfahrung', type: 'ENUM'},
+                {name: 'Erfahrung', type: 'CHOICE'},
             ],
         },
     })

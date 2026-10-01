@@ -36,7 +36,7 @@ public record BoardFieldDefinition(
                 .orElseThrow(() -> new IllegalStateException("Every board field holds a value: " + fieldType));
     }
 
-    /** The type as the wire spells it, which also says which records the settings and values are. */
+    /** The type as the wire spells it. */
     public BoardFieldType wireType() {
         return BoardFieldType.of(fieldType);
     }
@@ -50,7 +50,7 @@ public record BoardFieldDefinition(
                     row.getInt("board_id"),
                     row.getString("name"),
                     type,
-                    BoardFieldConfig.parse(BoardFieldType.of(type), row.getString("config")),
+                    BoardFieldConfig.parse(type, row.getString("config")),
                     row.getInt("position"));
         };
     }

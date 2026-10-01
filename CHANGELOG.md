@@ -33,7 +33,7 @@
 - **Exports print answers the same way.** The member list, the registration table, the attendance sheet, the appointment list and the member inventory lists show yes and no as words in the station's language, dates as days and named members by name. Some of them used to print the stored value, such as "true" or a member's number.
 - **One name for each field type.** Every screen where a station sets up fields of its own, from profile questions to board, gear, appointment, attendance and waiting list fields, offers the types under the same names in the same list. Answers read the same everywhere too: yes and no with a mark and a word, days and times as they are written, and members by their names, now also on attendance sheets, board tickets and the public waiting list status page.
 - **Board fields can be required.** A board field can be marked as required, and its value can then be changed but not cleared. The answers of a choice field are entered one per line, as everywhere else.
-- **Templates carry registration questions.** The appointment template editor sets up the questions asked at registration, in the same editor as on an appointment, and an appointment made from the template takes them over.
+- **Templates carry registration questions.** The appointment template editor sets up the questions asked at registration, in the same editor as on an appointment.
 - **Gear number fields take a step below one.** The step of a gear number field can be set to a fraction such as 0.5 in the field editor, which lets the field take decimal numbers.
 
 ### Security

@@ -22,7 +22,7 @@ public record BoardTicketFieldValue(
                     row.getInt("ticket_id"),
                     row.getInt("field_id"),
                     fieldType,
-                    BoardFieldValue.parse(BoardFieldType.of(fieldType), row.getString("value")));
+                    BoardFieldValue.parse(fieldType, row.getString("value")));
         };
     }
 

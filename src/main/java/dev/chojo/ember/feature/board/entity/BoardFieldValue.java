@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.Json;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -18,14 +19,31 @@ public sealed interface BoardFieldValue {
     Logger log = getLogger(BoardFieldValue.class);
     ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
 
-    static @Nullable BoardFieldValue parse(BoardFieldType fieldType, String json) {
+    static @Nullable BoardFieldValue parse(FieldType fieldType, String json) {
         if (json == null || json.isBlank()) return null;
         try {
-            return MAPPER.readValue(json, fieldType.valueClass());
+            return MAPPER.readValue(json, recordOf(fieldType));
         } catch (Exception e) {
             log.error("Failed to parse board field value for type {}: {}", fieldType, json, e);
             return null;
         }
+    }
+
+    /**
+     * The record a ticket's value of a field of this type is read into.
+     *
+     * @throws IllegalArgumentException for a type a board does not offer
+     */
+    private static Class<? extends BoardFieldValue> recordOf(FieldType fieldType) {
+        return switch (fieldType) {
+            case TEXT -> StringValue.class;
+            case NUMBER -> NumberValue.class;
+            case BOOLEAN -> BooleanValue.class;
+            case CHOICE -> EnumValue.class;
+            case DATE -> DateValue.class;
+            case LANE_ASSIGNEE -> LaneAssigneeValue.class;
+            default -> throw new IllegalArgumentException("A board does not offer " + fieldType);
+        };
     }
 
     default String toJson() {

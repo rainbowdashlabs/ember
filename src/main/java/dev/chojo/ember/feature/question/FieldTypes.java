@@ -13,7 +13,8 @@ import java.util.Set;
  * Which field types each feature offers.
  *
  * <p>Every set is what the feature accepts today, under the shared names. A type outside a feature's
- * set is refused where a field of that feature is written, and the type picker shows exactly the set.
+ * set is refused where a field of that feature is written. A feature's type picker offers part of
+ * its set at most: where a screen offers less, a field already saved under another type keeps it.
  */
 public final class FieldTypes {
 

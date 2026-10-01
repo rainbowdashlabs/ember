@@ -382,7 +382,7 @@ public class BoardTicketDetailRoutes implements Routes {
                 .filter(f -> f.id() == fieldId)
                 .findFirst()
                 .orElseThrow(Refusal.TICKET_FIELD_NOT_HERE::raise);
-        var value = BoardFieldValue.parse(field.wireType(), ctx.body());
+        var value = BoardFieldValue.parse(field.fieldType(), ctx.body());
         if (value == null) throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
         QuestionCheck.answer(field.question(), value.answer()).ifPresent(problem -> {
             throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());

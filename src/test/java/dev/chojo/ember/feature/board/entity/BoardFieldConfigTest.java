@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.Json;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -27,7 +28,7 @@ class BoardFieldConfigTest {
 
     @Test
     void bindsAnObjectAgainstTheTypeBesideIt() {
-        var config = BoardFieldConfig.parse(BoardFieldType.ENUM, node("{\"required\":true,\"options\":[\"a\",\"b\"]}"));
+        var config = BoardFieldConfig.parse(FieldType.CHOICE, node("{\"required\":true,\"options\":[\"a\",\"b\"]}"));
 
         var asEnum = assertInstanceOf(BoardFieldConfig.Enum.class, config);
         assertEquals(List.of("a", "b"), asEnum.options());
@@ -36,25 +37,22 @@ class BoardFieldConfigTest {
 
     @Test
     void answersTheEmptySettingsOfTheTypeWhenNoneAreNamed() {
-        assertEquals(
-                BoardFieldConfig.empty(BoardFieldType.STRING),
-                BoardFieldConfig.parse(BoardFieldType.STRING, (JsonNode) null));
-        assertEquals(
-                BoardFieldConfig.empty(BoardFieldType.ENUM), BoardFieldConfig.parse(BoardFieldType.ENUM, node("null")));
+        assertEquals(BoardFieldConfig.empty(FieldType.TEXT), BoardFieldConfig.parse(FieldType.TEXT, (JsonNode) null));
+        assertEquals(BoardFieldConfig.empty(FieldType.CHOICE), BoardFieldConfig.parse(FieldType.CHOICE, node("null")));
     }
 
     /** A tree that does not fit the type is the field's own settings gone, not the request refused. */
     @Test
     void fallsBackToTheEmptySettingsWhenTheTreeDoesNotFit() {
         assertEquals(
-                BoardFieldConfig.empty(BoardFieldType.ENUM),
-                BoardFieldConfig.parse(BoardFieldType.ENUM, node("{\"options\":\"not a list\"}")));
+                BoardFieldConfig.empty(FieldType.CHOICE),
+                BoardFieldConfig.parse(FieldType.CHOICE, node("{\"options\":\"not a list\"}")));
     }
 
     /** Reading a field back out of the database still starts from the text the column holds. */
     @Test
     void stillReadsTheTextTheColumnHolds() {
-        var config = BoardFieldConfig.parse(BoardFieldType.STRING, "{\"required\":true}");
+        var config = BoardFieldConfig.parse(FieldType.TEXT, "{\"required\":true}");
 
         assertEquals(true, config.required());
     }

@@ -118,22 +118,22 @@ public enum FieldType {
     }
 
     /**
-     * A feature's own type from the shared name a column stores it under.
+     * The name a wire enum sends this type under.
      *
-     * <p>The columns hold the shared names while the features still speak their own, so each feature
-     * type says which shared name it is and this finds it again.
+     * <p>Shared appointments and shared boards still spell their field types the way partner
+     * stations read them, so each of those two enums says which shared type each of its names
+     * stands for, and this finds the name again.
      *
-     * @param type   the feature's own type enum
-     * @param stored the name as the column holds it
-     * @param shared the shared name of each feature type
-     * @return the feature type stored under that name
-     * @throws IllegalArgumentException where no feature type is stored under it
+     * @param wire    the wire enum
+     * @param meaning the shared type each wire name stands for
+     * @return the wire name for this type
+     * @throws IllegalArgumentException where the wire enum has no name for this type
      */
-    public static <E extends Enum<E>> E featureType(Class<E> type, String stored, Function<E, FieldType> shared) {
-        for (E constant : type.getEnumConstants()) {
-            if (shared.apply(constant).name().equals(stored)) return constant;
+    public <E extends Enum<E>> E spelledAs(Class<E> wire, Function<E, FieldType> meaning) {
+        for (E constant : wire.getEnumConstants()) {
+            if (meaning.apply(constant) == this) return constant;
         }
-        throw new IllegalArgumentException("No " + type.getSimpleName() + " is stored as " + stored);
+        throw new IllegalArgumentException(wire.getSimpleName() + " has no name for " + this);
     }
 
     /** Which members a field of this type may name. */
