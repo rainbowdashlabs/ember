@@ -10,9 +10,21 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import DummyMemberCard from './changeshelp/DummyMemberCard.vue'
+import PendingMemberCard from '@/views/stationview/members/changesview/PendingMemberCard.vue'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
+import {formatDateTime} from '@/util/format'
+import {demoChanges, demoChangeSummary} from './fixtures'
 
 const {t} = useI18n()
+
+const summary = demoChangeSummary(t)
+const changes = demoChanges(t)
+const comment = ref('')
+
+/** In the example, a change counts as the reader's own acknowledgement once anybody acknowledged it. */
+function acknowledged(change: ChangeEntry): boolean {
+  return change.acknowledgements.length > 0
+}
 
 const activeTab = ref('pending')
 const tabs = [
@@ -38,7 +50,10 @@ const tabs = [
 
     <HelpSection :title="t('helpCenter.membersChanges.exampleTitle')">
       <div class="space-y-3">
-        <DummyMemberCard/>
+        <PendingMemberCard v-model:acknowledge-comment="comment" :summary="summary" expanded
+                           :member-changes="changes" :loading-changes="false" :acknowledging="false"
+                           :show-comment-for-change-id="1" :is-acknowledged-by-me="acknowledged"
+                           :format-date="formatDateTime"/>
       </div>
     </HelpSection>
 

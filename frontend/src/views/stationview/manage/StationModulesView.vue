@@ -8,12 +8,9 @@ import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
+import StationModuleList from './stationmodulesview/StationModuleList.vue'
 import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import type {ModulesResponse, StationModule} from '@/api/generated/schema'
@@ -34,15 +31,6 @@ const {t} = useI18n()
 const disabledModules = ref<Set<StationModule>>(new Set())
 const clusterDenied = ref<Set<StationModule>>(new Set())
 const clusterName = ref<string | null>(null)
-
-function isModuleEnabled(key: StationModule): boolean {
-  return !disabledModules.value.has(key) && !clusterDenied.value.has(key)
-}
-
-/** A module the cluster switched off is shown as locked rather than simply off, and says who locked it. */
-function isLockedByCluster(key: StationModule): boolean {
-  return clusterDenied.value.has(key)
-}
 
 const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: StationModule) => {
   const next = new Set(disabledModules.value)
@@ -74,25 +62,8 @@ const {loading, failure: loadFailure} = useAsyncLoader(async () => {
       <FailureAlert :failure="loadFailure"/>
       <FailureAlert :failure="failure"/>
 
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.modulesHint') }}</p>
-        <div class="space-y-3">
-          <StationModuleToggle
-              v-for="mod in STATION_MODULE_OPTIONS"
-              :key="mod.value"
-              :module="mod"
-              :model-value="isModuleEnabled(mod.value)"
-              :disabled="modulesSaving || isLockedByCluster(mod.value)"
-              @update:model-value="toggleModule(mod.value)"
-          >
-            <span v-if="isLockedByCluster(mod.value)" class="ml-2 text-xs text-(--text-muted)">
-              <font-awesome-icon :icon="['fas', 'lock']" class="mr-1 h-3 w-3"/>
-              {{ t('stationManage.moduleClusterLocked', {cluster: clusterName ?? ''}) }}
-            </span>
-          </StationModuleToggle>
-        </div>
-      </NeutralContainer>
+      <StationModuleList v-if="!loading" :disabled-modules="disabledModules" :cluster-denied="clusterDenied"
+                         :cluster-name="clusterName" :saving="modulesSaving" @toggle="toggleModule"/>
     </div>
   </ViewContent>
 </template>

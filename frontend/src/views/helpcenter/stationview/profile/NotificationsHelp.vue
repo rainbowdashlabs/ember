@@ -9,13 +9,13 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import InfoContainer from '@/components/container/InfoContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import DummyNotificationMatrix from './notificationshelp/DummyNotificationMatrix.vue'
+import NotificationsSection from '@/views/stationview/profile/settingsview/NotificationsSection.vue'
+import {DEMO_SETTINGS} from './fixtures'
 
 const {t} = useI18n()
 
@@ -39,18 +39,7 @@ function exampleFeedUrl(format: string): string {
       <p>{{ t('helpCenter.notifications.matrixText') }}</p>
     </HelpSection>
 
-    <InfoContainer class="space-y-2">
-      <p class="text-sm">
-        {{ t('userSettings.mailProviderInfo', {provider: 'Beispiel Mail GmbH'}) }}
-      </p>
-      <p class="text-xs">
-        <a href="#" class="text-primary hover:underline">
-          {{ t('userSettings.mailProviderPrivacy') }}
-        </a>
-      </p>
-    </InfoContainer>
-
-    <DummyNotificationMatrix/>
+    <NotificationsSection :settings="DEMO_SETTINGS"/>
 
     <HelpSection :title="t('helpCenter.notifications.feedsTitle')">
       <p>{{ t('helpCenter.notifications.feedsText') }}</p>

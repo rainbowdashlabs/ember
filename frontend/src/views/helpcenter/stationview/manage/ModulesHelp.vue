@@ -8,9 +8,12 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import DummyModuleToggleList from '@/views/helpcenter/stationview/manage/moduleshelp/DummyModuleToggleList.vue'
+import StationModuleList from '@/views/stationview/manage/stationmodulesview/StationModuleList.vue'
+import {demoDisabledModules} from './fixtures'
 
 const {t} = useI18n()
+const disabledModules = demoDisabledModules()
+const noneDenied = new Set<never>()
 </script>
 
 <template>
@@ -23,7 +26,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.modules.howToText') }}</p>
     </HelpSection>
 
-    <DummyModuleToggleList/>
+    <StationModuleList :disabled-modules="disabledModules" :cluster-denied="noneDenied" :cluster-name="null" saving/>
 
     <HelpTip>{{ t('helpCenter.modules.tip') }}</HelpTip>
   </HelpArticle>
