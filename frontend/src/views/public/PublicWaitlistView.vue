@@ -19,7 +19,6 @@ import type {PublicWaitlistSummary, PublicWaitlistFormResponse, WaitingListField
 import {waitingList} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
 import {socialMeta, stationLogoImage, titleWithStation, useAbsoluteUrl} from '@/util/socialMeta'
 import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
@@ -45,7 +44,6 @@ useHead(computed(() => {
 const lists = ref<PublicWaitlistSummary[]>([])
 const selectedListId = ref<number | null>(null)
 const form = ref<PublicWaitlistFormResponse | null>(null)
-const loadingForm = ref(false)
 
 const firstname = ref('')
 const lastname = ref('')
@@ -72,20 +70,16 @@ const {loading, failure: listsFailure} = useAsyncLoader(async () => {
   }
 })
 
-const formFailure = ref<Failure | null>(null)
+const {loading: loadingForm, failure: formFailure, reload: fetchForm} = useAsyncLoader(async (isCurrent) => {
+  const fetched = await waitingList.getPublicWaitlistForm(stationUid.value, selectedListId.value as number)
+  if (!isCurrent()) return
+  form.value = fetched
+  fieldValues.value = {}
+}, {autoLoad: false})
 
 async function loadForm() {
   if (!selectedListId.value) return
-  loadingForm.value = true
-  formFailure.value = null
-  try {
-    form.value = await waitingList.getPublicWaitlistForm(stationUid.value, selectedListId.value)
-    fieldValues.value = {}
-  } catch (e) {
-    formFailure.value = describeFailure(e, t)
-  } finally {
-    loadingForm.value = false
-  }
+  await fetchForm()
 }
 
 async function selectList(id: number) {

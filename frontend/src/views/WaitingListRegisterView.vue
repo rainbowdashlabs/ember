@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -27,7 +27,6 @@ const {
   data: inviteInfo,
   loading,
   failure: linkFailure,
-  load: loadInviteInfo,
 } = useLinkAccessedResource<WaitingListInviteInfo>(
     'code',
     () => t('waitingList.register.noCode'),
@@ -114,8 +113,6 @@ function submit() {
 }
 
 const statusLink = computed(() => `${window.location.origin}/waiting-list/status?token=${accessToken.value}`)
-
-onMounted(loadInviteInfo)
 </script>
 
 <template>

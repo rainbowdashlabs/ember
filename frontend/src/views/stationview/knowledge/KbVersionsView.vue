@@ -12,7 +12,6 @@ import DiffView from '@/components/display/DiffView.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure} from '@/util/failure'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -45,7 +44,6 @@ const file = ref<KbFile | null>(null)
 const versions = ref<KbVersionResponse[]>([])
 
 const selectedVersion = ref<KbFileVersion | null>(null)
-const loadingVersion = ref(false)
 
 const fileId = computed(() => Number(route.params.id))
 
@@ -83,15 +81,18 @@ const {
     failure,
 })
 
+const versionAsked = ref(0)
+
+const {loading: loadingVersion, failure: versionFailure, reload: fetchVersion} = useAsyncLoader(async (isCurrent) => {
+    const found = await knowledgeBase.getVersion(fileId.value, versionAsked.value)
+    if (isCurrent()) selectedVersion.value = found
+}, {autoLoad: false, errorMessageKey: 'kb.versionsLoadFailed'})
+
+/** Opens one version, saying so above the page where it cannot be read. */
 async function viewVersion(version: KbVersionResponse) {
-    loadingVersion.value = true
-    try {
-        selectedVersion.value = await knowledgeBase.getVersion(fileId.value, version.version)
-    } catch (e) {
-        failure.value = {...describeFailure(e, t), message: t('kb.versionsLoadFailed')}
-    } finally {
-        loadingVersion.value = false
-    }
+    versionAsked.value = version.version
+    await fetchVersion()
+    if (versionFailure.value) failure.value = versionFailure.value
 }
 
 watch(loaded, (isLoaded) => {

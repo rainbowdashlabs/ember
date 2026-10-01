@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, nextTick, onMounted, ref} from 'vue'
+import {computed, nextTick, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -19,8 +19,9 @@ import {useTheme} from '@/composables/useTheme'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAuthImage} from '@/composables/useAuthImage'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {goToNextStep} from '@/views/stationview/setup/steps'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -38,8 +39,6 @@ const presetKey = ref('')
 const hasLogo = ref(false)
 const logoUrl = ref<string | null>(null)
 const {src: logoObjectUrl} = useAuthImage(logoUrl)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 function defaultColors(): ThemeColors {
     const mode: ModeColors = {
@@ -63,28 +62,22 @@ function loadPreset() {
     customColors.value = JSON.parse(JSON.stringify(theme.colors)) as ThemeColors
 }
 
-onMounted(async () => {
-    try {
-        const info = await stationManage.getStationInfo()
-        stationName.value = info.name ?? ''
-        lockTheme.value = !(info.allowUserTheme ?? true)
-        lockFeel.value = !(info.allowUserFeel ?? true)
-        if (info.defaultTheme) themeCtrl.applyTheme(info.defaultTheme)
-        if (info.customThemeColors) {
-            try {
-                customColors.value = JSON.parse(info.customThemeColors) as ThemeColors
-                customEnabled.value = true
-            } catch {
-                customEnabled.value = false
-            }
+const {loading, failure} = useAsyncLoader(async () => {
+    const info = await stationManage.getStationInfo()
+    stationName.value = info.name ?? ''
+    lockTheme.value = !(info.allowUserTheme ?? true)
+    lockFeel.value = !(info.allowUserFeel ?? true)
+    if (info.defaultTheme) themeCtrl.applyTheme(info.defaultTheme)
+    if (info.customThemeColors) {
+        try {
+            customColors.value = JSON.parse(info.customThemeColors) as ThemeColors
+            customEnabled.value = true
+        } catch {
+            customEnabled.value = false
         }
-        hasLogo.value = info.hasLogo
-        if (info.hasLogo) logoUrl.value = LOGO_URL
-    } catch (e) {
-        failure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
     }
+    hasLogo.value = info.hasLogo
+    if (info.hasLogo) logoUrl.value = LOGO_URL
 })
 
 const {running: uploading, failure: logoFailure, run: handleLogoUpload} = useAsyncAction(async (file: File) => {

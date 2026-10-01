@@ -28,7 +28,6 @@ import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {describeFailure, type Failure} from '@/util/failure'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const routes = useInventoryRoutes()
@@ -43,8 +42,6 @@ const activeTab = ref<'offers' | 'requests'>('offers')
 
 const availableItems = ref<AvailableInventoryEntry[]>([])
 const emptyReason = ref<LendingEmptyReasonName | null>(null)
-const loadingAvailable = ref(true)
-const availableFailure = ref<Failure | null>(null)
 const searchQuery = ref('')
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
@@ -69,22 +66,25 @@ const emptyMessage = computed(() => {
   return t('lending.noAvailable')
 })
 
-async function loadAvailable() {
-  loadingAvailable.value = true
-  availableFailure.value = null
-  try {
+/**
+ * What the partners have free for the period the filter names.
+ *
+ * <p>Asked for only once the session is there, and the offers wait for it from the first render on.
+ */
+const {
+    loading: loadingAvailable,
+    failure: availableFailure,
+    reload: loadAvailable,
+} = useAsyncLoader(async (isCurrent) => {
     const options: { q?: string; from?: string; to?: string } = {}
     if (filterDateFrom.value) options.from = filterDateFrom.value
     if (filterDateTo.value) options.to = filterDateTo.value
     const result = await lending.listAvailable(options)
+    if (!isCurrent()) return
     availableItems.value = result.entries
     emptyReason.value = result.emptyReason
-  } catch (e) {
-    availableFailure.value = describeFailure(e, t)
-  } finally {
-    loadingAvailable.value = false
-  }
-}
+}, {autoLoad: false})
+loadingAvailable.value = true
 
 watch([filterDateFrom, filterDateTo], () => {
   loadAvailable()

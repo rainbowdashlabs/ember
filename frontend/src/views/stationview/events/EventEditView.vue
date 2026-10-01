@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref} from 'vue'
+import {until} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {reportCaughtError} from '@/util/devErrorReporter'
@@ -13,7 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 import {events} from '@/api'
 import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
@@ -26,6 +27,7 @@ import {useEventAttachments} from './eventeditview/useEventAttachments'
 import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
@@ -48,9 +50,6 @@ const data = useEventEditData(
 )
 const fieldDefaults = useEventFieldDefaults()
 const federationShare = useEventFederationShare(canFederate)
-
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 /**
  * What the editor itself turned down, as opposed to what the server did. An end before its own
@@ -115,9 +114,9 @@ async function loadRegistrationFields(id: number) {
   registrationFields.value = loadedFields.map(asDefinition)
 }
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
+/** Fills the editor once the session is there, since the choices it offers depend on the station. */
+const {loading, failure} = useAsyncLoader(async () => {
+  await until(loaded).toBe(true)
   try {
     await data.load()
     if (isEdit.value) {
@@ -132,11 +131,9 @@ async function loadData() {
     }
   } catch (e) {
     reportCaughtError(e, 'EventEditView.loadData')
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+    throw e
   }
-}
+})
 
 async function writeEvent() {
   let savedEventId: number
@@ -185,14 +182,6 @@ function leaveEditor() {
 function goBack() {
   leaveEditor()
 }
-
-onMounted(() => {
-  if (loaded.value) loadData()
-})
-
-watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
-})
 
 const bodyProps = computed(() => ({
   isEdit: isEdit.value,

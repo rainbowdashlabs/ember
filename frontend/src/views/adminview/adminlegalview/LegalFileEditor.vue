@@ -14,6 +14,7 @@ import LoadTemplateModal from './LoadTemplateModal.vue'
 import ImportDocumentModal from './ImportDocumentModal.vue'
 import {adminSettings} from '@/api'
 import type {LegalFileEntry, TemplateSection} from '@/api/generated/schema'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -30,7 +31,6 @@ const emit = defineEmits<{
 }>()
 
 const files = ref<LegalFileEntry[]>([])
-const loading = ref(false)
 const showPreview = ref(false)
 
 const showAddFileModal = ref(false)
@@ -46,18 +46,22 @@ const fileToDeleteName = computed(() => {
   return file?.displayName || file?.filename || ''
 })
 
-async function load() {
-  loading.value = true
-  showPreview.value = false
+const {loading, failure, reload: fetchFiles} = useAsyncLoader(async (isCurrent) => {
+  let result: LegalFileEntry[]
   try {
-    const result = await adminSettings.getLegalFiles(props.type, props.locale)
-    files.value = Array.isArray(result) ? result : []
+    result = await adminSettings.getLegalFiles(props.type, props.locale)
   } catch (e) {
-    files.value = []
-    emit('error', describeFailure(e, t))
-  } finally {
-    loading.value = false
+    if (isCurrent()) files.value = []
+    throw e
   }
+  if (isCurrent()) files.value = Array.isArray(result) ? result : []
+}, {autoLoad: false})
+
+/** Reads the files of this document again and hands a failure to the page, which shows it. */
+async function load() {
+  showPreview.value = false
+  await fetchFiles()
+  if (failure.value) emit('error', failure.value)
 }
 
 async function saveAll() {

@@ -13,7 +13,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure, type Failure} from '@/util/failure'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -25,6 +24,7 @@ import * as lending from '@/api/lending'
 import type {AvailableInventoryEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const routes = useInventoryRoutes()
@@ -44,8 +44,6 @@ const quantity = ref(1)
 const note = ref('')
 
 const availableItems = ref<AvailableInventoryEntry[]>([])
-const loadingItems = ref(true)
-const itemsFailure = ref<Failure | null>(null)
 
 const selectedEntry = computed(() =>
     availableItems.value.find(e => e.inventoryId === inventoryId && e.stationId === stationId),
@@ -74,21 +72,18 @@ watch(selectedEntry, (entry) => {
  * the one on the search that led here: that one has the days subtracted that are already promised
  * to somebody else. The two have to agree, so the period asked for follows the fields, and changing
  * a date counts again.
+ *
+ * <p>Asked for only once the session is there, and the page waits for it from the first render on,
+ * so the form does not show before there is anything to count.
  */
-async function loadItems() {
-  loadingItems.value = true
-  itemsFailure.value = null
-  try {
-    const options: {from?: string; to?: string} = {}
-    if (dateFrom.value) options.from = dateFrom.value
-    if (dateTo.value) options.to = dateTo.value
-    availableItems.value = (await lending.listAvailable(options)).entries
-  } catch (e) {
-    itemsFailure.value = describeFailure(e, t)
-  } finally {
-    loadingItems.value = false
-  }
-}
+const {loading: loadingItems, failure: itemsFailure, reload: loadItems} = useAsyncLoader(async (isCurrent) => {
+  const options: {from?: string; to?: string} = {}
+  if (dateFrom.value) options.from = dateFrom.value
+  if (dateTo.value) options.to = dateTo.value
+  const entries = (await lending.listAvailable(options)).entries
+  if (isCurrent()) availableItems.value = entries
+}, {autoLoad: false})
+loadingItems.value = true
 
 const {running: submitting, failure: submitFailure, run: handleSubmit} = useAsyncAction(async () => {
   if (!dateFrom.value) return

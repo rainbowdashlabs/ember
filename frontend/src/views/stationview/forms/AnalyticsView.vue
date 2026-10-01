@@ -21,7 +21,6 @@ import {useResultView} from '@/views/stationview/forms/analyticsview/useResultVi
 import {FormAnalyticsBase, FormPurpose, type FormAnalyticsBaseName} from '@/api/forms'
 import type {Form, FormAnalytics, FormAnswer, FormResponseEntry, ProfileField} from '@/api/generated/schema'
 import { forms, profileFields, stationMembers } from '@/api'
-import { describeFailure, type Failure } from '@/util/failure'
 import { presentFile } from '@/util/documentFile'
 import type { ExportFormat, ExportSeparator } from '@/util/exportFormat'
 
@@ -88,7 +87,6 @@ const groupNames = computed(() => (view.narrowed.value?.groups ?? []).map(view.g
 
 const currentResponseIndex = ref(0)
 const currentAnswers = ref<FormAnswer[]>([])
-const loadingResponse = ref(false)
 
 const currentResponse = computed(() => visibleResponses.value[currentResponseIndex.value] ?? null)
 
@@ -104,20 +102,25 @@ watch(visibleResponses, () => {
  * somebody had left blank. Reading a survey off an empty card that is only empty because the request
  * failed is worse than being told nothing at all.
  */
-const responseFailure = ref<Failure | null>(null)
+const {
+  loading: loadingResponse,
+  failure: responseFailure,
+  reload: reloadResponseAnswers,
+} = useAsyncLoader(async (isCurrent) => {
+  const response = currentResponse.value
+  if (!response) return
+  try {
+    const detail = await forms.getResponseDetail(formId.value, response.id, analyticsBase.value)
+    if (isCurrent()) currentAnswers.value = detail.answers
+  } catch (e) {
+    if (isCurrent()) currentAnswers.value = []
+    throw e
+  }
+}, {autoLoad: false, errorMessageKey: 'forms.analytics.responseFailed'})
 
 async function loadResponseAnswers() {
   if (!currentResponse.value) return
-  loadingResponse.value = true
-  responseFailure.value = null
-  try {
-    const detail = await forms.getResponseDetail(formId.value, currentResponse.value.id, analyticsBase.value)
-    currentAnswers.value = detail.answers
-  } catch (e) {
-    currentAnswers.value = []
-    responseFailure.value = {...describeFailure(e, t), message: t('forms.analytics.responseFailed')}
-  }
-  loadingResponse.value = false
+  await reloadResponseAnswers()
 }
 
 function prevResponse() {

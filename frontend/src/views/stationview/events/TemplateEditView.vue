@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref} from 'vue'
+import {until} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {reportCaughtError} from '@/util/devErrorReporter'
@@ -29,7 +30,8 @@ import {attendance, events, memberGroups as memberGroupsApi, userTags as userTag
 import {EventFieldTypes} from '@/api/events'
 import {eventTypeNamed} from './eventeditview/eventFormState'
 import {useSession} from '@/composables/useSession'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -54,8 +56,6 @@ const sheetFields = computed(() => attendanceFields.value
     .filter(field => String(field.templateId) === attendanceTemplateId.value))
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 const name = ref('')
 const title = ref('')
@@ -81,9 +81,6 @@ const openedName = ref('')
 const pageTitle = computed(() => (openedName.value
     ? t('pages.event-template-edit.titleNamed', {name: openedName.value})
     : t('pages.event-template-edit.title')))
-
-onMounted(() => { if (loaded.value) loadData() })
-watch(loaded, (v) => { if (v && loading.value) loadData() })
 
 function seedForm(detail: TemplateDetailResponse) {
   const tpl = detail.template
@@ -111,9 +108,9 @@ function seedForm(detail: TemplateDetailResponse) {
   }))
 }
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
+/** Fills the editor once the session is there, since the choices it offers depend on the station. */
+const {loading, failure} = useAsyncLoader(async () => {
+  await until(loaded).toBe(true)
   try {
     const [detail, cats, attTpls, memberGroups, userTags] = await Promise.all([
       events.getTemplate(templateId.value),
@@ -133,11 +130,9 @@ async function loadData() {
     seedForm(detail)
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.loadData')
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+    throw e
   }
-}
+})
 
 async function save() {
   failure.value = null

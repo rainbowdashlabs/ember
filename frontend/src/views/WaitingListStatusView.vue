@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -32,7 +32,6 @@ const {
   data: status,
   loading,
   failure: linkFailure,
-  load: loadStatus,
 } = useLinkAccessedResource<WaitingListPublicStatus>(
     'token',
     () => t('waitingList.publicStatus.noToken'),
@@ -102,8 +101,6 @@ const failure = computed(() => confirmFailure.value
     ?? answerFailure.value
     ?? staleFailure.value
     ?? linkFailure.value)
-
-onMounted(loadStatus)
 </script>
 
 <template>

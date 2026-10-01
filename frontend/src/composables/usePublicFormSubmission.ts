@@ -11,10 +11,11 @@ import type { PublicForm, PublicFormQuestion } from '@/api/generated/schema'
 import { usePublicAnswers } from '@/composables/usePublicAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFormWalk } from '@/composables/useFormWalk'
 import { useAnswerBaseline } from '@/composables/useAnswerBaseline'
 import { clearFormDraft, readFormDraft, saveFormDraft } from '@/util/formDrafts'
-import { describeFailure, FailureKind, type Failure } from '@/util/failure'
+import { FailureKind, type Failure } from '@/util/failure'
 
 /**
  * Filling in and submitting a public form, shared by the standalone submission page and the form
@@ -47,8 +48,6 @@ export function usePublicFormSubmission(
 
   const form = ref<PublicForm | null>(null)
   const {answers, reset: initAnswerDefaults, toggleChoice, updateText, updateDate} = usePublicAnswers()
-  const loading = ref(false)
-  const loadFailure = ref<Failure | null>(null)
   const submitted = ref(false)
   const validationError = ref('')
 
@@ -186,28 +185,31 @@ export function usePublicFormSubmission(
   })
   onMounted(shuffleSeeded)
 
+  const {loading, failure: loadFailure, reload: fetchForm} = useAsyncLoader(async (isCurrent) => {
+    submitted.value = false
+    let data: PublicForm
+    try {
+      data = shareToken.value
+        ? await publicForms.getSharedForm(shareToken.value)
+        : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
+    } catch (e) {
+      if (isCurrent()) form.value = null
+      throw e
+    }
+    if (!isCurrent()) return
+    form.value = presented(data)
+    startBlank(form.value.questions)
+    resumeDraft()
+  }, {autoLoad: false})
+
   async function load() {
     if (preloaded.value !== null) return
     if (!shareToken.value && (!stationUid.value || !publicUid.value)) {
       form.value = null
       return
     }
-    loading.value = true
-    loadFailure.value = null
-    submitted.value = false
-    try {
-      const data = shareToken.value
-        ? await publicForms.getSharedForm(shareToken.value)
-        : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
-      form.value = presented(data)
-      startBlank(form.value.questions)
-      resumeDraft()
-    } catch (e) {
-      form.value = null
-      loadFailure.value = describeLoadFailure(e)
-    } finally {
-      loading.value = false
-    }
+    await fetchForm()
+    if (loadFailure.value) loadFailure.value = describeLoadFailure(loadFailure.value)
   }
 
   /**
@@ -218,8 +220,7 @@ export function usePublicFormSubmission(
    * has a form that is still there and a link that still works, and telling them otherwise costs them
    * the answer. Only the server actually saying it is gone produces that sentence now.
    */
-  function describeLoadFailure(e: unknown): Failure {
-    const described = describeFailure(e, t)
+  function describeLoadFailure(described: Failure): Failure {
     if (described.kind !== FailureKind.GONE) return described
     return {
       ...described,

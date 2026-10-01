@@ -14,6 +14,7 @@ import * as publicQuiz from '@/api/publicQuiz'
 import {isQuizQuestionOf, QuizQuestionTypes} from '@/api/quiz'
 import type {PublicQuizQuestion, QuizQuestion} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * Public {@code QUIZ_TEASER} renderer. Mirrors the in-app training experience: the visitor
@@ -32,8 +33,6 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const question = ref<PublicQuizQuestion | null>(null)
-const loading = ref(false)
-const error = ref(false)
 const showAnswer = ref(false)
 
 const userAnswer = ref('')
@@ -97,24 +96,26 @@ function asQuizQuestion(q: PublicQuizQuestion): QuizQuestion {
     }
 }
 
+const {loading, error, reload: fetchQuestion} = useAsyncLoader(async (isCurrent) => {
+    let next: PublicQuizQuestion
+    try {
+        next = await publicQuiz.getRandomPublicQuestion(props.stationUid as string, props.catalogIds as number[])
+    } catch (e) {
+        if (isCurrent()) question.value = null
+        throw e
+    }
+    if (!isCurrent()) return
+    question.value = next
+    initQuestionState(asQuizQuestion(next))
+}, {autoLoad: false})
+
 async function loadQuestion() {
     resetUserInput()
-    error.value = false
     if (!props.stationUid || !props.catalogIds || props.catalogIds.length === 0) {
         question.value = null
         return
     }
-    loading.value = true
-    try {
-        const next = await publicQuiz.getRandomPublicQuestion(props.stationUid, props.catalogIds)
-        question.value = next
-        initQuestionState(asQuizQuestion(next))
-    } catch {
-        question.value = null
-        error.value = true
-    } finally {
-        loading.value = false
-    }
+    await fetchQuestion()
 }
 
 onMounted(loadQuestion)

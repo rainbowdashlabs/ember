@@ -22,7 +22,8 @@ import {StationPermission} from '@/api/types'
 import {documents as documentsApi, stationMembers} from '@/api'
 import type {DocumentUpload} from '@/api/documents'
 import type {MemberDocumentResponse, MemberWithName} from '@/api/generated/schema'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 /**
  * The document store of the station: everything that was ever put in, whether it belongs to
@@ -41,8 +42,6 @@ const memberFilter = ref<string[]>([])
 const unboundOnly = ref(false)
 const allTags = ref<string[]>([])
 const members = ref<MemberWithName[]>([])
-const loading = ref(false)
-const failure = ref<Failure | null>(null)
 
 const showUpload = ref(false)
 const showDocument = ref(false)
@@ -54,30 +53,25 @@ const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
 
 const memberOptions = computed(() => members.value.map(fromMember))
 
+/** Fetches the page that is asked for now. */
+const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) => {
+  const result = await documentsApi.listStation({
+    page: page.value,
+    memberIds: memberFilter.value.map(Number),
+    search: search.value.trim() || undefined,
+    unbound: unboundOnly.value || undefined,
+  })
+  if (!isCurrent()) return
+  documents.value = result.documents
+  total.value = result.total
+}, {autoLoad: false})
+
 /**
- * Fetches the page that is asked for now.
- *
- * <p>The spinner only stands in for a list that is not there yet. Swapping a list that is already
- * on screen for a spinner on every keystroke is what makes a search flicker, so a reload keeps
- * showing what it has until the answer replaces it.
+ * The spinner only stands in for a list that is not there yet. Swapping a list that is already on
+ * screen for a spinner on every keystroke is what makes a search flicker, so a reload keeps showing
+ * what it has until the answer replaces it.
  */
-async function reload() {
-  loading.value = documents.value.length === 0
-  failure.value = null
-  try {
-    const result = await documentsApi.listStation({
-      page: page.value,
-      memberIds: memberFilter.value.map(Number),
-      search: search.value.trim() || undefined,
-      unbound: unboundOnly.value || undefined,
-    })
-    documents.value = result.documents
-    total.value = result.total
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-  loading.value = false
-}
+const loading = computed(() => fetching.value && documents.value.length === 0)
 
 /** Waits for the typing to stop, so a word is one request rather than one per letter. */
 let searchTimeout: ReturnType<typeof setTimeout> | null = null

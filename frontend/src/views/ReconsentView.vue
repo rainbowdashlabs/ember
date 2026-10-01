@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {session} from '@/api'
 import {acceptStorage} from '@/api/storage'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import type {ConsentChangesResponse} from '@/api/generated/schema'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -23,22 +23,15 @@ import PolicyChangeSection from '@/views/reconsentview/PolicyChangeSection.vue'
 const {t} = useI18n()
 const router = useRouter()
 
-const loading = ref(true)
-const loadFailure = ref<Failure | null>(null)
 const changes = ref<ConsentChangesResponse | null>(null)
 
-onMounted(async () => {
-  try {
-    const status = await session.getConsentStatus()
-    if (status.current) {
-      await router.replace({name: 'dashboard-overview'})
-      return
-    }
-    changes.value = await session.getConsentChanges()
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
+const {loading, failure: loadFailure} = useAsyncLoader(async () => {
+  const status = await session.getConsentStatus()
+  if (status.current) {
+    await router.replace({name: 'dashboard-overview'})
+    return
   }
-  loading.value = false
+  changes.value = await session.getConsentChanges()
 })
 
 const {running: submitting, failure: submitFailure, run: handleAccept} = useAsyncAction(async () => {

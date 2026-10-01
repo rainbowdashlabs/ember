@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref} from 'vue'
+import {computed, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -18,8 +18,9 @@ import {memberGroups, stationMembers} from '@/api'
 import type {MemberGroup, Permission} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {goToNextStep} from '@/views/stationview/setup/steps'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -27,9 +28,6 @@ const {reload} = useSetupStatus()
 
 const groups = ref<MemberGroup[]>([])
 const draft = ref('')
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
-
 const allRoles = ref<Permission[]>([])
 const permissionsByGroup = reactive(new Map<number, Set<number>>())
 const permissionLoading = reactive<Record<number, boolean>>({})
@@ -38,21 +36,15 @@ const colorDraft = ref<string>('')
 
 const selectedGroup = computed(() => groups.value.find((g) => g.id === selectedId.value) ?? null)
 
-onMounted(async () => {
-    try {
-        const [groupsRes, rolesRes] = await Promise.all([
-            memberGroups.listGroups(),
-            stationMembers.listAllPermissions(),
-        ])
-        groups.value = sortByPosition(groupsRes)
-        allRoles.value = rolesRes
-        const firstGroup = groups.value[0]
-        if (firstGroup) await selectGroup(firstGroup.id)
-    } catch (e) {
-        failure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
-    }
+const {loading, failure} = useAsyncLoader(async () => {
+    const [groupsRes, rolesRes] = await Promise.all([
+        memberGroups.listGroups(),
+        stationMembers.listAllPermissions(),
+    ])
+    groups.value = sortByPosition(groupsRes)
+    allRoles.value = rolesRes
+    const firstGroup = groups.value[0]
+    if (firstGroup) await selectGroup(firstGroup.id)
 })
 
 function sortByPosition(list: MemberGroup[]): MemberGroup[] {
