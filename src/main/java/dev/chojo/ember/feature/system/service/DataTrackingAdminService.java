@@ -55,11 +55,11 @@ public class DataTrackingAdminService {
     }
 
     /**
-     * Loads the tracking file from disk every call so concurrent edits remain visible.
+     * Loads the tracking file from disk every call so concurrent edits remain visible, or the
+     * classpath copy when the source tree is not available.
      */
     public DataTracking load() throws IOException {
         if (Files.exists(trackingPath)) return DataTrackingLoader.load(trackingPath);
-        // Fall back to the classpath copy when the source tree isn't available (rare in dev).
         return DataTrackingLoader.loadFromClasspath();
     }
 
@@ -111,15 +111,14 @@ public class DataTrackingAdminService {
 
     /**
      * Replaces a table entry in the tracking file. The new entry must have the same column list
-     * (only verification flags, statuses, rationales, ignoredColumns, etc. may change).
+     * (only verification flags, statuses, rationales, ignoredColumns, etc. may change). Column
+     * descriptions mirror the live schema and are kept verbatim.
      */
     public TableEntry updateTable(String tableName, TableUpdate update) throws IOException {
         var tracking = load();
         var existing = tracking.tables().get(tableName);
         if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
 
-        // Build the new column list - only the verified flags can change here. Descriptions are
-        // mirrored from the live schema and preserved verbatim.
         List<ColumnEntry> newColumns = new ArrayList<>();
         Map<String, Boolean> verifiedOverrides = update.columnVerified();
         for (var col : existing.columns()) {

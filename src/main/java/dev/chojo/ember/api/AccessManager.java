@@ -134,7 +134,6 @@ public class AccessManager {
         Integer stationId = station != null ? station.id() : null;
         UUID stationUid = station != null ? station.uid() : null;
 
-        // Resolve instance-level permissions
         Set<InstancePermission> instancePermissions = resolveInstancePermissions(account);
 
         if (stationId != null) {

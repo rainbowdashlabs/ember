@@ -23,6 +23,9 @@ import java.util.List;
 public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoKnowledgeBaseSeeder.class);
 
+    /** The external address the formatting showcase links to. */
+    private static final String EXTERNAL_LINK = "https://example.com";
+
     private final KnowledgeBaseService kbService;
     private final KbContentService contentService;
     private final KnowledgeBaseRepository kbRepository;
@@ -47,7 +50,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
     }
 
     public void seed(int stationId, int createdBy) {
-        // === Root-level files ===
         var welcomeFile =
                 kbService.createMarkdownFile(stationId, null, "Willkommen", "Startseite des Wikis", """
                         # Willkommen im Wiki
@@ -64,7 +66,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         > Tipp: Nutze die Suchfunktion oben, um schnell das Richtige zu finden!
                         """, createdBy);
 
-        // Edit the welcome file to create a version history
         contentService.updateMarkdownContent(welcomeFile.id(), """
                 # Willkommen im Wiki
 
@@ -85,7 +86,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                 *Zuletzt aktualisiert von der Jugendleitung.*
                 """, createdBy);
 
-        // === Formatting Showcase (root level) ===
         var showcaseFile = kbService.createMarkdownFile(
                 stationId,
                 null,
@@ -159,7 +159,7 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
 
                         ## Links
 
-                        Hier ist ein [Link zur Startseite](/) und ein [externer Link](https://example.com).
+                        Hier ist ein [Link zur Startseite](/) und ein [externer Link](%s).
 
                         ---
 
@@ -179,11 +179,10 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         4. **Sonstiges** - Codeblöcke, horizontale Trennlinien
 
                         > Tipp: Markiere Text im Editor, um die Schnellformatierung zu nutzen!
-                        """,
+                        """.formatted(EXTERNAL_LINK),
                 createdBy);
         kbRepository.setFileTags(showcaseFile.id(), List.of("beispiel", "formatierung", "editor"), stationId);
 
-        // === Grundlagen Folder ===
         var grundlagenFolder =
                 kbService.createFolder(stationId, null, "Grundlagen", "Basiswissen für alle Mitglieder", createdBy);
 
@@ -235,7 +234,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         - Bleibe **ruhig** und sprich deutlich
                         """, createdBy);
 
-        // === Ausrüstung Folder ===
         var ausruestungFolder = kbService.createFolder(
                 stationId, null, "Ausrüstung", "Persönliche und technische Ausrüstung", createdBy);
 
@@ -269,7 +267,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         """,
                 createdBy);
 
-        // Edit PSA file to show version history
         contentService.updateMarkdownContent(psaFile.id(), """
                 # Persönliche Schutzausrüstung (PSA)
 
@@ -331,7 +328,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         """,
                 createdBy);
 
-        // === Erste Hilfe Folder ===
         var ersteHilfeFolder =
                 kbService.createFolder(stationId, null, "Erste Hilfe", "Wichtige Maßnahmen bei Notfällen", createdBy);
 
@@ -369,7 +365,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         """,
                 createdBy);
 
-        // === Übungen Folder with subfolder ===
         var uebungenFolder =
                 kbService.createFolder(stationId, null, "Übungen", "Anleitungen für Übungsabende", createdBy);
 
@@ -404,7 +399,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         - Kommunikation mit dem Maschinisten ist wichtig!
                         """, createdBy);
 
-        // === Videos section with YouTube ===
         var videosFolder = kbService.createFolder(stationId, null, "Videos", "Lehrvideos und Tutorials", createdBy);
 
         kbService.createYoutubeFile(
@@ -423,7 +417,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                 "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                 createdBy);
 
-        // === Demo PDF ===
         try {
             byte[] pdfData = TypstCompiler.compile("""
                     #set page(paper: "a4", margin: 2cm)
@@ -468,7 +461,6 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
             log.warn("Demo: Could not generate PDF (typst not available?)", e);
         }
 
-        // === Tags ===
         kbRepository.setFileTags(welcomeFile.id(), List.of("wichtig", "einstieg"), stationId);
         kbRepository.setFolderTags(grundlagenFolder.id(), List.of("grundlagen", "theorie"), stationId);
         kbRepository.setFolderTags(ausruestungFolder.id(), List.of("ausrüstung", "praxis"), stationId);

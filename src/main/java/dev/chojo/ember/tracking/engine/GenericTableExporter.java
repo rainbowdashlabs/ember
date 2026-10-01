@@ -233,6 +233,13 @@ public final class GenericTableExporter {
         return sb.toString();
     }
 
+    /**
+     * Runs the page query and maps each row to its wire form.
+     *
+     * <p>Timestamps travel as epoch milliseconds, which the importer already reads and which avoids the
+     * parsing edge cases of a string format. They are read through the value converter rather than the
+     * driver's own date mapping, which is not the same across every driver version shipped against.
+     */
     private List<Map<String, Object>> runQuery(String sql, int stationId, int offset, int limit) {
         var queryObj = query(sql)
                 .single(call().bind("stationId", stationId)
@@ -251,13 +258,6 @@ public final class GenericTableExporter {
                                 || "timestamp".equals(typeName)
                                 || "timestamp with time zone".equals(typeName)
                                 || "timestamp without time zone".equals(typeName)) {
-                            // Wire format for timestamps is epoch milliseconds (long). Matches
-                            // GenericTableImporter.asInstant which already treats Number values as
-                            // epoch millis, and dodges JSON / locale / PG-version parsing edge
-                            // cases that a string ISO-8601 format runs into on the import side.
-                            // Routes through the SADU value converter rather than getObject(Instant)
-                            // because the JDBC driver's java.time mapping is not guaranteed across
-                            // every PG / driver version we ship against.
                             Instant instant = row.get(i, StandardValueConverter.INSTANT_TIMESTAMP);
                             out.put(label, instant == null ? null : instant.toEpochMilli());
                         } else {

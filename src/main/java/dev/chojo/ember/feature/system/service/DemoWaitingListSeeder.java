@@ -70,15 +70,18 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
     }
 
     /**
+     * Seeds three lists with invite codes and sample entries. The Schnupperstunde list asks for nothing
+     * beyond name and address, so the bare registration can be shown. Being invited is only a status
+     * and a date; a joined applicant passes through the trial phase first, and one withdrawn straight
+     * from the invitation has no member to take back.
+     *
      * @param codeSuffix distinguishes this station's invite codes, which are one instance's namespace rather
      *                   than one station's: two stations handing out {@code demo-invite-active} would be one
      *                   code, and the second station could not be seeded at all
      */
     public void seedWaitingList(int stationId, int joinGroupId, String codeSuffix) {
-        // Create the "Gäste" group for testing-phase members
         var gaesteGroup = memberGroupRepository.create(stationId, "Gäste");
 
-        // --- Jugendfeuerwehr waitlist ---
         var list = waitingListRepository.create(
                 stationId,
                 "Jugendfeuerwehr",
@@ -104,7 +107,6 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 true,
                 true);
 
-        // --- Kinderfeuerwehr waitlist ---
         var kinderList = waitingListRepository.create(
                 stationId,
                 "Kinderfeuerwehr",
@@ -124,10 +126,6 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 kinderList.id(), "Geburtsdatum", FieldType.BIRTH_DATE, WaitingListFieldConfig.EMPTY, 1, true, true);
         waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite" + codeSuffix, 10, null);
 
-        // --- Schnupperstunde: a list that asks for nothing beyond a name and an address ---
-        // Both other lists insist on answers of their own - a date of birth, an experience level -
-        // which is right for them and makes them useless for showing what the bare registration
-        // looks like, in the demo as much as in the end-to-end suite.
         waitingListRepository.create(
                 stationId,
                 "Schnupperstunde",
@@ -142,12 +140,10 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 null,
                 null);
 
-        // Create invite codes
         waitingListRepository.createInvite(list.id(), "demo-invite-active" + codeSuffix, 5, null);
         var usedInvite = waitingListRepository.createInvite(list.id(), "demo-invite-used" + codeSuffix, 1, null);
         waitingListRepository.incrementInviteUses(usedInvite.id());
 
-        // Create sample entries
         record Kid(
                 String firstname,
                 String lastname,
@@ -242,32 +238,23 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                         1);
             }
 
-            // PENDING entries just need their status set (from public registration)
             if (kid.status == WaitingListEntryStatus.PENDING) {
                 waitingListRepository.updateEntryStatus(entry.id(), WaitingListEntryStatus.PENDING);
                 continue;
             }
 
-            // Everything past WAITING was invited at some point, and being invited is only a
-            // status and a date: nobody is written into the roster for it.
             if (kid.status != WaitingListEntryStatus.WAITING) {
                 waitingListRepository.updateEntryStatusWithTimestamp(
                         entry.id(), WaitingListEntryStatus.INVITED, "invited_at");
 
                 switch (kid.status) {
                     case TESTING -> {
-                        // Match WaitingListService.moveToTesting: the trial period is where the
-                        // account and the membership come into being, under the TRIAL user type
-                        // rather than the schema default of MEMBER, so they show up correctly on
-                        // the members overview and in the testing-group section.
                         int memberId = createTrialMember(stationId, entry.id(), kid.firstname, kid.lastname);
                         memberGroupRepository.addMember(gaesteGroup.id(), memberId);
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
                     }
                     case JOINED -> {
-                        // The applicant first goes through the TRIAL phase like a real waiting-list
-                        // transition does, then graduates to a full MEMBER once joined.
                         int memberId = createTrialMember(stationId, entry.id(), kid.firstname, kid.lastname);
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
@@ -280,8 +267,6 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                                 entry.id(), WaitingListEntryStatus.JOINED, "joined_at");
                     }
                     case WITHDRAWN -> {
-                        // Withdrawn straight from the invitation, so there is no member and no
-                        // account to take back off the station.
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
                     }
@@ -293,7 +278,8 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
 
     /**
      * The account and the membership a trial period runs on, the way the waiting list writes them
-     * when somebody turns up for the first time.
+     * when somebody turns up for the first time: under the trial user type rather than the schema
+     * default, so the member shows on the members overview and in the testing group.
      *
      * @return the id of the new member
      */

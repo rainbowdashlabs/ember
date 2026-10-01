@@ -55,6 +55,26 @@ public final class StationScopeResolver {
         return false;
     }
 
+    /**
+     * Whether a foreign key is a soft reference that sets null on delete. Joining through one drops
+     * rows whose value is null, and it expresses no ownership, so the scope chain skips it.
+     */
+    private static boolean isSoftReference(ForeignKey fk) {
+        return "SET NULL".equalsIgnoreCase(fk.onDelete());
+    }
+
+    /**
+     * Whether reaching this table identifies the owning station: it carries a station id, or it is the
+     * station table itself, which cross-station tables reference directly from columns like
+     * {@code owning_station_id}.
+     */
+    private boolean identifiesStation(String tableName) {
+        if (STATION_TABLE.equals(tableName)) return true;
+        var entry = tracking.tables().get(tableName);
+        return entry != null && hasStationIdColumn(entry);
+    }
+
+    /** Walks the predecessors back from the terminal and returns the joins in root to terminal order. */
     private static ScopePath reconstructPath(String root, String terminal, Map<String, Step> predecessors) {
         List<Join> joins = new ArrayList<>();
         String node = terminal;
@@ -63,7 +83,6 @@ public final class StationScopeResolver {
             joins.add(new Join(step.parent(), step.fk()));
             node = step.parent();
         }
-        // The BFS reconstructs from terminal back to root; reverse to get root → terminal order.
         Collections.reverse(joins);
         String scopeColumn = STATION_TABLE.equals(terminal) ? "id" : STATION_ID_COLUMN;
         return new ScopePath(terminal, scopeColumn, joins);
@@ -84,7 +103,6 @@ public final class StationScopeResolver {
             return Optional.of(new ScopePath(tableName, STATION_ID_COLUMN, List.of()));
         }
 
-        // BFS over FK edges. predecessors[node] = the FK edge that led to it (and the parent node).
         Map<String, Step> predecessors = new HashMap<>();
         Set<String> visited = new HashSet<>();
         Deque<String> queue = new ArrayDeque<>();
@@ -99,18 +117,11 @@ public final class StationScopeResolver {
             for (ForeignKey fk : entry.foreignKeys()) {
                 String ref = fk.refTable();
                 if (ref == null || visited.contains(ref)) continue;
-                // SET NULL FKs are soft references - joining through them drops rows whose value is
-                // null. They don't express an ownership relationship, so the scope chain skips them.
-                if ("SET NULL".equalsIgnoreCase(fk.onDelete())) continue;
+                if (isSoftReference(fk)) continue;
                 visited.add(ref);
                 predecessors.put(ref, new Step(current, fk));
 
-                var refEntry = tracking.tables().get(ref);
-                // The station table is itself a terminal - the FK that landed us here already
-                // identifies the owning station. Required for cross-station tables that carry
-                // FKs like {owning,requesting}_station_id straight to station(id) instead of
-                // routing through a station_id-bearing intermediate (e.g. federation_lending_*).
-                if (STATION_TABLE.equals(ref) || (refEntry != null && hasStationIdColumn(refEntry))) {
+                if (identifiesStation(ref)) {
                     return Optional.of(reconstructPath(tableName, ref, predecessors));
                 }
                 queue.add(ref);

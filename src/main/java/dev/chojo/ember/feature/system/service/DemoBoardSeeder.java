@@ -115,7 +115,8 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     }
 
     /**
-     * Seeds the station's own boards, with due dates counted from its today.
+     * Seeds the station's own boards, with due dates counted from its today. The planning board is kept to the
+     * team; the youth board sets no view restriction, which leaves it visible to every station member.
      *
      * @param today the station's today
      */
@@ -129,18 +130,14 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
             Random rng) {
         this.currentStationId = stationId;
 
-        // ── Board 1: "Dienstplanung" - SIMPLE preset, TEAM only (view + edit) ──
-
         var board1 = boardRepo.create(stationId, "Dienstplanung", "Interne Aufgaben für das Betreuerteam", "PLAN");
         var lane1Open = boardRepo.createLane(board1.id(), "Offen", "#3b82f6", 0);
         var lane1Work = boardRepo.createLane(board1.id(), "In Arbeit", "#f59e0b", 1);
         var lane1Done = boardRepo.createLane(board1.id(), "Erledigt", "#22c55e", 2);
 
-        // Restrict view + edit to TEAM only
         boardRepo.setViewAccess(board1.id(), List.of(teamUserType), List.of(), List.of());
         boardRepo.setEditAccess(board1.id(), List.of(teamUserType), List.of(), List.of());
 
-        // Tickets in "Offen"
         var t1 = createTicket(
                 board1.id(),
                 lane1Open.id(),
@@ -172,7 +169,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 null,
                 admin.id());
 
-        // Tickets in "In Arbeit"
         var t4 = createTicket(
                 board1.id(),
                 lane1Work.id(),
@@ -194,7 +190,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 today.plusDays(10),
                 admin.id());
 
-        // Tickets in "Erledigt"
         var t6 = createTicket(
                 board1.id(),
                 lane1Done.id(),
@@ -216,38 +211,30 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 null,
                 admin.id());
 
-        // Checklist on t4
         ticketRepo.createChecklistItem(t4, "HRT-Geräte zählen", 0);
         var cl2 = ticketRepo.createChecklistItem(t4, "Akkus prüfen", 1);
         ticketRepo.updateChecklistItem(cl2.id(), "Akkus prüfen", true);
         ticketRepo.createChecklistItem(t4, "Defekte Geräte melden", 2);
         ticketRepo.createChecklistItem(t4, "Liste an Wehrführer", 3);
 
-        // Checklist on t1
         ticketRepo.createChecklistItem(t1, "Verfügbarkeiten abfragen", 0);
         ticketRepo.createChecklistItem(t1, "Schichten einteilen", 1);
         ticketRepo.createChecklistItem(t1, "Plan versenden", 2);
 
-        // Link: t2 blocked by t5
         ticketRepo.createLink(t2, t5, LinkType.BLOCKED_BY);
-        // Link: t4 relates to t6
         ticketRepo.createLink(t4, t6, LinkType.RELATES_TO);
 
-        // Transitions for t4 and t5
         ticketRepo.logTransition(t4, lane1Open.id(), lane1Work.id(), localIdentity(admin.id()));
         ticketRepo.logTransition(t5, lane1Open.id(), lane1Work.id(), localIdentity(admin.id()));
         ticketRepo.logTransition(t6, lane1Open.id(), lane1Work.id(), localIdentity(admin.id()));
         ticketRepo.logTransition(t6, lane1Work.id(), lane1Done.id(), localIdentity(teamMember(teamMembers, rng)));
         ticketRepo.logTransition(t7, lane1Open.id(), lane1Done.id(), localIdentity(admin.id()));
 
-        // Comments
         ticketComment(t4, null, writer(admin), "Bitte bis Freitag erledigen.");
         if (!teamMembers.isEmpty()) {
             ticketComment(t4, null, writer(teamMembers.getFirst()), "Ich fange morgen damit an.");
         }
         ticketComment(t1, null, writer(admin), "Wer hat im Juni Urlaub? Bitte melden!");
-
-        // ── Board 2: "Jugendarbeit" - FEEDBACK preset, TEAM edit, USER view ──
 
         var board2 = boardRepo.create(stationId, "Jugendarbeit", "Ideen und Aufgaben für die Jugendgruppe", "JUG");
         var lane2Open = boardRepo.createLane(board2.id(), "Offen", "#3b82f6", 0);
@@ -255,14 +242,10 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         var lane2Feed = boardRepo.createLane(board2.id(), "Feedback", "#a855f7", 2);
         var lane2Done = boardRepo.createLane(board2.id(), "Erledigt", "#22c55e", 3);
 
-        // Enable backlog for board 2
         var backlogLane = boardRepo.enableBacklog(board2.id());
 
-        // View: all users; Edit: TEAM only
         boardRepo.setEditAccess(board2.id(), List.of(teamUserType), List.of(), List.of());
-        // No view restrictions = visible to all station members
 
-        // Tickets in "Offen"
         var j1 = createTicket(
                 board2.id(),
                 lane2Open.id(),
@@ -294,7 +277,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 today.plusDays(21),
                 admin.id());
 
-        // Tickets in "In Arbeit"
         var j4 = createTicket(
                 board2.id(),
                 lane2Work.id(),
@@ -316,7 +298,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 null,
                 admin.id());
 
-        // Tickets in "Feedback"
         var j6 = createTicket(
                 board2.id(),
                 lane2Feed.id(),
@@ -328,7 +309,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 today.plusDays(2),
                 admin.id());
 
-        // Tickets in "Erledigt"
         var j7 = createTicket(
                 board2.id(),
                 lane2Done.id(),
@@ -350,14 +330,12 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 null,
                 admin.id());
 
-        // Checklist on j1
         ticketRepo.createChecklistItem(j1, "Termin festlegen", 0);
         ticketRepo.createChecklistItem(j1, "Programm erstellen", 1);
         ticketRepo.createChecklistItem(j1, "Helfer einteilen", 2);
         ticketRepo.createChecklistItem(j1, "Einkaufsliste", 3);
         ticketRepo.createChecklistItem(j1, "Eltern informieren", 4);
 
-        // Checklist on j4 - partially done
         var jcl1 = ticketRepo.createChecklistItem(j4, "Löschangriff üben", 0);
         ticketRepo.updateChecklistItem(jcl1.id(), "Löschangriff üben", true);
         var jcl2 = ticketRepo.createChecklistItem(j4, "Staffellauf üben", 1);
@@ -365,11 +343,9 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketRepo.createChecklistItem(j4, "Knotenkunde wiederholen", 2);
         ticketRepo.createChecklistItem(j4, "Generalprobe am Freitag", 3);
 
-        // Links
         ticketRepo.createLink(j3, j1, LinkType.RELATES_TO);
         ticketRepo.createLink(j4, j6, LinkType.CAUSES);
 
-        // Transitions
         ticketRepo.logTransition(j4, lane2Open.id(), lane2Work.id(), localIdentity(admin.id()));
         ticketRepo.logTransition(j5, lane2Open.id(), lane2Work.id(), localIdentity(admin.id()));
         ticketRepo.logTransition(j6, lane2Open.id(), lane2Work.id(), localIdentity(admin.id()));
@@ -377,7 +353,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketRepo.logTransition(j7, lane2Open.id(), lane2Done.id(), localIdentity(teamMember(teamMembers, rng)));
         ticketRepo.logTransition(j8, lane2Work.id(), lane2Done.id(), localIdentity(admin.id()));
 
-        // Comments
         ticketComment(j4, null, writer(admin), "Wettbewerb ist am 20. Juni - wir müssen Gas geben!");
         if (!teamMembers.isEmpty()) {
             ticketComment(j4, null, writer(teamMembers.getFirst()), "Ich kümmere mich um den Staffellauf.");
@@ -385,11 +360,9 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         }
         ticketComment(j1, null, writer(admin), "Vorschlag: 12. Juli als Termin.");
 
-        // ── Additional tickets for Board 1 (Dienstplanung) ──
         seedExtraTicketsBoard1(
                 today, board1.id(), lane1Open.id(), lane1Work.id(), lane1Done.id(), admin, teamMembers, rng);
 
-        // ── Additional tickets for Board 2 (Jugendarbeit) ──
         seedExtraTicketsBoard2(
                 today,
                 board2.id(),
@@ -401,7 +374,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 teamMembers,
                 rng);
 
-        // ── Backlog tickets for Board 2 ──
         createTicket(
                 board2.id(),
                 backlogLane.id(),
@@ -453,7 +425,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 null,
                 admin.id());
 
-        // ── Labels ──
         var bugLabel1 = boardRepo.createLabel(board1.id(), "Bug", "#ef4444");
         var urgentLabel1 = boardRepo.createLabel(board1.id(), "Dringend", "#f59e0b");
         var ideaLabel1 = boardRepo.createLabel(board1.id(), "Idee", "#3b82f6");
@@ -462,7 +433,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         var materialLabel2 = boardRepo.createLabel(board2.id(), "Material", "#14b8a6");
         var ideaLabel2 = boardRepo.createLabel(board2.id(), "Idee", "#3b82f6");
 
-        // Assign labels to some tickets
         var b1Tickets = ticketRepo.findByBoard(board1.id());
         if (b1Tickets.size() > 5) {
             boardRepo.addLabelToTicket(b1Tickets.get(0).id(), urgentLabel1.id());
@@ -483,7 +453,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
             boardRepo.addLabelToTicket(b2Tickets.get(8).id(), eventLabel2.id());
         }
 
-        // Set varying lane_entered_at for time-in-lane dot indicators
         var allBoard1 = ticketRepo.findByBoard(board1.id());
         var allBoard2 = ticketRepo.findByBoard(board2.id());
         var now = Instant.now();
@@ -503,7 +472,8 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     /**
      * Seeds a shared board between primary and partner stations.
      * The board is owned by the primary station, shared with FULL mode to the partner.
-     * View: all members, Edit: TEAM only.
+     * View: all members (no view restriction is set), Edit: TEAM only. The tickets standing in for the
+     * partner's are created by the local admin, because a ticket's creator has to be a local member.
      *
      * @param today the primary station's today, which the due dates are counted from
      */
@@ -516,7 +486,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
             StationUserType teamUserType,
             StationUserType memberUserType,
             Random rng) {
-        // Find the federation partner ID
         var partners = federationService.findPartners(stationId);
         var partner = partners.stream().findFirst().orElse(null);
         if (partner == null) {
@@ -529,15 +498,11 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         var laneWork = boardRepo.createLane(board.id(), "In Arbeit", "#f59e0b", 1);
         var laneDone = boardRepo.createLane(board.id(), "Erledigt", "#22c55e", 2);
 
-        // View: MEMBER + TEAM (all members can see), Edit: TEAM only
         boardRepo.setEditAccess(board.id(), List.of(teamUserType), List.of(), List.of());
-        // No view restrictions = visible to all station members
 
-        // Share with partner in FULL mode
         federatedBoardService.shareBoard(
                 board.id(), List.of(new FederatedBoardService.PartnerShareConfig(partner.id(), BoardShareMode.FULL)));
 
-        // Labels
         var labelGemeinsam = boardRepo.createLabel(board.id(), "Gemeinsam", "#8b5cf6");
         var labelUebung = boardRepo.createLabel(board.id(), "Übung", "#3b82f6");
         var labelOrga = boardRepo.createLabel(board.id(), "Organisation", "#f59e0b");
@@ -545,7 +510,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         var partnerMember1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
         var partnerMember2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-        // -- Tickets from primary station members --
         var t1 = createTicket(
                 board.id(),
                 laneOpen.id(),
@@ -610,7 +574,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketRepo.logTransition(t5, laneOpen.id(), laneWork.id(), localIdentity(teamMember(teamMembers, rng)));
         boardRepo.addLabelToTicket(t5, labelUebung.id());
 
-        // -- Comments from primary station --
         ticketComment(t1, null, writer(admin), "Ich schlage den 20. Juli vor. Passt das bei euch?");
         if (!teamMembers.isEmpty()) {
             ticketComment(t1, null, writer(teamMembers.getFirst()), "Bei uns passt es, gute Idee!");
@@ -619,8 +582,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketComment(t4, null, writer(admin), "Wir können 5 Jugendliche stellen. Wie viele kommen von euch?");
         ticketComment(t5, null, writer(admin), "Wir bringen die Schläuche mit. Könnt ihr Strahlrohre organisieren?");
 
-        // -- Simulate federated tickets from partner station --
-        // Use admin as local creator (FK constraint), mark as federated via creator table
         var t6 = createTicket(
                 board.id(),
                 laneOpen.id(),
@@ -646,7 +607,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketRepo.logTransition(t7, laneOpen.id(), laneWork.id(), localIdentity(admin.id()));
         boardRepo.addLabelToTicket(t7, labelUebung.id());
 
-        // Federated comments (from partner members - use inline MemberIdentity)
         var partnerWriter1 =
                 CommentWriter.partner(new MemberIdentity(partner.partnerStationId(), partnerMember1), "Max Feuermann");
         var partnerWriter2 =
@@ -657,7 +617,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketComment(t5, null, partnerWriter2, "Strahlrohre sind kein Problem, wir bringen 3 Stück mit.");
         ticketComment(t6, null, partnerWriter1, "Wasser und Apfelsaft sind bestellt.");
 
-        // -- Comments from primary station members on federated tickets --
         ticketComment(
                 t6,
                 null,
@@ -668,29 +627,24 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                     t7, null, writer(teamMembers.getFirst()), "Super, wir kommen am Samstag um 8 Uhr zum Aufbauen.");
         }
 
-        // Reply thread: local member posts, partner replies
         var localComment = ticketComment(t1, null, writer(admin), "Termin steht: 20. Juli, passt das bei euch?");
         ticketComment(t1, localComment.id(), partnerWriter1, "Passt perfekt! Wir blocken den Tag.");
 
-        // Checklist on t1
         ticketRepo.createChecklistItem(t1, "Termin abstimmen", 0);
         ticketRepo.createChecklistItem(t1, "Thema festlegen", 1);
         ticketRepo.createChecklistItem(t1, "Materialien klären", 2);
         ticketRepo.createChecklistItem(t1, "Anfahrt kommunizieren", 3);
 
-        // Checklist on t4 - partially done
         var cl1 = ticketRepo.createChecklistItem(t4, "Teilnehmer unserer Wache", 0);
         ticketRepo.updateChecklistItem(cl1.id(), "Teilnehmer unserer Wache", true);
         ticketRepo.createChecklistItem(t4, "Teilnehmer Partnerwache", 1);
         ticketRepo.createChecklistItem(t4, "Positionen festlegen", 2);
         ticketRepo.createChecklistItem(t4, "Training planen", 3);
 
-        // Links
         ticketRepo.createLink(t1, t5, LinkType.RELATES_TO);
         ticketRepo.createLink(t4, t1, LinkType.BLOCKED_BY);
         ticketRepo.createLink(t6, t1, LinkType.RELATES_TO);
 
-        // Vary lane_entered_at for time indicators
         var now = Instant.now();
         ticketRepo.setLaneEnteredAt(t2, now.minus(Duration.ofDays(3)));
         ticketRepo.setLaneEnteredAt(t3, now.minus(Duration.ofDays(14)));
@@ -760,7 +714,6 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 ticketComment(tid, null, writer(team.get(rng.nextInt(team.size()))), "Wird gemacht!");
             }
         }
-        // Add some cross-links
         var allTickets = ticketRepo.findByBoard(boardId);
         if (allTickets.size() > 5) {
             ticketRepo.createLink(allTickets.get(2).id(), allTickets.get(4).id(), LinkType.RELATES_TO);

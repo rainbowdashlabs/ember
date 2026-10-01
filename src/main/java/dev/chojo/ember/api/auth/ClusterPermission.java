@@ -177,20 +177,11 @@ public enum ClusterPermission implements RouteRole {
     /**
      * What these permissions come to on the cluster's own station.
      *
-     * <p>The cluster's knowledge base, news list, calendar and gear are a station's, kept on the station the
-     * cluster owns, so the screens that edit them are a station's too. For those screens to work, somebody
-     * trusted with the cluster's knowledge has to arrive at that station holding the right to edit knowledge
-     * there, and somebody trusted with its gear has to arrive holding the right to that.
-     *
-     * <p>It translates nothing beyond those: the right to run the cluster is not the right to run a station, so
-     * nothing here reaches members or settings. The station in question has no members to manage, but the
-     * reason to keep the list short is that the two jobs are different ones.
-     *
-     * <p>The gear manager gets the full station right over this store, {@code INVENTORY_CREATE} and
-     * {@code INVENTORY_MANAGER} included. Withholding those two was an oversight rather than a safety
-     * property: the association could not define a kind of gear at all, and the screen that says it does
-     * opened with a refusal. Nobody else is on this station, so there is nothing here to protect from its
-     * owner. Lending comes along with the manager right and is harmless for the same reason.
+     * <p>The cluster's knowledge base, news, calendar and gear live on the station the cluster owns, so the
+     * screens that edit them are a station's, and the matching cluster rights must arrive there as station
+     * rights. Nothing reaches members or settings: running the cluster is not running a station. The gear
+     * manager gets the full inventory right, since nobody else is on this station to protect from its owner.
+     * The cluster's federation right is what shares its content out to its stations.
      *
      * @param held every cluster permission the member holds, already expanded
      * @return what they may do at the station the cluster owns
@@ -211,7 +202,6 @@ public enum ClusterPermission implements RouteRole {
         if (held.contains(CLUSTER_EVENT_MANAGER)) granted.add(StationPermission.EVENT_MANAGER);
         else if (held.contains(CLUSTER_EVENT_EDIT)) granted.add(StationPermission.EVENT_EDIT);
 
-        // The cluster's gear lives on this station, so the rights over it are the station's rights over it.
         if (held.contains(CLUSTER_INVENTORY_MANAGER)) {
             granted.add(StationPermission.INVENTORY_ASSIGN);
             granted.add(StationPermission.INVENTORY_CHECK);
@@ -232,7 +222,6 @@ public enum ClusterPermission implements RouteRole {
             if (held.contains(CLUSTER_INVENTORY_MOVEMENTS)) granted.add(StationPermission.INVENTORY_MOVEMENTS);
         }
 
-        // Sharing the cluster's content out to its stations is the cluster's federation right, read here.
         if (held.contains(CLUSTER_FEDERATION)) {
             granted.add(StationPermission.KNOWLEDGE_FEDERATE);
             granted.add(StationPermission.NEWS_FEDERATE);

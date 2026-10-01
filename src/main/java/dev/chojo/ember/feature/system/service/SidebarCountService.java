@@ -100,7 +100,7 @@ public class SidebarCountService {
             federationRequests = federationRepository.countPendingRequests(stationRepository.requireUid(stationId));
         }
 
-        // openEvents: TODO - complex query, return 0 for now
+        // TODO: count open events; the sidebar shows 0 until the query exists.
         int openEvents = 0;
 
         int waitingListEntries = 0;
@@ -113,17 +113,7 @@ public class SidebarCountService {
             lostAndFoundPending = lostAndFoundRepository.countClaimedNotProvided(stationId);
         }
 
-        // Guardians see the "my inventory" entry as soon as one of their managed members
-        // owns anything, even if the guardian themselves owns nothing.
-        int myInventoryCount = inventoryService.countItemsByMember(memberId);
-        if (myInventoryCount == 0 && roles.contains(StationPermission.MEMBER_GUARDIAN)) {
-            for (var managed : stationMemberService.findManaged(memberId)) {
-                if (inventoryService.countItemsByMember(managed.id()) > 0) {
-                    myInventoryCount = 1;
-                    break;
-                }
-            }
-        }
+        int myInventoryCount = myInventoryCount(memberId, roles.contains(StationPermission.MEMBER_GUARDIAN));
 
         int openMovements = 0;
         if (roles.contains(StationPermission.INVENTORY_EDIT)) {
@@ -134,7 +124,6 @@ public class SidebarCountService {
         if (roles.contains(StationPermission.PROCEDURE_EDIT)) {
             procedureCount = procedureService.countOpenByStation(stationId);
         } else {
-            // All users see count of their assigned procedures with available items
             procedureCount = procedureService.countOpenByAssigneeWithAvailableItems(stationId, memberId);
         }
 
@@ -151,6 +140,19 @@ public class SidebarCountService {
                 myInventoryCount,
                 openMovements,
                 procedureCount);
+    }
+
+    /**
+     * The member's own item count. A guardian who owns nothing still gets a non-zero count as soon as
+     * one of their managed members owns something, so the entry shows for them.
+     */
+    private int myInventoryCount(int memberId, boolean guardian) {
+        int own = inventoryService.countItemsByMember(memberId);
+        if (own > 0 || !guardian) return own;
+        for (var managed : stationMemberService.findManaged(memberId)) {
+            if (inventoryService.countItemsByMember(managed.id()) > 0) return 1;
+        }
+        return 0;
     }
 
     public record SidebarCounts(

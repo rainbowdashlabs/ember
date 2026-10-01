@@ -150,6 +150,9 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
      * one name on the attendance sheet carries both kinds of note and a story about the notes has one
      * place to look. {@link #seedExchangeStages} also reaches this stage, but on whichever
      * Fortgeschrittener happens to have a free piece, which is nothing a test can be pointed at.
+     *
+     * <p>The replacement is named and taken off the shelf: without a named piece the handover is
+     * refused, which is a different state from the one shown here.
      */
     private void seedSwapWaitingToBeHandedOver(DemoStationContext station, StationMember kid) {
         if (station.members().betreuer().isEmpty()) return;
@@ -166,9 +169,6 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             return;
         }
 
-        // Which piece the member gets has to be named, and naming it is what makes the swap one that
-        // can actually be handed over. Without it the swap stands at "the old piece is in" and the
-        // handover is refused, which is a different state and not the one this is here to show.
         var spare = inventoryRepository.findItems(item.inventoryId()).stream()
                 .filter(candidate -> candidate.id() != item.id())
                 .filter(candidate -> candidate.assignedTo() == null)
@@ -181,8 +181,6 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         }
 
         var exchange = swapFor(station.stationId(), kid, item, "Zu klein geworden");
-        // Two steps on: the old piece is in and the replacement has been taken off the shelf, which is the
-        // state where a handover is the next thing anybody does.
         walkStages(exchange, 2, actor, "Ersatz liegt bereit", spare.id());
         log.info(
                 "Demo: swap {} for member {} waits to be handed over, station {}",
@@ -226,6 +224,9 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
     /**
      * One exchange on each of the stages a manager moves them through, because the stages only explain
      * themselves side by side. A list where everything says the same thing teaches nothing.
+     *
+     * <p>Only the station's own gear is used: a step on an association's piece belongs to its owner,
+     * and a Betreuer acknowledging it is refused.
      */
     private void seedExchangeStages(DemoStationContext station) {
         var members = station.members();
@@ -236,9 +237,6 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         int made = 0;
         for (var kid : kids) {
             if (made >= 3) break;
-            // A piece the association owns is moved by the association: one of the steps belongs to
-            // the OWNER, and a Betreuer acknowledging it is refused. Only the station's own gear can
-            // be walked through the stages from here.
             var moving = inventoryRepository.findMovingItemsOfMember(kid.id());
             var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                     .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
@@ -248,7 +246,6 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             if (item == null) continue;
             var exchange = swapFor(station.stationId(), kid, item, "Passt nicht mehr");
             var spare = spareBesides(item);
-            // One, two and three steps along the same chain, so the three rows sit at three stages.
             walkStages(exchange, made + 1, actor, "Für die Aufnahme gestellt", spare);
             made++;
         }

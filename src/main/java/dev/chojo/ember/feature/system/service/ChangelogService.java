@@ -74,7 +74,8 @@ public class ChangelogService {
     }
 
     /**
-     * Every version the changelog names, newest first, as it is written.
+     * Every version the changelog names, newest first, as it is written. A version the translation has
+     * not reached yet is listed in English rather than left out.
      *
      * @param locale the language to read it in; anything else falls back to English, and none to
      *               German
@@ -86,8 +87,6 @@ public class ChangelogService {
         for (var entry : versions.entrySet()) {
             out.add(entryOf(entry.getKey(), entry.getValue()));
         }
-        // A version the German file has not reached yet is still worth reading, so the English text
-        // stands in for it rather than the list stopping where the translation stops.
         for (var entry : fallback.entrySet()) {
             if (!versions.containsKey(entry.getKey())) {
                 out.add(entryOf(entry.getKey(), entry.getValue()));

@@ -168,29 +168,24 @@ public class DemoClusterSeeder implements DemoSeeder {
         return FEDERATED_MODULES;
     }
 
+    /**
+     * One of the two full stations joins and the other answers to nobody, so the same feature can be looked at
+     * both ways; which one joins is the profile's to say. The neighbouring station joins too, so the screens
+     * that reach across a cluster have two stations to reach across, and the federation partner stays outside
+     * with an application waiting. The cluster keeps its gear itself, which is what lets its own steps appear
+     * in a movement.
+     */
     @Override
     public void seed(DemoRunContext run) {
         Cluster cluster = clusterService.create(
                 "Kreisverband Musterstadt", "Der Träger, dem die Wache und ihre Nachbarn angehören");
         seedLogo(cluster);
 
-        // One of the two full stations answers to the association and the other answers to nobody, which is
-        // what lets the same feature be looked at both ways. Which one is the profile's to say
         DemoStationContext member = run.clusterStation();
         clusterService.joinStation(cluster.id(), member.stationId());
-
-        // And so does the neighbouring one, so that the screens which reach across a cluster have two
-        // stations to reach across rather than one
         joinNeighbour(cluster, run);
-
-        // A station the cluster made itself, which belonged to it from its first moment
         var ownStation = clusterService.createStation(cluster.id(), "Löschzug Nord");
-
-        // The federation partner stays outside and has asked to come in, so the applications screen has
-        // something to decide and the standalone case keeps a subject
         seedApplication(cluster, run);
-
-        // The cluster keeps its gear here, which is what lets its own steps appear in a movement
         clusterInventoryService.setUsesInventory(cluster.id(), true);
 
         ClusterMember admin = seedPeople(cluster, run, member);
@@ -257,7 +252,8 @@ public class DemoClusterSeeder implements DemoSeeder {
     /**
      * Three people acting for the cluster, so clicking through the screens shows the permissions doing
      * something: an administrator, somebody who only looks after members, and somebody who only looks after
-     * gear, the last of them through a group rather than by name.
+     * gear, the last of them through a group rather than by name. The group holds the whole of looking after
+     * gear: somebody who may correct a size but not answer the step a station waits on is not a gear manager.
      *
      * @return the administrator's cluster membership
      */
@@ -266,8 +262,6 @@ public class DemoClusterSeeder implements DemoSeeder {
                 clusterService.addMember(cluster.id(), run.adminAccount().id(), ClusterUserType.CLUSTER_ADMIN);
 
         var group = memberService.createGroup(cluster.id(), "Gerätewarte");
-        // The whole of looking after gear, not a corner of it: somebody who may correct a size but not
-        // answer the step a station is waiting on is not the gear manager the screens talk about.
         memberService.setGroupPermissions(
                 cluster.id(), group.id(), Set.of(ClusterPermission.CLUSTER_INVENTORY_MANAGER));
 
@@ -336,7 +330,8 @@ public class DemoClusterSeeder implements DemoSeeder {
      * reads as inherited.
      *
      * <p>Every number here is at or above what the instance configuration gives a station on its own, so
-     * joining this cluster never costs a demo station room it had.
+     * joining this cluster never costs a demo station room it had. The cluster's own store is granted a total
+     * like every other station and counts against the same pool.
      */
     private void seedRoom(Cluster cluster, DemoRunContext run, DemoStationContext member) {
         quotaService.setStoragePool(cluster.id(), 100 * GIB);
@@ -348,8 +343,6 @@ public class DemoClusterSeeder implements DemoSeeder {
         var large = quotaService.createPreset(
                 cluster.id(), "Große Wache", 25 * GIB, 15 * GIB, 6 * GIB, 3 * GIB, 2 * GIB, 200 * MIB, 20 * MIB);
 
-        // The cluster's own files live on the station it owns, and they are no freer than anybody else's:
-        // its store is granted a total like every other station and counts against the same pool
         stationRepository
                 .findById(cluster.homeStationId())
                 .ifPresent(home -> quotaService.setGrant(
@@ -373,7 +366,9 @@ public class DemoClusterSeeder implements DemoSeeder {
      * The two chains the cluster's gear walks, each carrying the owner steps only the cluster can answer.
      *
      * <p>Written out rather than taken from a preset on purpose: the presets carry no owner steps at all,
-     * because they are what a station falls back to when nothing above it can answer for itself.
+     * because they are what a station falls back to when nothing above it can answer for itself. Sending gear
+     * out starts on the cluster's own step, which puts a consignment in the post rather than having it arrive
+     * the moment it was sent.
      */
     private void seedFlows(Cluster cluster) {
         var exchange = clusterInventoryService.createFlow(
@@ -438,8 +433,6 @@ public class DemoClusterSeeder implements DemoSeeder {
                 ItemCustody.WITH_OWNER,
                 false);
 
-        // Sending gear out starts on the cluster's own step, which is what puts a consignment in the post
-        // rather than having it arrive the moment it was sent.
         var sending = clusterInventoryService.createFlow(cluster.id(), "Ausgabe an eine Wache", MovementPurpose.ISSUE);
         flowService.addStep(
                 sending.id(), "Verband schickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT, true);
@@ -450,6 +443,11 @@ public class DemoClusterSeeder implements DemoSeeder {
     /**
      * A pool of the cluster's own gear spread across the custody states, so each of them is visible rather
      * than described, plus one piece whose owner is not on this instance at all.
+     *
+     * <p>The requirement hangs off the cluster's own inventory, so there is one definition rather than one per
+     * station kept matching by hand. The foreign piece is written down after the station joined: what the
+     * association owns was adopted on the way in and this was not, and the station stands in for an owner that
+     * cannot answer for itself.
      */
     private void seedGear(Cluster cluster, DemoStationContext member) {
         var pool = inventoryRepository.create(cluster.homeStationId(), "Einsatzkleidung", InventoryType.EXTERNAL, true);
@@ -459,7 +457,6 @@ public class DemoClusterSeeder implements DemoSeeder {
         Integer smallId = sizes.isEmpty() ? null : sizes.getFirst().id();
         Integer largeId = sizes.size() > 1 ? sizes.get(1).id() : smallId;
 
-        // Two questions the cluster asks about each piece, so its gear carries more than a name
         fieldDefinitionService.create(
                 pool.id(),
                 "hersteller",
@@ -477,7 +474,6 @@ public class DemoClusterSeeder implements DemoSeeder {
                 1,
                 fieldDefinitionService.defaultConfig(FieldType.DATE));
 
-        // Resting in the cluster's own store, which is where gear waits before it is sent anywhere
         var spareJacket = inventoryRepository.createItem(
                 pool.id(), "KV-0001", "Einsatzjacke", smallId, null, ItemOwner.CLUSTER, cluster.id());
         var spareTrousers = inventoryRepository.createItem(
@@ -485,20 +481,14 @@ public class DemoClusterSeeder implements DemoSeeder {
         custodyService.returnToOwner(spareJacket.id());
         custodyService.returnToOwner(spareTrousers.id());
 
-        // Out at the demo station, on a shelf
         var atStation = inventoryRepository.createItem(
                 pool.id(), "KV-0003", "Einsatzjacke", smallId, null, ItemOwner.CLUSTER, cluster.id());
         custodyService.applyStepCustody(atStation.id(), ItemCustody.AT_STATION, null, null, member.stationId());
 
-        // The requirement hangs off the cluster's own inventory, so there is one definition rather than one
-        // per station that would have to be kept matching by hand
         inventoryRepository.createRequirement(pool.id(), StationUserType.MEMBER, 0, null, 1);
 
         seedMovements(cluster, member, pool.id(), smallId, largeId);
 
-        // A piece whose owner is not on this instance, written down after the station joined. What the
-        // association owns was adopted on the way in and this was not, which is the difference the record
-        // exists to keep: the station stands in for an owner that cannot answer for itself
         inventoryRepository.findByStation(member.stationId()).stream()
                 .filter(inventory -> "Gemeindematerial".equals(inventory.name()))
                 .findFirst()
@@ -532,7 +522,6 @@ public class DemoClusterSeeder implements DemoSeeder {
                 new ItemMovementService.Actor(head.id(), true, false),
                 null);
 
-        // One piece that simply stays with the person, so the ordinary case is on screen too
         var worn = inventoryRepository.createItem(
                 poolId, "KV-0004", "Einsatzjacke", large, null, ItemOwner.CLUSTER, cluster.id());
         custodyService.applyStepCustody(worn.id(), ItemCustody.AT_STATION, null, null, member.stationId());
@@ -560,7 +549,6 @@ public class DemoClusterSeeder implements DemoSeeder {
                 "Jacke spannt an den Schultern",
                 actor,
                 null);
-        // The station takes it back and puts it in the post, and there its part ends
         exchange = movementService.acknowledge(exchange.id(), exchange.currentStepId(), actor, "", null);
         movementService.acknowledge(exchange.id(), exchange.currentStepId(), actor, "", null);
     }

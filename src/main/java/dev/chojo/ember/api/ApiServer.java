@@ -69,12 +69,13 @@ public class ApiServer {
 
     private static final Logger log = LoggerFactory.getLogger(ApiServer.class);
     static final String API_PREFIX = "/api/v1";
-    // Note on the transfer endpoints: /station/transfer/create-token and
-    // /station/transfer/abort are NOT blocked here on purpose. They are mandatory for the
-    // cross-instance transfer test harness (the compose.dev.yaml "transfer" profile), and the
-    // import-side counterpart /admin/transfer/import is already gated by
-    // InstancePermission.ADMINISTRATOR which demo accounts do not hold - so the source can
-    // mint a token but a stranger on the demo cannot pull a station off of it.
+
+    /**
+     * Paths blocked outright in public demo mode.
+     *
+     * <p>The transfer token endpoints stay open on purpose: the cross-instance transfer harness needs
+     * them, and the import side is gated by the administrator permission no demo account holds.
+     */
     private static final Set<String> DEMO_BLOCKED_PATHS = Set.of(
             "/api/v1/auth/change-password",
             "/api/v1/auth/set-password",
@@ -310,6 +311,21 @@ public class ApiServer {
     }
 
     /**
+     * Counts a successful read of a public page. Only a page handler that resolved the page stores its
+     * id on the context, so file serves, partner lookups and misses are never counted.
+     */
+    private void recordPublicPageHit(Context ctx) {
+        if (ctx.method() != HandlerType.GET) return;
+        if (ctx.statusCode() >= 400) return;
+        Object pageIdAttr = ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID);
+        if (!(pageIdAttr instanceof Integer pageId)) return;
+        String country = ctx.header("CF-IPCountry");
+        String referer = refererExtractor.extract(ctx.header("Referer"));
+        boolean isBot = botClassifier.isBot(ctx.userAgent());
+        pageHitRecorder.record(pageId, country, referer, isBot);
+    }
+
+    /**
      * Adds a request to the per-station traffic counters. Runs as a Javalin request logger, after
      * the response is written, so Jetty has counted what it sent.
      */
@@ -388,10 +404,6 @@ public class ApiServer {
 
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
-            if (demoConfig.dev()) {
-                // config.bundledPlugins.enableDevLogging();
-            }
-
             config.bundledPlugins.enableCors(cors -> cors.addRule(rule -> {
                 for (String origin : apiConfig.allowedOrigins()) {
                     rule.allowHost(origin);
@@ -411,29 +423,8 @@ public class ApiServer {
             config.requestLogger.http(this::recordTiming);
             config.requestLogger.http(this::recordTraffic);
 
-            // Per-public-page hit counters. Only fires when a public page
-            // handler has resolved the page row and stashed its id on the context - file
-            // serves, partner lookups, and 404s are excluded by construction.
-            config.routes.after(ctx -> {
-                if (ctx.method() != HandlerType.GET) return;
-                if (ctx.statusCode() >= 400) return;
-                Object pageIdAttr = ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID);
-                if (!(pageIdAttr instanceof Integer pageId)) return;
-                String country = ctx.header("CF-IPCountry");
-                String referer = refererExtractor.extract(ctx.header("Referer"));
-                boolean isBot = botClassifier.isBot(ctx.userAgent());
-                pageHitRecorder.record(pageId, country, referer, isBot);
-            });
+            config.routes.after(this::recordPublicPageHit);
 
-            // demoConfig.enabled() vs demoConfig.dev():
-            //   - enabled(): public demo mode - the instance is reset on an idle timer and
-            //     handed to anonymous visitors. handleDemoGuard runs to block destructive
-            //     and externally-effecting endpoints (account deletion, external probes,
-            //     real-mail tests, file uploads, AI calls, …). See DEMO_BLOCKED_PATHS.
-            //   - dev(): local-development flag. Enables /api/v1/dev/errors, relaxes secure-
-            //     cookie requirements over plain HTTP, and skips the eager admin bootstrap.
-            //     NO endpoints are blocked in dev mode - the demo guard is intentionally
-            //     not attached so transfer, uploads, probes and everything else are usable.
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
             }
@@ -480,6 +471,9 @@ public class ApiServer {
      *       WebAuthn enrolment routes (would lock a demo session out behind a key that cannot
      *       be reproduced after the demo resets).</li>
      * </ol>
+     *
+     * <p>Attached only in public demo mode. The local development flag blocks nothing, so transfer,
+     * uploads and probes stay usable there.
      */
     private void handleDemoGuard(@NotNull Context ctx) {
         String path = ctx.path();

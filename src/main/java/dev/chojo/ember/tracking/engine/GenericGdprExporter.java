@@ -60,6 +60,10 @@ public final class GenericGdprExporter {
         return result;
     }
 
+    /**
+     * The select for one table's rows of this identity. A uuid identity is cast in the SQL, since the
+     * driver binds the parameter as varchar and the database refuses to compare that with a uuid.
+     */
     private static String buildSelectSql(
             TableEntry table,
             String tableName,
@@ -82,8 +86,6 @@ public final class GenericGdprExporter {
         sb.append(" FROM ").append(tableName).append(" t");
         lookups.appendJoins(sb);
 
-        // UUID columns require an explicit cast on the bind, otherwise the JDBC parameter is
-        // treated as varchar and PG rejects the comparison.
         String cast = type == IdentityType.MEMBER_UID ? "::uuid" : "";
 
         sb.append(" WHERE ");

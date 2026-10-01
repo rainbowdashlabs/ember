@@ -119,11 +119,9 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
                 List.of(),
                 List.of());
 
-        // Mark first two news as blog entries
         newsService.updatePublicBlog(news1.id(), true);
         newsService.updatePublicBlog(news2.id(), true);
 
-        // Comments on news
         int comment1 = comment(news1.id(), null, elternMembers.get(0), "Super, endlich eine moderne Plattform!");
         comment(news1.id(), comment1, betreuerMembers.getFirst(), "Danke! Bei Fragen einfach melden.");
         comment(news1.id(), null, elternMembers.get(1), "Kann man hier auch Abwesenheiten eintragen?");

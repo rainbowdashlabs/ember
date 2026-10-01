@@ -133,13 +133,12 @@ public class Mailing {
      *
      * <p>An instance written before the providers became one list has none of its own; its first
      * provider still stands in the fields on this element, with the rest behind {@code fallbacks}.
-     * Both are folded into the same list here, so nothing has to be saved before it sends.
+     * Both are folded into the same list here, so nothing has to be saved before it sends. A bare
+     * configuration still names SMTP, so only a sender address says the old fields were ever filled
+     * in; without one, an untouched instance would try to send through an empty host.
      */
     public List<MailProviderEntry> providers() {
         if (providers != null && !providers.isEmpty()) return providers;
-        // A bare configuration still names SMTP, so the sender address is what says whether anybody
-        // ever filled the old fields in. Without this an untouched instance claims a provider and
-        // tries to send through an empty host.
         if (provider == null || provider == MailProviderType.NONE || senderAddress == null || senderAddress.isBlank()) {
             return Collections.emptyList();
         }

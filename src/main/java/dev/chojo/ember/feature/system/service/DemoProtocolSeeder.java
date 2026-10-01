@@ -61,7 +61,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
                 "Prüfungsbogen für die Jugendflamme der Jugendfeuerwehr, Stufe 1.",
                 50);
 
-        // === Notruf (8P) ===
         var notruf = repo.createSection(protocol.id(), null, "Notruf", "", 8, null, 0);
 
         var wFragen = repo.createSection(protocol.id(), notruf.id(), "5 W-Fragen", "", 5, null, 0);
@@ -76,7 +75,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
         repo.createItem(notrufNummern.id(), "110", "", ONE, 1);
         repo.createItem(notrufNummern.id(), "116117", "", ONE, 2);
 
-        // === Knoten und Stiche (11P) ===
         var knoten = repo.createSection(protocol.id(), null, "Knoten und Stiche", "", 11, null, 1);
 
         var dreiVonVier = repo.createSection(protocol.id(), knoten.id(), "3 von 4 Knoten", "", 3, null, 0);
@@ -102,7 +100,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
         repo.createItem(einbinden.id(), "Korrekt gesicherte Strahlrohrkupplung (Ankerstich oder Mastwurf)", "", ONE, 0);
         repo.createItem(einbinden.id(), "Korrekt gesichertes Strahlrohr", "", ONE, 1);
 
-        // === Schläuche (15P) ===
         var schlauche = repo.createSection(protocol.id(), null, "Schläuche", "", 15, null, 2);
 
         var groessen =
@@ -130,7 +127,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
         repo.createItem(auswerfen.id(), "Kuppeln", "", ONE, 4);
         repo.createItem(auswerfen.id(), "Aufrollen", "", ONE, 5);
 
-        // === Verteiler (10P) ===
         var verteiler = repo.createSection(protocol.id(), null, "Verteiler", "", 10, null, 3);
 
         var verteilerBenennung =
@@ -153,7 +149,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
         var sinnVerteiler = repo.createSection(protocol.id(), verteiler.id(), "Sinn und Zweck", "", 2, null, 3);
         repo.createItem(sinnVerteiler.id(), "Kontrollierbare Wasserversorgung", "", ONE, 0);
 
-        // === Strahlrohr (11P) ===
         var strahlrohr = repo.createSection(protocol.id(), null, "Strahlrohr", "", 11, null, 4);
 
         var strahlrohrName = repo.createSection(protocol.id(), strahlrohr.id(), "Name", "", 1, null, 0);
@@ -177,7 +172,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
         repo.createItem(wasserabgabe.id(), "B ohne Mundstück", "", ONE, 4);
         repo.createItem(wasserabgabe.id(), "C mit Mundstück", "", ONE, 5);
 
-        // === Erste Hilfe (12P) ===
         var ersteHilfe = repo.createSection(protocol.id(), null, "Erste Hilfe", "", 12, null, 5);
 
         var rettungskette = repo.createSection(protocol.id(), ersteHilfe.id(), "Rettungskette", "", 5, null, 0);
@@ -198,7 +192,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
                 protocol.id(), ersteHilfe.id(), "Praxis: Lege einen Druckverband an", "", 3, null, 2);
         repo.createItem(druckverband.id(), "Korrekte Ausführung", "", ONE, 0);
 
-        // === Unterflurhydrant (5P) ===
         var hydrant = repo.createSection(protocol.id(), null, "Unterflurhydrant", "", 5, null, 6);
 
         var hydrantSchild = repo.createSection(
@@ -218,7 +211,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
                 1);
         repo.createItem(hydrantFinden.id(), "Korrekt gefunden", "", ONE, 0);
 
-        // === Open run for 2026 ===
         if (!memberIds.isEmpty()) {
             var run = repo.createRun(protocol.id(), stationId, "Übungsprüfung 2026", today, createdBy);
             for (int memberId : memberIds) {
@@ -226,7 +218,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
             }
         }
 
-        // === Completed run from 2025 ===
         if (!memberIds.isEmpty()) {
             var allItems = repo.findAllItemsByProtocol(protocol.id());
             var rng = new Random(42);
@@ -242,7 +233,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
             for (int memberId : memberIds) {
                 var rm = repo.addRunMember(pastRun.id(), memberId);
 
-                // Randomly check 60-95% of items
                 double passRate = 0.60 + rng.nextDouble() * 0.35;
                 double score = 0;
                 for (var item : allItems) {
@@ -251,7 +241,6 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
                     if (passed) score += item.points();
                 }
 
-                // Mark all top-level sections as done
                 var sections = repo.findSections(protocol.id());
                 for (var s : sections) {
                     if (s.parentId() == null) {

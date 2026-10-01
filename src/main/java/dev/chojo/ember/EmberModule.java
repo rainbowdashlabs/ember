@@ -608,7 +608,6 @@ public class EmberModule extends AbstractModule {
         commentTargets.addBinding(CommentEntityType.NEWS).to(NewsCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.BOARD_TICKET).to(TicketCommentTarget.class);
 
-        // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
         eventBinder.addBinding().to(EventsBatchCreatedHandler.class);
@@ -913,22 +912,24 @@ public class EmberModule extends AbstractModule {
         return left.compareTo(right) <= 0 ? left : right;
     }
 
+    /**
+     * Migrates the schema and installs the thread-scoped query configuration as the default.
+     *
+     * <p>The migration is skipped only in full demo mode, which drops and migrates the schema on every
+     * start anyway; everywhere else it must run before services whose constructors already query it.
+     * Before 1.60 merges duplicate profile fields, their answers and definitions are copied to the data
+     * volume, not to a table, because a table would travel with a station export. The configuration is
+     * thread-scoped so that services grouping writes with {@code Transactions.run} reach their
+     * repositories inside the same transaction.
+     */
     @Provides
     @Singleton
     QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
             throws SQLException, IOException {
-        // Skip the up-front migration only in full demo mode, where DemoService.resetAndSeed()
-        // drops the schema and re-runs the migration on every start. In every other mode -
-        // production, plain dev (DEMO_DEV=true without DEMO_ENABLED), and a fresh database under
-        // either - the schema must be in place before Guice provisions services whose
-        // constructors already query it.
         if (!demo.enabled()) {
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))
                     .setSchemas(database.schema())
-                    // 1.60 merges profile fields that ask the same question, which discards answers
-                    // and definitions. The copy goes to the data volume rather than to a table,
-                    // because a table beside the live ones travels with a station export.
                     .preUpdateHook(
                             new SqlVersion(1, 60),
                             connection -> ProfileFieldMergeBackup.writeTo(connection, database.schema()))
@@ -940,8 +941,6 @@ public class EmberModule extends AbstractModule {
                 .setThrowExceptions(true)
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
-        // Thread-scoped, so a service that groups writes with Transactions.run reaches the
-        // repositories it calls. Outside such a block this is the plain configuration.
         var scoped = Transactions.threadScoped(config);
         QueryConfiguration.setDefault(scoped);
         return scoped;

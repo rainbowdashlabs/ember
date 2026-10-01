@@ -17,6 +17,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
@@ -122,12 +123,13 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
 
         for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
             int weekOfYear = date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
-            if (weekOfYear >= 28 && weekOfYear <= 33) continue; // summer break
+            boolean summerBreak = weekOfYear >= 28 && weekOfYear <= 33;
+            if (summerBreak) continue;
 
-            int dow = date.getDayOfWeek().getValue();
+            DayOfWeek dayOfWeek = date.getDayOfWeek();
             boolean isToday = date.equals(today);
 
-            if (dow == 1) { // Monday: Übung
+            if (dayOfWeek == DayOfWeek.MONDAY) {
                 Instant start = days.at(date, 17, 30);
                 Instant end = days.at(date, 19, 0);
                 var sess = attendanceRepository.createSession(
@@ -151,7 +153,8 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
                 sessionCount++;
             }
 
-            if (dow == 6 && date.getDayOfMonth() <= 7) { // 1st Saturday: Gesamtübung
+            boolean firstSaturday = dayOfWeek == DayOfWeek.SATURDAY && date.getDayOfMonth() <= 7;
+            if (firstSaturday) {
                 Instant start = days.at(date, 10, 0);
                 Instant end = days.at(date, 13, 0);
                 var sess = attendanceRepository.createSession(

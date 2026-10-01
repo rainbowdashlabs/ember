@@ -156,10 +156,11 @@ public class AdminSettingsRoutes implements Routes {
         return locale;
     }
 
+    /**
+     * The folder of one language under the legal directory. The path is checked again even though
+     * {@link #safeLocale} validated it, so a caller that skips that gate still cannot escape.
+     */
     private static Path resolveLocaleDir(Path base, String locale) {
-        // safeLocale has already validated the value, but re-check the resolved
-        // path so a future caller that forgets the validation gate is still
-        // caught here rather than escaping the legal directory.
         Path resolved = base.resolve(locale).normalize();
         if (!resolved.startsWith(base.normalize())) {
             throw Refusal.SETTINGS_LOCALE_FOLDER_OUT_OF_PLACE.raise();
@@ -319,8 +320,7 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void initializeLogoFragments() {
-        // Map from API name (used by frontend) to resource filename
-        Map.Entry<String, String>[] fragments = new Map.Entry[] {
+        Map.Entry<String, String>[] resourceByApiName = new Map.Entry[] {
             Map.entry("fire_blank", "fire_blank"),
             Map.entry("fire_blink", "fire_blink_mid"),
             Map.entry("fire_blink_left", "fire_blink_left"),
@@ -337,7 +337,7 @@ public class AdminSettingsRoutes implements Routes {
             Map.entry("fire_woah_one", "fire_woah_one"),
             Map.entry("fire_woah_two", "fire_woah_two"),
         };
-        for (var fragment : fragments) {
+        for (var fragment : resourceByApiName) {
             storeLogoFragmentIfChanged(fragment.getKey(), "logo_fragments/" + fragment.getValue() + ".png");
         }
     }
@@ -958,6 +958,11 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(readLegalFiles(resolveLocaleDir(dir, locale), locale));
     }
 
+    /** A section's name without the disabled marker and order prefix: {@code _01-name.md} reads {@code name}. */
+    private static String displayNameOf(String fileName) {
+        return fileName.replaceFirst("^_?\\d+-", "").replaceFirst("\\.md$", "");
+    }
+
     private List<LegalFileEntry> readLegalFiles(Path localeDir, String locale) {
         List<LegalFileEntry> files = new ArrayList<>();
         if (!Files.isDirectory(localeDir)) return files;
@@ -972,9 +977,7 @@ public class AdminSettingsRoutes implements Routes {
                 String content = generated
                         ? documentService.browserStorage().toMarkdown(locale)
                         : Files.readString(file, StandardCharsets.UTF_8);
-                // Strip the leading _ and numeric prefix for display: _01-name.md or 01-name.md -> name
-                String displayName = rawName.replaceFirst("^_?\\d+-", "").replaceFirst("\\.md$", "");
-                files.add(new LegalFileEntry(rawName, displayName, content, enabled, generated));
+                files.add(new LegalFileEntry(rawName, displayNameOf(rawName), content, enabled, generated));
             }
         } catch (IOException e) {
             log.error("Failed to list legal files in {}", localeDir, e);
@@ -1134,13 +1137,11 @@ public class AdminSettingsRoutes implements Routes {
         var request = ctx.bodyAsClass(LegalFileEntry[].class);
         try {
             Files.createDirectories(localeDir);
-            // Delete all existing .md files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
                 for (Path old : stream) {
                     Files.delete(old);
                 }
             }
-            // Write files in order with numeric prefix
             for (int i = 0; i < request.length; i++) {
                 var entry = request[i];
                 String prefix = String.format("%02d", i + 1);

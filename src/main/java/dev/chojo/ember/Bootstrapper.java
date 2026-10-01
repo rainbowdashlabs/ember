@@ -41,6 +41,11 @@ import java.util.Set;
  * Application entry point that initializes the Guice injector, runs database migrations,
  * seeds demo data or creates a default admin account, and starts the API server.
  *
+ * <p>The query configuration and the domain event bus are fetched eagerly because creating them is
+ * what makes {@code query(...)} work globally and registers every event handler. Whether this start
+ * is an update is known only from what the previous start stored, so the changelog announcement runs
+ * once the schema is certain and before the API is up.
+ *
  * <p>Background work starts last: the scheduled tasks once the schema is certain, the demo data is in
  * place and the HTTP port is open, then the one-shot jobs (search index rebuild, Cloudflare ranges).
  * The shutdown hook is installed before any of it, so everything that starts is also stopped in order.
@@ -78,18 +83,14 @@ public class Bootstrapper {
         var conf = new Conf();
         SecretsInitializer.ensure(conf);
         var injector = Guice.createInjector(new EmberModule(conf));
-        // Eagerly initialize the query configuration so query(...) works globally
         injector.getInstance(QueryConfiguration.class);
         injector.getInstance(StationKeyStore.class).sealLegacyKeys();
         injector.getInstance(AiCredentialService.class).sealLegacyStationKeys();
-        // Initialize domain event bus (registers all handlers)
         injector.getInstance(DomainEventBus.class);
         injector.getInstance(TransferTimeoutWatchdog.class);
 
-        // Initialize data directory from templates if empty
         injector.getInstance(DataInitializer.class).initialize();
 
-        // Demo mode: wipe and seed before starting
         var demoService = injector.getInstance(DemoService.class);
         if (demoService.isEnabled()) {
             demoService.initialize();
@@ -102,15 +103,11 @@ public class Bootstrapper {
                     injector.getInstance(Api.class));
         }
 
-        // Initialize legal document versioning (detect changes, archive old versions)
         injector.getInstance(ConsentService.class).initialize();
 
         var updateCheck = injector.getInstance(UpdateCheckService.class);
         injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
 
-        // Whether this start is an update is a question only the previous start can answer, and the
-        // answer is kept in the database, so it is asked where the schema is certain and before the
-        // API is up and anybody could be looking at the news.
         injector.getInstance(ChangelogAnnouncer.class).announce();
 
         var tasks = injector.getInstance(TASK_SOURCES).stream()

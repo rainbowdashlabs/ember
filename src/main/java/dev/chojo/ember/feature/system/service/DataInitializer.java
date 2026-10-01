@@ -138,7 +138,6 @@ public class DataInitializer {
         for (String templateFile : TEMPLATE_FILES) {
             if (!templateFile.startsWith(directory)) continue;
             String name = fileName(templateFile);
-            // A section Ember ships switched off is not part of the document until someone enables it.
             if (name.startsWith("_")) continue;
             String content = readTemplate(templateFile);
             sections.add(new TemplateSection(name, content == null ? "" : content, false));
@@ -208,7 +207,6 @@ public class DataInitializer {
             log.info("Initialized legal document templates in {}", targetDir);
         }
 
-        // Ensure runtime directories exist
         ensureDirectory(dataDir.resolve("images"));
         ensureDirectory(dataDir.resolve("kb-files"));
 

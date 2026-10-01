@@ -287,6 +287,12 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         log.info("Demo: Created procurements");
     }
 
+    /**
+     * Seeds the clothing inventories with their sizes and group requirements and kits every kid out.
+     *
+     * <p>About three in ten kids go without a sports bag, so the procurements have something to order,
+     * and about four in ten station items get a history of one to three earlier holders.
+     */
     public void seedInventory(
             int stationId,
             Random rng,
@@ -294,14 +300,12 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             List<StationMember> fortgeschritten,
             int anfaengerGroupId,
             int fortgeschrittenGroupId) {
-        // Sizes reference from existing data
         var kleidungSizes = List.of("140", "146", "152", "158", "164", "170", "176", "182");
         var parkaSizes = List.of("XXXXS", "XXXS", "XXS", "XS", "S", "M", "L");
         var handschuhSizes = List.of("4", "5", "6", "7", "8", "9", "10");
         var stiefelSizes = List.of("34", "35", "36", "37", "38", "39", "40", "41", "42", "43");
         var tshirtSizes = List.of("128", "140", "152", "164", "176");
 
-        // Create inventories
         var helm = inventoryRepository.create(
                 stationId, "Helm", InventoryType.MIXED, false, true, Glyph.of("helmet-safety", "#2563eb"));
 
@@ -338,19 +342,10 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         for (int i = 0; i < tshirtSizes.size(); i++)
             inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
 
-        // Gear whose owner is not on this instance: the same ownership with nobody behind it, which is what
-        // makes the asserted half of the model visible. Every station keeps some, association or not.
-        //
-        // It is also the drawer of different things, which is why it is the one inventory here that is not
-        // marked as holding one thing in many copies: several names under one heading, fetched for an
-        // occasion and handed back. With it marked, the barrier is something the demo shows rather than
-        // something only the tests know about, and the three features that need one thing are simply not
-        // offered on it.
         var gemeindematerial =
                 inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false, false);
         seedGemeindematerial(stationId, gemeindematerial.id());
 
-        // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
         for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
             inventoryRepository.createRequirement(helm.id(), null, groupId, null, 1);
             inventoryRepository.createRequirement(blouson.id(), null, groupId, null, 1);
@@ -362,7 +357,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             inventoryRepository.createRequirement(tshirt.id(), null, groupId, null, 2);
         }
 
-        // Create items and assign to members
         var allKids = new ArrayList<>(anfaenger);
         allKids.addAll(fortgeschritten);
 
@@ -377,7 +371,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         for (var member : allKids) {
             int idx = allKids.indexOf(member);
 
-            // Helm (mixed inventory, no size) - provided by the station itself
             var helmItem = inventoryRepository.createItem(
                     helm.id(),
                     "H-" + String.format("%03d", itemCounter++),
@@ -388,7 +381,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     null);
             custodyService.assignToMember(helmItem.id(), member.id(), "");
 
-            // Blouson (provided by the body above the station)
             var blousonItem = inventoryRepository.createItem(
                     blouson.id(),
                     "BL-" + String.format("%03d", itemCounter++),
@@ -399,7 +391,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     null);
             custodyService.assignToMember(blousonItem.id(), member.id(), "");
 
-            // Parka (provided by the body above the station)
             var parkaItem = inventoryRepository.createItem(
                     parka.id(),
                     "PA-" + String.format("%03d", itemCounter++),
@@ -410,7 +401,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     null);
             custodyService.assignToMember(parkaItem.id(), member.id(), "");
 
-            // Latzhose (provided by the body above the station)
             var latzItem = inventoryRepository.createItem(
                     latzhose.id(),
                     "LH-" + String.format("%03d", itemCounter++),
@@ -421,7 +411,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     null);
             custodyService.assignToMember(latzItem.id(), member.id(), "");
 
-            // Handschuhe (mixed inventory) - provided by the station itself
             var handschuhItem = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
@@ -432,7 +421,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     null);
             custodyService.assignToMember(handschuhItem.id(), member.id(), "");
 
-            // Stiefel (station-owned)
             var stiefelItem = inventoryRepository.createItem(
                     stiefel.id(),
                     "ST-" + String.format("%03d", itemCounter++),
@@ -443,7 +431,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     null);
             custodyService.assignToMember(stiefelItem.id(), member.id(), "");
 
-            // T-Shirt (station-owned, 2 per member)
             for (int t = 0; t < 2; t++) {
                 var tshirtItem = inventoryRepository.createItem(
                         tshirt.id(),
@@ -456,7 +443,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                 custodyService.assignToMember(tshirtItem.id(), member.id(), "");
             }
 
-            // Sporttasche (station-owned, ~70% get one, rest need procurement)
             if (rng.nextInt(10) < 7) {
                 var tasche = inventoryRepository.createItem(
                         sporttasche.id(),
@@ -470,7 +456,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             }
         }
 
-        // Add some unassigned spare items, all station-owned
         for (int i = 0; i < 5; i++) {
             inventoryRepository.createItem(
                     helm.id(),
@@ -492,7 +477,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     null);
         }
 
-        // One glove per size provided by the body above the station, in the same mixed inventory
         var handschuhSizeListOwned = inventoryRepository.findSizes(handschuhe.id());
         for (var size : handschuhSizeListOwned) {
             var kid = allKids.get(rng.nextInt(allKids.size()));
@@ -507,8 +491,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             custodyService.assignToMember(ownedGlove.id(), kid.id(), "");
         }
 
-        // Generate item assignment history for internal items
-        // For ~40% of items, create a history of 1-3 previous owners
         var internalInventoryIds = List.of(helm.id(), stiefel.id(), sporttasche.id(), handschuhe.id());
         var allInternalItems = new ArrayList<InventoryItem>();
         for (int invId : internalInventoryIds) {
@@ -519,7 +501,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         for (var item : allInternalItems) {
             Integer holder = item.assignedTo();
             if (holder == null) continue;
-            if (rng.nextInt(10) < 6) continue; // skip 60%
+            if (rng.nextInt(10) < 6) continue;
 
             int prevOwnerCount = 1 + rng.nextInt(3);
             Instant cursor = Instant.now().minus(Duration.ofDays(365 + rng.nextInt(730)));
@@ -542,7 +524,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                 historyCount++;
             }
 
-            // Current owner - given out after last return, no return date
             var currentAccount = accountRepository
                     .findById(allKids.stream()
                             .filter(m -> m.id() == holder)
@@ -709,6 +690,10 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
      * most pieces and the state every screen has to read without complaining. A field hangs on one
      * of the kinds rather than on the inventory, because a call sign is nonsense on a coffee machine
      * standing in the same cupboard.
+     *
+     * <p>Its owner is not on this instance, which makes the asserted half of the ownership model
+     * visible, and it is the one inventory not marked as holding one thing in many copies, so the demo
+     * shows the features that need that being withheld on it.
      */
     private void seedGemeindematerial(int stationId, int inventoryId) {
         var blau = artRepository.create(
@@ -836,14 +821,12 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         var allKids = new ArrayList<>(anfaenger);
         allKids.addAll(fortgeschritten);
 
-        // Some Betreuer checked some kids
         int checkedCount = 0;
         for (StationMember allKid : allKids) {
-            if (rng.nextInt(3) != 0) continue; // ~1/3 of kids have been checked
+            if (rng.nextInt(3) != 0) continue;
             var checker = betreuer.get(rng.nextInt(betreuer.size()));
             var check = inventoryCheckRepository.createCheck(stationId, allKid.id(), checker.id());
 
-            // Check all items assigned to this kid
             var items = inventoryRepository.findItemsByMember(allKid.id());
             for (var item : items) {
                 CheckResult result;

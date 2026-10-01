@@ -67,7 +67,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
     }
 
     public void seedQuiz(int stationId, int createdBy, List<Integer> memberIds) {
-        // -- Anfänger-Katalog (40+ questions) --
         var anfaengerCatalog = quizCatalogRepository.create(
                 stationId,
                 "Anfänger-Wissen",
@@ -84,7 +83,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
         var catNotruf = quizCatalogRepository.createCategory(
                 stationId, "Notruf & Erste Hilfe", "Notruf absetzen und Erste Hilfe leisten", 3);
 
-        // Grundlagen (MC)
         createMcQuestion(
                 anfaengerCatalog.id(),
                 catGrundlagen.id(),
@@ -159,7 +157,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 9,
                 false);
 
-        // Ausrüstung (MC + Connect + Ordering)
         createMcQuestion(
                 anfaengerCatalog.id(),
                 catAusruestung.id(),
@@ -233,7 +230,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 List.of("A-Schlauch", "B-Schlauch", "C-Schlauch", "D-Schlauch"),
                 List.of("110 mm", "75 mm", "52 mm", "25 mm"));
 
-        // Verhalten im Einsatz
         createMcQuestion(
                 anfaengerCatalog.id(),
                 catVerhalten.id(),
@@ -313,7 +309,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 List.of(0),
                 0.5);
 
-        // Notruf & Erste Hilfe
         createMcQuestion(
                 anfaengerCatalog.id(),
                 catNotruf.id(),
@@ -384,7 +379,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 List.of(0),
                 0.5);
 
-        // -- Fortgeschrittenen-Katalog (20+ questions) --
         var fortCatalog = quizCatalogRepository.create(
                 stationId,
                 "Fortgeschrittenen-Wissen",
@@ -398,7 +392,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
         var catTechnik = quizCatalogRepository.createCategory(
                 stationId, "Fahrzeug & Technik", "Fahrzeugtypen, Geräte und Technik", 6);
 
-        // Brandlehre
         createMcQuestion(
                 fortCatalog.id(),
                 catBrandlehre.id(),
@@ -458,7 +451,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
         createTfQuestion(
                 fortCatalog.id(), catBrandlehre.id(), "CO2 löscht Feuer, indem es den Sauerstoff verdrängt.", 7, true);
 
-        // Einsatztaktik
         createMcQuestion(
                 fortCatalog.id(),
                 catTaktik.id(),
@@ -524,7 +516,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 7,
                 List.of("Gruppenführer", "Angriffstrupp"));
 
-        // Fahrzeug & Technik
         createMcQuestion(
                 fortCatalog.id(),
                 catTechnik.id(),
@@ -573,7 +564,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 5,
                 List.of("Korb", "Einsatzleitwagen"));
 
-        // -- Test: Jugendfeuerwehr-Prüfung --
         var test = quizTestRepository.create(
                 stationId,
                 "Jugendfeuerwehr-Prüfung",
@@ -582,15 +572,12 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 false,
                 false,
                 createdBy);
-        // Section 1: Anfänger (20 questions from anfänger catalog)
         var section1 =
                 quizTestRepository.createSection(test.id(), "Grundwissen", "20 Fragen aus dem Anfänger-Katalog", 0);
         quizTestRepository.createSource(section1.id(), anfaengerCatalog.id(), null, 20);
-        // Section 2: Fortgeschrittene (10 questions from fort catalog)
         var section2 = quizTestRepository.createSection(
                 test.id(), "Fortgeschrittenen-Wissen", "10 Fragen aus dem Fortgeschrittenen-Katalog", 1);
         quizTestRepository.createSource(section2.id(), fortCatalog.id(), null, 10);
-        // Set start/end dates and activate the test
         quizService.updateTest(
                 test.id(),
                 test.title(),
@@ -602,7 +589,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 Instant.now().plus(30, ChronoUnit.DAYS));
         quizService.activateTest(test.id());
 
-        // -- Test 2: Draft test (not yet active) --
         var draftTest = quizTestRepository.create(
                 stationId,
                 "Brandschutz-Übungstest",
@@ -617,7 +603,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 quizTestRepository.createSection(draftTest.id(), "Einsatztaktik", "Fragen zur Einsatztaktik", 1);
         quizTestRepository.createSource(draftSection2.id(), fortCatalog.id(), catTaktik.id(), 5);
 
-        // -- Test 3: Showcase test with every question type --
         var showcaseCatalog = quizCatalogRepository.create(
                 stationId, "Showcase-Katalog", "Ein Katalog mit je einer Frage pro Typ", true, CatalogMetadata.none());
         var catShowcase = quizCatalogRepository.createCategory(stationId, "Showcase", "Demo aller Fragetypen", 7);
@@ -653,7 +638,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 4,
                 List.of("Helm", "Handschuhe"),
                 List.of("Stiefel", "Jacke"));
-        // IMAGE_TEXT question with actual image
         var imageTextQuestion = quizCatalogRepository.createQuestion(
                 showcaseCatalog.id(),
                 catShowcase.id(),
@@ -708,22 +692,23 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 Instant.now().plus(60, ChronoUnit.DAYS));
         quizService.activateTest(showcaseTest.id());
 
-        // -- Demo attempts for the main test --
         seedAttempts(test.id(), memberIds);
 
-        // -- Demo attempt on showcase test needing manual correction --
         seedShowcaseAttemptForGrading(showcaseTest.id(), memberIds);
     }
 
+    /** How well one of the first members answers the main test. */
+    private record PlannedAttempt(int memberIndex, int correctPercent) {}
+
+    /** Three submitted attempts of varying quality on the main test; one that cannot be started is skipped. */
     private void seedAttempts(int testId, List<Integer> memberIds) {
         if (memberIds.size() < 3) return;
 
-        // Create 3 demo attempts with varying quality
-        int[][] memberAnswerQuality = {{0, 80}, {1, 50}, {2, 30}}; // memberIndex, correctPercent
+        var plannedAttempts = List.of(new PlannedAttempt(0, 80), new PlannedAttempt(1, 50), new PlannedAttempt(2, 30));
 
-        for (var maq : memberAnswerQuality) {
-            int memberId = memberIds.get(maq[0]);
-            int correctPercent = maq[1];
+        for (var planned : plannedAttempts) {
+            int memberId = memberIds.get(planned.memberIndex());
+            int correctPercent = planned.correctPercent();
             try {
                 var attempt = quizService.startAttempt(testId, memberId);
                 var questions = quizService.findAttemptQuestions(attempt.id());
@@ -740,8 +725,7 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 }
 
                 quizService.submitAttempt(attempt.id());
-            } catch (Exception e) {
-                // Skip if attempt creation fails
+            } catch (Exception _) {
             }
         }
     }
@@ -750,10 +734,11 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
      * Creates a submitted attempt on the showcase test that needs manual grading.
      * Auto-gradable answers (MC, TF, connect, ordering, fill-blank) are filled in correctly.
      * FREE_ANSWER and IMAGE_TEXT answers are provided but left for manual grading by {@link QuizService#submitAttempt}.
+     * The fourth member takes it, clear of the main test's attempts; if the attempt cannot be started,
+     * none is seeded.
      */
     private void seedShowcaseAttemptForGrading(int showcaseTestId, List<Integer> memberIds) {
         if (memberIds.size() < 4) return;
-        // Use the 4th member (index 3) to avoid conflicts with the main test attempts (indices 0-2)
         int memberId = memberIds.get(3);
         try {
             var attempt = quizService.startAttempt(showcaseTestId, memberId);
@@ -763,18 +748,14 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 var question = quizService.findQuestion(aq.questionId());
                 if (question.isEmpty()) continue;
                 var q = question.get();
-                // Provide correct answers for auto-gradable types, meaningful text for manual types
                 String answer = generateShowcaseAnswer(q);
                 if (answer != null) {
                     quizService.saveAnswer(attempt.id(), q.id(), answer);
                 }
             }
 
-            // submitAttempt auto-grades MC, TF, connect, ordering, fill-blank
-            // but leaves FREE_ANSWER and IMAGE_TEXT ungraded (graded=false)
             quizService.submitAttempt(attempt.id());
-        } catch (Exception e) {
-            // Skip if attempt creation fails (e.g. member already has an attempt)
+        } catch (Exception _) {
         }
     }
 
@@ -783,7 +764,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
             var cfg = q.configNode();
             return switch (q.quizQuestionType()) {
                 case MULTIPLE_CHOICE -> {
-                    // Select all correct options
                     var options = cfg.get("options");
                     if (options == null) yield null;
                     var selected = new ArrayList<Integer>();
@@ -897,7 +877,6 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                         if (correct) {
                             map.put(String.valueOf(i), pairs.get(i).get("right").asString());
                         } else {
-                            // Shift answers by one
                             int wrongIdx = (i + 1) % pairs.size();
                             map.put(
                                     String.valueOf(i),

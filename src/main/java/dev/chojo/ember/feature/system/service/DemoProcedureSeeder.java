@@ -51,7 +51,6 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
             List<StationMember> betreuer,
             List<StationMember> anfaenger,
             Random rng) {
-        // === Template 1: New Member Onboarding ===
         var onboarding = repo.createTemplate(
                 stationId,
                 "Einführung neues Mitglied",
@@ -103,8 +102,6 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 false,
                 6);
 
-        // Dependencies: clothing after forms + payment, safety after clothing, group after safety, probation after
-        // group
         repo.setTemplateItemDependencies(
                 onboarding.id(),
                 List.of(
@@ -114,7 +111,6 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                         new int[] {ob6.id(), ob5.id()},
                         new int[] {ob7.id(), ob6.id()}));
 
-        // === Template 2: Equipment Handout ===
         var equipment = repo.createTemplate(
                 stationId,
                 "Ausrüstungsausgabe",
@@ -146,7 +142,6 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 true,
                 6);
 
-        // === Procedure 1: Completed onboarding (from template) ===
         var completedProc = createFromTemplate(
                 stationId,
                 onboarding.id(),
@@ -156,7 +151,6 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 admin.id(),
                 null);
         repo.addAssignee(completedProc.id(), anfaenger.getFirst().id());
-        // Check all items
         var items1 = repo.findItems(completedProc.id());
         for (var item : items1) {
             repo.checkItem(
@@ -165,10 +159,8 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                             ? anfaenger.getFirst().id()
                             : betreuer.getFirst().id());
         }
-        // Resolve it
         repo.resolveProcedure(completedProc.id());
 
-        // === Procedure 2: In-progress onboarding (from template) ===
         var inProgressProc = createFromTemplate(
                 stationId,
                 onboarding.id(),
@@ -181,17 +173,14 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
         if (!betreuer.isEmpty()) {
             repo.addAssignee(inProgressProc.id(), betreuer.getFirst().id());
         }
-        // Check first 3 items (forms, payment, attestation)
         var items2 = repo.findItems(inProgressProc.id());
         for (int i = 0; i < Math.min(3, items2.size()); i++) {
             repo.checkItem(items2.get(i).id(), anfaenger.get(1).id());
         }
-        // Add a note on the 4th item
         if (items2.size() > 3) {
             repo.updateItemNote(items2.get(3).id(), "Größe XS bestellt, wird nächste Woche geliefert.");
         }
 
-        // === Procedure 3: Overdue ad-hoc procedure ===
         var overdueProc = repo.createProcedure(
                 stationId,
                 null,
@@ -212,10 +201,8 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
         repo.createItem(overdueProc.id(), "Teilnehmer anmelden", "Alle Mitglieder zum Kurs anmelden.", true, true, 2);
         repo.createItem(
                 overdueProc.id(), "Kosten abrechnen", "Rechnung an den Förderverein weiterleiten.", true, false, 3);
-        // Check first item
         repo.checkItem(adHocItem1.id(), betreuer.getFirst().id());
 
-        // === Procedure 4: Private procedure (internal task, not visible to members) ===
         var privateProc = repo.createProcedure(
                 stationId,
                 null,
@@ -245,7 +232,6 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
         var procedure =
                 repo.createProcedure(stationId, templateId, name, description, isPublic, assignedBy, dueAt, null, null);
 
-        // Snapshot template items
         var templateItems = repo.findTemplateItems(templateId);
         var templateDeps = repo.findTemplateItemDependencies(templateId);
 

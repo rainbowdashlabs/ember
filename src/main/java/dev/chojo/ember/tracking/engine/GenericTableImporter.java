@@ -106,7 +106,7 @@ public final class GenericTableImporter {
     }
 
     private static String buildInsertSql(String tableName, Map<String, BoundValue> bind, boolean hasIdPk) {
-        if (bind.isEmpty()) return "SELECT 1;"; // shouldn't happen for real tables
+        if (bind.isEmpty()) return "SELECT 1;";
         var cols = new StringBuilder();
         var vals = new StringBuilder();
         boolean first = true;
@@ -157,12 +157,14 @@ public final class GenericTableImporter {
         return c;
     }
 
+    /**
+     * Binds one non-null value by its column type. A uuid or jsonb value is bound as a string; its
+     * cast lives in the SQL.
+     */
     private static Call bindOne(Call c, String name, BoundValue bv) {
-        // Null values were filtered out before reaching this point - see tryBindRow comments.
         Object val = bv.value();
         String type = bv.type();
         return switch (type == null ? "" : type) {
-            // uuid + jsonb take string bindings; the cast lives in the SQL (see castFor).
             case "timestamptz", "timestamp" -> c.bind(name, asInstant(val), StandardValueConverter.INSTANT_TIMESTAMP);
             case "bytea" -> c.bind(name, asBytes(val));
             case "int4", "int8" -> {
@@ -238,7 +240,7 @@ public final class GenericTableImporter {
             Map<String, BoundValue> bind = new LinkedHashMap<>();
 
             if (!tryBindRow(table, tableName, row, stationId, ignored, idMap, bind)) {
-                continue; // unresolvable FK - skip
+                continue;
             }
 
             String sql = buildInsertSql(tableName, bind, hasIdPk);
