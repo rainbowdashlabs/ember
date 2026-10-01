@@ -2682,7 +2682,7 @@ public enum Refusal {
             Area.INVENTORY, 217, HttpStatus.CONFLICT, "This self-check has already been handed in"),
 
     /** A report held back on a self-check about a piece of gear that is gone. */
-    SELF_CHECK_HELD_BACK_ITEM_NOT_HERE(Area.INVENTORY, 218, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_HERE),
+    SELF_CHECK_HELD_BACK_ITEM_NOT_HERE(Area.INVENTORY, 218, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
 
     /** A report held back on a self-check about a piece that is not on the member's record. */
     SELF_CHECK_HELD_BACK_ITEM_NOT_THE_MEMBERS(
@@ -2744,7 +2744,7 @@ public enum Refusal {
             "That answer is about an empty place, not about a piece of gear"),
 
     /** A self-check answer about a piece of gear that is gone. */
-    SELF_CHECK_ANSWERED_ITEM_NOT_HERE(Area.INVENTORY, 231, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_HERE),
+    SELF_CHECK_ANSWERED_ITEM_NOT_HERE(Area.INVENTORY, 231, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
 
     /** A self-check answer about a piece that is not on the member's record. */
     SELF_CHECK_ANSWERED_ITEM_NOT_THE_MEMBERS(
@@ -4726,10 +4726,10 @@ public enum Refusal {
     CLUSTER_INVENTORY_CLUSTER_NOT_HERE(Area.CLUSTERS, 98, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
     /** A word recommended to stations that the cluster already recommends to them. */
-    CLUSTER_INVENTORY_TAG_TAKEN_ON_CREATE(Area.CLUSTERS, 99, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_TAG_TAKEN),
+    CLUSTER_INVENTORY_TAG_TAKEN_ON_CREATE(Area.CLUSTERS, 99, HttpStatus.CONFLICT, Sentences.CLUSTER_TAG_TAKEN),
 
     /** A recommended word changed into one the cluster already recommends to the same stations. */
-    CLUSTER_INVENTORY_TAG_TAKEN_ON_CHANGE(Area.CLUSTERS, 100, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_TAG_TAKEN),
+    CLUSTER_INVENTORY_TAG_TAKEN_ON_CHANGE(Area.CLUSTERS, 100, HttpStatus.CONFLICT, Sentences.CLUSTER_TAG_TAKEN),
 
     /** A recommended word that went between being changed and being read back. */
     CLUSTER_INVENTORY_TAG_NOT_HERE_AFTER_CHANGE(
@@ -4956,7 +4956,7 @@ public enum Refusal {
     CLUSTER_STATION_GROUP_NAME_TAKEN(
             Area.CLUSTERS,
             142,
-            HttpStatus.BAD_REQUEST,
+            HttpStatus.CONFLICT,
             "This cluster already has a group of stations by that name, so nothing was saved"),
 
     /** A tier of room handed out without naming a station to hand it to. */
@@ -5639,7 +5639,7 @@ public enum Refusal {
             Area.MEMBERS, 33, HttpStatus.BAD_REQUEST, "Nothing can be delivered to that address, so nothing was saved"),
 
     /** An address another account on this instance already carries, given at the sign-in stop. */
-    ADDRESS_TAKEN_ON_SETUP(Area.MEMBERS, 34, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
+    ADDRESS_TAKEN_ON_SETUP(Area.MEMBERS, 34, HttpStatus.CONFLICT, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
 
     /** A forgotten password asked about without saying whose. */
     FORGOTTEN_PASSWORD_ADDRESS_MISSING(Area.MEMBERS, 35, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_MISSING),
@@ -5691,7 +5691,7 @@ public enum Refusal {
     EMAIL_CHANGE_TOKEN_MISSING(Area.MEMBERS, 48, HttpStatus.BAD_REQUEST, Sentences.LINK_CARRIES_NOTHING),
 
     /** An address change onto an address another account has taken meanwhile. */
-    EMAIL_CHANGE_ADDRESS_TAKEN(Area.MEMBERS, 49, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
+    EMAIL_CHANGE_ADDRESS_TAKEN(Area.MEMBERS, 49, HttpStatus.CONFLICT, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
 
     /**
      * A link confirming an address change that is unknown or has run out. One code deliberately,
@@ -5761,7 +5761,7 @@ public enum Refusal {
             Area.MEMBERS, 66, HttpStatus.FORBIDDEN, "Changing another account takes the right to edit members"),
 
     /** An address change onto an address another account already carries. */
-    ACCOUNT_ADDRESS_TAKEN(Area.MEMBERS, 67, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
+    ACCOUNT_ADDRESS_TAKEN(Area.MEMBERS, 67, HttpStatus.CONFLICT, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
 
     /** An invitation with nobody's name on it. */
     INVITE_NAME_MISSING(Area.MEMBERS, 68, HttpStatus.BAD_REQUEST, "Give a first name and a last name"),
@@ -6583,7 +6583,7 @@ public enum Refusal {
             Area.STORAGE, 2, HttpStatus.BAD_REQUEST, "This station keeps no storage of its own to test"),
 
     /** A session naming a station that is not here any more. */
-    STORAGE_STATION_NOT_HERE(Area.STORAGE, 4, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+    STORAGE_STATION_NOT_HERE(Area.STORAGE, 4, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
     /** A change to a station's storage made by a session that stands for no account. */
     NO_ACCOUNT_BEHIND_STORAGE_CHANGE(Area.STORAGE, 5, HttpStatus.FORBIDDEN, Sentences.SESSION_HAS_NO_ACCOUNT),
