@@ -10,9 +10,9 @@ import {expect, test} from './fixtures/auth'
  * The headers a rendered page carries, and whether the content security policy it declares is one
  * the application can actually live under.
  *
- * <p>The policy ships report-only, so a violation refuses nothing and shows up as a console message
- * instead. That is exactly what makes it testable: a story that loads a page and finds no violation
- * is the evidence needed before an operator switches the policy to enforcing.
+ * <p>The policy is enforced, so a violation is refused and reported on the console in the same words
+ * either way. That is what makes it testable: a story that loads a page and finds no violation shows
+ * the page lives under the policy rather than missing a piece the browser refused.
  */
 function cspViolations(page: Page): string[] {
     const violations: string[] = []
@@ -27,8 +27,8 @@ test.describe('Security headers', () => {
         const response = await page.goto('/')
         const headers = response?.headers() ?? {}
 
-        const policy = headers['content-security-policy-report-only']
-        expect(policy, 'the policy is sent report-only until an operator enforces it').toBeTruthy()
+        const policy = headers['content-security-policy']
+        expect(policy, 'the policy is enforced unless an operator steps back to reporting').toBeTruthy()
         expect(policy).toContain("object-src 'none'")
         expect(policy).toContain("frame-ancestors 'self'")
         expect(headers['x-frame-options']).toBe('SAMEORIGIN')
@@ -53,9 +53,9 @@ test.describe('Security headers', () => {
         const second = await page.goto('/login')
 
         const nonceOf = (policy: string | undefined) => policy?.match(/'nonce-([^']+)'/)?.[1]
-        expect(nonceOf(first?.headers()['content-security-policy-report-only'])).not.toBe(
-            nonceOf(second?.headers()['content-security-policy-report-only']),
-        )
+        const firstNonce = nonceOf(first?.headers()['content-security-policy'])
+        expect(firstNonce, 'the first response names a nonce').toBeTruthy()
+        expect(firstNonce).not.toBe(nonceOf(second?.headers()['content-security-policy']))
     })
 
     test('the public pages raise no violation under the policy', async ({page}) => {
