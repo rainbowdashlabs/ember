@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -103,10 +104,10 @@ public class ConsentStatusService {
     public record ConsentStatusResponse(
             boolean consented,
             boolean current,
-            String consentVersion,
-            String privacyVersion,
-            String tosVersion,
-            Instant consentedAt,
+            @Nullable String consentVersion,
+            @Nullable String privacyVersion,
+            @Nullable String tosVersion,
+            @Nullable Instant consentedAt,
             String currentPrivacyVersion,
             String currentTosVersion,
             String currentConsentVersion) {}
@@ -127,10 +128,10 @@ public class ConsentStatusService {
     public record ConsentChangesResponse(
             boolean privacyChanged,
             boolean tosChanged,
-            String privacyDiff,
-            String tosDiff,
-            String privacyHtml,
-            String tosHtml,
+            @Nullable String privacyDiff,
+            @Nullable String tosDiff,
+            @Nullable String privacyHtml,
+            @Nullable String tosHtml,
             String currentPrivacyVersion,
             String currentTosVersion,
             String currentConsentVersion) {}

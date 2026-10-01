@@ -10,6 +10,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.StackTraceElementProxy;
 import ch.qos.logback.core.AppenderBase;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -220,7 +221,7 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
     /**
      * Represents an aggregated problem with occurrence count and optional distinct messages.
      * Mutable aggregation state stays internal; API consumers receive an immutable
-     * {@link Snapshot} via {@link #snapshot()}.
+     * {@link ProblemSnapshot} via {@link #snapshot()}.
      */
     public static class ProblemEntry {
         private final long id;
@@ -271,12 +272,12 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         /**
          * Creates an immutable copy of the current aggregation state for API serialization.
          */
-        public Snapshot snapshot() {
+        public ProblemSnapshot snapshot() {
             List<String> messages;
             synchronized (distinctMessages) {
                 messages = List.copyOf(distinctMessages);
             }
-            return new Snapshot(
+            return new ProblemSnapshot(
                     id,
                     level,
                     logger,
@@ -320,13 +321,13 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
      * @param acknowledged     whether an administrator dismissed the problem
      * @param distinctMessages up to 50 distinct formatted log messages
      */
-    public record Snapshot(
+    public record ProblemSnapshot(
             long id,
             String level,
             String logger,
-            String exceptionClass,
-            String exceptionMessage,
-            String stacktrace,
+            @Nullable String exceptionClass,
+            @Nullable String exceptionMessage,
+            @Nullable String stacktrace,
             Instant firstOccurrence,
             Instant lastOccurrence,
             int count,

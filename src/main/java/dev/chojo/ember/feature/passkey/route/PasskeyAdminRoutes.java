@@ -162,8 +162,8 @@ public class PasskeyAdminRoutes implements Routes {
 
     private static PasskeysConfigResponse toResponse(PasskeyAdminService.ModeStatus status) {
         return new PasskeysConfigResponse(
-                status.configured().name(),
-                status.effective().name(),
+                status.configured(),
+                status.effective(),
                 status.localhostFallback(),
                 status.rpId(),
                 status.lastMailSentAt(),
@@ -176,8 +176,8 @@ public class PasskeyAdminRoutes implements Routes {
     public record PasskeysConfigRequest(String mode) {}
 
     public record PasskeysConfigResponse(
-            String mode,
-            String effectiveMode,
+            PasskeySettings.Mode mode,
+            PasskeySettings.Mode effectiveMode,
             boolean localhostFallback,
             String rpId,
             @Nullable Instant lastMailSentAt,

@@ -133,9 +133,9 @@ class TwoFactorAdminServiceTest {
         var everybody = service.audit(null, 500, -3).entries();
         var one = service.audit(42, 10, 5).entries();
 
-        assertEquals("ENROLLED", everybody.getFirst().event());
+        assertEquals(TwoFactorEvent.ENROLLED, everybody.getFirst().event());
         assertNull(everybody.getFirst().factorKind());
-        assertEquals("TOTP", one.getFirst().factorKind());
+        assertEquals(TwoFactorKind.TOTP, one.getFirst().factorKind());
         assertEquals(1, service.audit(null, 0, 0).entries().size());
     }
 }

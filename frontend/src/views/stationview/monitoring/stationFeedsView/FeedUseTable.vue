@@ -14,7 +14,7 @@ import RecordTable from '@/components/table/RecordTable.vue'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {useDataTable} from '@/composables/useDataTable'
 import {formatRelative} from '@/util/format'
-import type {FeedUse} from '@/api/feedToken'
+import type {FeedUseResponse} from '@/api/generated/schema'
 import {usedRecently} from './feedUse'
 
 /**
@@ -25,7 +25,7 @@ import {usedRecently} from './feedUse'
  * an empty cell.
  */
 const props = defineProps<{
-  uses: FeedUse[]
+  uses: FeedUseResponse[]
 }>()
 
 const {t} = useI18n()
@@ -36,11 +36,11 @@ function fetched(stamp?: string | null): string {
   return stamp ? formatRelative(stamp) : t('stationFeeds.never')
 }
 
-function fetchedColumn(key: string, label: string, stamp: (use: FeedUse) => string | null | undefined): TableColumn<FeedUse> {
+function fetchedColumn(key: string, label: string, stamp: (use: FeedUseResponse) => string | null | undefined): TableColumn<FeedUseResponse> {
   return {key, label, type: ColumnTypes.DATE, value: stamp, display: use => fetched(stamp(use)), searchable: false}
 }
 
-const columns = computed<TableColumn<FeedUse>[]>(() => [
+const columns = computed<TableColumn<FeedUseResponse>[]>(() => [
   {key: 'name', label: t('stationFeeds.column.member'), type: ColumnTypes.TEXT, value: use => use.identity?.name ?? '', pinned: true},
   {key: 'createdAt', label: t('stationFeeds.column.since'), type: ColumnTypes.DATE, value: use => use.createdAt},
   fetchedColumn('ical', t('stationFeeds.column.calendar'), use => use.icalPolledAt),
@@ -52,7 +52,7 @@ const columns = computed<TableColumn<FeedUse>[]>(() => [
   },
 ])
 
-const table = useDataTable<FeedUse>({
+const table = useDataTable<FeedUseResponse>({
   id: 'station-feed-uses',
   rows: () => props.uses,
   columns,

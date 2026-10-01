@@ -41,7 +41,7 @@ public class UtilRoutes implements Routes {
             tags = {"Utilities"},
             requestBody =
                     @OpenApiRequestBody(
-                            content = @OpenApiContent(from = String.class),
+                            content = @OpenApiContent(type = "multipart/form-data"),
                             description = "Multipart form with 'file' (CSV) and optional 'separator' field"),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = CsvResponse.class)),

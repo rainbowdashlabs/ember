@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -59,6 +60,6 @@ public class FeedUseService {
             int memberId,
             MemberIdentity identity,
             Instant createdAt,
-            Instant icalPolledAt,
-            Instant notificationPolledAt) {}
+            @Nullable Instant icalPolledAt,
+            @Nullable Instant notificationPolledAt) {}
 }

@@ -11,6 +11,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -31,6 +32,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -365,6 +367,14 @@ public class AuthRoutes implements Routes {
      * Rotates the password and, with it, the token of the session asking, so the browser keeps its
      * sign-in on a token nobody could have read before the change.
      */
+    @OpenApi(
+            path = "/api/v1/auth/change-password",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChangePasswordRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void changePassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(rateLimiter.tryChangePassword(session.accountId()));
@@ -408,11 +418,11 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.token())) throw Refusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
         var result = authService.confirmEmailChange(request.token());
         switch (result) {
-            case COMMITTED -> ctx.json(new EmailChangeResponse("COMMITTED", "Email address updated"));
+            case COMMITTED -> ctx.json(new EmailChangeResponse(EmailChangeStatus.COMMITTED, "Email address updated"));
             case WAITING ->
                 ctx.json(
                         new EmailChangeResponse(
-                                "WAITING",
+                                EmailChangeStatus.WAITING,
                                 "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
             case DUPLICATE -> throw Refusal.EMAIL_CHANGE_ADDRESS_TAKEN.raise();
             case INVALID -> throw Refusal.EMAIL_CHANGE_LINK_NOT_GOOD.raise();
@@ -464,7 +474,15 @@ public class AuthRoutes implements Routes {
      *               still has to. The page tells the two apart by this rather than by the wording.
      * @param message what to say about it
      */
-    public record EmailChangeResponse(String status, String message) {}
+    public record EmailChangeResponse(EmailChangeStatus status, String message) {}
+
+    /** Where an email change stands once one of its two addresses has confirmed. */
+    public enum EmailChangeStatus {
+        /** Both addresses confirmed and the account carries the new one. */
+        COMMITTED,
+        /** This address confirmed; the other one still has to. */
+        WAITING
+    }
 
     /**
      * Request body for changing a password while authenticated.
@@ -504,17 +522,17 @@ public class AuthRoutes implements Routes {
      */
     // TODO: drop the always-empty token once no tab from before the cookie switch can be open
     public record LoginResponse(
-            String token,
-            Instant expiresAt,
+            @Nullable String token,
+            @Nullable Instant expiresAt,
             boolean passwordChangeRequired,
-            String passwordChangeToken,
-            Instant passwordChangeTokenExpiresAt,
+            @Nullable String passwordChangeToken,
+            @Nullable Instant passwordChangeTokenExpiresAt,
             boolean addressRequired,
-            String addressToken,
-            Instant addressTokenExpiresAt,
+            @Nullable String addressToken,
+            @Nullable Instant addressTokenExpiresAt,
             boolean twoFactorRequired,
-            String preAuthToken,
-            Instant preAuthTokenExpiresAt) {
+            @Nullable String preAuthToken,
+            @Nullable Instant preAuthTokenExpiresAt) {
 
         /** Neither a session nor a way to one: whoever asked has to sign in by hand. */
         public static LoginResponse none() {

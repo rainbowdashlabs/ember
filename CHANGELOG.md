@@ -115,6 +115,7 @@
 - **A new bookmark on a federated board did not show.** Bookmarking a board on the federated boards page left it unmarked until the page was reloaded, and a second click tried to bookmark it again. The bookmark now shows at once, and a second click removes it.
 - **Guardians saw the gear of the members in their care without its state.** Under My inventory, that gear showed neither the step of an exchange nor its picture, and still offered an exchange or a loss report for pieces already on their way. It is now shown exactly as the member sees it.
 - **A profile answer could land on the wrong question.** In some cases, when a station and its association each asked a question under the same number, a member's own profile page showed one answer for both and saved it to the station's question only. Each question now keeps its own answer.
+- **Accounts without an address read "(null)".** An account that signs in with a username and has no email address was shown as its name followed by "(null)" in the administration's account picker and when resetting its second factor. It now shows the name alone.
 
 ## v26.19.5
 

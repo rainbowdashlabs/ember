@@ -25,7 +25,7 @@ import java.time.Instant;
  */
 public record TaskStatus(
         String name,
-        Schedule.Mode mode,
+        Schedule.ScheduleMode mode,
         long periodSeconds,
         TaskOutcome outcome,
         @Nullable Instant lastStartedAt,

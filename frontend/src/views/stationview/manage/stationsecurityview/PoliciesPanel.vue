@@ -9,11 +9,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {TwoFactorPolicy} from '@/api/twoFactorAdmin'
+import type {TwoFactorPolicyEntry} from '@/api/generated/schema'
 
 const props = defineProps<{
   userTypes: string[]
-  policyByUserType: Map<string, TwoFactorPolicy>
+  policyByUserType: Map<string, TwoFactorPolicyEntry>
   saving: string | null
   userTypeLabel: (name: string) => string
 }>()

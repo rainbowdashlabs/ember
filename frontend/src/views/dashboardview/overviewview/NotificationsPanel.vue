@@ -16,9 +16,9 @@ import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {notifications} from '@/api'
-import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
+import {getFeedStatus} from '@/api/feedToken'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
-import type {NotificationEntry} from '@/api/notifications'
+import type {FeedStatusResponse, NotificationResponse} from '@/api/generated/schema'
 import {formatDate, formatDateTime} from '@/util/format'
 import {notificationMessageKey} from '@/util/notificationMessageKey'
 
@@ -26,7 +26,7 @@ const {t} = useI18n()
 const router = useRouter()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
-const notifs = ref<NotificationEntry[]>([])
+const notifs = ref<NotificationResponse[]>([])
 const loading = ref(true)
 const feedStatus = ref<FeedStatusResponse | null>(null)
 
@@ -108,17 +108,12 @@ function withReadableDates(params: Record<string, string>): Record<string, strin
  * sentences rather than one: whether the piece came home cannot be said in a word, and it is the
  * half the reader cannot guess.
  */
-function renderMessage(n: NotificationEntry): string {
+function renderMessage(n: NotificationResponse): string {
   const params = withReadableDates(n.params)
   // Status fields arrive as raw enum names from the backend (PENDING, DONE, …);
   // route each one through its locale namespace so the message reads in German.
   if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
     params.status = t(`dashboard.registrationStatus.${params.status}`)
-  }
-  // A movement's step carries the words its own flow gives it, so there is nothing to look up.
-  // The party it is waiting on is an enum and does need one.
-  if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.nextActor) {
-    params.nextActor = t(`movements.actor.${params.nextActor}`)
   }
   if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
     params.status = t(`dashboard.lendingStatus.${params.status}`)
@@ -131,8 +126,19 @@ function renderMessage(n: NotificationEntry): string {
 }
 
 /** What the notification is about, or nothing where it is about nothing that can be opened. */
-function notificationPage(n: NotificationEntry): RouteLocationRaw | null {
-  return n.link ? {name: n.link.route, params: n.link.routeParams, query: n.link.query} : null
+function notificationPage(n: NotificationResponse): RouteLocationRaw | null {
+  return n.link
+    ? {name: n.link.route, params: routeValues(n.link.routeParams), query: routeValues(n.link.query)}
+    : null
+}
+
+/**
+ * The values a notification's link carries, as the router takes them. The server stores them as
+ * whatever the sender put in, numbers among them, and a route reads every one as text anyway.
+ */
+function routeValues(values: Record<string, unknown> | null): Record<string, string> | undefined {
+  if (!values) return undefined
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, String(value)]))
 }
 
 /**

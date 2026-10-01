@@ -15,7 +15,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PoliciesPanel from './stationsecurityview/PoliciesPanel.vue'
 import MembersPanel from './stationsecurityview/MembersPanel.vue'
 import {twoFactorAdmin} from '@/api'
-import type {MemberStatus, TwoFactorPolicy} from '@/api/twoFactorAdmin'
+import type {MemberStatus, TwoFactorPolicyEntry} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -32,12 +32,12 @@ watch(loaded, (isLoaded) => {
 }, {immediate: true})
 
 const userTypes = ref<string[]>([])
-const policies = ref<TwoFactorPolicy[]>([])
+const policies = ref<TwoFactorPolicyEntry[]>([])
 const members = ref<MemberStatus[]>([])
 const saving = ref<string | null>(null)
 
 const policyByUserType = computed(() => {
-  const map = new Map<string, TwoFactorPolicy>()
+  const map = new Map<string, TwoFactorPolicyEntry>()
   for (const p of policies.value) {
     if (p.userType) map.set(p.userType, p)
   }

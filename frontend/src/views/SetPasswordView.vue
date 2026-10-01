@@ -21,7 +21,7 @@ import {describeFailure} from '@/util/failure'
 import {decideSignInLanding} from '@/util/signInLanding'
 import LinkNoLongerGood from './setpasswordview/LinkNoLongerGood.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import type {PasswordLinkStatus} from '@/api/auth'
+import type {TokenStatus} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -45,7 +45,7 @@ const token = route.query.token as string
  * <p>The question is a courtesy. Where it cannot be answered at all the form is drawn anyway and the
  * submission decides, because a link that might be good must not be refused by a failed lookup.
  */
-const status = ref<PasswordLinkStatus | null>(null)
+const status = ref<TokenStatus | null>(null)
 const checking = ref(true)
 
 onMounted(async () => {

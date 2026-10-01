@@ -8,6 +8,7 @@ import type {
     ApplicationSettings,
     BackupCodesConfig,
     BulkRetireResponse,
+    components,
     DocumentPlaceholder,
     HibpConfigRequest,
     HibpConfigResponse,
@@ -31,19 +32,16 @@ import type {
     WebhookUrlResponse,
 } from './generated/schema'
 
-/**
- * How far the instance has moved from passwords to passkeys. The server sends the mode as its name, so
- * this is the one place the names are known on this side.
- */
+export type PasskeyModeName = components['schemas']['Mode']
+
+/** How far the instance has moved from passwords to passkeys. */
 export const PasskeyMode = {
     OFF: 'OFF',
     OPTIONAL: 'OPTIONAL',
     ENCOURAGED: 'ENCOURAGED',
     PREFERRED: 'PREFERRED',
     PASSWORDLESS: 'PASSWORDLESS',
-} as const
-
-export type PasskeyModeName = (typeof PasskeyMode)[keyof typeof PasskeyMode]
+} as const satisfies Record<PasskeyModeName, PasskeyModeName>
 
 /**
  * Replaces the instance webhook key. The old address stops working at once, so whatever was

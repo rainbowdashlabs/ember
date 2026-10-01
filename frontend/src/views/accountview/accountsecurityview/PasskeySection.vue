@@ -18,7 +18,7 @@ import PasskeyRenameModal from '@/views/accountview/accountsecurityview/PasskeyR
 import PasskeyRemoveModal from '@/views/accountview/accountsecurityview/PasskeyRemoveModal.vue'
 import PasskeySwitches from '@/views/accountview/accountsecurityview/PasskeySwitches.vue'
 import {getPasskeysStatus, removePasskey, renamePasskey, setAskWithPassword, setPasswordLogin} from '@/api/passkeys'
-import type {PasskeyEntry, PasskeysStatus} from '@/api/passkeys'
+import type {PasskeyEntryResponse, PasskeysStatusResponse} from '@/api/generated/schema'
 import {isWebAuthnSupported, signalAcceptedCredentials} from '@/util/webauthn'
 import {apiErrorStatus} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -31,11 +31,11 @@ import {useConfirmDelete} from '@/composables/useConfirmDelete'
  */
 const {t} = useI18n()
 
-const status = ref<PasskeysStatus | null>(null)
+const status = ref<PasskeysStatusResponse | null>(null)
 const failure = ref<Failure | null>(null)
 const notice = ref('')
 const showCreate = ref(false)
-const renameTarget = ref<PasskeyEntry | null>(null)
+const renameTarget = ref<PasskeyEntryResponse | null>(null)
 
 const supported = isWebAuthnSupported()
 
@@ -49,7 +49,7 @@ async function reload() {
 
 onMounted(reload)
 
-const removal = useConfirmDelete<PasskeyEntry>({
+const removal = useConfirmDelete<PasskeyEntryResponse>({
   onDelete: async (entry) => {
     const before = status.value
     const outcome = await removePasskey(entry.id)

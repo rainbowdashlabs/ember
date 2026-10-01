@@ -8,6 +8,519 @@
  * records. Do not edit: a type changes when the record it describes changes.
  */
 export interface paths {
+    "/api/v1/account/2fa/backup-codes/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupCodesResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/factors/{id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/factors/{id}/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RenameFactorRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TwoFactorStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/totp/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TotpBeginResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/totp/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TotpConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/totp/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/trusted-devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TrustedDevicesResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/trusted-devices/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/trusted-devices/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/webauthn/register/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebAuthnBeginResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/2fa/webauthn/register/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WebAuthnRegisterFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebAuthnRegisterFinishResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/ai-credential": {
         parameters: {
             query?: never;
@@ -95,6 +608,761 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasskeysStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemovalResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/{id}/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RenameRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CeremonyResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/device-approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceCodeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/device-lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceCodeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeviceLookupResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreationFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasskeyEntryResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OfferResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/offer-answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["OfferAnswerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/password-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SwitchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/second-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SwitchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/trial/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CeremonyResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/passkeys/trial/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SignInFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TrialResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{accountUid}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/2fa/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/2fa/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PoliciesResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpsertPolicyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TwoFactorPolicyEntry"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/2fa/policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/accounts/{id}/2fa/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/accounts/{id}/password/retire": {
         parameters: {
             query?: never;
@@ -127,6 +1395,41 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/accounts/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountSearchResult"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3175,6 +4478,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/maps/cache/purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CacheStats"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/maps/cache/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CacheStats"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/maps/test-tile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestTileResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/media/files": {
         parameters: {
             query?: never;
@@ -3912,7 +5320,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Snapshot"][];
+                        "application/json": components["schemas"]["ProblemSnapshot"][];
                     };
                 };
             };
@@ -3994,7 +5402,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AcknowledgeResult"];
+                    };
                 };
             };
         };
@@ -4053,6 +5463,64 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ApplicationSettings"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/settings/maps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminMapsConfig"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AdminMapsConfig"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminMapsConfig"];
                     };
                 };
             };
@@ -7153,6 +8621,284 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/2fa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["Verify2faRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoginResultResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/stepup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StepUpRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/stepup/webauthn/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebAuthnBeginResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/stepup/webauthn/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WebAuthnStepUpFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/webauthn/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WebAuthnLoginBeginRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebAuthnBeginResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/webauthn/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WebAuthnLoginFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoginResultResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ChangePasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/confirm-email-change": {
         parameters: {
             query?: never;
@@ -7191,6 +8937,84 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/device/sign-in-claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SignInClaimRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoginResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/device/sign-in-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceIdentifierRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeviceRequestResponse"];
+                    };
                 };
             };
         };
@@ -7384,6 +9208,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/passkey/device-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceIdentifierRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeviceRequestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/device-request/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DevicePollRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DevicePollResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/enroll/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceEnrollBeginRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CeremonyResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/enroll/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceEnrollFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/passkey/finish": {
         parameters: {
             query?: never;
@@ -7429,6 +9409,123 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/token-enroll/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TokenEnrollRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CeremonyResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/token-enroll/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TokenEnrollFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/token-enroll/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TokenEnrollRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokenEnrollLookupResponse"];
+                    };
                 };
             };
         };
@@ -7673,6 +9770,197 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/stepup/device/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceStepUpBeginRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeviceStepUpBeginResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/stepup/device/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeviceStepUpPollRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeviceStepUpPollResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/stepup/passkey/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasskeyStepUpBeginResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/stepup/passkey/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PasskeyStepUpFinishRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpVerifiedResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/stepup/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PasswordStepUpRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpVerifiedResponse"];
                     };
                 };
             };
@@ -32882,6 +35170,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members/{stationUid}/{memberUid}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/import": {
         parameters: {
             query?: never;
@@ -35728,7 +38058,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["CountResponse"];
+                    };
                 };
             };
         };
@@ -40553,6 +42885,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/maps/tiles/{z}/{x}/{y}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/media/{stationUid}/{hash}": {
         parameters: {
             query?: never;
@@ -40888,6 +43264,76 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PublicQuizQuestion"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/settings/maps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicMapsConfig"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/settings/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicModeResponse"];
                     };
                 };
             };
@@ -45129,6 +47575,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/consent": {
         parameters: {
             query?: never;
@@ -45225,6 +47749,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/cross-station-dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CrossStationDashboard"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/gdpr-export": {
         parameters: {
             query?: never;
@@ -45247,7 +47806,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/zip": string;
+                    };
                 };
             };
         };
@@ -45285,6 +47846,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StepUpChallenge"];
                     };
                 };
             };
@@ -45384,6 +47954,41 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sidebar-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SidebarCounts"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -46841,6 +49446,204 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/2fa/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/2fa/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PoliciesResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpsertPolicyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TwoFactorPolicyEntry"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/2fa/policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/2fa/user-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserTypesResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/accounts/{id}/2fa/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -49777,7 +52580,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "text/plain": string;
+                    "multipart/form-data": string;
                 };
             };
             responses: {
@@ -50659,6 +53462,16 @@ export interface components {
             uid: string;
             username: string;
         };
+        AccountSearchResult: {
+            displayName: string;
+            email: string | null;
+            firstName: string;
+            /** Format: int32 */
+            id: number;
+            lastName: string;
+            /** Format: uuid */
+            uid: string;
+        };
         AchievementItem: {
             description?: string;
             title?: string;
@@ -50677,6 +53490,10 @@ export interface components {
         AcknowledgeRequest: {
             comment?: string;
         };
+        AcknowledgeResult: {
+            /** Format: int32 */
+            acknowledged: number;
+        };
         AcknowledgeStepRequest: {
             newItem?: components["schemas"]["NewItemRequest"] | null;
             note?: string | null;
@@ -50692,8 +53509,8 @@ export interface components {
             id: number;
             isCurrent: boolean;
             lastUsedAt: components["schemas"]["Instant"];
-            location: string;
-            userAgent: string;
+            location: string | null;
+            userAgent: string | null;
         };
         /** @enum {string} */
         Actual: "ITS_OWN" | "THE_CLUSTERS" | "INSTANCE_DEFAULT";
@@ -50719,6 +53536,12 @@ export interface components {
             label?: string;
             mapUrl?: string;
             postalCode?: string;
+        };
+        AdminMapsConfig: {
+            geocoding: components["schemas"]["MapsGeocodingConfig"];
+            /** Format: int32 */
+            tileCacheMaxMb: number;
+            tiles: components["schemas"]["MapsTilesConfig"];
         };
         AdminOverview: {
             /** Format: int32 */
@@ -50917,6 +53740,11 @@ export interface components {
         AppointRequest: {
             accountUid?: string;
         };
+        ApprovalCandidate: {
+            /** Format: int32 */
+            accountId: number;
+            name: string;
+        };
         ArtAssignRequest: {
             /** Format: int32 */
             artId?: number | null;
@@ -51110,6 +53938,9 @@ export interface components {
             systemActor: string | null;
             ts: string;
         };
+        AuditResponse: {
+            entries: components["schemas"]["TwoFactorAuditEntry"][];
+        };
         /** @enum {string} */
         AuthBucket: "AUTHENTICATED" | "UNAUTHENTICATED" | "FEDERATION";
         AvailableClusterResponse: {
@@ -51177,6 +54008,9 @@ export interface components {
         BackupCodesConfig: {
             /** Format: int32 */
             count: number;
+        };
+        BackupCodesResponse: {
+            codes: string[];
         };
         BatchCreateRequest: {
             /** Format: int32 */
@@ -51646,6 +54480,14 @@ export interface components {
             folderIds?: number[];
             removeTags?: string[];
         };
+        CacheStats: {
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            maxBytes: number;
+            /** Format: int64 */
+            tiles: number;
+        };
         CalloutConfig: {
             title?: string;
             variant?: components["schemas"]["CalloutVariant"];
@@ -51824,6 +54666,10 @@ export interface components {
             compareUrl: string | null;
             releasedAt: components["schemas"]["Instant"] | null;
             version: string;
+        };
+        ChangePasswordRequest: {
+            currentPassword?: string;
+            newPassword?: string;
         };
         CheckItemResult: {
             /** Format: int32 */
@@ -52273,22 +55119,22 @@ export interface components {
             currentPrivacyVersion: string;
             currentTosVersion: string;
             privacyChanged: boolean;
-            privacyDiff: string;
-            privacyHtml: string;
+            privacyDiff: string | null;
+            privacyHtml: string | null;
             tosChanged: boolean;
-            tosDiff: string;
-            tosHtml: string;
+            tosDiff: string | null;
+            tosHtml: string | null;
         };
         ConsentStatusResponse: {
             consented: boolean;
-            consentedAt: components["schemas"]["Instant"];
-            consentVersion: string;
+            consentedAt: components["schemas"]["Instant"] | null;
+            consentVersion: string | null;
             current: boolean;
             currentConsentVersion: string;
             currentPrivacyVersion: string;
             currentTosVersion: string;
-            privacyVersion: string;
-            tosVersion: string;
+            privacyVersion: string | null;
+            tosVersion: string | null;
         };
         ContactPreview: {
             email: string;
@@ -52397,6 +55243,10 @@ export interface components {
             label?: string;
             sublabel?: string;
             targetDate?: string;
+        };
+        CountResponse: {
+            /** Format: int64 */
+            count: number;
         };
         CreateAndAssignRequest: {
             /** Format: int32 */
@@ -52551,6 +55401,44 @@ export interface components {
             priority?: components["schemas"]["TicketPriority"];
             title?: string;
         };
+        CreationFinishRequest: {
+            challengeToken?: string;
+            credentialJson?: string;
+            label?: string;
+        };
+        CrossStationDashboard: {
+            recentNotifications: components["schemas"]["CrossStationNotification"][];
+            stations: components["schemas"]["CrossStationSummary"][];
+        };
+        CrossStationNotification: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            link: components["schemas"]["CrossStationNotificationLink"] | null;
+            localeKey: string;
+            params: {
+                [key: string]: string;
+            };
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+            type: components["schemas"]["NotificationType"];
+        };
+        CrossStationNotificationLink: {
+            route: string;
+            routeParams: {
+                [key: string]: unknown;
+            } | null;
+        };
+        CrossStationSummary: {
+            /** Format: int32 */
+            notifications: number;
+            /** Format: int32 */
+            requirements: number;
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+        };
         CsvDraft: {
             categories: components["schemas"]["CatalogTransferCategory"][];
             questions: components["schemas"]["CsvDraftQuestion"][];
@@ -52694,6 +55582,70 @@ export interface components {
         DependencyRequest: {
             dependencies?: components["schemas"]["DependencyEntry"][] | null;
         };
+        DeviceCodeRequest: {
+            code?: string;
+            /** Format: int32 */
+            forAccountId?: number;
+            /** Format: int32 */
+            pickedNumber?: number;
+        };
+        DeviceEnrollBeginRequest: {
+            enrollToken?: string;
+        };
+        DeviceEnrollFinishRequest: {
+            challengeToken?: string;
+            credentialJson?: string;
+            enrollToken?: string;
+        };
+        DeviceIdentifierRequest: {
+            identifier?: string;
+        };
+        DeviceLookupResponse: {
+            candidates: components["schemas"]["ApprovalCandidate"][];
+            country: string | null;
+            createdAt: components["schemas"]["Instant"];
+            numberChoices: number[];
+            purpose: components["schemas"]["DeviceRequestPurpose"];
+            stepUpCategory: components["schemas"]["StepUpCategory"] | null;
+            stepUpSubject: string | null;
+            userAgent: string | null;
+        };
+        DevicePollRequest: {
+            pollSecret?: string;
+        };
+        DevicePollResponse: {
+            enrollToken: string | null;
+            purpose: components["schemas"]["DeviceRequestPurpose"] | null;
+            status: components["schemas"]["PollStatus"];
+        };
+        /** @enum {string} */
+        DeviceRequestPurpose: "ENROL_PASSKEY" | "SIGN_IN" | "STEP_UP";
+        DeviceRequestResponse: {
+            code: string;
+            expiresAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            matchNumber: number;
+            pollSecret: string;
+            qrPng: string;
+        };
+        DeviceStepUpBeginRequest: {
+            category?: string;
+        };
+        DeviceStepUpBeginResponse: {
+            code: string;
+            expiresAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            matchNumber: number;
+            pollSecret: string;
+        };
+        DeviceStepUpPollRequest: {
+            pollSecret?: string;
+        };
+        DeviceStepUpPollResponse: {
+            status: components["schemas"]["DeviceStepUpStatus"];
+        };
+        /** @enum {string} */
+        DeviceStepUpStatus: "PENDING" | "APPROVED" | "EXPIRED" | "UNKNOWN" | "REJECTED" | "CONFIRMED";
         /** @enum {string} */
         Dimension: "USER_TYPE" | "GROUP" | "TAG" | "FIELD" | "AGE";
         Dimensions: {
@@ -52893,10 +55845,12 @@ export interface components {
         };
         EmailChangeResponse: {
             message: string;
-            status: string;
+            status: components["schemas"]["EmailChangeStatus"];
         };
         /** @enum {string} */
         EmailChangeResult: "INVALID" | "WAITING" | "COMMITTED" | "DUPLICATE";
+        /** @enum {string} */
+        EmailChangeStatus: "COMMITTED" | "WAITING";
         /** @enum {string} */
         EmailQueueStatus: "PENDING" | "SENDING" | "SENT" | "FAILED";
         EmailRequest: {
@@ -53137,12 +56091,12 @@ export interface components {
             trailMinutes: number;
         };
         ErrorResponseWrapper: {
-            code: string;
+            code?: string;
             error: string;
-            message: string;
-            reference: string;
+            message?: string;
+            reference?: string;
             /** Format: int64 */
-            retryAfterSeconds: number;
+            retryAfterSeconds?: number;
         };
         EvalMemberData: {
             /** Format: int32 */
@@ -53484,6 +56438,14 @@ export interface components {
         };
         /** @enum {string} */
         ExternalLinkImageDisplay: "BANNER" | "ICON";
+        FactorInfo: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            kind: components["schemas"]["TwoFactorKind"];
+            label: string;
+            lastUsedAt: components["schemas"]["Instant"] | null;
+        };
         FailedInviteResponse: {
             email: string;
             reason: string | null;
@@ -53691,8 +56653,8 @@ export interface components {
         };
         FeedTokenResponse: {
             createdAt: string;
-            icalPolledAt: string;
-            notificationPolledAt: string;
+            icalPolledAt: string | null;
+            notificationPolledAt: string | null;
             token: string;
         };
         FeedUserAgentStat: {
@@ -53705,11 +56667,11 @@ export interface components {
         };
         FeedUseResponse: {
             createdAt: components["schemas"]["Instant"];
-            icalPolledAt: components["schemas"]["Instant"];
+            icalPolledAt: components["schemas"]["Instant"] | null;
             identity: components["schemas"]["MemberIdentity"];
             /** Format: int32 */
             memberId: number;
-            notificationPolledAt: components["schemas"]["Instant"];
+            notificationPolledAt: components["schemas"]["Instant"] | null;
         };
         FieldConfig: components["schemas"]["BooleanConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["EnumConfig"] | components["schemas"]["NumberConfig"] | components["schemas"]["TextConfig"];
         FieldDateValueRequest: {
@@ -54253,6 +57215,8 @@ export interface components {
             done: boolean;
             questions: components["schemas"]["GeneratedQuestionWithMeta"][];
         };
+        /** @enum {string} */
+        GeocodingProvider: "NONE" | "NOMINATIM" | "LOCATIONIQ" | "GEOAPIFY";
         GrantRequest: {
             /** Format: int32 */
             groupId?: number;
@@ -55595,16 +58559,20 @@ export interface components {
         };
         LoginResponse: {
             addressRequired: boolean;
-            addressToken: string;
-            addressTokenExpiresAt: components["schemas"]["Instant"];
-            expiresAt: components["schemas"]["Instant"];
+            addressToken: string | null;
+            addressTokenExpiresAt: components["schemas"]["Instant"] | null;
+            expiresAt: components["schemas"]["Instant"] | null;
             passwordChangeRequired: boolean;
-            passwordChangeToken: string;
-            passwordChangeTokenExpiresAt: components["schemas"]["Instant"];
-            preAuthToken: string;
-            preAuthTokenExpiresAt: components["schemas"]["Instant"];
-            token: string;
+            passwordChangeToken: string | null;
+            passwordChangeTokenExpiresAt: components["schemas"]["Instant"] | null;
+            preAuthToken: string | null;
+            preAuthTokenExpiresAt: components["schemas"]["Instant"] | null;
+            token: string | null;
             twoFactorRequired: boolean;
+        };
+        LoginResultResponse: {
+            expiresAt: components["schemas"]["Instant"];
+            token: string | null;
         };
         LogPageResponse: {
             entries: components["schemas"]["LogEntryResponse"][];
@@ -55849,6 +58817,23 @@ export interface components {
             /** Format: int32 */
             zoom?: number;
         };
+        MapsGeocodingConfig: {
+            apiKey: string;
+            contactEmail: string;
+            provider: components["schemas"]["GeocodingProvider"];
+        };
+        MapsTilesConfig: {
+            apiKey: string;
+            attribution: string;
+            /** Format: int32 */
+            maxZoom: number;
+            /** Format: int32 */
+            minZoom: number;
+            provider: components["schemas"]["MapTileProvider"];
+            urlTemplate: string;
+        };
+        /** @enum {string} */
+        MapTileProvider: "OSM" | "MAPBOX" | "STADIA" | "MAPTILER" | "THUNDERFOREST" | "CUSTOM";
         MarkdownConfig: Record<string, never>;
         MarkdownFileRequest: {
             content?: string;
@@ -56130,6 +59115,21 @@ export interface components {
             showTag?: boolean;
             showUserType?: boolean;
         };
+        MemberStatus: {
+            /** Format: int32 */
+            accountId: number;
+            email: string | null;
+            enrolled: boolean;
+            firstName: string;
+            lastName: string;
+            mandated: boolean;
+            /** Format: int32 */
+            memberId: number;
+            userType: components["schemas"]["StationUserType"];
+        };
+        MemberStatusResponse: {
+            members: components["schemas"]["MemberStatus"][];
+        };
         MemberSummary: {
             /** Format: int32 */
             memberId: number;
@@ -56256,7 +59256,7 @@ export interface components {
             missingSteps: string[];
         };
         /** @enum {string} */
-        Mode: "FIXED_DELAY" | "FIXED_RATE" | "ONCE";
+        Mode: "OFF" | "OPTIONAL" | "ENCOURAGED" | "PREFERRED" | "PASSWORDLESS";
         ModelInfo: {
             id: string;
             name: string;
@@ -56682,23 +59682,23 @@ export interface components {
         NotificationLinkResponse: {
             query: {
                 [key: string]: unknown;
-            };
+            } | null;
             route: string;
             routeParams: {
                 [key: string]: unknown;
-            };
+            } | null;
         };
         NotificationResponse: {
-            acknowledgedAt: components["schemas"]["Instant"];
+            acknowledgedAt: components["schemas"]["Instant"] | null;
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             id: number;
-            link: components["schemas"]["NotificationLinkResponse"];
+            link: components["schemas"]["NotificationLinkResponse"] | null;
             localeKey: string;
             params: {
                 [key: string]: string;
             };
-            type: string;
+            type: components["schemas"]["NotificationType"];
         };
         NotificationSchedulePayload: {
             /** Format: int32 */
@@ -56710,6 +59710,8 @@ export interface components {
             email: boolean;
             feed: boolean;
         };
+        /** @enum {string} */
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -56723,6 +59725,12 @@ export interface components {
         };
         NumberValue: {
             value: number;
+        };
+        OfferAnswerRequest: {
+            answer?: string;
+        };
+        OfferResponse: {
+            offer: boolean;
         };
         OkResponse: {
             ok: boolean;
@@ -56865,6 +59873,16 @@ export interface components {
             expiresAt: components["schemas"]["Instant"];
             qrPng: string;
         };
+        PasskeyEntryResponse: {
+            aaguid: string | null;
+            createdAt: components["schemas"]["Instant"];
+            credentialId: string | null;
+            /** Format: int32 */
+            id: number;
+            label: string;
+            lastUsedAt: components["schemas"]["Instant"] | null;
+            tried: boolean;
+        };
         PasskeysConfigRequest: {
             mode?: string;
         };
@@ -56877,11 +59895,29 @@ export interface components {
             accountsWithTriedPasskey: number;
             /** Format: int32 */
             dependentAccounts: number;
-            effectiveMode: string;
+            effectiveMode: components["schemas"]["Mode"];
             lastMailSentAt: components["schemas"]["Instant"] | null;
             localhostFallback: boolean;
-            mode: string;
+            mode: components["schemas"]["Mode"];
             rpId: string;
+        };
+        PasskeysStatusResponse: {
+            askWithPassword: boolean;
+            hasPassword: boolean;
+            mayDisablePasswordLogin: boolean;
+            mode: components["schemas"]["Mode"];
+            passkeys: components["schemas"]["PasskeyEntryResponse"][];
+            passwordLoginEnabled: boolean;
+            rpId: string;
+            userHandle: string | null;
+        };
+        PasskeyStepUpBeginResponse: {
+            challengeToken: string;
+            optionsJson: string;
+        };
+        PasskeyStepUpFinishRequest: {
+            challengeToken?: string;
+            credentialJson?: string;
         };
         PasswordlessReport: {
             /** Format: int32 */
@@ -56894,6 +59930,9 @@ export interface components {
             wouldKeepPassword: number;
         };
         PasswordRequest: {
+            password?: string;
+        };
+        PasswordStepUpRequest: {
             password?: string;
         };
         PastEventRecapConfig: {
@@ -56996,6 +60035,9 @@ export interface components {
             picksItem: boolean;
             subject: components["schemas"]["StepSubject"];
         };
+        PoliciesResponse: {
+            policies: components["schemas"]["TwoFactorPolicyEntry"][];
+        };
         PolicyRequest: {
             locked?: boolean;
             reach?: components["schemas"]["ClusterBackendReach"];
@@ -57009,6 +60051,8 @@ export interface components {
             formPublicUid?: string;
             showResultsAfterVote?: boolean;
         };
+        /** @enum {string} */
+        PollStatus: "PENDING" | "APPROVED" | "EXPIRED" | "UNKNOWN" | "REJECTED";
         PoolRequest: {
             /** Format: int64 */
             quotaBytes?: number;
@@ -57060,24 +60104,39 @@ export interface components {
         };
         ProblemReport: {
             acknowledged: boolean;
-            acknowledgedAt: components["schemas"]["Instant"];
-            browserInfo: string;
+            acknowledgedAt: components["schemas"]["Instant"] | null;
+            browserInfo: string | null;
             createdAt: components["schemas"]["Instant"];
-            forwardedAt: components["schemas"]["Instant"];
+            forwardedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            memberId: number;
+            memberId: number | null;
             message: string;
-            pageUrl: string;
-            recentRequests: string;
+            pageUrl: string | null;
+            recentRequests: string | null;
             reporterName: string;
             /** Format: int32 */
-            screenshotFileId: number;
-            screenSize: string;
+            screenshotFileId: number | null;
+            screenSize: string | null;
             /** Format: uuid */
             stationId: string;
-            userRoles: string;
+            userRoles: string | null;
+        };
+        ProblemSnapshot: {
+            acknowledged: boolean;
+            /** Format: int32 */
+            count: number;
+            distinctMessages: string[];
+            exceptionClass: string | null;
+            exceptionMessage: string | null;
+            firstOccurrence: components["schemas"]["Instant"];
+            /** Format: int64 */
+            id: number;
+            lastOccurrence: components["schemas"]["Instant"];
+            level: string;
+            logger: string;
+            stacktrace: string | null;
         };
         Procedure: {
             /** Format: int32 */
@@ -57489,6 +60548,18 @@ export interface components {
         PublicKbResponse: {
             mode: string;
             stationUid: string;
+        };
+        PublicMapsConfig: {
+            attribution: string;
+            /** Format: int32 */
+            maxZoom: number;
+            /** Format: int32 */
+            minZoom: number;
+            provider: components["schemas"]["MapTileProvider"];
+            urlTemplate: string;
+        };
+        PublicModeResponse: {
+            mode: components["schemas"]["Mode"];
         };
         PublicPageSummary: {
             /** Format: int32 */
@@ -58248,9 +61319,18 @@ export interface components {
             protocol: components["schemas"]["TestProtocol"];
             sections: components["schemas"]["TestProtocolSection"][];
         };
+        RemovalResponse: {
+            passwordLoginReenabled: boolean;
+        };
         Renamed: {
             from: string;
             to: string;
+        };
+        RenameFactorRequest: {
+            label?: string;
+        };
+        RenameRequest: {
+            label?: string;
         };
         ReorderCategoriesRequest: {
             orderedIds?: number[];
@@ -58645,6 +61725,8 @@ export interface components {
             columns?: components["schemas"]["MemberTableColumn"][];
             name?: string;
         };
+        /** @enum {string} */
+        ScheduleMode: "FIXED_DELAY" | "FIXED_RATE" | "ONCE";
         /** @enum {string} */
         Scope: "STATION" | "INSTANCE" | "USER" | "CLUSTER";
         SearchResultItem: {
@@ -59172,6 +62254,35 @@ export interface components {
             scope: components["schemas"]["ShareScope"] | null;
             shared: boolean;
         };
+        SidebarCounts: {
+            /** Format: int32 */
+            federationRequests: number;
+            /** Format: int32 */
+            lendingRequests: number;
+            /** Format: int32 */
+            lostAndFoundPending: number;
+            /** Format: int32 */
+            myInventoryCount: number;
+            /** Format: int32 */
+            notifications: number;
+            /** Format: int32 */
+            openEvents: number;
+            /** Format: int32 */
+            openMovements: number;
+            /** Format: int32 */
+            pendingChanges: number;
+            /** Format: int32 */
+            pendingRegistrations: number;
+            /** Format: int32 */
+            procedureCount: number;
+            /** Format: int32 */
+            requirements: number;
+            /** Format: int32 */
+            waitingListEntries: number;
+        };
+        SignInClaimRequest: {
+            claimToken?: string;
+        };
         SignInFinishRequest: {
             challengeToken?: string;
             credentialJson?: string;
@@ -59257,21 +62368,6 @@ export interface components {
         };
         /** @enum {string} */
         SmtpEncryption: "IMPLICIT_TLS" | "STARTTLS" | "NONE";
-        Snapshot: {
-            acknowledged: boolean;
-            /** Format: int32 */
-            count: number;
-            distinctMessages: string[];
-            exceptionClass: string;
-            exceptionMessage: string;
-            firstOccurrence: components["schemas"]["Instant"];
-            /** Format: int64 */
-            id: number;
-            lastOccurrence: components["schemas"]["Instant"];
-            level: string;
-            logger: string;
-            stacktrace: string;
-        };
         SourceOccurrenceRequest: {
             date?: string;
             /** Format: int32 */
@@ -59662,6 +62758,25 @@ export interface components {
         /** @enum {string} */
         StepSubject: "OUTGOING" | "INCOMING";
         /** @enum {string} */
+        StepUpCategory: "ACCOUNT_SECURITY" | "FEDERATION" | "INSTANCE_CONFIG" | "ROLE_CHANGE";
+        StepUpChallenge: {
+            category: components["schemas"]["StepUpCategory"];
+            error: string;
+            proofs: components["schemas"]["StepUpProof"][];
+        };
+        /** @enum {string} */
+        StepUpProof: "TOTP" | "SECURITY_KEY" | "BACKUP_CODE" | "PASSKEY" | "PASSWORD" | "ANOTHER_DEVICE";
+        StepUpRequest: {
+            factor?: string;
+            proof?: string;
+        };
+        StepUpResponse: {
+            verifiedAt: components["schemas"]["Instant"];
+        };
+        StepUpVerifiedResponse: {
+            verifiedAt: components["schemas"]["Instant"];
+        };
+        /** @enum {string} */
         StorageAuditAction: "CREATED" | "UPDATED" | "DELETED" | "PROBE_OK" | "PROBE_FAILED" | "MIGRATION_STARTED" | "MIGRATION_COMPLETED" | "MIGRATION_FAILED" | "REJECTED" | "INSTANCE_DEFAULT_UPDATED" | "INSTANCE_MIGRATION_STARTED" | "INSTANCE_MIGRATION_COMPLETED" | "INSTANCE_MIGRATION_FAILED";
         /** @enum {string} */
         StorageAuditOutcome: "OK" | "FAILED";
@@ -59729,6 +62844,9 @@ export interface components {
             blockers: components["schemas"]["SwitchBlocker"][];
             error: string;
             message: string;
+        };
+        SwitchRequest: {
+            enabled?: boolean;
         };
         SystemCommentResponse: {
             author: components["schemas"]["MemberIdentity"] | null;
@@ -59862,7 +62980,7 @@ export interface components {
             lastFailureAt: components["schemas"]["Instant"] | null;
             lastFailureMessage: string | null;
             lastStartedAt: components["schemas"]["Instant"] | null;
-            mode: components["schemas"]["Mode"];
+            mode: components["schemas"]["ScheduleMode"];
             name: string;
             outcome: components["schemas"]["TaskOutcome"];
             /** Format: int64 */
@@ -60007,6 +63125,11 @@ export interface components {
         };
         /** @enum {string} */
         TestStatus: "DRAFT" | "ACTIVE" | "CLOSED";
+        TestTileResult: {
+            /** Format: int32 */
+            status: number;
+            url: string;
+        };
         Text: {
             longAnswer?: boolean;
             /**
@@ -60127,6 +63250,18 @@ export interface components {
             entryId: number;
             time: components["schemas"]["Instant"];
         };
+        TokenEnrollFinishRequest: {
+            challengeToken?: string;
+            credentialJson?: string;
+            token?: string;
+        };
+        TokenEnrollLookupResponse: {
+            firstName: string;
+            lastName: string;
+        };
+        TokenEnrollRequest: {
+            token?: string;
+        };
         /** @enum {string} */
         TokenPurpose: "SETUP" | "RESET" | "OTHER";
         TokenRequest: {
@@ -60171,6 +63306,12 @@ export interface components {
             purpose: components["schemas"]["TokenPurpose"];
             standing: components["schemas"]["TokenStanding"];
         };
+        TotpBeginResponse: {
+            otpauthUri: string;
+            qrPng: string;
+            recoveryCodes: string[];
+            secret: string;
+        };
         TotpConfig: {
             algorithm: string;
             /** Format: int32 */
@@ -60180,6 +63321,12 @@ export interface components {
             issuer: string;
             /** Format: int32 */
             periodSeconds: number;
+        };
+        TotpConfirmRequest: {
+            code?: string;
+            password?: string;
+            recoveryCodes?: string[];
+            secret?: string;
         };
         /** @enum {string} */
         TrackingStatus: "TRACKED" | "IGNORED" | "UNVERIFIED";
@@ -60224,8 +63371,38 @@ export interface components {
             bytes: number;
             entries: components["schemas"]["TrashEntry"][];
         };
+        /** @enum {string} */
+        TrialOutcome: "OK" | "FOREIGN_CREDENTIAL" | "FAILED";
+        TrialResponse: {
+            outcome: components["schemas"]["TrialOutcome"];
+        };
         TrueFalse: {
             correctAnswer: boolean;
+        };
+        TrustedDeviceEntry: {
+            createdAt: components["schemas"]["Instant"];
+            current: boolean;
+            /** Format: int32 */
+            id: number;
+            lastSeenAt: components["schemas"]["Instant"];
+            trustedUntil: components["schemas"]["Instant"];
+            userAgent: string;
+        };
+        TrustedDevicesResponse: {
+            devices: components["schemas"]["TrustedDeviceEntry"][];
+        };
+        TwoFactorAuditEntry: {
+            /** Format: int32 */
+            accountId: number;
+            /** Format: int32 */
+            actorId: number | null;
+            country: string | null;
+            createdAt: components["schemas"]["Instant"];
+            event: components["schemas"]["TwoFactorEvent"];
+            factorKind: components["schemas"]["TwoFactorKind"] | null;
+            /** Format: int32 */
+            id: number;
+            userAgent: string | null;
         };
         TwoFactorCoreConfigRequest: {
             enabled?: boolean;
@@ -60245,6 +63422,33 @@ export interface components {
             stepUpFreshnessSeconds: number;
             /** Format: int32 */
             trustedDeviceMaxDays: number;
+        };
+        /** @enum {string} */
+        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED";
+        /** @enum {string} */
+        TwoFactorKind: "TOTP" | "WEBAUTHN" | "BACKUP_CODES";
+        TwoFactorPolicyEntry: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            createdBy: number | null;
+            /** Format: int32 */
+            graceDays: number;
+            /** Format: int32 */
+            id: number;
+            required: boolean;
+            scope: string;
+            /** Format: uuid */
+            stationId: string | null;
+            userType: components["schemas"]["StationUserType"] | null;
+        };
+        TwoFactorStatusResponse: {
+            enrolled: boolean;
+            factors: components["schemas"]["FactorInfo"][];
+            /** Format: int32 */
+            trustedDeviceMaxDays: number;
+            /** Format: int32 */
+            unusedBackupCodes: number;
+            webauthnAvailable: boolean;
         };
         UnassignItemRequest: {
             /** Format: int32 */
@@ -60359,6 +63563,12 @@ export interface components {
             priority?: components["schemas"]["TicketPriority"];
             title?: string;
         };
+        UpsertPolicyRequest: {
+            /** Format: int32 */
+            graceDays?: number;
+            required?: boolean;
+            userType?: string;
+        };
         Usage: {
             locale: string;
             section: string;
@@ -60383,10 +63593,21 @@ export interface components {
         UserTypeChangeResponse: {
             leftGroups: components["schemas"]["MemberGroup"][];
         };
+        UserTypesResponse: {
+            userTypes: components["schemas"]["StationUserType"][];
+        };
         ValueEntry: {
             /** Format: int32 */
             fieldId?: number;
             value?: string;
+        };
+        Verify2faRequest: {
+            factor?: string;
+            preAuthToken?: string;
+            proof?: string;
+            /** Format: int32 */
+            rememberDeviceDays?: number;
+            trustedDevice?: boolean;
         };
         VerifyRequest: {
             token?: string;
@@ -60664,12 +63885,41 @@ export interface components {
             federated: unknown[];
             local: number[];
         };
+        WebAuthnBeginResponse: {
+            challengeToken: string;
+            optionsJson: string;
+        };
         WebAuthnConfig: {
             attestation: string;
             rpId: string;
             rpName: string;
             /** Format: int32 */
             timeoutSeconds: number;
+        };
+        WebAuthnLoginBeginRequest: {
+            preAuthToken?: string;
+        };
+        WebAuthnLoginFinishRequest: {
+            challengeToken?: string;
+            credentialJson?: string;
+            preAuthToken?: string;
+            /** Format: int32 */
+            rememberDeviceDays?: number;
+            trustedDevice?: boolean;
+        };
+        WebAuthnRegisterFinishRequest: {
+            challengeToken?: string;
+            credentialJson?: string;
+            label?: string;
+            password?: string;
+        };
+        WebAuthnRegisterFinishResponse: {
+            factor: components["schemas"]["FactorInfo"];
+            recoveryCodes: string[];
+        };
+        WebAuthnStepUpFinishRequest: {
+            challengeToken?: string;
+            credentialJson?: string;
         };
         WebhookUrl: {
             deliveryWebhookUrl: string;
@@ -60717,11 +63967,13 @@ export type AccessRequest = components['schemas']['AccessRequest'];
 export type AccordionConfig = components['schemas']['AccordionConfig'];
 export type AccountActionRequest = components['schemas']['AccountActionRequest'];
 export type AccountInfo = components['schemas']['AccountInfo'];
+export type AccountSearchResult = components['schemas']['AccountSearchResult'];
 export type AchievementItem = components['schemas']['AchievementItem'];
 export type AchievementsConfig = components['schemas']['AchievementsConfig'];
 export type AckKind = components['schemas']['AckKind'];
 export type AcknowledgeAllResponse = components['schemas']['AcknowledgeAllResponse'];
 export type AcknowledgeRequest = components['schemas']['AcknowledgeRequest'];
+export type AcknowledgeResult = components['schemas']['AcknowledgeResult'];
 export type AcknowledgeStepRequest = components['schemas']['AcknowledgeStepRequest'];
 export type ActiveSession = components['schemas']['ActiveSession'];
 export type Actual = components['schemas']['Actual'];
@@ -60729,6 +63981,7 @@ export type AddMembersRequest = components['schemas']['AddMembersRequest'];
 export type AddMembersResponse = components['schemas']['AddMembersResponse'];
 export type AddPeerRequest = components['schemas']['AddPeerRequest'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
+export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStationUsage = components['schemas']['AdminStationUsage'];
 export type AdminStatistics = components['schemas']['AdminStatistics'];
@@ -60751,6 +64004,7 @@ export type ApplyPresetRequest = components['schemas']['ApplyPresetRequest'];
 export type ApplyRequest = components['schemas']['ApplyRequest'];
 export type ApplyTierRequest = components['schemas']['ApplyTierRequest'];
 export type AppointRequest = components['schemas']['AppointRequest'];
+export type ApprovalCandidate = components['schemas']['ApprovalCandidate'];
 export type ArtAssignRequest = components['schemas']['ArtAssignRequest'];
 export type ArtMergeRequest = components['schemas']['ArtMergeRequest'];
 export type ArtRequest = components['schemas']['ArtRequest'];
@@ -60778,6 +64032,7 @@ export type AttendanceTemplateField = components['schemas']['AttendanceTemplateF
 export type AudienceRequest = components['schemas']['AudienceRequest'];
 export type AudioEmbedConfig = components['schemas']['AudioEmbedConfig'];
 export type AuditEntryResponse = components['schemas']['AuditEntryResponse'];
+export type AuditResponse = components['schemas']['AuditResponse'];
 export type AuthBucket = components['schemas']['AuthBucket'];
 export type AvailableClusterResponse = components['schemas']['AvailableClusterResponse'];
 export type AvailableInventoryEntry = components['schemas']['AvailableInventoryEntry'];
@@ -60789,6 +64044,7 @@ export type BackendOverrideRequest = components['schemas']['BackendOverrideReque
 export type BackendOverrideResponse = components['schemas']['BackendOverrideResponse'];
 export type BackendOverrideSummary = components['schemas']['BackendOverrideSummary'];
 export type BackupCodesConfig = components['schemas']['BackupCodesConfig'];
+export type BackupCodesResponse = components['schemas']['BackupCodesResponse'];
 export type BatchCreateRequest = components['schemas']['BatchCreateRequest'];
 export type BatchFieldEntryDto = components['schemas']['BatchFieldEntryDto'];
 export type BatchGenerateRequest = components['schemas']['BatchGenerateRequest'];
@@ -60848,6 +64104,7 @@ export type BulkRetireResponse = components['schemas']['BulkRetireResponse'];
 export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
 export type BulkTagsRequest = components['schemas']['BulkTagsRequest'];
+export type CacheStats = components['schemas']['CacheStats'];
 export type CalloutConfig = components['schemas']['CalloutConfig'];
 export type CalloutVariant = components['schemas']['CalloutVariant'];
 export type CancellationCause = components['schemas']['CancellationCause'];
@@ -60877,6 +64134,7 @@ export type CeremonyResponse = components['schemas']['CeremonyResponse'];
 export type ChangedCountResponse = components['schemas']['ChangedCountResponse'];
 export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
+export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
 export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
 export type ChecklistItemRequest = components['schemas']['ChecklistItemRequest'];
@@ -60961,6 +64219,7 @@ export type CorrectItemRequest = components['schemas']['CorrectItemRequest'];
 export type CorrectMovementRequest = components['schemas']['CorrectMovementRequest'];
 export type CorrectRowRequest = components['schemas']['CorrectRowRequest'];
 export type CountdownConfig = components['schemas']['CountdownConfig'];
+export type CountResponse = components['schemas']['CountResponse'];
 export type CreateAndAssignRequest = components['schemas']['CreateAndAssignRequest'];
 export type CreateBlockRequest = components['schemas']['CreateBlockRequest'];
 export type CreateBoardRequest = components['schemas']['CreateBoardRequest'];
@@ -60983,6 +64242,11 @@ export type CreateProcurementRequest = components['schemas']['CreateProcurementR
 export type CreateRequest = components['schemas']['CreateRequest'];
 export type CreateTemplateRequest = components['schemas']['CreateTemplateRequest'];
 export type CreateTicketRequest = components['schemas']['CreateTicketRequest'];
+export type CreationFinishRequest = components['schemas']['CreationFinishRequest'];
+export type CrossStationDashboard = components['schemas']['CrossStationDashboard'];
+export type CrossStationNotification = components['schemas']['CrossStationNotification'];
+export type CrossStationNotificationLink = components['schemas']['CrossStationNotificationLink'];
+export type CrossStationSummary = components['schemas']['CrossStationSummary'];
 export type CsvDraft = components['schemas']['CsvDraft'];
 export type CsvDraftQuestion = components['schemas']['CsvDraftQuestion'];
 export type CsvDraftRequest = components['schemas']['CsvDraftRequest'];
@@ -61008,6 +64272,20 @@ export type DeniedModulesResponse = components['schemas']['DeniedModulesResponse
 export type DenyRequest = components['schemas']['DenyRequest'];
 export type DependencyEntry = components['schemas']['DependencyEntry'];
 export type DependencyRequest = components['schemas']['DependencyRequest'];
+export type DeviceCodeRequest = components['schemas']['DeviceCodeRequest'];
+export type DeviceEnrollBeginRequest = components['schemas']['DeviceEnrollBeginRequest'];
+export type DeviceEnrollFinishRequest = components['schemas']['DeviceEnrollFinishRequest'];
+export type DeviceIdentifierRequest = components['schemas']['DeviceIdentifierRequest'];
+export type DeviceLookupResponse = components['schemas']['DeviceLookupResponse'];
+export type DevicePollRequest = components['schemas']['DevicePollRequest'];
+export type DevicePollResponse = components['schemas']['DevicePollResponse'];
+export type DeviceRequestPurpose = components['schemas']['DeviceRequestPurpose'];
+export type DeviceRequestResponse = components['schemas']['DeviceRequestResponse'];
+export type DeviceStepUpBeginRequest = components['schemas']['DeviceStepUpBeginRequest'];
+export type DeviceStepUpBeginResponse = components['schemas']['DeviceStepUpBeginResponse'];
+export type DeviceStepUpPollRequest = components['schemas']['DeviceStepUpPollRequest'];
+export type DeviceStepUpPollResponse = components['schemas']['DeviceStepUpPollResponse'];
+export type DeviceStepUpStatus = components['schemas']['DeviceStepUpStatus'];
 export type Dimension = components['schemas']['Dimension'];
 export type Dimensions = components['schemas']['Dimensions'];
 export type DimensionsRequest = components['schemas']['DimensionsRequest'];
@@ -61035,6 +64313,7 @@ export type DocumentResponse = components['schemas']['DocumentResponse'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
+export type EmailChangeStatus = components['schemas']['EmailChangeStatus'];
 export type EmailQueueStatus = components['schemas']['EmailQueueStatus'];
 export type EmailRequest = components['schemas']['EmailRequest'];
 export type EmailStatusCount = components['schemas']['EmailStatusCount'];
@@ -61101,6 +64380,7 @@ export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
 export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConfig'];
 export type ExternalLinkImageDisplay = components['schemas']['ExternalLinkImageDisplay'];
+export type FactorInfo = components['schemas']['FactorInfo'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
 export type FederatedBoardDetail = components['schemas']['FederatedBoardDetail'];
@@ -61212,6 +64492,7 @@ export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestion
 export type GenerateEntry = components['schemas']['GenerateEntry'];
 export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsRequest'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
+export type GeocodingProvider = components['schemas']['GeocodingProvider'];
 export type GrantRequest = components['schemas']['GrantRequest'];
 export type GroupDetail = components['schemas']['GroupDetail'];
 export type GroupEntry = components['schemas']['GroupEntry'];
@@ -61383,6 +64664,7 @@ export type LoggingConfig = components['schemas']['LoggingConfig'];
 export type LoggingConfigRequest = components['schemas']['LoggingConfigRequest'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
+export type LoginResultResponse = components['schemas']['LoginResultResponse'];
 export type LogPageResponse = components['schemas']['LogPageResponse'];
 export type LookAndFeelRequest = components['schemas']['LookAndFeelRequest'];
 export type Lookup = components['schemas']['Lookup'];
@@ -61416,6 +64698,9 @@ export type ManagedMemberSetValuesRequest = components['schemas']['ManagedMember
 export type ManagedStationResponse = components['schemas']['ManagedStationResponse'];
 export type ManagerDetail = components['schemas']['ManagerDetail'];
 export type MapConfig = components['schemas']['MapConfig'];
+export type MapsGeocodingConfig = components['schemas']['MapsGeocodingConfig'];
+export type MapsTilesConfig = components['schemas']['MapsTilesConfig'];
+export type MapTileProvider = components['schemas']['MapTileProvider'];
 export type MarkdownConfig = components['schemas']['MarkdownConfig'];
 export type MarkdownFileRequest = components['schemas']['MarkdownFileRequest'];
 export type MarkdownHtmlResponse = components['schemas']['MarkdownHtmlResponse'];
@@ -61453,6 +64738,8 @@ export type MemberRequirement = components['schemas']['MemberRequirement'];
 export type MemberRequirements = components['schemas']['MemberRequirements'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];
 export type MemberSpotlightConfig = components['schemas']['MemberSpotlightConfig'];
+export type MemberStatus = components['schemas']['MemberStatus'];
+export type MemberStatusResponse = components['schemas']['MemberStatusResponse'];
 export type MemberSummary = components['schemas']['MemberSummary'];
 export type MemberTable = components['schemas']['MemberTable'];
 export type MemberTableCellType = components['schemas']['MemberTableCellType'];
@@ -61533,8 +64820,11 @@ export type NotificationLinkResponse = components['schemas']['NotificationLinkRe
 export type NotificationResponse = components['schemas']['NotificationResponse'];
 export type NotificationSchedulePayload = components['schemas']['NotificationSchedulePayload'];
 export type NotificationToggle = components['schemas']['NotificationToggle'];
+export type NotificationType = components['schemas']['NotificationType'];
 export type NumberConfig = components['schemas']['NumberConfig'];
 export type NumberValue = components['schemas']['NumberValue'];
+export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
+export type OfferResponse = components['schemas']['OfferResponse'];
 export type OkResponse = components['schemas']['OkResponse'];
 export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];
 export type OnboardingLevel = components['schemas']['OnboardingLevel'];
@@ -61564,10 +64854,15 @@ export type ParseResult = components['schemas']['ParseResult'];
 export type PartnerResponse = components['schemas']['PartnerResponse'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
 export type PasskeyCodeResponse = components['schemas']['PasskeyCodeResponse'];
+export type PasskeyEntryResponse = components['schemas']['PasskeyEntryResponse'];
 export type PasskeysConfigRequest = components['schemas']['PasskeysConfigRequest'];
 export type PasskeysConfigResponse = components['schemas']['PasskeysConfigResponse'];
+export type PasskeysStatusResponse = components['schemas']['PasskeysStatusResponse'];
+export type PasskeyStepUpBeginResponse = components['schemas']['PasskeyStepUpBeginResponse'];
+export type PasskeyStepUpFinishRequest = components['schemas']['PasskeyStepUpFinishRequest'];
 export type PasswordlessReport = components['schemas']['PasswordlessReport'];
 export type PasswordRequest = components['schemas']['PasswordRequest'];
+export type PasswordStepUpRequest = components['schemas']['PasswordStepUpRequest'];
 export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig'];
 export type PatchItemRequest = components['schemas']['PatchItemRequest'];
 export type PdfConfig = components['schemas']['PdfConfig'];
@@ -61583,9 +64878,11 @@ export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
 export type PlannedStep = components['schemas']['PlannedStep'];
+export type PoliciesResponse = components['schemas']['PoliciesResponse'];
 export type PolicyRequest = components['schemas']['PolicyRequest'];
 export type PolicyResponse = components['schemas']['PolicyResponse'];
 export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
+export type PollStatus = components['schemas']['PollStatus'];
 export type PoolRequest = components['schemas']['PoolRequest'];
 export type PresetRequest = components['schemas']['PresetRequest'];
 export type PreviewResult = components['schemas']['PreviewResult'];
@@ -61593,6 +64890,7 @@ export type ProbeRequest = components['schemas']['ProbeRequest'];
 export type ProbeResult = components['schemas']['ProbeResult'];
 export type ProblemPayload = components['schemas']['ProblemPayload'];
 export type ProblemReport = components['schemas']['ProblemReport'];
+export type ProblemSnapshot = components['schemas']['ProblemSnapshot'];
 export type Procedure = components['schemas']['Procedure'];
 export type ProcedureDetail = components['schemas']['ProcedureDetail'];
 export type ProcedureItem = components['schemas']['ProcedureItem'];
@@ -61640,6 +64938,8 @@ export type PublicKbInfo = components['schemas']['PublicKbInfo'];
 export type PublicKbMode = components['schemas']['PublicKbMode'];
 export type PublicKbRequest = components['schemas']['PublicKbRequest'];
 export type PublicKbResponse = components['schemas']['PublicKbResponse'];
+export type PublicMapsConfig = components['schemas']['PublicMapsConfig'];
+export type PublicModeResponse = components['schemas']['PublicModeResponse'];
 export type PublicPageSummary = components['schemas']['PublicPageSummary'];
 export type PublicPartnerSummary = components['schemas']['PublicPartnerSummary'];
 export type PublicQuizCatalog = components['schemas']['PublicQuizCatalog'];
@@ -61736,7 +65036,10 @@ export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
 export type RemoteProtocolDetail = components['schemas']['RemoteProtocolDetail'];
+export type RemovalResponse = components['schemas']['RemovalResponse'];
 export type Renamed = components['schemas']['Renamed'];
+export type RenameFactorRequest = components['schemas']['RenameFactorRequest'];
+export type RenameRequest = components['schemas']['RenameRequest'];
 export type ReorderCategoriesRequest = components['schemas']['ReorderCategoriesRequest'];
 export type ReorderChecklistRequest = components['schemas']['ReorderChecklistRequest'];
 export type ReorderColumnsRequest = components['schemas']['ReorderColumnsRequest'];
@@ -61786,6 +65089,7 @@ export type SaveBlocksRequest = components['schemas']['SaveBlocksRequest'];
 export type SavedFilter = components['schemas']['SavedFilter'];
 export type SavePageRequest = components['schemas']['SavePageRequest'];
 export type SavePresetRequest = components['schemas']['SavePresetRequest'];
+export type ScheduleMode = components['schemas']['ScheduleMode'];
 export type Scope = components['schemas']['Scope'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];
 export type SearchResultResponse = components['schemas']['SearchResultResponse'];
@@ -61864,6 +65168,8 @@ export type ShareGrant = components['schemas']['ShareGrant'];
 export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
+export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
 export type Simple = components['schemas']['Simple'];
@@ -61873,7 +65179,6 @@ export type Smb = components['schemas']['Smb'];
 export type SmbRequest = components['schemas']['SmbRequest'];
 export type SmbSummary = components['schemas']['SmbSummary'];
 export type SmtpEncryption = components['schemas']['SmtpEncryption'];
-export type Snapshot = components['schemas']['Snapshot'];
 export type SourceOccurrenceRequest = components['schemas']['SourceOccurrenceRequest'];
 export type SourceOccurrenceResponse = components['schemas']['SourceOccurrenceResponse'];
 export type SpacerConfig = components['schemas']['SpacerConfig'];
@@ -61922,6 +65227,12 @@ export type StepRequest = components['schemas']['StepRequest'];
 export type StepResponse = components['schemas']['StepResponse'];
 export type StepState = components['schemas']['StepState'];
 export type StepSubject = components['schemas']['StepSubject'];
+export type StepUpCategory = components['schemas']['StepUpCategory'];
+export type StepUpChallenge = components['schemas']['StepUpChallenge'];
+export type StepUpProof = components['schemas']['StepUpProof'];
+export type StepUpRequest = components['schemas']['StepUpRequest'];
+export type StepUpResponse = components['schemas']['StepUpResponse'];
+export type StepUpVerifiedResponse = components['schemas']['StepUpVerifiedResponse'];
 export type StorageAuditAction = components['schemas']['StorageAuditAction'];
 export type StorageAuditOutcome = components['schemas']['StorageAuditOutcome'];
 export type StorageBackendType = components['schemas']['StorageBackendType'];
@@ -61933,6 +65244,7 @@ export type SwapNote = components['schemas']['SwapNote'];
 export type SwitchBlocker = components['schemas']['SwitchBlocker'];
 export type SwitchBlockerKind = components['schemas']['SwitchBlockerKind'];
 export type SwitchRefusal = components['schemas']['SwitchRefusal'];
+export type SwitchRequest = components['schemas']['SwitchRequest'];
 export type SystemCommentResponse = components['schemas']['SystemCommentResponse'];
 export type SystemNewsRequest = components['schemas']['SystemNewsRequest'];
 export type SystemNewsResponse = components['schemas']['SystemNewsResponse'];
@@ -61967,6 +65279,7 @@ export type TestProtocolRunMember = components['schemas']['TestProtocolRunMember
 export type TestProtocolSection = components['schemas']['TestProtocolSection'];
 export type TestResult = components['schemas']['TestResult'];
 export type TestStatus = components['schemas']['TestStatus'];
+export type TestTileResult = components['schemas']['TestTileResult'];
 export type Text = components['schemas']['Text'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
@@ -61980,6 +65293,9 @@ export type TierRequest = components['schemas']['TierRequest'];
 export type TierResponse = components['schemas']['TierResponse'];
 export type TimestampRequest = components['schemas']['TimestampRequest'];
 export type TimestampResponse = components['schemas']['TimestampResponse'];
+export type TokenEnrollFinishRequest = components['schemas']['TokenEnrollFinishRequest'];
+export type TokenEnrollLookupResponse = components['schemas']['TokenEnrollLookupResponse'];
+export type TokenEnrollRequest = components['schemas']['TokenEnrollRequest'];
 export type TokenPurpose = components['schemas']['TokenPurpose'];
 export type TokenRequest = components['schemas']['TokenRequest'];
 export type TokenResponse = components['schemas']['TokenResponse'];
@@ -61987,7 +65303,9 @@ export type TokensConfigRequest = components['schemas']['TokensConfigRequest'];
 export type TokensConfigResponse = components['schemas']['TokensConfigResponse'];
 export type TokenStanding = components['schemas']['TokenStanding'];
 export type TokenStatus = components['schemas']['TokenStatus'];
+export type TotpBeginResponse = components['schemas']['TotpBeginResponse'];
 export type TotpConfig = components['schemas']['TotpConfig'];
+export type TotpConfirmRequest = components['schemas']['TotpConfirmRequest'];
 export type TrackingStatus = components['schemas']['TrackingStatus'];
 export type TransferBackendDescriptor = components['schemas']['TransferBackendDescriptor'];
 export type TransferContext = components['schemas']['TransferContext'];
@@ -61997,9 +65315,18 @@ export type TransferStatusResponse = components['schemas']['TransferStatusRespon
 export type TransientKeyRequest = components['schemas']['TransientKeyRequest'];
 export type TrashEntry = components['schemas']['TrashEntry'];
 export type TrashView = components['schemas']['TrashView'];
+export type TrialOutcome = components['schemas']['TrialOutcome'];
+export type TrialResponse = components['schemas']['TrialResponse'];
 export type TrueFalse = components['schemas']['TrueFalse'];
+export type TrustedDeviceEntry = components['schemas']['TrustedDeviceEntry'];
+export type TrustedDevicesResponse = components['schemas']['TrustedDevicesResponse'];
+export type TwoFactorAuditEntry = components['schemas']['TwoFactorAuditEntry'];
 export type TwoFactorCoreConfigRequest = components['schemas']['TwoFactorCoreConfigRequest'];
 export type TwoFactorCoreConfigResponse = components['schemas']['TwoFactorCoreConfigResponse'];
+export type TwoFactorEvent = components['schemas']['TwoFactorEvent'];
+export type TwoFactorKind = components['schemas']['TwoFactorKind'];
+export type TwoFactorPolicyEntry = components['schemas']['TwoFactorPolicyEntry'];
+export type TwoFactorStatusResponse = components['schemas']['TwoFactorStatusResponse'];
 export type UnassignItemRequest = components['schemas']['UnassignItemRequest'];
 export type Unknown = components['schemas']['Unknown'];
 export type UpcomingEventOccurrence = components['schemas']['UpcomingEventOccurrence'];
@@ -62018,11 +65345,14 @@ export type UpdateStationRequest = components['schemas']['UpdateStationRequest']
 export type UpdateStatus = components['schemas']['UpdateStatus'];
 export type UpdateTemplateRequest = components['schemas']['UpdateTemplateRequest'];
 export type UpdateTicketRequest = components['schemas']['UpdateTicketRequest'];
+export type UpsertPolicyRequest = components['schemas']['UpsertPolicyRequest'];
 export type Usage = components['schemas']['Usage'];
 export type UserAgentsResponse = components['schemas']['UserAgentsResponse'];
 export type UserTag = components['schemas']['UserTag'];
 export type UserTypeChangeResponse = components['schemas']['UserTypeChangeResponse'];
+export type UserTypesResponse = components['schemas']['UserTypesResponse'];
 export type ValueEntry = components['schemas']['ValueEntry'];
+export type Verify2faRequest = components['schemas']['Verify2faRequest'];
 export type VerifyRequest = components['schemas']['VerifyRequest'];
 export type VersionResponse = components['schemas']['VersionResponse'];
 export type VideoConfig = components['schemas']['VideoConfig'];
@@ -62057,7 +65387,13 @@ export type WaitingListRequest = components['schemas']['WaitingListRequest'];
 export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
 export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];
 export type WatcherResponse = components['schemas']['WatcherResponse'];
+export type WebAuthnBeginResponse = components['schemas']['WebAuthnBeginResponse'];
 export type WebAuthnConfig = components['schemas']['WebAuthnConfig'];
+export type WebAuthnLoginBeginRequest = components['schemas']['WebAuthnLoginBeginRequest'];
+export type WebAuthnLoginFinishRequest = components['schemas']['WebAuthnLoginFinishRequest'];
+export type WebAuthnRegisterFinishRequest = components['schemas']['WebAuthnRegisterFinishRequest'];
+export type WebAuthnRegisterFinishResponse = components['schemas']['WebAuthnRegisterFinishResponse'];
+export type WebAuthnStepUpFinishRequest = components['schemas']['WebAuthnStepUpFinishRequest'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];

@@ -18,8 +18,7 @@ import ProblemEntryCard from './adminproblemsview/ProblemEntryCard.vue'
 import {beacon, problems} from '@/api'
 import BeaconPreviewModal from '@/components/log/BeaconPreviewModal.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {BeaconStatus} from '@/api/generated/schema'
-import type {ProblemEntry} from '@/api/problems'
+import type {BeaconStatus, ProblemSnapshot} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
@@ -28,7 +27,7 @@ const showAcknowledged = ref(false)
 const levelFilter = ref<string | null>(null)
 const expandedId = ref<number | null>(null)
 
-const {config: entries, loading, failure, reload: loadData} = useConfigPanel<ProblemEntry[]>({
+const {config: entries, loading, failure, reload: loadData} = useConfigPanel<ProblemSnapshot[]>({
     initial: [],
     fetch: () => problems.listProblems(showAcknowledged.value),
 })

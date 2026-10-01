@@ -16,14 +16,14 @@ import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
-import type {AccountSearchResult, AuditEntry} from '@/api/twoFactorAdmin'
+import type {AccountSearchResult, TwoFactorAuditEntry} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import {describeFailure, type Failure} from '@/util/failure'
 import {auditColumns} from './auditColumns'
 
 const {t} = useI18n()
 
-const audit = ref<AuditEntry[]>([])
+const audit = ref<TwoFactorAuditEntry[]>([])
 const auditLoading = ref(false)
 const auditOffset = ref(0)
 const auditPageSize = 50
@@ -37,7 +37,7 @@ const failure = ref<Failure | null>(null)
  *
  * <p>The table sorts and filters what has been loaded so far; loading more adds to it.
  */
-const table = useDataTable<AuditEntry>({
+const table = useDataTable<TwoFactorAuditEntry>({
   id: 'admin-two-factor-audit',
   perStation: false,
   rows: audit,

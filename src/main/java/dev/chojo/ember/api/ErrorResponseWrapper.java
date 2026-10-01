@@ -6,6 +6,7 @@
 package dev.chojo.ember.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Standard JSON error response sent to clients when a request fails.
@@ -26,7 +27,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ErrorResponseWrapper(
-        String error, String message, String code, Long retryAfterSeconds, String reference) {
+        String error,
+        @Nullable String message,
+        @Nullable String code,
+        @Nullable Long retryAfterSeconds,
+        @Nullable String reference) {
     public ErrorResponseWrapper(String error, String message, Long retryAfterSeconds) {
         this(error, message, null, retryAfterSeconds, null);
     }

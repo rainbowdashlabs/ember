@@ -14,8 +14,8 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -115,31 +115,16 @@ public class TwoFactorAdminService {
         List<TwoFactorAuditEntry> entries = accountId != null
                 ? repository.findAuditLog(accountId, size, skip)
                 : repository.findRecentAudit(size, skip);
-        return new AuditResponse(entries.stream()
-                .map(e -> new AuditEntryDto(
-                        e.id(),
-                        e.accountId(),
-                        e.actorId(),
-                        e.event().name(),
-                        e.factorKind() == null ? null : e.factorKind().name(),
-                        e.userAgent(),
-                        e.country(),
-                        e.createdAt()))
-                .toList());
+        return new AuditResponse(entries);
     }
 
-    public record AuditEntryDto(
-            int id,
-            int accountId,
-            Integer actorId,
-            String event,
-            String factorKind,
-            String userAgent,
-            String country,
-            Instant createdAt) {}
-
-    public record AuditResponse(List<AuditEntryDto> entries) {}
+    public record AuditResponse(List<TwoFactorAuditEntry> entries) {}
 
     public record AccountSearchResult(
-            int id, UUID uid, String displayName, String firstName, String lastName, String email) {}
+            int id,
+            UUID uid,
+            String displayName,
+            String firstName,
+            String lastName,
+            @Nullable String email) {}
 }

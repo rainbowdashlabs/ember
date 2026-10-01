@@ -15,10 +15,10 @@ import java.util.Objects;
  * @param initialDelay the wait between the start of the scheduler and the first run
  * @param period       the wait between two runs; {@link Duration#ZERO} for a task that runs once
  */
-public record Schedule(Mode mode, Duration initialDelay, Duration period) {
+public record Schedule(ScheduleMode mode, Duration initialDelay, Duration period) {
 
     /** How the runs of a task follow each other. */
-    public enum Mode {
+    public enum ScheduleMode {
         /** The next run starts one period after the previous one has finished. */
         FIXED_DELAY,
         /** Runs start one period apart; a run that is due while the previous one is still busy is skipped. */
@@ -37,40 +37,40 @@ public record Schedule(Mode mode, Duration initialDelay, Duration period) {
         if (initialDelay.isNegative()) {
             throw new IllegalArgumentException("The initial delay must not be negative");
         }
-        if (mode != Mode.ONCE && !period.isPositive()) {
+        if (mode != ScheduleMode.ONCE && !period.isPositive()) {
             throw new IllegalArgumentException("A repeating schedule needs a positive period");
         }
     }
 
     /**
-     * A {@link Mode#FIXED_DELAY} schedule.
+     * A {@link ScheduleMode#FIXED_DELAY} schedule.
      *
      * @param initialDelay the wait before the first run
      * @param period       the wait between the end of one run and the start of the next
      * @return the schedule
      */
     public static Schedule fixedDelay(Duration initialDelay, Duration period) {
-        return new Schedule(Mode.FIXED_DELAY, initialDelay, period);
+        return new Schedule(ScheduleMode.FIXED_DELAY, initialDelay, period);
     }
 
     /**
-     * A {@link Mode#FIXED_RATE} schedule.
+     * A {@link ScheduleMode#FIXED_RATE} schedule.
      *
      * @param initialDelay the wait before the first run
      * @param period       the distance between the starts of two runs
      * @return the schedule
      */
     public static Schedule fixedRate(Duration initialDelay, Duration period) {
-        return new Schedule(Mode.FIXED_RATE, initialDelay, period);
+        return new Schedule(ScheduleMode.FIXED_RATE, initialDelay, period);
     }
 
     /**
-     * A {@link Mode#ONCE} schedule.
+     * A {@link ScheduleMode#ONCE} schedule.
      *
      * @param delay the wait before the run
      * @return the schedule
      */
     public static Schedule once(Duration delay) {
-        return new Schedule(Mode.ONCE, delay, Duration.ZERO);
+        return new Schedule(ScheduleMode.ONCE, delay, Duration.ZERO);
     }
 }

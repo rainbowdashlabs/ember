@@ -6,15 +6,7 @@
 import type {Ref} from 'vue'
 import {browserRef, browserShallowRef} from '@/util/browserState'
 import client from '@/api/client'
-import type {MapTileProvider} from '@/api/maps'
-
-export interface PublicMapsConfig {
-    provider: MapTileProvider
-    urlTemplate: string
-    attribution: string
-    minZoom: number
-    maxZoom: number
-}
+import type {PublicMapsConfig} from '@/api/generated/schema'
 
 const cache = browserRef<PublicMapsConfig | null>(null)
 const inFlight = browserShallowRef<Promise<PublicMapsConfig> | null>(null)

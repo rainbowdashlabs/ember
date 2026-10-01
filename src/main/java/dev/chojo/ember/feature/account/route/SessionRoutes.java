@@ -92,6 +92,13 @@ public class SessionRoutes implements Routes {
         ctx.json(result);
     }
 
+    @OpenApi(
+            path = "/api/v1/session/cross-station-dashboard",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = CrossStationDashboardService.CrossStationDashboard.class)))
     private void getCrossStationDashboard(Context ctx) {
         ctx.json(dashboardService.dashboard(UserSession.from(ctx).accountId()));
     }

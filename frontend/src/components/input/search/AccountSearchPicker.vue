@@ -8,7 +8,7 @@ import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
-import type {AccountSearchResult} from '@/api/twoFactorAdmin'
+import type {AccountSearchResult} from '@/api/generated/schema'
 
 const model = defineModel<string | null>()
 
@@ -26,7 +26,7 @@ const {t} = useI18n()
 
 const searchFn = (q: string) => twoFactorAdmin.searchAccounts(q, 20)
 const displayFn = (item: AccountSearchResult) => item.displayName
-const subtitleFn = (item: AccountSearchResult) => item.email
+const subtitleFn = (item: AccountSearchResult) => item.email ?? ''
 const keyFn = (item: AccountSearchResult) => item.uid
 const iconFn = (): string[] => ['fas', 'user']
 
@@ -38,7 +38,7 @@ async function resolve() {
     }
     try {
         const a = await twoFactorAdmin.getAccountPickerByUid(model.value)
-        resolvedName.value = a ? `${a.displayName} (${a.email})` : null
+        resolvedName.value = a ? twoFactorAdmin.accountLabel(a) : null
     } catch {
         resolvedName.value = null
     }

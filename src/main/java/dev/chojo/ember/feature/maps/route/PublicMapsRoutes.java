@@ -15,6 +15,10 @@ import dev.chojo.ember.feature.maps.service.MapTileRateLimiter;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -60,6 +64,10 @@ public class PublicMapsRoutes implements Routes {
         routes.get(prefix + "/public/maps/tiles/{z}/{x}/{y}", this::getTile);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/settings/maps",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicMapsConfig.class)))
     private void getConfig(Context ctx) {
         var tiles = configService.tilesConfig();
         // We deliberately rewrite the URL template to point at this instance's own cache
@@ -81,6 +89,13 @@ public class PublicMapsRoutes implements Routes {
      * operator's key, so each address is held to {@link MapTileRateLimiter}'s rate before anything
      * else is looked at.
      */
+    @OpenApi(
+            path = "/api/v1/public/maps/tiles/{z}/{x}/{y}",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "429", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     @StationFree("the parameters are map coordinates, not a row; the tile is the same for everyone")
     private void getTile(Context ctx) {
         var retryAfter = rateLimiter.tryAcquire(ctx.ip());

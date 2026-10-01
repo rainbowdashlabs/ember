@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {removeFactor, renameFactor, webauthnRegisterBegin, webauthnRegisterFinish, type FactorInfo} from '@/api/twoFactor'
+import {removeFactor, renameFactor, webauthnRegisterBegin, webauthnRegisterFinish} from '@/api/twoFactor'
+import type {FactorInfo} from '@/api/generated/schema'
 import {createWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {formatDate} from '@/util/format'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'

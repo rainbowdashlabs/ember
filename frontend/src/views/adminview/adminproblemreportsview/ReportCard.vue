@@ -15,7 +15,7 @@ import RecentRequestsTable from '@/components/problem/RecentRequestsTable.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type {ProblemReport} from '@/api/problemReports'
+import type {ProblemReport} from '@/api/generated/schema'
 import type {RequestHistoryEntry} from '@/api/client'
 
 const props = defineProps<{

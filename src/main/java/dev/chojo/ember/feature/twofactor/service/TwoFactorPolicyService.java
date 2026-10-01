@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -205,7 +206,7 @@ public class TwoFactorPolicyService {
             int accountId,
             String firstName,
             String lastName,
-            String email,
+            @Nullable String email,
             StationUserType userType,
             boolean enrolled,
             boolean mandated) {}

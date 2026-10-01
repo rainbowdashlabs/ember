@@ -13,9 +13,8 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {clusterMembers, data} from '@/api'
-import type {ClusterGroupResponse} from '@/api/generated/schema'
+import type {ClusterGroupResponse, PermissionNode} from '@/api/generated/schema'
 import type {PermissionGrant} from '@/api/types'
-import type {PermissionNode} from '@/api/data'
 import {highestOf} from '@/api/data'
 
 const props = defineProps<{

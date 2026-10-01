@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.account.route;
 
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -24,6 +25,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -102,7 +104,10 @@ public class AccountSessionRoutes implements Routes {
             summary = "Invalidate all sessions for the current account",
             description = "Deletes all sessions including the current one. The user will need to log in again.",
             tags = {"Session"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void invalidateAll(Context ctx) {
         UserSession session = UserSession.from(ctx);
         authService.invalidateAllSessions(session.accountId());
@@ -123,10 +128,10 @@ public class AccountSessionRoutes implements Routes {
      */
     public record ActiveSession(
             int id,
-            String userAgent,
+            @Nullable String userAgent,
             Instant createdAt,
             Instant lastUsedAt,
             Instant expiresAt,
             boolean isCurrent,
-            String location) {}
+            @Nullable String location) {}
 }

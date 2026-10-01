@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -28,9 +30,15 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorSignInService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorSignInService.Attempt;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -157,6 +165,11 @@ public class TwoFactorRoutes implements Routes {
         routes.post(prefix + "/auth/2fa/stepup/webauthn/finish", this::finishWebAuthnStepUp, StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/status",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TwoFactorStatusResponse.class)))
     private void getStatus(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var factors = twoFactorService.getActiveFactors(session.accountId());
@@ -165,13 +178,20 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new TwoFactorStatusResponse(
                 enrolled,
                 factors.stream()
-                        .map(f -> new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()))
+                        .map(f -> new FactorInfo(f.id(), f.kind(), f.label(), f.createdAt(), f.lastUsedAt()))
                         .toList(),
                 backupCodes,
                 !demoConfig.enabled(),
                 trustedDeviceService.maxDays()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/totp/begin",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TotpBeginResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void beginTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (twoFactorService.isEnrolled(session.accountId())) {
@@ -186,6 +206,14 @@ public class TwoFactorRoutes implements Routes {
                 enrollment.recoveryCodes()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/totp/confirm",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TotpConfirmRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void confirmTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TotpConfirmRequest.class);
@@ -205,6 +233,13 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("TOTP enrolled"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/totp/remove",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void removeTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         boolean removed =
@@ -215,6 +250,13 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("TOTP removed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/backup-codes/regenerate",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BackupCodesResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void regenerateBackupCodes(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (!twoFactorService.isEnrolled(session.accountId())) {
@@ -225,6 +267,11 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new BackupCodesResponse(codes));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = Verify2faRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResultResponse.class)))
     private void verify2fa(Context ctx) {
         var request = ctx.bodyAsClass(Verify2faRequest.class);
         if (request.preAuthToken() == null || request.proof() == null) {
@@ -243,10 +290,15 @@ public class TwoFactorRoutes implements Routes {
         answerSession(ctx, session);
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/trusted-devices",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TrustedDevicesResponse.class)))
     private void listTrustedDevices(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var devices = trustedDeviceService.list(session.accountId()).stream()
-                .map(d -> new TrustedDeviceDto(
+                .map(d -> new TrustedDeviceEntry(
                         d.id(),
                         d.userAgent(),
                         d.createdAt(),
@@ -257,6 +309,13 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new TrustedDevicesResponse(devices));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/trusted-devices/{id}/revoke",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void revokeTrustedDevice(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -273,6 +332,13 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("Trusted device revoked"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/trusted-devices/revoke-all",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void revokeAllTrustedDevices(Context ctx) {
         UserSession session = UserSession.from(ctx);
         trustedDeviceService.revokeAll(session.accountId());
@@ -286,6 +352,11 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("All trusted devices revoked"));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/stepup",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StepUpRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpResponse.class)))
     private void stepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(StepUpRequest.class);
@@ -325,6 +396,13 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new StepUpResponse(Instant.now()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/webauthn/register/begin",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnBeginResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void beginWebAuthnRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var account = session.account();
@@ -334,6 +412,16 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new WebAuthnBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/webauthn/register/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnRegisterFinishRequest.class)),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        content = @OpenApiContent(from = WebAuthnRegisterFinishResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void finishWebAuthnRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnRegisterFinishRequest.class);
@@ -355,9 +443,16 @@ public class TwoFactorRoutes implements Routes {
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         var f = factor.get();
         ctx.json(new WebAuthnRegisterFinishResponse(
-                new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()), issuedCodes));
+                new FactorInfo(f.id(), f.kind(), f.label(), f.createdAt(), f.lastUsedAt()), issuedCodes));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/factors/{id}/remove",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void removeFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int factorId = pathInt(ctx, "id");
@@ -368,6 +463,11 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("Factor removed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/factors/{id}/rename",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RenameFactorRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void renameFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int factorId = pathInt(ctx, "id");
@@ -378,6 +478,11 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("Factor renamed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/webauthn/begin",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnLoginBeginRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnBeginResponse.class)))
     private void beginWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginBeginRequest.class);
         if (request.preAuthToken() == null) {
@@ -388,6 +493,11 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new WebAuthnBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/webauthn/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnLoginFinishRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResultResponse.class)))
     private void finishWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginFinishRequest.class);
         if (request.preAuthToken() == null || request.challengeToken() == null || request.credentialJson() == null) {
@@ -447,12 +557,21 @@ public class TwoFactorRoutes implements Routes {
         return issued.device().id();
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/stepup/webauthn/begin",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnBeginResponse.class)))
     private void beginWebAuthnStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var start = webAuthnService.startAssertion(session.accountId());
         ctx.json(new WebAuthnBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/stepup/webauthn/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnStepUpFinishRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpResponse.class)))
     private void finishWebAuthnStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnStepUpFinishRequest.class);
@@ -491,7 +610,12 @@ public class TwoFactorRoutes implements Routes {
             boolean webauthnAvailable,
             int trustedDeviceMaxDays) {}
 
-    public record FactorInfo(int id, String kind, String label, Instant createdAt, Instant lastUsedAt) {}
+    public record FactorInfo(
+            int id,
+            TwoFactorKind kind,
+            String label,
+            Instant createdAt,
+            @Nullable Instant lastUsedAt) {}
 
     public record TotpBeginResponse(String secret, String otpauthUri, String qrPng, List<String> recoveryCodes) {}
 
@@ -525,9 +649,7 @@ public class TwoFactorRoutes implements Routes {
      * @param expiresAt when the session ends
      */
     // TODO: drop the always-empty token once no tab from before the cookie switch can be open
-    public record LoginResultResponse(String token, Instant expiresAt) {}
-
-    public record MessageResponse(String message) {}
+    public record LoginResultResponse(@Nullable String token, Instant expiresAt) {}
 
     public record WebAuthnBeginResponse(String challengeToken, String optionsJson) {}
 
@@ -553,8 +675,8 @@ public class TwoFactorRoutes implements Routes {
 
     public record RenameFactorRequest(String label) {}
 
-    public record TrustedDeviceDto(
+    public record TrustedDeviceEntry(
             int id, String userAgent, Instant createdAt, Instant lastSeenAt, Instant trustedUntil, boolean current) {}
 
-    public record TrustedDevicesResponse(List<TrustedDeviceDto> devices) {}
+    public record TrustedDevicesResponse(List<TrustedDeviceEntry> devices) {}
 }

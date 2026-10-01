@@ -12,11 +12,11 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import type {PasskeyEntry} from '@/api/passkeys'
+import type {PasskeyEntryResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
-const target = defineModel<PasskeyEntry | null>({required: true})
+const target = defineModel<PasskeyEntryResponse | null>({required: true})
 
 const emit = defineEmits<{
   (e: 'save', id: number, label: string): void

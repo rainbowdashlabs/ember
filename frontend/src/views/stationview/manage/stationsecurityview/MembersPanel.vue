@@ -15,7 +15,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
-import type {MemberStatus} from '@/api/twoFactorAdmin'
+import type {MemberStatus} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
 

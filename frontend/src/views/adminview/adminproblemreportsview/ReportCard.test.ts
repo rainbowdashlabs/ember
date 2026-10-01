@@ -7,7 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import ReportCard from './ReportCard.vue'
-import type {ProblemReport} from '@/api/problemReports'
+import type {ProblemReport} from '@/api/generated/schema'
 
 /**
  * A report as the administration reads it.
@@ -22,8 +22,17 @@ describe('ReportCard', () => {
         id: 1,
         stationId: '1',
         reporterName: 'Nora',
+        memberId: null,
         message: 'Der Knopf tut nichts',
+        pageUrl: null,
+        userRoles: null,
+        recentRequests: null,
+        browserInfo: null,
+        screenSize: null,
+        screenshotFileId: null,
         acknowledged: false,
+        acknowledgedAt: null,
+        forwardedAt: null,
         createdAt: '2026-09-16T12:00:00Z',
     }
 

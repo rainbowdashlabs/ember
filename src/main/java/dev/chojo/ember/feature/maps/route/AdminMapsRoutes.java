@@ -16,6 +16,11 @@ import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -60,11 +65,20 @@ public class AdminMapsRoutes implements Routes {
         routes.post(prefix + "/admin/maps/cache/purge", this::purgeCache, InstancePermission.ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/settings/maps",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminMapsConfig.class)))
     private void getConfig(Context ctx) {
         ctx.json(new AdminMapsConfig(
                 configService.tilesConfig(), configService.geocodingConfig(), configService.tileCacheMaxMb()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/settings/maps",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AdminMapsConfig.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminMapsConfig.class)))
     private void updateConfig(Context ctx) {
         var body = ctx.bodyAsClass(AdminMapsConfig.class);
         if (body.tiles() != null) configService.updateTilesConfig(body.tiles());
@@ -73,6 +87,10 @@ public class AdminMapsRoutes implements Routes {
         getConfig(ctx);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/maps/test-tile",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestTileResult.class)))
     private void testTile(Context ctx) {
         int z = parseIntParam(ctx, "z");
         int x = parseIntParam(ctx, "x");
@@ -82,10 +100,24 @@ public class AdminMapsRoutes implements Routes {
         ctx.json(new TestTileResult(url, status));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/maps/cache/stats",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = MapTileCacheService.CacheStats.class)))
     private void cacheStats(Context ctx) {
         ctx.json(cacheService.stats());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/maps/cache/purge",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = MapTileCacheService.CacheStats.class)))
     private void purgeCache(Context ctx) {
         cacheService.purge();
         ctx.json(cacheService.stats());

@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.passkey.route;
 
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -42,11 +44,11 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -182,8 +184,11 @@ public class PasskeyRoutes implements Routes {
         routes.post(prefix + "/account/passkeys/device-approve", this::approveDeviceRequest, StationPermission.LOGIN);
     }
 
-    // -- The device handshake --
-
+    @OpenApi(
+            path = "/api/v1/auth/passkey/device-request",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceIdentifierRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceRequestResponse.class)))
     private void createDeviceRequest(Context ctx) {
         requirePasskeysOn();
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
@@ -215,6 +220,11 @@ public class PasskeyRoutes implements Routes {
      * A device asking to be signed in rather than given a credential. Unlike the enrolment request
      * this does not need passkeys to be on at all: not needing them is the point.
      */
+    @OpenApi(
+            path = "/api/v1/auth/device/sign-in-request",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceIdentifierRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceRequestResponse.class)))
     private void createSignInRequest(Context ctx) {
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
         RateLimits.enforce(rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
@@ -228,6 +238,11 @@ public class PasskeyRoutes implements Routes {
      * like every other way into an account, because this one ends in a session as surely as a
      * password does.
      */
+    @OpenApi(
+            path = "/api/v1/auth/device/sign-in-claim",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SignInClaimRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResponse.class)))
     private void claimSignIn(Context ctx) {
         RateLimits.enforce(rateLimiter.tryDeviceClaim(ctx.ip()));
         var request = ctx.bodyAsClass(SignInClaimRequest.class);
@@ -244,6 +259,11 @@ public class PasskeyRoutes implements Routes {
         ctx.json(LoginResponse.of(result));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/passkey/device-request/poll",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DevicePollRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DevicePollResponse.class)))
     private void pollDeviceRequest(Context ctx) {
         var request = ctx.bodyAsClass(DevicePollRequest.class);
         if (isBlank(request.pollSecret())) {
@@ -252,12 +272,14 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceService.poll(
                 request.pollSecret(), Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN));
-        ctx.json(new DevicePollResponse(
-                result.status().name(),
-                result.claimToken(),
-                result.purpose() == null ? null : result.purpose().name()));
+        ctx.json(new DevicePollResponse(result.status(), result.claimToken(), result.purpose()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/passkey/enroll/begin",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceEnrollBeginRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)))
     private void beginDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
@@ -271,6 +293,11 @@ public class PasskeyRoutes implements Routes {
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/passkey/enroll/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceEnrollFinishRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void finishDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
@@ -283,11 +310,15 @@ public class PasskeyRoutes implements Routes {
         if (!created) {
             throw Refusal.DEVICE_ENROLMENT_NOT_FINISHED.raise();
         }
-        ctx.json(Map.of("message", "Passkey created"));
+        ctx.json(new MessageResponse("Passkey created"));
     }
 
-    // -- The token doors --
-
+    @OpenApi(
+            path = "/api/v1/auth/passkey/token-enroll/lookup",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenEnrollRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenEnrollLookupResponse.class)))
     private void lookupTokenEnrollment(Context ctx) {
         requirePasskeysOn();
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
@@ -299,6 +330,11 @@ public class PasskeyRoutes implements Routes {
         ctx.json(new TokenEnrollLookupResponse(account.firstName(), account.lastName()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/passkey/token-enroll/begin",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenEnrollRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)))
     private void beginTokenEnrollment(Context ctx) {
         requirePasskeysOn();
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
@@ -310,6 +346,11 @@ public class PasskeyRoutes implements Routes {
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/passkey/token-enroll/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenEnrollFinishRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void finishTokenEnrollment(Context ctx) {
         requirePasskeysOn();
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
@@ -321,9 +362,14 @@ public class PasskeyRoutes implements Routes {
                 request.token(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"))) {
             throw Refusal.ENROLMENT_LINK_NOT_FINISHED.raise();
         }
-        ctx.json(Map.of("message", "Passkey created"));
+        ctx.json(new MessageResponse("Passkey created"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/device-lookup",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceCodeRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceLookupResponse.class)))
     private void lookupDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
@@ -339,8 +385,8 @@ public class PasskeyRoutes implements Routes {
                 open.requestedUserAgent(),
                 open.requestedCountry(),
                 open.createdAt(),
-                open.purpose().name(),
-                open.stepUpCategory() == null ? null : open.stepUpCategory().name(),
+                open.purpose(),
+                open.stepUpCategory(),
                 approvalGuards.stepUpSubject(session.accountId(), open),
                 open.matchChoices(),
                 managedCandidates(session, open)));
@@ -400,6 +446,14 @@ public class PasskeyRoutes implements Routes {
      * <p>The demand comes after the code has been read and the subject settled, so a reader who typed
      * a wrong code is told so without being asked to prove themselves first.
      */
+    @OpenApi(
+            path = "/api/v1/account/passkeys/device-approve",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceCodeRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void approveDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
@@ -423,7 +477,7 @@ public class PasskeyRoutes implements Routes {
         if (result != DeviceRequestService.ApprovalResult.APPROVED) {
             throw Refusal.DEVICE_APPROVAL_NOT_TAKEN.raise();
         }
-        ctx.json(Map.of("message", "Device approved"));
+        ctx.json(new MessageResponse("Device approved"));
     }
 
     private void requirePasskeysOn() {
@@ -432,8 +486,12 @@ public class PasskeyRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/public/settings/passkeys",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicModeResponse.class)))
     private void publicMode(Context ctx) {
-        ctx.json(new PublicModeResponse(modeService.effectiveMode().name()));
+        ctx.json(new PublicModeResponse(modeService.effectiveMode()));
     }
 
     // -- Sign-in --
@@ -494,8 +552,11 @@ public class PasskeyRoutes implements Routes {
         ctx.json(LoginResponse.of(result));
     }
 
-    // -- The member's list and switches --
-
+    @OpenApi(
+            path = "/api/v1/account/passkeys",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeysStatusResponse.class)))
     private void status(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var entries = accountService.list(session.accountId());
@@ -516,11 +577,18 @@ public class PasskeyRoutes implements Routes {
                 credential.map(AccountCredential::passwordLoginEnabled).orElse(false),
                 entries.stream().anyMatch(e -> e.secondFactor()),
                 accountService.mayDisablePasswordLogin(session.accountId()),
-                modeService.effectiveMode().name(),
+                modeService.effectiveMode(),
                 relyingParties.passkey().getIdentity().getId(),
                 entries.isEmpty() ? null : b64.encodeToString(entries.getFirst().userHandle())));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/begin",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void beginCreation(Context ctx) {
         requirePasskeysOn();
         UserSession session = UserSession.from(ctx);
@@ -531,6 +599,14 @@ public class PasskeyRoutes implements Routes {
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreationFinishRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = PasskeyEntryResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void finishCreation(Context ctx) {
         requirePasskeysOn();
         UserSession session = UserSession.from(ctx);
@@ -553,15 +629,30 @@ public class PasskeyRoutes implements Routes {
                         factor.get().id(), factor.get().label(), factor.get().createdAt(), null, null, false, null));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/{id}/rename",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RenameRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void rename(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(RenameRequest.class);
         if (!accountService.rename(session.accountId(), pathInt(ctx, "id"), request.label())) {
             throw Refusal.PASSKEY_NOT_HERE_ON_RENAME.raise();
         }
-        ctx.json(Map.of("message", "Passkey renamed"));
+        ctx.json(new MessageResponse("Passkey renamed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/{id}",
+            methods = HttpMethod.DELETE,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = RemovalResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void remove(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var outcome = accountService.remove(
@@ -574,13 +665,21 @@ public class PasskeyRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/password-login",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SwitchRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void setPasswordLogin(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SwitchRequest.class);
         var outcome = accountService.setPasswordLogin(
                 session.accountId(), request.enabled(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
-            case OK -> ctx.json(Map.of("message", "Password sign-in updated"));
+            case OK -> ctx.json(new MessageResponse("Password sign-in updated"));
             case MODE_FORBIDS -> throw Refusal.PASSWORD_SIGN_IN_LOCKED_BY_INSTANCE.raise();
             case NO_REACHABLE_ADDRESS -> throw Refusal.PASSWORD_SIGN_IN_NEEDS_REACHABLE_ADDRESS.raise();
             case NO_TRIED_PASSKEY -> throw Refusal.PASSWORD_SIGN_IN_NEEDS_TRIED_PASSKEY.raise();
@@ -588,20 +687,35 @@ public class PasskeyRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/second-factor",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SwitchRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void setAskWithPassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SwitchRequest.class);
         accountService.setAskWithPassword(session.accountId(), request.enabled());
-        ctx.json(Map.of("message", "Updated"));
+        ctx.json(new MessageResponse("Updated"));
     }
 
-    // -- The offer --
-
+    @OpenApi(
+            path = "/api/v1/account/passkeys/offer",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OfferResponse.class)))
     private void offerState(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(new OfferResponse(accountService.shouldOffer(session.accountId())));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/offer-answer",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = OfferAnswerRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void answerOffer(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(OfferAnswerRequest.class);
@@ -612,11 +726,13 @@ public class PasskeyRoutes implements Routes {
                     default -> throw Refusal.PASSKEY_OFFER_ANSWER_UNKNOWN.raise();
                 };
         accountService.answerOffer(session.accountId(), declined);
-        ctx.json(Map.of("message", "Answer recorded"));
+        ctx.json(new MessageResponse("Answer recorded"));
     }
 
-    // -- The trial --
-
+    @OpenApi(
+            path = "/api/v1/account/passkeys/trial/begin",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)))
     private void beginTrial(Context ctx) {
         requirePasskeysOn();
         UserSession session = UserSession.from(ctx);
@@ -624,6 +740,11 @@ public class PasskeyRoutes implements Routes {
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/passkeys/trial/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SignInFinishRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TrialResponse.class)))
     private void finishTrial(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
@@ -632,7 +753,7 @@ public class PasskeyRoutes implements Routes {
         }
         var outcome =
                 passkeyService.finishTrial(session.accountId(), request.challengeToken(), request.credentialJson());
-        ctx.json(new TrialResponse(outcome.name()));
+        ctx.json(new TrialResponse(outcome));
     }
 
     private static boolean isBlank(String value) {
@@ -641,7 +762,7 @@ public class PasskeyRoutes implements Routes {
 
     public record CeremonyResponse(String challengeToken, String optionsJson) {}
 
-    public record PublicModeResponse(String mode) {}
+    public record PublicModeResponse(PasskeySettings.Mode mode) {}
 
     public record SignInFinishRequest(String challengeToken, String credentialJson, boolean trustedDevice) {}
 
@@ -657,7 +778,7 @@ public class PasskeyRoutes implements Routes {
 
     public record RemovalResponse(boolean passwordLoginReenabled) {}
 
-    public record TrialResponse(String outcome) {}
+    public record TrialResponse(PasskeyService.TrialOutcome outcome) {}
 
     /**
      * @param qrPng PNG of a QR code opening the approval screen with the code already in it, so
@@ -681,7 +802,10 @@ public class PasskeyRoutes implements Routes {
      * @param purpose what the waiting claim buys, so the asking device knows which ceremony follows.
      *         Absent until there is something to claim.
      */
-    public record DevicePollResponse(String status, String enrollToken, String purpose) {}
+    public record DevicePollResponse(
+            DeviceRequestService.PollStatus status,
+            @Nullable String enrollToken,
+            @Nullable DeviceRequestPurpose purpose) {}
 
     public record SignInClaimRequest(String claimToken) {}
 
@@ -707,12 +831,12 @@ public class PasskeyRoutes implements Routes {
      * @param candidates whom this reader may sign in, for a sign-in. Themselves first
      */
     public record DeviceLookupResponse(
-            String userAgent,
-            String country,
+            @Nullable String userAgent,
+            @Nullable String country,
             Instant createdAt,
-            String purpose,
-            String stepUpCategory,
-            String stepUpSubject,
+            DeviceRequestPurpose purpose,
+            @Nullable StepUpCategory stepUpCategory,
+            @Nullable String stepUpSubject,
             List<Integer> numberChoices,
             List<ApprovalCandidate> candidates) {}
 
@@ -728,10 +852,10 @@ public class PasskeyRoutes implements Routes {
             int id,
             String label,
             Instant createdAt,
-            Instant lastUsedAt,
-            String aaguid,
+            @Nullable Instant lastUsedAt,
+            @Nullable String aaguid,
             boolean tried,
-            String credentialId) {}
+            @Nullable String credentialId) {}
 
     /**
      * @param mayDisablePasswordLogin whether the switch-off is offered at all: the instance
@@ -746,7 +870,7 @@ public class PasskeyRoutes implements Routes {
             boolean passwordLoginEnabled,
             boolean askWithPassword,
             boolean mayDisablePasswordLogin,
-            String mode,
+            PasskeySettings.Mode mode,
             String rpId,
-            String userHandle) {}
+            @Nullable String userHandle) {}
 }

@@ -34,7 +34,7 @@ class TaskStatusRoutesTest {
         var scheduler = mock(TaskScheduler.class);
         var statuses = List.of(new TaskStatus(
                 "email-queue",
-                Schedule.Mode.FIXED_DELAY,
+                Schedule.ScheduleMode.FIXED_DELAY,
                 10,
                 TaskOutcome.SUCCEEDED,
                 Instant.parse("2026-05-01T08:00:00Z"),

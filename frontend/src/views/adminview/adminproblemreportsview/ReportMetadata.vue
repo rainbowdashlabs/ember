@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ReportMetadataGrid from '@/components/problem/ReportMetadataGrid.vue'
-import type {ProblemReport} from '@/api/problemReports'
+import type {ProblemReport} from '@/api/generated/schema'
 
 const props = defineProps<{
   report: ProblemReport

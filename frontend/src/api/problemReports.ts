@@ -5,27 +5,7 @@
  */
 import client, {getRequestHistory} from './client'
 import {createCrudResource} from './crud'
-
-export interface ProblemReport {
-    id: number
-    stationId: string
-    memberId?: number | null
-    reporterName: string
-    message: string
-    pageUrl?: string | null
-    userRoles?: string | null
-    recentRequests?: string | null
-    browserInfo?: string | null
-    screenSize?: string | null
-    /** The picture of the page, or absent where the reporter attached none. */
-    screenshotFileId?: number | null
-    acknowledged: boolean
-    /** When it was marked dealt with, which is when its thirty days begin. */
-    acknowledgedAt?: string | null
-    /** When it was passed on to a beacon, or absent where it has not been. */
-    forwardedAt?: string | null
-    createdAt: string
-}
+import type {AcknowledgeAllResponse, ProblemReport, ReportRequest} from './generated/schema'
 
 /** The session facts a problem report records about its reporter. */
 export interface ReportSessionContext {
@@ -66,8 +46,8 @@ export async function submitReport(
         recentRequests: JSON.stringify(getRequestHistory()),
         browserInfo: navigator.userAgent,
         screenSize: `${window.innerWidth}x${window.innerHeight}`,
-        screenshot: screenshot ?? null,
-    })
+        screenshot: screenshot ?? undefined,
+    } satisfies ReportRequest)
     return res.data
 }
 
@@ -93,8 +73,8 @@ export async function acknowledgeReport(id: number): Promise<void> {
     await client.post(`/admin/problem-reports/${id}/acknowledge`)
 }
 
-export async function acknowledgeAllReports(): Promise<{acknowledged: number}> {
-    const res = await client.post<{acknowledged: number}>('/admin/problem-reports/acknowledge-all')
+export async function acknowledgeAllReports(): Promise<AcknowledgeAllResponse> {
+    const res = await client.post<AcknowledgeAllResponse>('/admin/problem-reports/acknowledge-all')
     return res.data
 }
 

@@ -66,7 +66,7 @@ class BeaconAdminServiceTest {
     private static ProblemLogAppender.ProblemEntry problem(long id) {
         var entry = mock(ProblemLogAppender.ProblemEntry.class);
         when(entry.id()).thenReturn(id);
-        when(entry.snapshot()).thenReturn(mock(ProblemLogAppender.Snapshot.class));
+        when(entry.snapshot()).thenReturn(mock(ProblemLogAppender.ProblemSnapshot.class));
         return entry;
     }
 

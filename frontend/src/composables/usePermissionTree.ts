@@ -5,7 +5,7 @@
  */
 import { computed, onMounted, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { PermissionNode } from '@/api/data'
+import type {PermissionNode} from '@/api/generated/schema'
 import type { PermissionGrant } from '@/api/types'
 import { data } from '@/api'
 

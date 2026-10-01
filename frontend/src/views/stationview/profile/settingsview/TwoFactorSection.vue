@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {beginTotpSetup, confirmTotpSetup, getTwoFactorStatus, regenerateBackupCodes, removeTotp, type TotpBeginResponse, type TwoFactorStatus} from '@/api/twoFactor'
+import {beginTotpSetup, confirmTotpSetup, getTwoFactorStatus, regenerateBackupCodes, removeTotp} from '@/api/twoFactor'
+import type {TotpBeginResponse, TwoFactorStatusResponse} from '@/api/generated/schema'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -28,7 +29,7 @@ import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
-const {config: status, loading, failure, reload: loadStatus} = useConfigPanel<TwoFactorStatus | null>({
+const {config: status, loading, failure, reload: loadStatus} = useConfigPanel<TwoFactorStatusResponse | null>({
   initial: null,
   fetch: async () => {
     try { return await getTwoFactorStatus() } catch { return null }

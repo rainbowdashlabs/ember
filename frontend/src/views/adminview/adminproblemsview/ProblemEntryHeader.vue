@@ -8,10 +8,11 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import ProblemCardHeader from '@/components/problem/ProblemCardHeader.vue'
-import {hasDetails, type ProblemEntry} from '@/api/problems'
+import {hasDetails} from '@/api/problems'
+import type {ProblemSnapshot} from '@/api/generated/schema'
 
 const props = defineProps<{
-  entry: ProblemEntry
+  entry: ProblemSnapshot
   expanded: boolean
   /** Whether this instance reports to a beacon, which is the only case the send button belongs in. */
   canSend?: boolean

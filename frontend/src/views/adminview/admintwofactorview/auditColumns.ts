@@ -3,11 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TwoFactorEvent, TwoFactorKind, type AuditEntry} from '@/api/twoFactorAdmin'
+import {TwoFactorEvent, TwoFactorKind} from '@/api/twoFactorAdmin'
+import type {TwoFactorAuditEntry} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 
 /** The columns of the two-factor audit log: when, whose account, who did it, what, with which factor, from where. */
-export function auditColumns(t: (key: string) => string): TableColumn<AuditEntry>[] {
+export function auditColumns(t: (key: string) => string): TableColumn<TwoFactorAuditEntry>[] {
     return [
         {key: 'when', label: t('twoFactor.admin.audit.col.when'), type: ColumnTypes.DATE_TIME, value: entry => entry.createdAt},
         {key: 'account', label: t('twoFactor.admin.audit.col.account'), type: ColumnTypes.NUMBER, value: entry => entry.accountId},

@@ -18,7 +18,7 @@ export const TaskOutcome = {
     FAILED: 'FAILED',
 } as const satisfies Record<TaskOutcomeName, TaskOutcomeName>
 
-export type ScheduleModeName = Schemas['Mode']
+export type ScheduleModeName = Schemas['ScheduleMode']
 
 /** How the runs of a background task follow each other. */
 export const ScheduleMode = {

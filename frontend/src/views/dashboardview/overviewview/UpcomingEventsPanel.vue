@@ -15,10 +15,17 @@ import DashboardEventTile from './upcomingeventspanel/DashboardEventTile.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import {EventTypes, isQuarterMonthOf, isRecurringEvent} from '@/api/events'
-import type {EventBreak, EventCategory, EventSummary, ManagedMember, RegistrationResponse} from '@/api/generated/schema'
+import type {
+  EventBreak,
+  EventCategory,
+  EventSummary,
+  FeedStatusResponse,
+  ManagedMember,
+  RegistrationResponse,
+} from '@/api/generated/schema'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
-import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
+import {getFeedStatus} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
 import {toIsoDate, todayIsoDate, weekdayName} from '@/util/format'

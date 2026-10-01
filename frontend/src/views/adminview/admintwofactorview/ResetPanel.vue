@@ -15,7 +15,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
-import type {AccountSearchResult} from '@/api/twoFactorAdmin'
+import type {AccountSearchResult} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const emit = defineEmits<{
@@ -33,7 +33,7 @@ const resetSuccess = ref('')
 function onResetPick(item: AccountSearchResult) {
   resetAccountId.value = item.id
   resetAccountUid.value = item.uid
-  resetAccountName.value = `${item.displayName} (${item.email})`
+  resetAccountName.value = twoFactorAdmin.accountLabel(item)
 }
 
 function onResetUidUpdate(uid: string | null | undefined) {

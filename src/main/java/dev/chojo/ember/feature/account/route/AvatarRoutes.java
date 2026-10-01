@@ -17,6 +17,10 @@ import dev.chojo.ember.feature.account.service.AvatarAccessService;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -62,6 +66,13 @@ public class AvatarRoutes implements Routes {
     /**
      * Retrieves the avatar for the current session's account. Returns 404 if no avatar is stored.
      */
+    @OpenApi(
+            path = "/api/v1/session/avatar",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204")
+            })
     private void getAvatar(Context ctx) {
         serveAvatar(ctx, avatarAccessService.ownAvatarUid(UserSession.from(ctx)));
     }
@@ -71,6 +82,13 @@ public class AvatarRoutes implements Routes {
      * 404 when the caller has no relationship to the target account (no shared station
      * membership, no federation partnership, no admin role).
      */
+    @OpenApi(
+            path = "/api/v1/accounts/{accountUid}/avatar",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204")
+            })
     @StationFree("an avatar belongs to an account, and who may see it is decided by AvatarAccessService")
     private void getAvatarByAccount(Context ctx) {
         UUID accountUid = pathUuid(ctx, "accountUid");
@@ -82,6 +100,13 @@ public class AvatarRoutes implements Routes {
      * the transition window while the frontend migrates to the account-keyed endpoint;
      * resolves the underlying account UUID and falls through to the same disk lookup.
      */
+    @OpenApi(
+            path = "/api/v1/members/{stationUid}/{memberUid}/avatar",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204")
+            })
     @StationFree("the same, reached by the member uid the frontend still uses in places")
     private void getAvatarByMember(Context ctx) {
         UUID stationUid = pathUuid(ctx, "stationUid");
@@ -110,6 +135,10 @@ public class AvatarRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
+    @OpenApi(
+            path = "/api/v1/session/avatar",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void uploadAvatar(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var file = ctx.uploadedFile("avatar");
@@ -134,6 +163,7 @@ public class AvatarRoutes implements Routes {
         }
     }
 
+    @OpenApi(path = "/api/v1/session/avatar", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void deleteAvatar(Context ctx) {
         avatarService.delete(requireOwnAvatarUid(UserSession.from(ctx)));
         ctx.status(HttpStatus.NO_CONTENT);

@@ -44,7 +44,7 @@ public class ProblemRoutes implements Routes {
             responses =
                     @OpenApiResponse(
                             status = "200",
-                            content = @OpenApiContent(from = ProblemLogAppender.Snapshot[].class)))
+                            content = @OpenApiContent(from = ProblemLogAppender.ProblemSnapshot[].class)))
     private void listProblems(Context ctx) {
         boolean includeAcknowledged = "true".equals(ctx.queryParam("includeAcknowledged"));
         var appender = ProblemLogAppender.instance();
@@ -81,12 +81,17 @@ public class ProblemRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Acknowledge all unacknowledged problems",
             tags = {"Problems"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AcknowledgeResult.class)))
     private void acknowledgeAll(Context ctx) {
         var appender = ProblemLogAppender.instance();
         int count = appender != null ? appender.acknowledgeAll() : 0;
         ctx.json(new AcknowledgeResult(count));
     }
 
-    private record AcknowledgeResult(int acknowledged) {}
+    /**
+     * How many problems a sweep marked as seen.
+     *
+     * @param acknowledged the number
+     */
+    public record AcknowledgeResult(int acknowledged) {}
 }

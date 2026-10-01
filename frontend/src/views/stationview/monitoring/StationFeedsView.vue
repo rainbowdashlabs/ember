@@ -11,7 +11,7 @@ import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StatTile from '@/components/statistic/StatTile.vue'
 import {feedToken} from '@/api'
-import type {FeedUse} from '@/api/feedToken'
+import type {FeedUseResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import FeedUseTable from './stationFeedsView/FeedUseTable.vue'
 import {usedRecently} from './stationFeedsView/feedUse'
@@ -22,7 +22,7 @@ import {usedRecently} from './stationFeedsView/feedUse'
  */
 const {t} = useI18n()
 
-const {config: uses, loading} = useConfigPanel<FeedUse[]>({
+const {config: uses, loading} = useConfigPanel<FeedUseResponse[]>({
   initial: [],
   fetch: () => feedToken.getStationFeedUse(),
   formatError: () => '',

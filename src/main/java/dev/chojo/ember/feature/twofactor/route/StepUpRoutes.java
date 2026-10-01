@@ -22,6 +22,11 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -77,6 +82,12 @@ public class StepUpRoutes implements Routes {
      * than asking somebody to trust a blank, and nothing else does: whoever raises this may already
      * hold a stolen cookie, so every word on the approval screen is the product's own.
      */
+    @OpenApi(
+            path = "/api/v1/auth/stepup/device/begin",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceStepUpBeginRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceStepUpBeginResponse.class)))
     private void beginDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(rateLimiter.tryStepUpDeviceRequest(ctx.ip(), session.accountId()));
@@ -100,6 +111,12 @@ public class StepUpRoutes implements Routes {
      * The asking device waiting for the other one. A confirmed request stamps this session, and the
      * caller then retries whatever it was refused for.
      */
+    @OpenApi(
+            path = "/api/v1/auth/stepup/device/poll",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceStepUpPollRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceStepUpPollResponse.class)))
     private void pollDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(DeviceStepUpPollRequest.class);
@@ -116,10 +133,10 @@ public class StepUpRoutes implements Routes {
                     null,
                     ctx.userAgent(),
                     ctx.header("CF-IPCountry"));
-            ctx.json(new DeviceStepUpPollResponse("CONFIRMED"));
+            ctx.json(new DeviceStepUpPollResponse(DeviceStepUpStatus.CONFIRMED));
             return;
         }
-        ctx.json(new DeviceStepUpPollResponse(result.status().name()));
+        ctx.json(new DeviceStepUpPollResponse(DeviceStepUpStatus.of(result.status())));
     }
 
     /**
@@ -144,6 +161,12 @@ public class StepUpRoutes implements Routes {
      * written down: a log with only the successes in it says nothing about the endpoint an
      * attacker would grind.
      */
+    @OpenApi(
+            path = "/api/v1/auth/stepup/password",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PasswordStepUpRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpVerifiedResponse.class)))
     private void passwordStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(rateLimiter.tryPasswordStepUp(ctx.ip(), session.accountId()));
@@ -180,6 +203,13 @@ public class StepUpRoutes implements Routes {
         ctx.json(new StepUpVerifiedResponse(Instant.now()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/stepup/passkey/begin",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = PasskeyStepUpBeginResponse.class)))
     private void beginPasskeyStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (!twoFactorService.availableProofs(session.accountId()).contains(StepUpProof.PASSKEY)) {
@@ -189,6 +219,12 @@ public class StepUpRoutes implements Routes {
         ctx.json(new PasskeyStepUpBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/stepup/passkey/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PasskeyStepUpFinishRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpVerifiedResponse.class)))
     private void finishPasskeyStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(PasskeyStepUpFinishRequest.class);
@@ -239,5 +275,28 @@ public class StepUpRoutes implements Routes {
 
     public record DeviceStepUpPollRequest(String pollSecret) {}
 
-    public record DeviceStepUpPollResponse(String status) {}
+    public record DeviceStepUpPollResponse(DeviceStepUpStatus status) {}
+
+    /**
+     * Where a step-up raised for another device stands, as the asking device polls it. The states of
+     * the request itself, and {@link #CONFIRMED} once the approval has stamped the asking session.
+     */
+    public enum DeviceStepUpStatus {
+        PENDING,
+        APPROVED,
+        EXPIRED,
+        UNKNOWN,
+        REJECTED,
+        CONFIRMED;
+
+        static DeviceStepUpStatus of(DeviceRequestService.PollStatus status) {
+            return switch (status) {
+                case PENDING -> PENDING;
+                case APPROVED -> APPROVED;
+                case EXPIRED -> EXPIRED;
+                case UNKNOWN -> UNKNOWN;
+                case REJECTED -> REJECTED;
+            };
+        }
+    }
 }

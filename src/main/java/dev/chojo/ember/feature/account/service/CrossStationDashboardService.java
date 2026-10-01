@@ -9,6 +9,7 @@ import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.Notification;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -16,6 +17,7 @@ import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -93,10 +95,10 @@ public class CrossStationDashboardService {
             UUID stationId,
             String stationName,
             int id,
-            String type,
+            NotificationType type,
             String localeKey,
             Map<String, String> params,
-            CrossStationNotificationLink link,
+            @Nullable CrossStationNotificationLink link,
             Instant createdAt) {
 
         static CrossStationNotification of(Station station, Notification notification) {
@@ -105,7 +107,7 @@ public class CrossStationDashboardService {
                     station.uid(),
                     station.name(),
                     notification.id(),
-                    notification.type().name(),
+                    notification.type(),
                     notification.type().localeKey(),
                     notification.data().paramsAsMap(),
                     link == null ? null : new CrossStationNotificationLink(link.route(), link.routeParams()),
@@ -113,5 +115,6 @@ public class CrossStationDashboardService {
         }
     }
 
-    public record CrossStationNotificationLink(String route, Map<String, Object> routeParams) {}
+    public record CrossStationNotificationLink(
+            String route, @Nullable Map<String, Object> routeParams) {}
 }

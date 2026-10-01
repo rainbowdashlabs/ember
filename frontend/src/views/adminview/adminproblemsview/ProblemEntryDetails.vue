@@ -8,10 +8,10 @@ import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ProblemCardDetails from '@/components/problem/ProblemCardDetails.vue'
 import ProblemStacktrace from '@/components/problem/ProblemStacktrace.vue'
-import type {ProblemEntry} from '@/api/problems'
+import type {ProblemSnapshot} from '@/api/generated/schema'
 
 defineProps<{
-  entry: ProblemEntry
+  entry: ProblemSnapshot
 }>()
 
 const {t} = useI18n()

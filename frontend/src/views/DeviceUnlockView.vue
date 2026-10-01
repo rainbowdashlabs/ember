@@ -17,7 +17,7 @@ import DeviceIdentifierForm from './deviceunlockview/DeviceIdentifierForm.vue'
 import DeviceHandshakeWaiting from './deviceunlockview/DeviceHandshakeWaiting.vue'
 import DeviceHandshakeFailure from './deviceunlockview/DeviceHandshakeFailure.vue'
 import {passkeys} from '@/api'
-import type {DeviceRequest} from '@/api/passkeys'
+import type {DeviceRequestResponse} from '@/api/generated/schema'
 import {useBackingOffPoll, type PollOutcome} from '@/composables/useBackingOffPoll'
 import {describeFailure, FailureKind} from '@/util/failure'
 import {createWebAuthnCredential, getWebAuthnCredential, isWebAuthnSupported, webauthnErrorKey} from '@/util/webauthn'
@@ -51,7 +51,7 @@ type Phase =
     | 'failed'
 const phase = ref<Phase>('loading')
 const error = ref('')
-const request = ref<DeviceRequest | null>(null)
+const request = ref<DeviceRequestResponse | null>(null)
 const signedInAs = ref('')
 
 /**

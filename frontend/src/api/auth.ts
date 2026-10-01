@@ -5,83 +5,29 @@
  */
 import client from './client'
 import {isStorageDenied, removeItem} from './storage'
-import type {MessageResponse} from './types'
+import type {
+    ChangePasswordRequest,
+    components,
+    EmailChangeResponse,
+    EmailRequest,
+    LoginRequest,
+    LoginResponse,
+    MessageResponse,
+    RegisterRequest,
+    RegisterResponse,
+    SetAddressRequest,
+    SetPasswordRequest,
+    TokenRequest,
+    TokenStatus,
+} from './generated/schema'
 
-export interface LoginRequest {
-    /** An email address or the name the account signs in with. */
-    identifier?: string
-    password?: string
-    /**
-     * Whether the person signing in vouches for this machine. Ticked, the session lasts as long as
-     * the instance allows; left alone it lasts the short duration meant for a borrowed or shared
-     * one. Says nothing about the second factor, which is a separate trust.
-     */
-    trustedDevice?: boolean
-}
+export type EmailChangeStatusName = components['schemas']['EmailChangeStatus']
 
-export interface LoginResponse {
-    /** When the session ends. Present only where the answer started one, which then sits in a cookie. */
-    expiresAt?: string
-    passwordChangeRequired: boolean
-    passwordChangeToken?: string
-    passwordChangeTokenExpiresAt?: string
-    /**
-     * Whether the account administers the instance and carries no address that can be written to.
-     * There is no session until it has one, and the token below is what the step is spent with.
-     */
-    addressRequired: boolean
-    addressToken?: string
-    addressTokenExpiresAt?: string
-    twoFactorRequired: boolean
-    preAuthToken?: string
-    preAuthTokenExpiresAt?: string
-}
-
-export interface RegisterRequest {
-    email?: string
-    firstName?: string
-    lastName?: string
-    password?: string
-    registrationCode?: string
-}
-
-export interface RegisterResponse {
-    id: number
-    email?: string
-    firstName?: string
-    lastName?: string
-    emailVerified: boolean
-}
-
-export interface TokenRequest {
-    token?: string
-}
-
-export interface EmailRequest {
-    email?: string
-}
-
+/** Where an email change stands once one of its two addresses has confirmed. */
 export const EmailChangeStatus = {
     COMMITTED: 'COMMITTED',
     WAITING: 'WAITING',
-} as const
-
-export type EmailChangeStatusName = (typeof EmailChangeStatus)[keyof typeof EmailChangeStatus]
-
-export interface EmailChangeResponse {
-    status: EmailChangeStatusName
-    message: string
-}
-
-export interface SetPasswordRequest {
-    token?: string
-    password?: string
-}
-
-export interface SetAddressRequest {
-    token?: string
-    email?: string
-}
+} as const satisfies Record<EmailChangeStatusName, EmailChangeStatusName>
 
 export class StorageDeniedError extends Error {
     constructor() {
@@ -142,18 +88,12 @@ export async function forgotPassword(data: EmailRequest): Promise<MessageRespons
     return res.data
 }
 
-/** Whether a password link may still be used, and which of the two kinds it is. */
-export interface PasswordLinkStatus {
-    standing: 'VALID' | 'EXPIRED' | 'UNKNOWN'
-    purpose: 'SETUP' | 'RESET' | 'OTHER'
-}
-
 /**
  * Asks what a link is worth before offering the form. Spends nothing, so a reader who reloads gets
  * the same answer.
  */
-export async function passwordLinkStatus(token: string): Promise<PasswordLinkStatus> {
-    const res = await client.post<PasswordLinkStatus>('/auth/password-link', {token})
+export async function passwordLinkStatus(token: string): Promise<TokenStatus> {
+    const res = await client.post<TokenStatus>('/auth/password-link', {token} satisfies TokenRequest)
     return res.data
 }
 
@@ -181,7 +121,7 @@ export async function setAddress(data: SetAddressRequest): Promise<LoginResponse
     return res.data
 }
 
-export async function changePassword(data: { currentPassword: string; newPassword: string }): Promise<MessageResponse> {
+export async function changePassword(data: ChangePasswordRequest): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/auth/change-password', data)
     return res.data
 }

@@ -16,7 +16,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TilesProviderFields from './TilesProviderFields.vue'
 import {maps} from '@/api'
-import type {MapsTilesConfig, MapTileProvider} from '@/api/maps'
+import type {MapsTilesConfig, MapTileProvider} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()

@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {MapsGeocodingConfig} from '@/api/maps'
+import type {MapsGeocodingConfig} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

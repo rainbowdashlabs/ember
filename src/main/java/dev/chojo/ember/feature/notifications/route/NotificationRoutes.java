@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.notifications.entity.Notification;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import io.javalin.http.Context;
@@ -22,6 +23,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Map;
@@ -81,7 +83,7 @@ public class NotificationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Count unacknowledged notifications",
             tags = {"Notifications"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CountResponse.class)))
     private void count(Context ctx) {
         ctx.json(new CountResponse(inbox.countUnread(recipient(ctx))));
     }
@@ -124,26 +126,29 @@ public class NotificationRoutes implements Routes {
      * The link a notification carries. The query names a place inside the page the route opens,
      * which is how a notification about a comment reaches that comment.
      */
-    public record NotificationLinkResponse(String route, Map<String, Object> routeParams, Map<String, Object> query) {}
+    public record NotificationLinkResponse(
+            String route,
+            @Nullable Map<String, Object> routeParams,
+            @Nullable Map<String, Object> query) {}
 
     /**
      * One notification as the bell and the list read it, the same for station and cluster members.
      */
     public record NotificationResponse(
             int id,
-            String type,
+            NotificationType type,
             String localeKey,
             Map<String, String> params,
-            NotificationLinkResponse link,
+            @Nullable NotificationLinkResponse link,
             Instant createdAt,
-            Instant acknowledgedAt) {
+            @Nullable Instant acknowledgedAt) {
 
         /** The response for a stored notification. */
         public static NotificationResponse of(Notification n) {
             var link = n.data().link();
             return new NotificationResponse(
                     n.id(),
-                    n.type().name(),
+                    n.type(),
                     n.type().localeKey(),
                     n.data().paramsAsMap(),
                     link != null ? new NotificationLinkResponse(link.route(), link.routeParams(), link.query()) : null,

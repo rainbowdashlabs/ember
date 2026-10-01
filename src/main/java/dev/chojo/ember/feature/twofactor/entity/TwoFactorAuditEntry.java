@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.twofactor.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -14,11 +15,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record TwoFactorAuditEntry(
         int id,
         int accountId,
-        Integer actorId,
+        @Nullable Integer actorId,
         TwoFactorEvent event,
-        TwoFactorKind factorKind,
-        String userAgent,
-        String country,
+        @Nullable TwoFactorKind factorKind,
+        @Nullable String userAgent,
+        @Nullable String country,
         Instant createdAt) {
 
     public static RowMapping<TwoFactorAuditEntry> map() {

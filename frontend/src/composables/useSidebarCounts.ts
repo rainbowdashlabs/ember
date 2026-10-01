@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly} from 'vue'
-import {getSidebarCounts, type SidebarCounts} from '@/api/sidebar'
+import {getSidebarCounts} from '@/api/sidebar'
+import type {SidebarCounts} from '@/api/generated/schema'
 
 /** The numbers beside the station sidebar's entries, held once for the sidebar and the pages under it. */
 export function useSidebarCounts() {

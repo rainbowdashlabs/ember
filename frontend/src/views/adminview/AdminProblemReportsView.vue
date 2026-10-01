@@ -14,7 +14,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import BeaconPreviewModal from '@/components/log/BeaconPreviewModal.vue'
 import ReportCard from './adminproblemreportsview/ReportCard.vue'
 import {beacon} from '@/api'
-import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports, type ProblemReport} from '@/api/problemReports'
+import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports} from '@/api/problemReports'
+import type {ProblemReport} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()

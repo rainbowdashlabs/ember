@@ -23,9 +23,10 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
 import type {
   AdminMapsConfig,
+  CacheStats,
   MapsGeocodingConfig,
   MapsTilesConfig,
-} from '@/api/maps'
+} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const {reload: reloadMapsConfig} = useMapsConfig()
@@ -46,7 +47,7 @@ const geocoding = ref<MapsGeocodingConfig>({
   contactEmail: '',
 })
 const tileCacheMaxMb = ref(500)
-const cacheStats = ref<maps.TileCacheStats | null>(null)
+const cacheStats = ref<CacheStats | null>(null)
 const showPurgeModal = ref(false)
 
 const {loading, failure} = useAsyncLoader(async () => {

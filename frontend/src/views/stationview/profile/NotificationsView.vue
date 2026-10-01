@@ -10,7 +10,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {userSettings} from '@/api'
-import type {UserSettings} from '@/api/userSettings'
+import type {SettingsResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {ref} from 'vue'
 import NotificationsSection from './settingsview/NotificationsSection.vue'
@@ -18,7 +18,7 @@ import FeedSection from './settingsview/FeedSection.vue'
 
 const {t} = useI18n()
 
-const {config: settings, loading, failure, runWith} = useConfigPanel<UserSettings | null>({
+const {config: settings, loading, failure, runWith} = useConfigPanel<SettingsResponse | null>({
   initial: null,
   fetch: () => userSettings.getSettings(),
 })

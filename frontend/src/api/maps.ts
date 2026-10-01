@@ -4,43 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-
-/** Where the map's tiles come from. */
-export type MapTileProvider = 'OSM' | 'MAPBOX' | 'STADIA' | 'MAPTILER' | 'THUNDERFOREST' | 'CUSTOM'
-
-export type GeocodingProvider = 'NONE' | 'NOMINATIM' | 'LOCATIONIQ' | 'GEOAPIFY'
-
-export interface MapsTilesConfig {
-    provider: MapTileProvider
-    apiKey: string
-    urlTemplate: string
-    attribution: string
-    minZoom: number
-    maxZoom: number
-}
-
-export interface MapsGeocodingConfig {
-    provider: GeocodingProvider
-    apiKey: string
-    contactEmail: string
-}
-
-export interface AdminMapsConfig {
-    tiles: MapsTilesConfig
-    geocoding: MapsGeocodingConfig
-    tileCacheMaxMb: number
-}
-
-export interface TileCacheStats {
-    bytes: number
-    tiles: number
-    maxBytes: number
-}
-
-export interface TestTileResult {
-    url: string
-    status: number
-}
+import type {AdminMapsConfig, CacheStats, TestTileResult} from './generated/schema'
 
 export async function getAdminMapsConfig(): Promise<AdminMapsConfig> {
     const res = await client.get<AdminMapsConfig>('/admin/settings/maps')
@@ -57,12 +21,12 @@ export async function testTile(z = 10, x = 536, y = 355): Promise<TestTileResult
     return res.data
 }
 
-export async function getCacheStats(): Promise<TileCacheStats> {
-    const res = await client.get<TileCacheStats>('/admin/maps/cache/stats')
+export async function getCacheStats(): Promise<CacheStats> {
+    const res = await client.get<CacheStats>('/admin/maps/cache/stats')
     return res.data
 }
 
-export async function purgeCache(): Promise<TileCacheStats> {
-    const res = await client.post<TileCacheStats>('/admin/maps/cache/purge')
+export async function purgeCache(): Promise<CacheStats> {
+    const res = await client.post<CacheStats>('/admin/maps/cache/purge')
     return res.data
 }

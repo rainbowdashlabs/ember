@@ -150,8 +150,8 @@ class BeaconReportServiceTest {
     }
 
     /** A fault as the log holds one: no exception, and the same call failing two different ways. */
-    private static ProblemLogAppender.Snapshot aWarning() {
-        return new ProblemLogAppender.Snapshot(
+    private static ProblemLogAppender.ProblemSnapshot aWarning() {
+        return new ProblemLogAppender.ProblemSnapshot(
                 1,
                 "WARN",
                 "dev.chojo.ember.feature.federation.service.FederationHttpClient",

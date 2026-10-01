@@ -10,7 +10,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {MapsTilesConfig} from '@/api/maps'
+import type {MapsTilesConfig} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

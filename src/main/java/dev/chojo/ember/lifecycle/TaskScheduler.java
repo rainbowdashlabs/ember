@@ -223,7 +223,7 @@ public final class TaskScheduler {
 
         private void arm() {
             var schedule = task.schedule();
-            if (schedule.mode() == Schedule.Mode.FIXED_RATE) {
+            if (schedule.mode() == Schedule.ScheduleMode.FIXED_RATE) {
                 timer.scheduleAtFixedRate(
                         this::fire,
                         schedule.initialDelay().toMillis(),
@@ -254,7 +254,7 @@ public final class TaskScheduler {
                 throw e;
             } finally {
                 busy.set(false);
-                if (task.schedule().mode() == Schedule.Mode.FIXED_DELAY && !stopping) {
+                if (task.schedule().mode() == Schedule.ScheduleMode.FIXED_DELAY && !stopping) {
                     after(task.schedule().period(), this::fire);
                 }
             }

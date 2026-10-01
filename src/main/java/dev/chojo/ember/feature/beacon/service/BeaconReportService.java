@@ -131,7 +131,7 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return the payload, ready to be shown or sent
      */
-    public BeaconPayloads.ProblemPayload payloadFor(ProblemLogAppender.Snapshot entry, String version) {
+    public BeaconPayloads.ProblemPayload payloadFor(ProblemLogAppender.ProblemSnapshot entry, String version) {
         return new BeaconPayloads.ProblemPayload(
                 envelope(),
                 version,
@@ -162,7 +162,7 @@ public class BeaconReportService {
      * fault. Everything else is left as it was written: an address inside the product, an
      * identifier, a status code, all of which are what makes a fault findable again.
      */
-    private static String wordsOf(ProblemLogAppender.Snapshot entry) {
+    private static String wordsOf(ProblemLogAppender.ProblemSnapshot entry) {
         var words = new LinkedHashSet<String>();
         if (entry.exceptionMessage() != null && !entry.exceptionMessage().isBlank()) {
             words.add(entry.exceptionMessage().strip());
@@ -183,7 +183,7 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return whether it was queued, false when the queue is full or reporting is off
      */
-    public boolean send(ProblemLogAppender.Snapshot entry, String version) {
+    public boolean send(ProblemLogAppender.ProblemSnapshot entry, String version) {
         if (!config.enabled()) return false;
         return enqueue(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
     }
@@ -195,7 +195,7 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return how many were queued
      */
-    public int sendAll(List<ProblemLogAppender.Snapshot> entries, String version) {
+    public int sendAll(List<ProblemLogAppender.ProblemSnapshot> entries, String version) {
         int queued = 0;
         for (var entry : entries) {
             if (send(entry, version)) queued++;

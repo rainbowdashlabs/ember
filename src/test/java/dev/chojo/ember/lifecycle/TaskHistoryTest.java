@@ -27,7 +27,7 @@ class TaskHistoryTest {
         var status = history.status();
 
         assertEquals("sweep", status.name());
-        assertEquals(Schedule.Mode.FIXED_DELAY, status.mode());
+        assertEquals(Schedule.ScheduleMode.FIXED_DELAY, status.mode());
         assertEquals(900, status.periodSeconds());
         assertEquals(TaskOutcome.NOT_RUN_YET, status.outcome());
         assertNull(status.lastStartedAt());

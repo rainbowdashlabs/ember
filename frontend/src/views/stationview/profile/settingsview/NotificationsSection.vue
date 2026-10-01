@@ -9,10 +9,10 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {UserSettings, NotificationToggle} from '@/api/userSettings'
+import type {NotificationToggle, SettingsResponse} from '@/api/generated/schema'
 
 const props = defineProps<{
-  settings: UserSettings
+  settings: SettingsResponse
 }>()
 
 const emit = defineEmits<{

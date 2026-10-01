@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {PasskeysStatus} from '@/api/passkeys'
+import type {PasskeysStatusResponse} from '@/api/generated/schema'
 
 /**
  * The two switches D3 names: asking for the passkey after the password as well, and switching
@@ -17,7 +17,7 @@ import type {PasskeysStatus} from '@/api/passkeys'
  */
 const {t} = useI18n()
 
-const props = defineProps<{status: PasskeysStatus}>()
+const props = defineProps<{status: PasskeysStatusResponse}>()
 
 const emit = defineEmits<{
   togglePasswordLogin: [enabled: boolean]

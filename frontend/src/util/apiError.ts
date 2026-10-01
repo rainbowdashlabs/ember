@@ -3,44 +3,19 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {ErrorResponseWrapper, StepUpChallenge} from '@/api/generated/schema'
+
 /**
- * Error payload the backend sends with a failed request. `message` comes from the
- * plain message envelope, `title` from the problem-detail envelope; `error` names
- * the kind of refusal where the backend raised one of its own, and `category` is
- * only populated by the step-up challenge.
+ * Error payload the backend sends with a failed request: its error envelope, or the step-up challenge.
+ * Any of their fields may be missing, because the body is whichever of the two the server answered with.
+ *
+ * <p>`title` is the problem-detail envelope of a request that never reached the application. A refusal
+ * of answers to a form adds `problems`, one per question; a refusal of a change to groups adds
+ * `conflicts`, one per member it was refused for.
  */
-export interface ApiErrorBody {
-    message?: string
+export type ApiErrorBody = Partial<ErrorResponseWrapper> & Partial<StepUpChallenge> & {
     title?: string
-    error?: string
-    category?: string
-    /**
-     * Which refusal this was, named by the backend from its own registry of them.
-     *
-     * <p>The name of the constant that threw, so a reader quoting it in a report points an operator at
-     * the line rather than at the wording. Absent on a refusal nobody has named yet, and on anything
-     * that never reached the application.
-     */
-    code?: string
-    /** What the account can prove itself with, named by a step-up refusal. */
-    proofs?: string[]
-    /**
-     * How many seconds to wait before asking again, on a refusal for asking too often.
-     *
-     * <p>It rides in the body as well as in the `Retry-After` header, because a header is only
-     * readable cross-origin when the server says it may be, and a screen that wants to count the
-     * wait down should not depend on that.
-     */
-    retryAfterSeconds?: number
-    /**
-     * What was wrong with answers to a form, one entry per question, on a refusal of answers. Each
-     * names its question and the page it stands on, with a code of its own.
-     */
     problems?: ApiAnswerProblem[]
-    /**
-     * The members a change to groups was refused for, on a refusal that names them: those a binding
-     * would not take, or those who would be in two groups of one set.
-     */
     conflicts?: ApiGroupConflict[]
 }
 
@@ -121,7 +96,7 @@ export function apiErrorMessage(e: unknown): string | undefined {
 }
 
 /** The text where something was actually written, and undefined where it was blank or absent. */
-function said(text: string | undefined): string | undefined {
+function said(text: string | null | undefined): string | undefined {
     return text?.trim() ? text : undefined
 }
 

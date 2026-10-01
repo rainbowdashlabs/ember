@@ -20,7 +20,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NumberMatchPicker from './unlockdeviceapproveview/NumberMatchPicker.vue'
 import {passkeys} from '@/api'
-import type {DeviceLookup} from '@/api/passkeys'
+import type {DeviceLookupResponse} from '@/api/generated/schema'
 import {apiErrorStatus} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
@@ -34,7 +34,7 @@ const {t} = useI18n()
 const route = useRoute()
 
 const code = ref('')
-const details = ref<DeviceLookup | null>(null)
+const details = ref<DeviceLookupResponse | null>(null)
 const failure = ref<Failure | null>(null)
 const done = ref(false)
 const busy = ref(false)

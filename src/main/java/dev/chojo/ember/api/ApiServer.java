@@ -964,13 +964,7 @@ public class ApiServer {
         routes.exception(StepUpRequiredException.class, (err, ctx) -> {
             ctx.status(HttpStatus.UNAUTHORIZED);
             ctx.header("X-StepUp-Required", err.category().name());
-            ctx.json(Map.of(
-                    "error",
-                    "step_up_required",
-                    "category",
-                    err.category().name(),
-                    "proofs",
-                    err.proofs().stream().map(Enum::name).sorted().toList()));
+            ctx.json(StepUpChallenge.of(err.category(), err.proofs()));
         });
 
         routes.exception(ApiException.class, (err, ctx) -> {

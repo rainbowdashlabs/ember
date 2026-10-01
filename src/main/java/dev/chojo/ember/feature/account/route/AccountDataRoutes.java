@@ -20,6 +20,7 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -59,7 +60,7 @@ public class AccountDataRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Export all personal data (GDPR/DSGVO)",
             tags = {"Session"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(type = "application/zip")))
     private void gdprExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String locale = ctx.queryParam("locale");

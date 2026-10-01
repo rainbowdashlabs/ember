@@ -19,6 +19,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -121,7 +122,11 @@ public class FeedTokenRoutes implements Routes {
                 t.notificationPolledAt() != null ? t.notificationPolledAt().toString() : null);
     }
 
-    public record FeedTokenResponse(String token, String createdAt, String icalPolledAt, String notificationPolledAt) {}
+    public record FeedTokenResponse(
+            String token,
+            String createdAt,
+            @Nullable String icalPolledAt,
+            @Nullable String notificationPolledAt) {}
 
     public record FeedStatusResponse(boolean hasToken, boolean icalActive, boolean notificationActive) {}
 }

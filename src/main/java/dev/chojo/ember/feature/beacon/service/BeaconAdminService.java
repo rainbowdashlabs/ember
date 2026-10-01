@@ -176,7 +176,7 @@ public class BeaconAdminService {
         return appender;
     }
 
-    private ProblemLogAppender.Snapshot problem(long id) {
+    private ProblemLogAppender.ProblemSnapshot problem(long id) {
         return runningLog(Refusal.PROBLEM_LOG_NOT_RUNNING).getProblems(true).stream()
                 .filter(problem -> problem.id() == id)
                 .map(ProblemLogAppender.ProblemEntry::snapshot)

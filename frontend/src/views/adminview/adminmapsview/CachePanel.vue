@@ -10,12 +10,12 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {TileCacheStats} from '@/api/maps'
+import type {CacheStats} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 defineProps<{
-  cacheStats: TileCacheStats | null
+  cacheStats: CacheStats | null
 }>()
 
 const tileCacheMaxMb = defineModel<number>({required: true})

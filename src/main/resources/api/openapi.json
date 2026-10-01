@@ -5,6 +5,315 @@
     "version" : "1.0"
   },
   "paths" : {
+    "/api/v1/account/2fa/backup-codes/regenerate" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BackupCodesResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/factors/{id}/remove" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/factors/{id}/rename" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RenameFactorRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/status" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TwoFactorStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/totp/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TotpBeginResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/totp/confirm" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TotpConfirmRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/totp/remove" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/trusted-devices" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TrustedDevicesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/trusted-devices/revoke-all" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/trusted-devices/{id}/revoke" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/webauthn/register/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnBeginResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/2fa/webauthn/register/finish" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnRegisterFinishResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnRegisterFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/account/ai-credential" : {
       "get" : {
         "summary" : "Read the caller's own AI key settings",
@@ -63,6 +372,481 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasskeysStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CeremonyResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/device-approve" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceCodeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/device-lookup" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceLookupResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceCodeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/finish" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasskeyEntryResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreationFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/offer" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OfferResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/offer-answer" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OfferAnswerRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/password-login" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SwitchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/second-factor" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SwitchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/trial/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CeremonyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/trial/finish" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TrialResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SignInFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/{id}" : {
+      "delete" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RemovalResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/passkeys/{id}/rename" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RenameRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{accountUid}/avatar" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/2fa/audit" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuditResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/2fa/policies" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PoliciesResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TwoFactorPolicyEntry"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpsertPolicyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/2fa/policies/{id}" : {
+      "delete" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/accounts/search" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AccountSearchResult"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/accounts/{id}/2fa/reset" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2271,6 +3055,54 @@
         } ]
       }
     },
+    "/api/v1/admin/maps/cache/purge" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CacheStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/maps/cache/stats" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CacheStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/maps/test-tile" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TestTileResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/media/files" : {
       "post" : {
         "summary" : "Take a file into the library the instance holds",
@@ -2780,7 +3612,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/Snapshot"
+                    "$ref" : "#/components/schemas/ProblemSnapshot"
                   }
                 }
               }
@@ -2802,7 +3634,14 @@
         "tags" : [ "Problems" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcknowledgeResult"
+                }
+              }
+            }
           }
         }
       }
@@ -2874,6 +3713,45 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ApplicationSettings"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings/maps" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdminMapsConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdminMapsConfig"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminMapsConfig"
               }
             }
           }
@@ -5365,6 +6243,182 @@
         }
       }
     },
+    "/api/v1/auth/2fa" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResultResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Verify2faRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/stepup" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StepUpRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/stepup/webauthn/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnBeginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/stepup/webauthn/finish" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnStepUpFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/webauthn/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnBeginResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnLoginBeginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/webauthn/finish" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResultResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnLoginFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/change-password" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/confirm-email-change" : {
       "post" : {
         "summary" : "Confirm an email change",
@@ -5389,6 +6443,56 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/device/sign-in-claim" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SignInClaimRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/device/sign-in-request" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceRequestResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceIdentifierRequest"
               }
             }
           }
@@ -5511,6 +6615,106 @@
         }
       }
     },
+    "/api/v1/auth/passkey/device-request" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceRequestResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceIdentifierRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/device-request/poll" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DevicePollResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DevicePollRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/enroll/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CeremonyResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceEnrollBeginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/enroll/finish" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceEnrollFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/passkey/finish" : {
       "post" : {
         "summary" : "Finish a passwordless sign-in",
@@ -5538,6 +6742,81 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/SignInFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/token-enroll/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CeremonyResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TokenEnrollRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/token-enroll/finish" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TokenEnrollFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/token-enroll/lookup" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenEnrollLookupResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TokenEnrollRequest"
               }
             }
           }
@@ -5723,6 +7002,122 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/SetPasswordRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/stepup/device/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceStepUpBeginResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceStepUpBeginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/stepup/device/poll" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceStepUpPollResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceStepUpPollRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/stepup/passkey/begin" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasskeyStepUpBeginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/stepup/passkey/finish" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpVerifiedResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasskeyStepUpFinishRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/stepup/password" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpVerifiedResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordStepUpRequest"
               }
             }
           }
@@ -26312,6 +27707,25 @@
         }
       }
     },
+    "/api/v1/members/{stationUid}/{memberUid}/avatar" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/movement-flow-bindings" : {
       "get" : {
         "summary" : "List which flow applies to which owner and purpose",
@@ -28128,7 +29542,14 @@
         "tags" : [ "Notifications" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CountResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -31228,6 +32649,32 @@
         } ]
       }
     },
+    "/api/v1/public/maps/tiles/{z}/{x}/{y}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/public/media/instance/{hash}" : {
       "get" : {
         "responses" : {
@@ -31378,6 +32825,38 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PublicQuizQuestion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/settings/maps" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicMapsConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/settings/passkeys" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicModeResponse"
                 }
               }
             }
@@ -34241,6 +35720,46 @@
         } ]
       }
     },
+    "/api/v1/session/avatar" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/session/consent" : {
       "post" : {
         "summary" : "Record GDPR consent proof",
@@ -34302,13 +35821,36 @@
         }
       }
     },
+    "/api/v1/session/cross-station-dashboard" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CrossStationDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session/gdpr-export" : {
       "get" : {
         "summary" : "Export all personal data (GDPR/DSGVO)",
         "tags" : [ "Session" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/zip" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           }
         }
       }
@@ -34324,6 +35866,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StepUpChallenge"
                 }
               }
             }
@@ -34389,6 +35941,22 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/SettingsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sidebar-counts" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SidebarCounts"
+                }
               }
             }
           }
@@ -35627,6 +37195,109 @@
             "$ref" : "#/components/schemas/StationUserType"
           }
         } ]
+      }
+    },
+    "/api/v1/station/2fa/members" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/2fa/policies" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PoliciesResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TwoFactorPolicyEntry"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpsertPolicyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/2fa/policies/{id}" : {
+      "delete" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/2fa/user-types" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserTypesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/accounts/{id}/2fa/reset" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/station/cluster" : {
@@ -37757,7 +39428,7 @@
         },
         "requestBody" : {
           "content" : {
-            "text/plain" : {
+            "multipart/form-data" : {
               "schema" : {
                 "type" : "string"
               }
@@ -38450,6 +40121,32 @@
         },
         "required" : [ "id", "uid", "email", "username", "firstName", "lastName" ]
       },
+      "AccountSearchResult" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "uid", "displayName", "firstName", "lastName", "email" ]
+      },
       "AchievementItem" : {
         "type" : "object",
         "properties" : {
@@ -38500,6 +40197,16 @@
           }
         }
       },
+      "AcknowledgeResult" : {
+        "type" : "object",
+        "properties" : {
+          "acknowledged" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "acknowledged" ]
+      },
       "AcknowledgeStepRequest" : {
         "type" : "object",
         "properties" : {
@@ -38531,7 +40238,7 @@
             "format" : "int32"
           },
           "userAgent" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -38546,7 +40253,7 @@
             "type" : "boolean"
           },
           "location" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "userAgent", "createdAt", "lastUsedAt", "expiresAt", "isCurrent", "location" ]
@@ -38618,6 +40325,22 @@
             "type" : "string"
           }
         }
+      },
+      "AdminMapsConfig" : {
+        "type" : "object",
+        "properties" : {
+          "tiles" : {
+            "$ref" : "#/components/schemas/MapsTilesConfig"
+          },
+          "geocoding" : {
+            "$ref" : "#/components/schemas/MapsGeocodingConfig"
+          },
+          "tileCacheMaxMb" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "tiles", "geocoding", "tileCacheMaxMb" ]
       },
       "AdminOverview" : {
         "type" : "object",
@@ -39159,6 +40882,19 @@
           }
         }
       },
+      "ApprovalCandidate" : {
+        "type" : "object",
+        "properties" : {
+          "accountId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "accountId", "name" ]
+      },
       "ArtAssignRequest" : {
         "type" : "object",
         "properties" : {
@@ -39684,6 +41420,18 @@
         },
         "required" : [ "id", "ts", "actorAccountId", "actorMemberId", "systemActor", "stationId", "action", "oldConfig", "newConfig", "outcome", "error" ]
       },
+      "AuditResponse" : {
+        "type" : "object",
+        "properties" : {
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TwoFactorAuditEntry"
+            }
+          }
+        },
+        "required" : [ "entries" ]
+      },
       "AuthBucket" : {
         "type" : "string",
         "enum" : [ "AUTHENTICATED", "UNAUTHENTICATED", "FEDERATION" ]
@@ -39913,6 +41661,18 @@
           }
         },
         "required" : [ "count" ]
+      },
+      "BackupCodesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "codes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "codes" ]
       },
       "BatchCreateRequest" : {
         "type" : "object",
@@ -41265,6 +43025,24 @@
           }
         }
       },
+      "CacheStats" : {
+        "type" : "object",
+        "properties" : {
+          "bytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "tiles" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "maxBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "bytes", "tiles", "maxBytes" ]
+      },
       "CalloutConfig" : {
         "type" : "object",
         "properties" : {
@@ -41812,6 +43590,17 @@
           }
         },
         "required" : [ "challengeToken", "optionsJson" ]
+      },
+      "ChangePasswordRequest" : {
+        "type" : "object",
+        "properties" : {
+          "currentPassword" : {
+            "type" : "string"
+          },
+          "newPassword" : {
+            "type" : "string"
+          }
+        }
       },
       "ChangedCountResponse" : {
         "type" : "object",
@@ -43093,16 +44882,16 @@
             "type" : "boolean"
           },
           "privacyDiff" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "tosDiff" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "privacyHtml" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "tosHtml" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "currentPrivacyVersion" : {
             "type" : "string"
@@ -43126,16 +44915,20 @@
             "type" : "boolean"
           },
           "consentVersion" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "privacyVersion" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "tosVersion" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "consentedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "currentPrivacyVersion" : {
             "type" : "string"
@@ -43472,6 +45265,16 @@
             } ]
           }
         }
+      },
+      "CountResponse" : {
+        "type" : "object",
+        "properties" : {
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "count" ]
       },
       "CountdownConfig" : {
         "type" : "object",
@@ -43910,6 +45713,111 @@
         },
         "required" : [ "name" ]
       },
+      "CreationFinishRequest" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "credentialJson" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        }
+      },
+      "CrossStationDashboard" : {
+        "type" : "object",
+        "properties" : {
+          "stations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CrossStationSummary"
+            }
+          },
+          "recentNotifications" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CrossStationNotification"
+            }
+          }
+        },
+        "required" : [ "stations", "recentNotifications" ]
+      },
+      "CrossStationNotification" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "type" : {
+            "$ref" : "#/components/schemas/NotificationType"
+          },
+          "localeKey" : {
+            "type" : "string"
+          },
+          "params" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "link" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CrossStationNotificationLink"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "stationId", "stationName", "id", "type", "localeKey", "params", "link", "createdAt" ]
+      },
+      "CrossStationNotificationLink" : {
+        "type" : "object",
+        "properties" : {
+          "route" : {
+            "type" : "string"
+          },
+          "routeParams" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : { }
+          }
+        },
+        "required" : [ "route", "routeParams" ]
+      },
+      "CrossStationSummary" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "notifications" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requirements" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "stationId", "stationName", "notifications", "requirements" ]
+      },
       "CsvDraft" : {
         "type" : "object",
         "properties" : {
@@ -44307,6 +46215,194 @@
             }
           }
         }
+      },
+      "DeviceCodeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "forAccountId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pickedNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "DeviceEnrollBeginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enrollToken" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DeviceEnrollFinishRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enrollToken" : {
+            "type" : "string"
+          },
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "credentialJson" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DeviceIdentifierRequest" : {
+        "type" : "object",
+        "properties" : {
+          "identifier" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DeviceLookupResponse" : {
+        "type" : "object",
+        "properties" : {
+          "userAgent" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "purpose" : {
+            "$ref" : "#/components/schemas/DeviceRequestPurpose"
+          },
+          "stepUpCategory" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepUpCategory"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "stepUpSubject" : {
+            "type" : [ "string", "null" ]
+          },
+          "numberChoices" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "candidates" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ApprovalCandidate"
+            }
+          }
+        },
+        "required" : [ "userAgent", "country", "createdAt", "purpose", "stepUpCategory", "stepUpSubject", "numberChoices", "candidates" ]
+      },
+      "DevicePollRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pollSecret" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DevicePollResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/PollStatus"
+          },
+          "enrollToken" : {
+            "type" : [ "string", "null" ]
+          },
+          "purpose" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DeviceRequestPurpose"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "status", "enrollToken", "purpose" ]
+      },
+      "DeviceRequestPurpose" : {
+        "type" : "string",
+        "enum" : [ "ENROL_PASSKEY", "SIGN_IN", "STEP_UP" ]
+      },
+      "DeviceRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "pollSecret" : {
+            "type" : "string"
+          },
+          "matchNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "qrPng" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "pollSecret", "matchNumber", "expiresAt", "qrPng" ]
+      },
+      "DeviceStepUpBeginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DeviceStepUpBeginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "pollSecret" : {
+            "type" : "string"
+          },
+          "matchNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "code", "pollSecret", "matchNumber", "expiresAt" ]
+      },
+      "DeviceStepUpPollRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pollSecret" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DeviceStepUpPollResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/DeviceStepUpStatus"
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "DeviceStepUpStatus" : {
+        "type" : "string",
+        "enum" : [ "PENDING", "APPROVED", "EXPIRED", "UNKNOWN", "REJECTED", "CONFIRMED" ]
       },
       "Dimension" : {
         "type" : "string",
@@ -44859,7 +46955,7 @@
         "type" : "object",
         "properties" : {
           "status" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/EmailChangeStatus"
           },
           "message" : {
             "type" : "string"
@@ -44870,6 +46966,10 @@
       "EmailChangeResult" : {
         "type" : "string",
         "enum" : [ "INVALID", "WAITING", "COMMITTED", "DUPLICATE" ]
+      },
+      "EmailChangeStatus" : {
+        "type" : "string",
+        "enum" : [ "COMMITTED", "WAITING" ]
       },
       "EmailQueueStatus" : {
         "type" : "string",
@@ -45553,7 +47653,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "error", "message", "code", "retryAfterSeconds", "reference" ]
+        "required" : [ "error" ]
       },
       "EvalMemberData" : {
         "type" : "object",
@@ -46486,6 +48586,32 @@
         "type" : "string",
         "enum" : [ "BANNER", "ICON" ]
       },
+      "FactorInfo" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/TwoFactorKind"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "kind", "label", "createdAt", "lastUsedAt" ]
+      },
       "FailedInviteResponse" : {
         "type" : "object",
         "properties" : {
@@ -47068,10 +49194,10 @@
             "type" : "string"
           },
           "icalPolledAt" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "notificationPolledAt" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "token", "createdAt", "icalPolledAt", "notificationPolledAt" ]
@@ -47090,10 +49216,18 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "icalPolledAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "notificationPolledAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "memberId", "identity", "createdAt", "icalPolledAt", "notificationPolledAt" ]
@@ -48835,6 +50969,10 @@
           }
         },
         "required" : [ "questions", "done" ]
+      },
+      "GeocodingProvider" : {
+        "type" : "string",
+        "enum" : [ "NONE", "NOMINATIM", "LOCATIONIQ", "GEOAPIFY" ]
       },
       "GrantRequest" : {
         "type" : "object",
@@ -52337,40 +54475,68 @@
         "type" : "object",
         "properties" : {
           "token" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "expiresAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "passwordChangeRequired" : {
             "type" : "boolean"
           },
           "passwordChangeToken" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "passwordChangeTokenExpiresAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "addressRequired" : {
             "type" : "boolean"
           },
           "addressToken" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "addressTokenExpiresAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "twoFactorRequired" : {
             "type" : "boolean"
           },
           "preAuthToken" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "preAuthTokenExpiresAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "token", "expiresAt", "passwordChangeRequired", "passwordChangeToken", "passwordChangeTokenExpiresAt", "addressRequired", "addressToken", "addressTokenExpiresAt", "twoFactorRequired", "preAuthToken", "preAuthTokenExpiresAt" ]
+      },
+      "LoginResultResponse" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : [ "string", "null" ]
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "token", "expiresAt" ]
       },
       "LookAndFeelRequest" : {
         "type" : "object",
@@ -53030,6 +55196,51 @@
             "type" : "string"
           }
         }
+      },
+      "MapTileProvider" : {
+        "type" : "string",
+        "enum" : [ "OSM", "MAPBOX", "STADIA", "MAPTILER", "THUNDERFOREST", "CUSTOM" ]
+      },
+      "MapsGeocodingConfig" : {
+        "type" : "object",
+        "properties" : {
+          "provider" : {
+            "$ref" : "#/components/schemas/GeocodingProvider"
+          },
+          "apiKey" : {
+            "type" : "string"
+          },
+          "contactEmail" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "provider", "apiKey", "contactEmail" ]
+      },
+      "MapsTilesConfig" : {
+        "type" : "object",
+        "properties" : {
+          "provider" : {
+            "$ref" : "#/components/schemas/MapTileProvider"
+          },
+          "apiKey" : {
+            "type" : "string"
+          },
+          "urlTemplate" : {
+            "type" : "string"
+          },
+          "attribution" : {
+            "type" : "string"
+          },
+          "minZoom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxZoom" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "provider", "apiKey", "urlTemplate", "attribution", "minZoom", "maxZoom" ]
       },
       "MarkFavouriteRequest" : {
         "type" : "object",
@@ -53849,6 +56060,50 @@
           }
         }
       },
+      "MemberStatus" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "accountId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "userType" : {
+            "$ref" : "#/components/schemas/StationUserType"
+          },
+          "enrolled" : {
+            "type" : "boolean"
+          },
+          "mandated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "memberId", "accountId", "firstName", "lastName", "email", "userType", "enrolled", "mandated" ]
+      },
+      "MemberStatusResponse" : {
+        "type" : "object",
+        "properties" : {
+          "members" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberStatus"
+            }
+          }
+        },
+        "required" : [ "members" ]
+      },
       "MemberSummary" : {
         "type" : "object",
         "properties" : {
@@ -54213,7 +56468,7 @@
       },
       "Mode" : {
         "type" : "string",
-        "enum" : [ "FIXED_DELAY", "FIXED_RATE", "ONCE" ]
+        "enum" : [ "OFF", "OPTIONAL", "ENCOURAGED", "PREFERRED", "PASSWORDLESS" ]
       },
       "ModelInfo" : {
         "type" : "object",
@@ -55482,11 +57737,11 @@
             "type" : "string"
           },
           "routeParams" : {
-            "type" : "object",
+            "type" : [ "object", "null" ],
             "additionalProperties" : { }
           },
           "query" : {
-            "type" : "object",
+            "type" : [ "object", "null" ],
             "additionalProperties" : { }
           }
         },
@@ -55500,7 +57755,7 @@
             "format" : "int32"
           },
           "type" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/NotificationType"
           },
           "localeKey" : {
             "type" : "string"
@@ -55512,13 +57767,21 @@
             }
           },
           "link" : {
-            "$ref" : "#/components/schemas/NotificationLinkResponse"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/NotificationLinkResponse"
+            }, {
+              "type" : "null"
+            } ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "acknowledgedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "type", "localeKey", "params", "link", "createdAt", "acknowledgedAt" ]
@@ -55554,6 +57817,10 @@
         },
         "required" : [ "app", "email", "feed" ]
       },
+      "NotificationType" : {
+        "type" : "string",
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER" ]
+      },
       "NumberConfig" : {
         "type" : "object",
         "properties" : {
@@ -55584,6 +57851,23 @@
           }
         },
         "required" : [ "value" ]
+      },
+      "OfferAnswerRequest" : {
+        "type" : "object",
+        "properties" : {
+          "answer" : {
+            "type" : "string"
+          }
+        }
+      },
+      "OfferResponse" : {
+        "type" : "object",
+        "properties" : {
+          "offer" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "offer" ]
       },
       "OkResponse" : {
         "type" : "object",
@@ -56019,6 +58303,61 @@
         },
         "required" : [ "code", "qrPng", "expiresAt" ]
       },
+      "PasskeyEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "aaguid" : {
+            "type" : [ "string", "null" ]
+          },
+          "tried" : {
+            "type" : "boolean"
+          },
+          "credentialId" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "label", "createdAt", "lastUsedAt", "aaguid", "tried", "credentialId" ]
+      },
+      "PasskeyStepUpBeginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "optionsJson" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "challengeToken", "optionsJson" ]
+      },
+      "PasskeyStepUpFinishRequest" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "credentialJson" : {
+            "type" : "string"
+          }
+        }
+      },
       "PasskeysConfigRequest" : {
         "type" : "object",
         "properties" : {
@@ -56031,10 +58370,10 @@
         "type" : "object",
         "properties" : {
           "mode" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/Mode"
           },
           "effectiveMode" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/Mode"
           },
           "localhostFallback" : {
             "type" : "boolean"
@@ -56068,7 +58407,48 @@
         },
         "required" : [ "mode", "effectiveMode", "localhostFallback", "rpId", "lastMailSentAt", "dependentAccounts", "accountsWithTriedPasskey", "accountsWithPassword", "accountsWithPasswordAndNoPasskey" ]
       },
+      "PasskeysStatusResponse" : {
+        "type" : "object",
+        "properties" : {
+          "passkeys" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PasskeyEntryResponse"
+            }
+          },
+          "hasPassword" : {
+            "type" : "boolean"
+          },
+          "passwordLoginEnabled" : {
+            "type" : "boolean"
+          },
+          "askWithPassword" : {
+            "type" : "boolean"
+          },
+          "mayDisablePasswordLogin" : {
+            "type" : "boolean"
+          },
+          "mode" : {
+            "$ref" : "#/components/schemas/Mode"
+          },
+          "rpId" : {
+            "type" : "string"
+          },
+          "userHandle" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "passkeys", "hasPassword", "passwordLoginEnabled", "askWithPassword", "mayDisablePasswordLogin", "mode", "rpId", "userHandle" ]
+      },
       "PasswordRequest" : {
+        "type" : "object",
+        "properties" : {
+          "password" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PasswordStepUpRequest" : {
         "type" : "object",
         "properties" : {
           "password" : {
@@ -56379,6 +58759,18 @@
         },
         "required" : [ "index", "label", "actor", "subject", "custodyAfter", "picksItem" ]
       },
+      "PoliciesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "policies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TwoFactorPolicyEntry"
+            }
+          }
+        },
+        "required" : [ "policies" ]
+      },
       "PolicyRequest" : {
         "type" : "object",
         "properties" : {
@@ -56419,6 +58811,10 @@
             "type" : "boolean"
           }
         }
+      },
+      "PollStatus" : {
+        "type" : "string",
+        "enum" : [ "PENDING", "APPROVED", "EXPIRED", "UNKNOWN", "REJECTED" ]
       },
       "PoolRequest" : {
         "type" : "object",
@@ -56564,7 +58960,7 @@
             "format" : "uuid"
           },
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "reporterName" : {
@@ -56574,38 +58970,90 @@
             "type" : "string"
           },
           "pageUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userRoles" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "recentRequests" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "browserInfo" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "screenSize" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "screenshotFileId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "acknowledged" : {
             "type" : "boolean"
           },
           "acknowledgedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "forwardedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
           }
         },
         "required" : [ "id", "stationId", "memberId", "reporterName", "message", "pageUrl", "userRoles", "recentRequests", "browserInfo", "screenSize", "screenshotFileId", "acknowledged", "acknowledgedAt", "forwardedAt", "createdAt" ]
+      },
+      "ProblemSnapshot" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "exceptionClass" : {
+            "type" : [ "string", "null" ]
+          },
+          "exceptionMessage" : {
+            "type" : [ "string", "null" ]
+          },
+          "stacktrace" : {
+            "type" : [ "string", "null" ]
+          },
+          "firstOccurrence" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastOccurrence" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "acknowledged" : {
+            "type" : "boolean"
+          },
+          "distinctMessages" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "id", "level", "logger", "exceptionClass", "exceptionMessage", "stacktrace", "firstOccurrence", "lastOccurrence", "count", "acknowledged", "distinctMessages" ]
       },
       "Procedure" : {
         "type" : "object",
@@ -57827,6 +60275,38 @@
           }
         },
         "required" : [ "mode", "stationUid" ]
+      },
+      "PublicMapsConfig" : {
+        "type" : "object",
+        "properties" : {
+          "provider" : {
+            "$ref" : "#/components/schemas/MapTileProvider"
+          },
+          "urlTemplate" : {
+            "type" : "string"
+          },
+          "attribution" : {
+            "type" : "string"
+          },
+          "minZoom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxZoom" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "provider", "urlTemplate", "attribution", "minZoom", "maxZoom" ]
+      },
+      "PublicModeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "$ref" : "#/components/schemas/Mode"
+          }
+        },
+        "required" : [ "mode" ]
       },
       "PublicPageSummary" : {
         "type" : "object",
@@ -59990,6 +62470,31 @@
         },
         "required" : [ "protocol", "sections", "items" ]
       },
+      "RemovalResponse" : {
+        "type" : "object",
+        "properties" : {
+          "passwordLoginReenabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "passwordLoginReenabled" ]
+      },
+      "RenameFactorRequest" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : "string"
+          }
+        }
+      },
+      "RenameRequest" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : "string"
+          }
+        }
+      },
       "Renamed" : {
         "type" : "object",
         "properties" : {
@@ -61208,6 +63713,10 @@
           }
         },
         "required" : [ "id", "accountId", "tableType", "name", "filterData", "position" ]
+      },
+      "ScheduleMode" : {
+        "type" : "string",
+        "enum" : [ "FIXED_DELAY", "FIXED_RATE", "ONCE" ]
       },
       "Scope" : {
         "type" : "string",
@@ -62813,6 +65322,68 @@
         },
         "required" : [ "id", "name", "description", "stationName", "stationUid" ]
       },
+      "SidebarCounts" : {
+        "type" : "object",
+        "properties" : {
+          "notifications" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requirements" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pendingChanges" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pendingRegistrations" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lendingRequests" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "federationRequests" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "openEvents" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "waitingListEntries" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lostAndFoundPending" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "myInventoryCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "openMovements" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "procedureCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "notifications", "requirements", "pendingChanges", "pendingRegistrations", "lendingRequests", "federationRequests", "openEvents", "waitingListEntries", "lostAndFoundPending", "myInventoryCount", "openMovements", "procedureCount" ]
+      },
+      "SignInClaimRequest" : {
+        "type" : "object",
+        "properties" : {
+          "claimToken" : {
+            "type" : "string"
+          }
+        }
+      },
       "SignInFinishRequest" : {
         "type" : "object",
         "properties" : {
@@ -63007,50 +65578,6 @@
       "SmtpEncryption" : {
         "type" : "string",
         "enum" : [ "IMPLICIT_TLS", "STARTTLS", "NONE" ]
-      },
-      "Snapshot" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "level" : {
-            "type" : "string"
-          },
-          "logger" : {
-            "type" : "string"
-          },
-          "exceptionClass" : {
-            "type" : "string"
-          },
-          "exceptionMessage" : {
-            "type" : "string"
-          },
-          "stacktrace" : {
-            "type" : "string"
-          },
-          "firstOccurrence" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "lastOccurrence" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "count" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "acknowledged" : {
-            "type" : "boolean"
-          },
-          "distinctMessages" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          }
-        },
-        "required" : [ "id", "level", "logger", "exceptionClass", "exceptionMessage", "stacktrace", "firstOccurrence", "lastOccurrence", "count", "acknowledged", "distinctMessages" ]
       },
       "SourceOccurrenceRequest" : {
         "type" : "object",
@@ -64113,6 +66640,61 @@
         "type" : "string",
         "enum" : [ "OUTGOING", "INCOMING" ]
       },
+      "StepUpCategory" : {
+        "type" : "string",
+        "enum" : [ "ACCOUNT_SECURITY", "FEDERATION", "INSTANCE_CONFIG", "ROLE_CHANGE" ]
+      },
+      "StepUpChallenge" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "category" : {
+            "$ref" : "#/components/schemas/StepUpCategory"
+          },
+          "proofs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepUpProof"
+            }
+          }
+        },
+        "required" : [ "error", "category", "proofs" ]
+      },
+      "StepUpProof" : {
+        "type" : "string",
+        "enum" : [ "TOTP", "SECURITY_KEY", "BACKUP_CODE", "PASSKEY", "PASSWORD", "ANOTHER_DEVICE" ]
+      },
+      "StepUpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "factor" : {
+            "type" : "string"
+          },
+          "proof" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StepUpResponse" : {
+        "type" : "object",
+        "properties" : {
+          "verifiedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "verifiedAt" ]
+      },
+      "StepUpVerifiedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "verifiedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "verifiedAt" ]
+      },
       "StorageAuditAction" : {
         "type" : "string",
         "enum" : [ "CREATED", "UPDATED", "DELETED", "PROBE_OK", "PROBE_FAILED", "MIGRATION_STARTED", "MIGRATION_COMPLETED", "MIGRATION_FAILED", "REJECTED", "INSTANCE_DEFAULT_UPDATED", "INSTANCE_MIGRATION_STARTED", "INSTANCE_MIGRATION_COMPLETED", "INSTANCE_MIGRATION_FAILED" ]
@@ -64286,6 +66868,14 @@
           }
         },
         "required" : [ "error", "message", "blockers" ]
+      },
+      "SwitchRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          }
+        }
       },
       "SystemCommentResponse" : {
         "type" : "object",
@@ -64687,7 +67277,7 @@
             "type" : "string"
           },
           "mode" : {
-            "$ref" : "#/components/schemas/Mode"
+            "$ref" : "#/components/schemas/ScheduleMode"
           },
           "periodSeconds" : {
             "type" : "integer",
@@ -65106,6 +67696,19 @@
         "type" : "string",
         "enum" : [ "DRAFT", "ACTIVE", "CLOSED" ]
       },
+      "TestTileResult" : {
+        "type" : "object",
+        "properties" : {
+          "url" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "url", "status" ]
+      },
       "Text" : {
         "type" : "object",
         "properties" : {
@@ -65379,6 +67982,40 @@
         },
         "required" : [ "entryId", "time" ]
       },
+      "TokenEnrollFinishRequest" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string"
+          },
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "credentialJson" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TokenEnrollLookupResponse" : {
+        "type" : "object",
+        "properties" : {
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "firstName", "lastName" ]
+      },
+      "TokenEnrollRequest" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string"
+          }
+        }
+      },
       "TokenPurpose" : {
         "type" : "string",
         "enum" : [ "SETUP", "RESET", "OTHER" ]
@@ -65481,6 +68118,27 @@
         },
         "required" : [ "tokenBytes", "verifyTokenHours", "passwordTokenHours", "setupTokenDays", "sessionMinutes", "untrustedSessionMinutes", "tokenPepperConfigured" ]
       },
+      "TotpBeginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          },
+          "otpauthUri" : {
+            "type" : "string"
+          },
+          "qrPng" : {
+            "type" : "string"
+          },
+          "recoveryCodes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "secret", "otpauthUri", "qrPng", "recoveryCodes" ]
+      },
       "TotpConfig" : {
         "type" : "object",
         "properties" : {
@@ -65504,6 +68162,26 @@
           }
         },
         "required" : [ "digits", "periodSeconds", "algorithm", "driftWindow", "issuer" ]
+      },
+      "TotpConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "recoveryCodes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "password" : {
+            "type" : "string"
+          }
+        }
       },
       "TrackingStatus" : {
         "type" : "string",
@@ -65646,6 +68324,19 @@
         },
         "required" : [ "entries", "bytes" ]
       },
+      "TrialOutcome" : {
+        "type" : "string",
+        "enum" : [ "OK", "FOREIGN_CREDENTIAL", "FAILED" ]
+      },
+      "TrialResponse" : {
+        "type" : "object",
+        "properties" : {
+          "outcome" : {
+            "$ref" : "#/components/schemas/TrialOutcome"
+          }
+        },
+        "required" : [ "outcome" ]
+      },
       "TrueFalse" : {
         "type" : "object",
         "properties" : {
@@ -65654,6 +68345,80 @@
           }
         },
         "required" : [ "correctAnswer" ]
+      },
+      "TrustedDeviceEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "userAgent" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastSeenAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "trustedUntil" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "current" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "userAgent", "createdAt", "lastSeenAt", "trustedUntil", "current" ]
+      },
+      "TrustedDevicesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "devices" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrustedDeviceEntry"
+            }
+          }
+        },
+        "required" : [ "devices" ]
+      },
+      "TwoFactorAuditEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "accountId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "actorId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "event" : {
+            "$ref" : "#/components/schemas/TwoFactorEvent"
+          },
+          "factorKind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TwoFactorKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "userAgent" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "accountId", "actorId", "event", "factorKind", "userAgent", "country", "createdAt" ]
       },
       "TwoFactorCoreConfigRequest" : {
         "type" : "object",
@@ -65698,6 +68463,78 @@
           }
         },
         "required" : [ "enabled", "stepUpFreshnessSeconds", "trustedDeviceMaxDays", "enrollmentGraceDays", "secretKeyConfigured" ]
+      },
+      "TwoFactorEvent" : {
+        "type" : "string",
+        "enum" : [ "ENROLLED", "REMOVED", "LOGIN_VERIFIED", "STEPUP_VERIFIED", "BACKUP_CODE_USED", "BACKUP_CODE_REGENERATED", "ADMIN_RESET", "TRUSTED_DEVICE_ADDED", "TRUSTED_DEVICE_REVOKED", "POLICY_CHANGED", "PASSKEY_SIGN_IN", "PASSKEY_ENROLLED_VIA_DEVICE_CODE", "PASSKEY_CODE_ISSUED", "PASSWORD_LOGIN_DISABLED", "PASSWORD_LOGIN_ENABLED", "PASSWORD_RETIRED", "STEPUP_FAILED", "SIGNED_IN_VIA_DEVICE_CODE", "STEPUP_VIA_DEVICE_CODE", "DEVICE_REQUEST_APPROVED" ]
+      },
+      "TwoFactorKind" : {
+        "type" : "string",
+        "enum" : [ "TOTP", "WEBAUTHN", "BACKUP_CODES" ]
+      },
+      "TwoFactorPolicyEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "scope" : {
+            "type" : "string"
+          },
+          "stationId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "userType" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationUserType"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "graceDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdBy" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "scope", "stationId", "userType", "required", "graceDays", "createdBy", "createdAt" ]
+      },
+      "TwoFactorStatusResponse" : {
+        "type" : "object",
+        "properties" : {
+          "enrolled" : {
+            "type" : "boolean"
+          },
+          "factors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FactorInfo"
+            }
+          },
+          "unusedBackupCodes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "webauthnAvailable" : {
+            "type" : "boolean"
+          },
+          "trustedDeviceMaxDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "enrolled", "factors", "unusedBackupCodes", "webauthnAvailable", "trustedDeviceMaxDays" ]
       },
       "UnassignItemRequest" : {
         "type" : "object",
@@ -66034,6 +68871,21 @@
           }
         }
       },
+      "UpsertPolicyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "userType" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "graceDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "Usage" : {
         "type" : "object",
         "properties" : {
@@ -66104,6 +68956,18 @@
         },
         "required" : [ "leftGroups" ]
       },
+      "UserTypesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "userTypes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StationUserType"
+            }
+          }
+        },
+        "required" : [ "userTypes" ]
+      },
       "ValueEntry" : {
         "type" : "object",
         "properties" : {
@@ -66113,6 +68977,27 @@
           },
           "value" : {
             "type" : "string"
+          }
+        }
+      },
+      "Verify2faRequest" : {
+        "type" : "object",
+        "properties" : {
+          "preAuthToken" : {
+            "type" : "string"
+          },
+          "factor" : {
+            "type" : "string"
+          },
+          "proof" : {
+            "type" : "string"
+          },
+          "rememberDeviceDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "trustedDevice" : {
+            "type" : "boolean"
           }
         }
       },
@@ -66921,6 +69806,18 @@
         },
         "required" : [ "local", "federated" ]
       },
+      "WebAuthnBeginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "optionsJson" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "challengeToken", "optionsJson" ]
+      },
       "WebAuthnConfig" : {
         "type" : "object",
         "properties" : {
@@ -66939,6 +69836,78 @@
           }
         },
         "required" : [ "rpId", "rpName", "attestation", "timeoutSeconds" ]
+      },
+      "WebAuthnLoginBeginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "preAuthToken" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebAuthnLoginFinishRequest" : {
+        "type" : "object",
+        "properties" : {
+          "preAuthToken" : {
+            "type" : "string"
+          },
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "credentialJson" : {
+            "type" : "string"
+          },
+          "rememberDeviceDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "trustedDevice" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "WebAuthnRegisterFinishRequest" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "credentialJson" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebAuthnRegisterFinishResponse" : {
+        "type" : "object",
+        "properties" : {
+          "factor" : {
+            "$ref" : "#/components/schemas/FactorInfo"
+          },
+          "recoveryCodes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "factor", "recoveryCodes" ]
+      },
+      "WebAuthnStepUpFinishRequest" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "credentialJson" : {
+            "type" : "string"
+          }
+        }
       },
       "WebhookUrl" : {
         "type" : "object",

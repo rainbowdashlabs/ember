@@ -4,12 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {browserShallowRef} from '@/util/browserState'
+import type {components} from '@/api/generated/schema'
 
-export type StepUpCategory =
-    | 'ACCOUNT_SECURITY'
-    | 'FEDERATION'
-    | 'INSTANCE_CONFIG'
-    | 'ROLE_CHANGE'
+export type StepUpCategory = components['schemas']['StepUpCategory']
+
+export type StepUpProofName = components['schemas']['StepUpProof']
 
 export const StepUpProof = {
     TOTP: 'TOTP',
@@ -23,9 +22,7 @@ export const StepUpProof = {
      * has no other live session to confirm from.
      */
     ANOTHER_DEVICE: 'ANOTHER_DEVICE',
-} as const
-
-export type StepUpProofName = (typeof StepUpProof)[keyof typeof StepUpProof]
+} as const satisfies Record<StepUpProofName, StepUpProofName>
 
 /** Thrown into the original caller when the reader dismissed the prompt instead of answering it. */
 export class StepUpCancelledError extends Error {
