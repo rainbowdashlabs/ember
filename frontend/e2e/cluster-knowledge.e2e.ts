@@ -208,6 +208,8 @@ test.describe('Cluster knowledge', () => {
             await expect(openTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'federated')
 
             await page.getByRole('switch').first().click()
+            await expect(page.getByText('Öffentliches Wiki gespeichert.'),
+                'the switch is saved before the page is read again').toBeVisible()
             await expect(async () => {
                 await page.reload()
                 await expect(openTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'public', {timeout: 5000})
