@@ -18,6 +18,7 @@ import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -30,17 +31,18 @@ import java.util.Objects;
  * and the reset the end-to-end suite starts from.
  *
  * <p>Registered only on a development instance. The reset throws every piece of data away and has no
- * place anywhere a real station's data lives.
+ * place anywhere a real station's data lives. The demo service is asked for only when a reset comes
+ * in, because building it opens the database, which registering these routes must not need.
  */
 @Singleton
 public class DevRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(DevRoutes.class);
 
     private final Demo demo;
-    private final DemoService demoService;
+    private final Provider<DemoService> demoService;
 
     @Inject
-    public DevRoutes(Demo demo, DemoService demoService) {
+    public DevRoutes(Demo demo, Provider<DemoService> demoService) {
         this.demo = demo;
         this.demoService = demoService;
     }
@@ -88,7 +90,7 @@ public class DevRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void reset(Context ctx) {
         log.info("Dev reset requested, discarding all data and seeding again");
-        demoService.resetAndSeed();
+        demoService.get().resetAndSeed();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

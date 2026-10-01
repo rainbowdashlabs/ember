@@ -27,7 +27,7 @@ class DevRoutesTest {
 
     @Test
     void aDevelopmentInstanceTakesErrorReportsAndResets() {
-        var harness = RouteHarness.serving(new DevRoutes(demo(true), demoService));
+        var harness = RouteHarness.serving(new DevRoutes(demo(true), () -> demoService));
 
         harness.run((server, client) -> {
             var reported = client.post(
@@ -42,7 +42,7 @@ class DevRoutesTest {
 
     @Test
     void anyOtherInstanceHasNeither() {
-        var harness = RouteHarness.serving(new DevRoutes(demo(false), demoService));
+        var harness = RouteHarness.serving(new DevRoutes(demo(false), () -> demoService));
 
         harness.run((server, client) -> {
             assertEquals(404, client.post(PREFIX + "/dev/errors", body("{}")).code());
