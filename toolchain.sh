@@ -167,7 +167,8 @@ Frontend tests
                         that lacks the system libraries
 
 Backend
-  be-verify             Java formatting, every test suite, the coverage gates, and the javadoc
+  be-verify             Java formatting, the null check, every test suite, the coverage gates, and
+                        the javadoc
   be-test               Every test suite, no filter
   be-suite <suite>      One test suite in full, e.g. `be-suite testServices`
   be-dist               Build the runnable distribution into build/install/ember, no tests
@@ -183,11 +184,11 @@ Backend
   be-coverage           The coverage gates on what the last test run recorded, without running the
                         tests: the whole-backend floor, every repository at 95 %, and the lines
                         changed since origin/main at 80 %. Another base with -PcoverageBase=<ref>
-  be-report             Run every test suite and write the merged JaCoCo report
+  be-report             The null check, then every test suite and the merged JaCoCo report
   be-javadoc            Build the javadoc on its own; be-verify runs it too
   be-spotbugs           Check null use in the main classes: a null where the type says non-null,
-                        or a @Nullable value used unchecked. The findings are in
-                        build/reports/spotbugs/main.html
+                        or a @Nullable value used unchecked. be-verify and be-report run it too;
+                        the findings are in build/reports/spotbugs/main.html
   be-rewrite-dry <recipe> [name=value ...]
                         Show what an OpenRewrite recipe of src/rewrite would change, as a patch in
                         build/reports/rewrite/rewrite.patch, without changing anything. Options
@@ -472,7 +473,7 @@ case "$cmd" in
 
     be-verify)
         cd "$ROOT"
-        run ./gradlew spotlessJavaApply testAll jacocoFullReport jacocoCoverageCheck patchCoverageCheck javadoc "$@"
+        run ./gradlew spotlessJavaApply spotbugsMain testAll jacocoFullReport jacocoCoverageCheck patchCoverageCheck javadoc "$@"
         ;;
     be-test)
         cd "$ROOT"
@@ -498,7 +499,7 @@ case "$cmd" in
     be-compile)    cd "$ROOT"; run ./gradlew compileJava compileTestJava "$@" ;;
     be-spotless)   cd "$ROOT"; run ./gradlew spotlessJavaApply "$@" ;;
     be-coverage)   cd "$ROOT"; run ./gradlew jacocoFullReport jacocoCoverageCheck patchCoverageCheck "$@" ;;
-    be-report)     cd "$ROOT"; run ./gradlew testAll jacocoFullReport "$@" ;;
+    be-report)     cd "$ROOT"; run ./gradlew spotbugsMain testAll jacocoFullReport "$@" ;;
     be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
     be-spotbugs)   cd "$ROOT"; run ./gradlew spotbugsMain "$@" ;;
     be-rewrite-test) cd "$ROOT"; run ./gradlew testRewrite "$@" ;;
