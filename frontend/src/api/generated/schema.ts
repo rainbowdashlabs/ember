@@ -59920,6 +59920,7 @@ export interface components {
             resolvedTitle?: string;
         };
         PageShareLinkResponse: {
+            opens: boolean;
             token: string | null;
         };
         PagesListResponse: {

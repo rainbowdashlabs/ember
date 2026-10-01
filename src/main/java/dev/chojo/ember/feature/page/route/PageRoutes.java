@@ -373,8 +373,9 @@ public class PageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PageShareLinkResponse.class)))
     private void getShareLink(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(ctx, pid);
-        ctx.json(new PageShareLinkResponse(pageService.shareToken(pid).orElse(null)));
+        var page = requireOwnedPage(ctx, pid);
+        ctx.json(new PageShareLinkResponse(
+                pageService.shareToken(pid).orElse(null), pageService.linksOpen(page.stationId())));
     }
 
     @OpenApi(
@@ -384,13 +385,13 @@ public class PageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PageShareLinkResponse.class)))
     private void replaceShareLink(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(ctx, pid);
+        var page = requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(ReplacePageShareLinkRequest.class);
         var replaced = pageService.replaceShareToken(pid, request.currentToken());
         if (replaced.isEmpty()) {
             throw Refusal.PAGE_LINK_ALREADY_REPLACED.raise();
         }
-        ctx.json(new PageShareLinkResponse(replaced.get()));
+        ctx.json(new PageShareLinkResponse(replaced.get(), pageService.linksOpen(page.stationId())));
     }
 
     @OpenApi(
@@ -462,7 +463,11 @@ public class PageRoutes implements Routes {
 
     record PageVisibilityRequest(PageVisibility visibility) {}
 
-    record PageShareLinkResponse(@Nullable String token) {}
+    /**
+     * @param token the link's token, or {@code null} where the page has none
+     * @param opens whether the station's pages are open, without which no link leads anywhere
+     */
+    record PageShareLinkResponse(@Nullable String token, boolean opens) {}
 
     record ReplacePageShareLinkRequest(String currentToken) {}
 

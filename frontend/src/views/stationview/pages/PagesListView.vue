@@ -9,13 +9,9 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import MutedText from '@/components/typography/MutedText.vue'
-import ShareLinkPanel from '@/components/public/ShareLinkPanel.vue'
 import PagesListContent from './pageslistview/PagesListContent.vue'
 import PageVisibilityModal from './pageslistview/PageVisibilityModal.vue'
+import PageShareLinkBody from './pageslistview/PageShareLinkBody.vue'
 import {
     listPages,
     createPage,
@@ -27,7 +23,7 @@ import {
     setLandingPage,
     type PageVisibilityName,
 } from '@/api/pageManage'
-import type {StationPage} from '@/api/generated/schema'
+import type {PageShareLinkResponse, StationPage} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -148,7 +144,7 @@ const visibilityFailure = ref<Failure | null>(null)
 
 const sharePage = ref<StationPage | null>(null)
 const shareOpen = ref(false)
-const shareToken = ref<string | null>(null)
+const shareLink = ref<PageShareLinkResponse | null>(null)
 const shareFailure = ref<Failure | null>(null)
 const shareBusy = ref(false)
 
@@ -173,10 +169,10 @@ async function onChooseVisibility(visibility: PageVisibilityName) {
 async function onShareLink(page: StationPage) {
     sharePage.value = page
     shareFailure.value = null
-    shareToken.value = null
+    shareLink.value = null
     shareOpen.value = true
     try {
-        shareToken.value = await getPageShareLink(page.id)
+        shareLink.value = await getPageShareLink(page.id)
     } catch (e) {
         shareFailure.value = describeFailure(e, t)
     }
@@ -195,7 +191,7 @@ async function onReplaceShareLink() {
     shareBusy.value = true
     shareFailure.value = null
     try {
-        shareToken.value = await replacePageShareLink(page.id, shareToken.value)
+        shareLink.value = await replacePageShareLink(page.id, shareLink.value?.token ?? null)
     } catch (e) {
         const described = describeFailure(e, t)
         shareFailure.value = described.kind === FailureKind.CONFLICT
@@ -218,7 +214,7 @@ async function onCreateShareLink() {
     shareBusy.value = true
     shareFailure.value = null
     try {
-        shareToken.value = await replacePageShareLink(page.id, null)
+        shareLink.value = await replacePageShareLink(page.id, null)
     } catch (e) {
         const described = describeFailure(e, t)
         shareFailure.value = described.kind === FailureKind.REJECTED
@@ -286,26 +282,13 @@ function onReorder(fromIndex: number, toIndex: number) {
         />
 
         <Modal v-model="shareOpen">
-            <div class="space-y-4">
-                <SubHeader>{{ t('stationPages.shareLink') }}</SubHeader>
-                <ShareLinkPanel
-                    v-if="shareToken"
-                    :path="`/s/${shareToken}`"
-                    :busy="shareBusy"
-                    :failure="shareFailure"
-                    replaceable
-                    @replace="onReplaceShareLink"
-                />
-                <FailureAlert v-else-if="shareFailure" :failure="shareFailure"/>
-                <div v-else class="space-y-3">
-                    <MutedText tag="p" size="sm">{{ t('shareLink.none') }}</MutedText>
-                    <ButtonRow align="end">
-                        <PrimaryButton :disabled="shareBusy" :icon="['fas', 'link']" @click="onCreateShareLink">
-                            {{ t('shareLink.create') }}
-                        </PrimaryButton>
-                    </ButtonRow>
-                </div>
-            </div>
+            <PageShareLinkBody
+                :link="shareLink"
+                :busy="shareBusy"
+                :failure="shareFailure"
+                @replace="onReplaceShareLink"
+                @create="onCreateShareLink"
+            />
         </Modal>
     </ViewContent>
 </template>

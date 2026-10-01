@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.PageUsingForm;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.repository.PageRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
@@ -50,7 +51,8 @@ class PageEditorLookupsTest {
                 mock(MediaLibraryService.class),
                 mock(CellDescriptions.class),
                 mock(StationMemberRepository.class),
-                mock(AvatarService.class));
+                mock(AvatarService.class),
+                mock(StationRepository.class));
     }
 
     private static Form form(FormVisibility visibility, UUID publicUid) {

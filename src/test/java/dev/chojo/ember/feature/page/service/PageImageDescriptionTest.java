@@ -72,7 +72,8 @@ class PageImageDescriptionTest extends RepositoryTestBase {
                 media,
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
-                new AvatarService(new ImageVariants(storageService)));
+                new AvatarService(new ImageVariants(storageService)),
+                stationRepo);
         station = stationRepo.create("ImageDescriptionStation");
         account = accountRepo.create("image-desc@test.com", "Image", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

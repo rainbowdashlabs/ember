@@ -43,7 +43,13 @@ class PageBlockReferenceRoutesTest extends BlockReferenceTestBase {
     static void setupClass() {
         var media = mock(MediaLibraryService.class);
         pageService = new PageService(
-                pageRepo, contentBlocks(), media, noCellDescriptions(), stationMemberRepo, mock(AvatarService.class));
+                pageRepo,
+                contentBlocks(),
+                media,
+                noCellDescriptions(),
+                stationMemberRepo,
+                mock(AvatarService.class),
+                stationRepo);
         var routes = new PageRoutes(
                 pageService, media, mock(FormService.class), mock(FormAnalyticsAssembler.class), new Api());
         var editor = new UserSession(

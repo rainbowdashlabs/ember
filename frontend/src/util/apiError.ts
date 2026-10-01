@@ -34,11 +34,22 @@ export interface ApiAnswerProblem {
     message: string
 }
 
+/**
+ * What a failed request leaves behind, in either of the two shapes the application meets.
+ *
+ * <p>Axios, which every screen of the station uses, hangs the status and the body on `response`.
+ * Nuxt's own fetch, which a page rendered on the server uses, puts them on the error itself as
+ * `statusCode` and `data`, and an error handed from the server to the browser keeps only those,
+ * because the response it came with does not travel.
+ */
 interface ApiErrorShape {
     message?: string
+    statusCode?: number
+    data?: ApiErrorBody
     response?: {
         status?: number
         data?: ApiErrorBody
+        _data?: ApiErrorBody
     }
 }
 
@@ -50,14 +61,21 @@ function asApiError(e: unknown): ApiErrorShape {
  * HTTP status of a failed request, or undefined when the rejection carries no response.
  */
 export function apiErrorStatus(e: unknown): number | undefined {
-    return asApiError(e).response?.status
+    const shape = asApiError(e)
+    return shape.response?.status ?? shape.statusCode
 }
 
 /**
  * Parsed body of a failed request, or undefined when the rejection carries no response.
  */
 export function apiErrorBody(e: unknown): ApiErrorBody | undefined {
-    return asApiError(e).response?.data
+    const shape = asApiError(e)
+    return shape.response?.data ?? shape.response?._data ?? bodyOf(shape.data)
+}
+
+/** A body is an object the server wrote; anything else a fetch left in `data` is not one. */
+function bodyOf(data: unknown): ApiErrorBody | undefined {
+    return data !== null && typeof data === 'object' ? data as ApiErrorBody : undefined
 }
 
 /**
@@ -91,7 +109,7 @@ export function retryAfterMillis(e: unknown): number | undefined {
  * failed by showing the reader absolutely nothing.
  */
 export function apiErrorMessage(e: unknown): string | undefined {
-    const data = asApiError(e).response?.data
+    const data = apiErrorBody(e)
     return said(data?.message) ?? said(data?.title)
 }
 

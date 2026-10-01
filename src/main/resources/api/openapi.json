@@ -58254,9 +58254,12 @@
         "properties" : {
           "token" : {
             "type" : [ "string", "null" ]
+          },
+          "opens" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "token" ]
+        "required" : [ "token", "opens" ]
       },
       "PageTarget" : {
         "type" : "object",

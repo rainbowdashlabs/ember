@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.PickerPage;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.RandomTokens;
@@ -50,6 +52,7 @@ public class PageService {
     private final CellDescriptions descriptions;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
+    private final StationRepository stationRepository;
 
     @Inject
     public PageService(
@@ -58,13 +61,15 @@ public class PageService {
             MediaLibraryService mediaLibrary,
             CellDescriptions descriptions,
             StationMemberRepository stationMemberRepository,
-            AvatarService avatarService) {
+            AvatarService avatarService,
+            StationRepository stationRepository) {
         this.pageRepository = pageRepository;
         this.blocks = blocks;
         this.mediaLibrary = mediaLibrary;
         this.descriptions = descriptions;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
+        this.stationRepository = stationRepository;
     }
 
     // --- Page CRUD ---
@@ -343,6 +348,23 @@ public class PageService {
         if (!pageRepository.replaceShareToken(pageId, expected, replacement)) return Optional.empty();
         log.info("Page {} share link replaced", pageId);
         return Optional.of(replacement);
+    }
+
+    /**
+     * Whether a link to one of the station's pages opens anything today.
+     *
+     * <p>The station's public pages switch governs every link as well as every address, and a new
+     * station starts with it off. The screen that hands a link out asks this, so whoever sends one
+     * learns that it leads nowhere before the stranger holding it does.
+     *
+     * @param stationId the station the page belongs to
+     * @return whether the station lets anybody outside reach its pages
+     */
+    public boolean linksOpen(int stationId) {
+        return stationRepository
+                .findById(stationId)
+                .map(Station::publicPagesEnabled)
+                .orElse(false);
     }
 
     public Optional<StationPage> getSharedPage(String token) {
