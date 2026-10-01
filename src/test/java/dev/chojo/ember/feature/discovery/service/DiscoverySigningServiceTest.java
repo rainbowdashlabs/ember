@@ -15,6 +15,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PublicKey;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,13 +28,22 @@ class DiscoverySigningServiceTest {
     private static DiscoverySigningService signingService;
 
     @BeforeAll
-    static void init() throws Exception {
-        Path data = Path.of("data", "discovery");
-        if (!Files.exists(data)) {
-            Files.createDirectories(data);
-        }
-        keyService = new DiscoveryKeyService();
+    static void init() {
+        keyService = new DiscoveryKeyService(tempDir.resolve("discovery"));
         signingService = new DiscoverySigningService(keyService);
+    }
+
+    @Test
+    void keysAreKeptInTheGivenDirectory() {
+        assertTrue(Files.isRegularFile(tempDir.resolve("discovery").resolve("private.key")));
+        assertTrue(Files.isRegularFile(tempDir.resolve("discovery").resolve("public.key")));
+    }
+
+    @Test
+    void anExistingKeypairIsLoadedRatherThanReplaced() {
+        var reloaded = new DiscoveryKeyService(tempDir.resolve("discovery"));
+        assertEquals(keyService.publicKeyBase64(), reloaded.publicKeyBase64());
+        assertEquals(keyService.instanceId(), reloaded.instanceId());
     }
 
     @Test
