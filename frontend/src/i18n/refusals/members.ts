@@ -236,4 +236,6 @@ export default {
     'M-189': DEFAULT_NOT_SUITING,
     'M-190': 'Du kannst nur deine eigenen Angaben lesen und die der Mitglieder, für die du zuständig bist',
     'M-191': 'Du kannst nur deine eigenen Angaben ändern und die der Mitglieder, für die du zuständig bist, es wurde nichts gespeichert',
+    'M-192': PROFILE_FIELD_NOT_HERE,
+    'M-193': 'Diese Frage des Verbands wird an der Wache dieses Mitglieds nicht gestellt, es wurde nichts gespeichert',
 }

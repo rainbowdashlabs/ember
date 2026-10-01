@@ -691,7 +691,16 @@ public enum MemberRefusal implements Refusal {
     PROFILE_NOT_YOURS_TO_WRITE(
             191,
             HttpStatus.FORBIDDEN,
-            "You may only change your own answers and those of the members you look after, so nothing was saved");
+            "You may only change your own answers and those of the members you look after, so nothing was saved"),
+
+    /** An answer saved to a station question that is not one of the member's station. */
+    PROFILE_FIELD_NOT_HERE_ON_ANSWER(192, HttpStatus.NOT_FOUND, Sentences.PROFILE_FIELD_NOT_HERE),
+
+    /** An answer saved to an association question that is not asked at the member's station. */
+    PROFILE_ASSOCIATION_FIELD_NOT_HERE_ON_ANSWER(
+            193,
+            HttpStatus.NOT_FOUND,
+            "That association question is not asked at this member's station, so nothing was saved");
 
     private final Definition definition;
 

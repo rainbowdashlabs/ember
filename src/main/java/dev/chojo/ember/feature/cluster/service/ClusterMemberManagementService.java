@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
@@ -227,9 +228,11 @@ public class ClusterMemberManagementService {
     /**
      * Records what a cluster manager answered for somebody.
      *
-     * <p>The same two guardrails as every other write here, and one more that is not this class's doing: a
-     * cluster field marked readable but not writable at the station is refused further down, whoever sends it.
-     * A cluster manager is not the station, so that refusal does not apply to them and their answer stands.
+     * <p>The same two guardrails as every other write here. The answers then pass the locks every profile
+     * write passes, as the association: only questions of the member's station or asked there by this
+     * association, only those put to the member, and the association's own lock against the station does
+     * not hold against the association. A cluster manager looks after the members, so a question only the
+     * member management writes is theirs to write too.
      *
      * @param clusterId      the cluster acting
      * @param memberId       the member
@@ -243,7 +246,7 @@ public class ClusterMemberManagementService {
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
 
-        profileFieldService.setValues(memberId, entries, changedBy, true);
+        profileFieldService.setValues(memberId, entries, changedBy, ProfileWriter.association());
         log.info("Cluster {} answered {} questions for member {}", clusterId, entries.size(), memberId);
     }
 

@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -53,6 +55,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -158,8 +161,13 @@ public class ProfileFieldService {
      * @return the fields of their kind, followed by the ones their groups are asked
      */
     public List<MergedField> findApplicableFields(int memberId) {
-        var member = stationMemberRepository.findById(memberId).orElse(null);
-        if (member == null) return List.of();
+        return stationMemberRepository
+                .findById(memberId)
+                .map(this::applicableTo)
+                .orElse(List.of());
+    }
+
+    private List<MergedField> applicableTo(StationMember member) {
         List<MergedField> fields = new ArrayList<>(findMergedFields(member.stationId(), roleOf(member.userType())));
         var seen = fields.stream().map(MergedField::key).collect(Collectors.toSet());
         for (MergedField field : fieldsOfTheirGroups(member.id(), member.stationId())) {
@@ -510,24 +518,46 @@ public class ProfileFieldService {
      */
     public record MergedValue(int fieldId, @Nullable String value, FieldOrigin origin) {}
 
-    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
-        return setValues(memberId, entries, changedBy, false);
-    }
-
     /**
-     * Saves answers, saying whether the party writing them is the cluster that asked.
-     *
-     * <p>A cluster question marked readable but not writable at the station is locked against the station,
-     * not against the cluster. The station's own screens call the short form above and are refused it; the
-     * cluster's own screens say so here and are not, because the lock is theirs to begin with.
+     * Saves answers written by the member, or by somebody at the station who is not its member management.
      *
      * @param memberId  whose answers these are
      * @param entries   the answers, each naming which table its question lives in
      * @param changedBy the member row recorded as the author
-     * @param asOwner   whether the caller is the cluster that asked, rather than the station that holds them
      * @return every answer this member now has
      */
-    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy, boolean asOwner) {
+    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
+        return setValues(memberId, entries, changedBy, ProfileWriter.station(false));
+    }
+
+    /**
+     * Saves answers, through the locks the writer has to pass.
+     *
+     * <p>Every answer, whoever asked the question and whoever writes it, passes the same checks. The
+     * question has to be one of the member's station or one their association asks there, or the save is
+     * refused. An answer to a question the member is not asked, or one locked against the writer, is left
+     * out: the profile screens send every answer back on each save, the locked ones included, and refusing
+     * the whole save would lose the answers beside it.
+     *
+     * @param memberId  whose answers these are
+     * @param entries   the answers, each naming which table its question lives in
+     * @param changedBy the member row recorded as the author
+     * @param writer    who writes them, which decides the locks they pass
+     * @return every answer this member now has
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_FIELD_NOT_HERE_ON_ANSWER} for a question of
+     *                         another station, {@link MemberRefusal#PROFILE_ASSOCIATION_FIELD_NOT_HERE_ON_ANSWER}
+     *                         for an association question not asked at the member's station
+     */
+    public List<MergedValue> setValues(
+            int memberId, List<FieldValueEntry> entries, int changedBy, ProfileWriter writer) {
+        var member = stationMemberRepository.findById(memberId).orElse(null);
+        if (member == null) return List.of();
+        Set<FieldKey> writable = applicableTo(member).stream()
+                .filter(field -> ProfileAnswers.writable(field, writer))
+                .map(MergedField::key)
+                .collect(Collectors.toSet());
+        Set<Integer> associationFieldsHere = clusterFieldRepository.findIdsReachingStation(member.stationId());
+
         Map<Integer, String> oldStation = profileFieldRepository.findValues(memberId).stream()
                 .collect(Collectors.toMap(ProfileFieldValue::fieldId, v -> v.value() != null ? v.value() : "null"));
         Map<Integer, String> oldCluster = clusterFieldRepository.findValues(memberId).stream()
@@ -538,14 +568,21 @@ public class ProfileFieldService {
         for (var entry : entries) {
             String said = ProfileAnswers.said(entry.value());
             if (entry.origin() == FieldOrigin.CLUSTER) {
-                writeClusterAnswer(memberId, entry.fieldId(), said, oldCluster, changedBy, changedFieldNames, asOwner);
+                if (!associationFieldsHere.contains(entry.fieldId())) {
+                    throw MemberRefusal.PROFILE_ASSOCIATION_FIELD_NOT_HERE_ON_ANSWER.raise();
+                }
+                if (!writable.contains(new FieldKey(FieldOrigin.CLUSTER, entry.fieldId()))) continue;
+                writeClusterAnswer(memberId, entry.fieldId(), said, oldCluster, changedBy, changedFieldNames);
                 continue;
             }
 
-            String oldValue = oldStation.getOrDefault(entry.fieldId(), "null");
+            var field = profileFieldRepository
+                    .findById(entry.fieldId())
+                    .filter(candidate -> candidate.stationId() == member.stationId())
+                    .orElseThrow(MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_ANSWER::raise);
+            if (!writable.contains(new FieldKey(FieldOrigin.STATION, field.id()))) continue;
+            String oldValue = oldStation.getOrDefault(field.id(), "null");
             if (ProfileAnswers.unchanged(oldValue, said)) continue;
-            var field = profileFieldRepository.findById(entry.fieldId()).orElse(null);
-            if (field == null) continue;
 
             JsonNode kept = ProfileAnswers.kept(field.fieldType(), field.question(), said);
             if (kept == null) {
@@ -598,11 +635,6 @@ public class ProfileFieldService {
     /**
      * Saves one answer to a question the cluster asked, measured like an answer to the station's own.
      *
-     * <p>A field the cluster keeps to itself is not written when the station is the one writing: the
-     * station's screen shows it without a control, so an entry naming one is a stale form rather than
-     * somebody trying something, and refusing the whole save would lose the answers beside it. The cluster
-     * writing its own is a different matter, and {@code asOwner} says which of the two this is.
-     *
      * <p>The change is recorded like any other, which is what puts it in front of the people at the station
      * who acknowledge changes. What is not raised is the cluster's own notification: that one says the
      * cluster changed something, and here the station did.
@@ -613,12 +645,8 @@ public class ProfileFieldService {
             String said,
             Map<Integer, String> oldValues,
             int changedBy,
-            List<String> changedFieldNames,
-            boolean asOwner) {
-        var field = clusterFieldRepository
-                .findById(fieldId)
-                .filter(candidate -> asOwner || !candidate.stationReadonly())
-                .orElse(null);
+            List<String> changedFieldNames) {
+        var field = clusterFieldRepository.findById(fieldId).orElse(null);
         if (field == null) return;
 
         String oldValue = oldValues.getOrDefault(field.id(), "null");

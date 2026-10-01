@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.question.FieldType;
@@ -314,6 +316,63 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         assertTrue(
                 profile.values().stream().anyMatch(v -> v.fieldId() == field.id() && v.origin() == FieldOrigin.CLUSTER),
                 "the answer is recorded against the cluster's own question");
+    }
+
+    @Test
+    void anAssociationCannotAnswerAnotherStationsQuestion() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        var elsewhere = stationWithMember(clusterId);
+        var field = profileFieldService.create(
+                elsewhere.station().id(),
+                "Spindnummer",
+                FieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null);
+        profileFieldService.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        int strangerAccountId = freshAccount().id();
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.updateMemberProfile(
+                        clusterId,
+                        peopled.member().id(),
+                        List.of(new FieldValueEntry(field.id(), "\"12\"", FieldOrigin.STATION)),
+                        strangerAccountId,
+                        peopled.member().id()));
+
+        assertEquals(MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_ANSWER, refusal.refusal());
+        assertTrue(profileFieldService.findValues(peopled.member().id()).isEmpty());
+    }
+
+    @Test
+    void anAssociationAnswersOnlyWhatTheMemberIsAskedAndPassesTheirStationsLock() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int stationId = peopled.station().id();
+        var notAsked = profileFieldService.create(
+                stationId, "Funkrufname", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        profileFieldService.assignToRole(notAsked.id(), ProfileFieldScope.TEAM, 0, null, null, null);
+        var locked = profileFieldService.create(
+                stationId, "Dienstgrad", FieldType.TEXT, ProfileFieldConfig.empty(), false, true, null);
+        profileFieldService.assignToRole(locked.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        int strangerAccountId = freshAccount().id();
+
+        service.updateMemberProfile(
+                clusterId,
+                peopled.member().id(),
+                List.of(
+                        new FieldValueEntry(notAsked.id(), "\"Florian 1\"", FieldOrigin.STATION),
+                        new FieldValueEntry(locked.id(), "\"Brandmeister\"", FieldOrigin.STATION)),
+                strangerAccountId,
+                peopled.member().id());
+
+        var answered = profileFieldService.findValues(peopled.member().id()).stream()
+                .map(ProfileFieldService.MergedValue::fieldId)
+                .toList();
+        assertEquals(List.of(locked.id()), answered);
     }
 
     @Test

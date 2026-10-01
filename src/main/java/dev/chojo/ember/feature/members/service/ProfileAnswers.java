@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
@@ -75,6 +76,22 @@ public final class ProfileAnswers {
             throw MemberRefusal.PROFILE_ANSWER_NOT_ACCEPTED.raise(problem.message());
         });
         return QuestionValues.write(type, said);
+    }
+
+    /**
+     * Whether a question put to the member takes an answer from this writer.
+     *
+     * <p>The same two locks whoever asked the question: the association's lock against the station,
+     * which only the association passes, and the question's own lock for this audience, which only the
+     * member management passes.
+     *
+     * @param field  the question as the member meets it
+     * @param writer who writes the answer
+     * @return whether the answer is written
+     */
+    public static boolean writable(ProfileFieldService.MergedField field, ProfileWriter writer) {
+        if (field.readonlyAtStation() && !writer.owningAssociation()) return false;
+        return writer.management() || !field.readonly();
     }
 
     /**

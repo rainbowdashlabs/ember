@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -135,6 +136,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
     @Test
     void theStationWritingAnAnswerIsMeasuredToo() {
         var field = ask(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}");
+        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         assertThrows(
                 RefusalResponse.class,

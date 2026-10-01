@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
@@ -35,8 +36,6 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -380,10 +379,9 @@ public class ProfileFieldRoutes implements Routes {
      * <p>Only the member, their guardian or somebody allowed to edit members writes them; editing
      * members also unlocks the fields that are read-only to everybody else.
      *
-     * <p>Whether a station field may be written is the assignment's to say and differs by audience, so
-     * it is read for this member; a field the member is never asked is not writable on them at all. A
-     * cluster's field is passed through, since whether the station may answer it is the cluster's to
-     * say and the service asks that.
+     * <p>Which answers are written is the service's to say, for the station's questions and the
+     * association's alike: only questions put to this member, and a locked one only by the member
+     * management.
      */
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile",
@@ -405,27 +403,13 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
-        Map<Integer, Boolean> readonlyForMember = profileFieldService.findApplicableFields(memberId).stream()
-                .filter(field -> field.origin() == FieldOrigin.STATION)
-                .collect(Collectors.toMap(
-                        ProfileFieldService.MergedField::id,
-                        ProfileFieldService.MergedField::readonly,
-                        (first, ignored) -> first));
-
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
-                        .filter(v -> {
-                            if (v.origin() == FieldOrigin.CLUSTER) return true;
-                            requireOwnedField(ctx, v.fieldId());
-                            var readonly = readonlyForMember.get(v.fieldId());
-                            if (readonly == null) return false;
-                            return canEditReadonly || !readonly;
-                        })
                         .map(v -> new FieldValueEntry(v.fieldId(), v.value(), originOf(v)))
                         .toList()
                 : List.of();
         ctx.json(profileFieldService.setValues(
-                memberId, entries, session.member().id()));
+                memberId, entries, session.member().id(), ProfileWriter.station(canEditReadonly)));
     }
 
     /** An entry that names no origin is the station's own, which is what every older caller sends. */
