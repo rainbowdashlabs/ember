@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.checklist.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -130,7 +131,7 @@ public class ChecklistRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = ChecklistSummaryResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var summaries = checklistService.findSummaries(session.stationId());
         ctx.json(summaries.stream().map(this::toSummaryResponse).toList());
     }
@@ -144,7 +145,7 @@ public class ChecklistRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = ChecklistDetailResponse.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateRequest.class);
         if (request.name() == null || request.name().isBlank()) {
             throw Refusal.CHECKLIST_NEEDS_A_NAME.raise();
@@ -193,7 +194,7 @@ public class ChecklistRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChecklistDetailResponse.class)))
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(UpdateRequest.class);
         String name = request.name() != null ? request.name() : checklist.name();
@@ -364,7 +365,7 @@ public class ChecklistRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CellWriteRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CellResponse.class)))
     private void writeCell(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var checklist = loadOwned(ctx);
         var entry = loadEntry(ctx, checklist);
         var column = loadColumn(ctx, checklist);
@@ -412,7 +413,7 @@ public class ChecklistRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkSetRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkSetResponse.class)))
     private void bulkSetColumn(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var checklist = loadOwned(ctx);
         var column = loadColumn(ctx, checklist);
         var request = ctx.bodyAsClass(BulkSetRequest.class);
@@ -548,7 +549,7 @@ public class ChecklistRoutes implements Routes {
      * exists at all, and a date came with it. Without the date the reference would resolve to every
      * occurrence there has ever been.
      */
-    private OccurrenceSpec resolveOccurrence(UserSession session, SourceOccurrenceRequest request) {
+    private OccurrenceSpec resolveOccurrence(StationSession session, SourceOccurrenceRequest request) {
         if (request == null || request.eventId() == null) return null;
         LocalDate date = parseDate(request.date());
         if (date == null) throw Refusal.CHECKLIST_OCCURRENCE_DAY_MISSING.raise();
@@ -556,8 +557,8 @@ public class ChecklistRoutes implements Routes {
                 .findById(request.eventId())
                 .filter(e -> e.stationId() == session.stationId())
                 .orElseThrow(Refusal.CHECKLIST_APPOINTMENT_NOT_HERE::raise);
-        if (session.member() != null
-                && !eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
+        if (!eventRestrictionService.canView(
+                event.id(), session.member().id(), session.user().permissions())) {
             throw Refusal.CHECKLIST_APPOINTMENT_NOT_YOURS_TO_FOLLOW.raise();
         }
         return new OccurrenceSpec(event.id(), date);

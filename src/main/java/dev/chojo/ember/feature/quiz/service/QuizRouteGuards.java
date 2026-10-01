@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -100,12 +100,11 @@ public class QuizRouteGuards {
 
     /**
      * Loads the attempt named by the {@code id} path parameter and asserts it belongs to the
-     * calling member, returning it. Answers 400 when the caller is not a station member, 404 when
-     * absent and 403 when the attempt belongs to another member.
+     * calling member, returning it. Answers 404 when absent and 403 when the attempt belongs to
+     * another member.
      */
-    public QuizTestAttempt requireMemberAttempt(Context ctx, UserSession session) {
+    public QuizTestAttempt requireMemberAttempt(Context ctx, StationSession session) {
         int attemptId = pathInt(ctx, "id");
-        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP.raise();
         var attempt =
                 attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER::raise);
         if (attempt.memberId() != session.member().id()) throw Refusal.QUIZ_ATTEMPT_NOT_YOURS.raise();

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.procedure.route;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
@@ -110,7 +110,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplate[].class)))
     private void listTemplates(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         boolean includeArchived = "true".equals(ctx.queryParam("archived"));
         ctx.json(procedureService.findTemplatesByStation(session.stationId(), includeArchived));
     }
@@ -135,7 +135,7 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureTemplateRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplate.class)))
     private void createTemplate(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.PROCEDURE_TEMPLATE_NEEDS_A_NAME.raise();
         ctx.json(procedureService.createTemplate(
@@ -253,7 +253,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
     private void listProcedures(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String statusParam = ctx.queryParam("status");
         ProcedureStatus status = statusParam != null ? ProcedureStatus.valueOf(statusParam) : null;
         String assigneeParam = ctx.queryParam("assignee");
@@ -278,7 +278,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
     private void listProceduresForOccurrence(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eid");
         String date = ctx.queryParam("date");
         if (date == null || date.isBlank()) throw Refusal.PROCEDURE_OCCURRENCE_DAY_MISSING.raise();
@@ -296,7 +296,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureDetail.class)))
     private void getProcedure(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int rid = pathInt(ctx, "rid");
         var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
 
@@ -326,7 +326,7 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateProcedureRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
     private void createProcedure(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateProcedureRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.PROCEDURE_NEEDS_A_NAME.raise();
         var procedure = procedureService.createProcedure(
@@ -374,7 +374,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
     private void resolveProcedure(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         if (!procedureService.resolveProcedure(rid, session.member().id())) {
@@ -389,7 +389,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
     private void reopenProcedure(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         if (!procedureService.reopenProcedure(rid, session.member().id())) {
@@ -407,7 +407,7 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssigneeRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void addAssignees(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(AssigneeRequest.class);
@@ -477,7 +477,7 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PatchItemRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureItem[].class)))
     private void patchItem(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         int iid = pathInt(ctx, "iid");

@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
@@ -79,7 +79,7 @@ public class SelfCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = HandOutSelfChecksRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = SelfCheckSummary[].class)))
     private void handOut(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(HandOutSelfChecksRequest.class);
         var handed = selfCheckService.handOut(
                 session.stationId(),
@@ -96,7 +96,7 @@ public class SelfCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckSummary[].class)))
     private void mine(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var tasks = selfCheckService.outstandingFor(session.member().id(), guardian(session));
         ctx.json(tasks.stream().map(this::toSummary).toList());
     }
@@ -109,7 +109,7 @@ public class SelfCheckRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckResponse.class)))
     private void read(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var view = selfCheckService.read(
                 pathInt(ctx, "id"), session.stationId(), session.member().id(), guardian(session));
         ctx.json(new SelfCheckResponse(
@@ -125,7 +125,7 @@ public class SelfCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SelfCheckAnswerRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckRow[].class)))
     private void answer(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SelfCheckAnswerRequest.class);
         List<AnswerBody> answers = request.answers();
         if (answers == null) {
@@ -148,7 +148,7 @@ public class SelfCheckRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckSummary.class)))
     private void submit(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var task = selfCheckService.submit(
                 pathInt(ctx, "id"), session.stationId(), session.member().id(), guardian(session));
         ctx.json(toSummary(task));
@@ -163,7 +163,7 @@ public class SelfCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = HeldReportRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = SelfCheckRaised.class)))
     private void holdBack(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(HeldReportRequest.class);
         SelfCheckRaisedKind kind = request.kind();
         Integer itemId = request.itemId();
@@ -182,7 +182,7 @@ public class SelfCheckRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(held);
     }
 
-    private static boolean guardian(UserSession session) {
+    private static boolean guardian(StationSession session) {
         return session.hasPermission(StationPermission.MEMBER_GUARDIAN);
     }
 

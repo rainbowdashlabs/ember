@@ -23,7 +23,8 @@ import java.util.Set;
 public final class RetiredRefusals {
     private static final Set<String> CODES = Set.of(
             "M-040", "M-041", "M-042", "BO-041", "BO-049", "BO-050", "TF-033", "CL-019", "CU-067", "CU-068", "D-004",
-            "FD-007", "IS-001", "L-003", "L-017", "P-012", "ST-003", "TR-009");
+            "FD-007", "IS-001", "L-003", "L-017", "P-012", "ST-003", "TR-009", "AT-040", "F-025", "F-031", "F-032",
+            "F-036", "F-040", "F-052", "F-063", "F-066", "Q-028", "Q-046", "Q-048", "Q-051", "Q-053");
 
     private RetiredRefusals() {}
 

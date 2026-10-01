@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -236,12 +237,12 @@ public class InventoryRoutes implements Routes {
         return session.clusterId();
     }
 
-    private void verifyItemOwnership(int itemId, UserSession session) {
+    private void verifyItemOwnership(int itemId, StationSession session) {
         var item = inventoryService.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE::raise);
         var inventory = inventoryService
                 .findById(item.inventoryId())
                 .orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_ITEM::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
     }
 
     /**
@@ -257,7 +258,7 @@ public class InventoryRoutes implements Routes {
         return inventory.inventoryType() == InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION;
     }
 
-    private void requireMayCreate(UserSession session, ItemOwner owner) {
+    private void requireMayCreate(StationSession session, ItemOwner owner) {
         StationPermission required = owner == ItemOwner.CLUSTER
                 ? StationPermission.INVENTORY_CREATE_EXTERNAL
                 : StationPermission.INVENTORY_CREATE_INTERNAL;
@@ -266,16 +267,16 @@ public class InventoryRoutes implements Routes {
         }
     }
 
-    private Inventory requireOwnedInventory(int inventoryId, UserSession session) {
+    private Inventory requireOwnedInventory(int inventoryId, StationSession session) {
         var inventory = inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
         return inventory;
     }
 
     /**
      * Asserts the given requirement belongs to an inventory of the caller's station.
      */
-    private void verifyRequirementOwnership(int requirementId, UserSession session) {
+    private void verifyRequirementOwnership(int requirementId, StationSession session) {
         if (inventoryService.findAllRequirementsByStation(session.stationId()).stream()
                 .noneMatch(r -> r.id() == requirementId)) {
             throw Refusal.REQUIREMENT_NOT_HERE.raise();
@@ -289,7 +290,7 @@ public class InventoryRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
     private void myItems(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(memberGearService.heldBy(session.member().id()));
     }
 
@@ -300,7 +301,7 @@ public class InventoryRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyRequirement[].class)))
     private void myRequirements(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var required = checkService.getRequiredItems(
                 session.stationId(), session.member().id());
         var result = required.stream()
@@ -317,7 +318,7 @@ public class InventoryRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
     private void memberItems(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         ctx.json(inventoryService.findMemberEntries(memberId).stream()
                 .filter(entry -> inventoryService
@@ -338,7 +339,7 @@ public class InventoryRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberRequirements.class)))
     private void memberRequirements(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         requireMemberOfStation(memberId, session);
         var required = checkService.getRequiredItems(session.stationId(), memberId);
@@ -358,23 +359,23 @@ public class InventoryRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = HandOutRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryItem.class)))
     private void createAndHandOut(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         requireMemberOfStation(memberId, session);
         var request = ctx.bodyAsClass(HandOutRequest.class);
         var inventory = inventoryService
                 .findById(request.inventoryId())
                 .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_HAND_OUT::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
         requireMayCreate(session, ownerOf(inventory));
-        String actor = NameParts.of(session.account()).called();
+        String actor = NameParts.of(session.user().account()).called();
         var item = inventoryService.createAndHandOut(request.inventoryId(), request.sizeId(), memberId, actor);
         ctx.status(HttpStatus.CREATED).json(item);
     }
 
-    private void requireMemberOfStation(int memberId, UserSession session) {
+    private void requireMemberOfStation(int memberId, StationSession session) {
         var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_FOR_GEAR::raise);
-        RouteSupport.requireSameStation(session, member.stationId());
+        RouteSupport.requireSameStation(session.user(), member.stationId());
     }
 
     /**
@@ -401,7 +402,7 @@ public class InventoryRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySummary[].class)))
     private void listSummaries(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(inventoryService.findSummaries(session.stationId()));
     }
 
@@ -412,7 +413,7 @@ public class InventoryRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(inventoryService.findByStation(session.stationId()));
     }
 
@@ -421,7 +422,7 @@ public class InventoryRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem[].class)))
     private void listAllItems(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(inventoryService.findAllItemsByStation(session.stationId()));
     }
 
@@ -430,7 +431,7 @@ public class InventoryRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySize[].class)))
     private void listAllSizes(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(inventoryService.findAllSizesByStation(session.stationId()));
     }
 
@@ -445,7 +446,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(InventoryRequest.class);
         if (isBlank(request.name())) {
             throw Refusal.INVENTORY_NEEDS_A_NAME.raise();
@@ -474,7 +475,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedInventory(id, session);
         inventoryService
@@ -512,7 +513,7 @@ public class InventoryRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         Inventory current = requireOwnedInventory(id, session);
         var request = ctx.bodyAsClass(InventoryRequest.class);
         if (isBlank(request.name())) {
@@ -558,7 +559,7 @@ public class InventoryRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         requireOwnedInventory(id, session);
         if (inventoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -575,7 +576,7 @@ public class InventoryRoutes implements Routes {
             pathParams = @OpenApiParam(name = "inventoryId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySize[].class)))
     private void listSizes(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         requireOwnedInventory(inventoryId, session);
         ctx.json(inventoryService.findSizes(inventoryId));
@@ -591,7 +592,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventorySize[].class)))
     private void createSize(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
@@ -618,7 +619,7 @@ public class InventoryRoutes implements Routes {
     private void updateSize(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int sizeId = pathInt(ctx, "sizeId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
@@ -649,7 +650,7 @@ public class InventoryRoutes implements Routes {
     private void deleteSize(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int sizeId = pathInt(ctx, "sizeId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         requireOwnedInventory(inventoryId, session);
         inventoryService.deleteSize(inventoryId, sizeId).ifPresentOrElse(ctx::json, () -> {
             throw Refusal.SIZE_NOT_DELETED.raise();
@@ -664,7 +665,7 @@ public class InventoryRoutes implements Routes {
             pathParams = @OpenApiParam(name = "inventoryId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem[].class)))
     private void listItems(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         requireOwnedInventory(inventoryId, session);
         ctx.json(inventoryService.findStock(inventoryId));
@@ -680,7 +681,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryItem.class)))
     private void createItem(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
@@ -717,7 +718,7 @@ public class InventoryRoutes implements Routes {
             })
     private void takeStock(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var inventory = requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(IntakeRequest.class);
         var rows = request.rows() != null ? request.rows() : List.<InventoryIntakeRow>of();
@@ -744,7 +745,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void findByInternalId(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String internalId = ctx.queryParam("internalId");
         if (internalId == null || internalId.isBlank()) {
             throw Refusal.NO_CODE_GIVEN_FOR_ITEM.raise();
@@ -765,7 +766,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         inventoryService.findItemById(id).ifPresentOrElse(ctx::json, () -> {
@@ -785,7 +786,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         var request = ctx.bodyAsClass(ItemRequest.class);
@@ -800,7 +801,7 @@ public class InventoryRoutes implements Routes {
                         request.sizeId(),
                         request.artId(),
                         request.metadata(),
-                        describingClusterId(session))
+                        describingClusterId(session.user()))
                 .ifPresentOrElse(ctx::json, () -> {
                     throw Refusal.ITEM_NOT_CHANGED.raise();
                 });
@@ -819,13 +820,13 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void moveItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         var request = ctx.bodyAsClass(MoveItemRequest.class);
         requireOwnedInventory(request.inventoryId(), session);
         inventoryService
-                .moveItem(id, request.inventoryId(), describingClusterId(session))
+                .moveItem(id, request.inventoryId(), describingClusterId(session.user()))
                 .ifPresentOrElse(ctx::json, () -> {
                     throw Refusal.ITEM_NOT_MOVED.raise();
                 });
@@ -844,7 +845,7 @@ public class InventoryRoutes implements Routes {
             })
     private void assignItem(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifyItemOwnership(id, UserSession.from(ctx));
+        verifyItemOwnership(id, StationSession.from(ctx));
         var request = ctx.bodyAsClass(AssignRequest.class);
         inventoryService
                 .assignItem(id, request.memberId(), request.memberName())
@@ -865,7 +866,7 @@ public class InventoryRoutes implements Routes {
             })
     private void getItemLocation(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifyItemOwnership(id, UserSession.from(ctx));
+        verifyItemOwnership(id, StationSession.from(ctx));
         InventoryItem item = inventoryService.findItemById(id).orElseThrow(Refusal.ITEM_NOT_HERE_ON_LOCATION::raise);
         ContainerPath path = containerService.pathOfItem(item);
         ctx.json(new ItemLocationResponse(item.id(), item.containerId(), path.segments(), path.ids(), path.display()));
@@ -885,7 +886,7 @@ public class InventoryRoutes implements Routes {
             })
     private void setItemContainer(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifyItemOwnership(id, UserSession.from(ctx));
+        verifyItemOwnership(id, StationSession.from(ctx));
         var body = ctx.bodyAsClass(ContainerAssignRequest.class);
         try {
             if (containerService.setItemContainer(id, body.containerId())) {
@@ -904,7 +905,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HistoryResponse[].class)))
     private void getHistory(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(inventoryService.findHistory(id).stream()
                 .map(h -> new HistoryResponse(
                         h.id(),
@@ -930,7 +931,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void markLost(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         LostRequest request = ctx.body().isBlank() ? new LostRequest(null, null) : ctx.bodyAsClass(LostRequest.class);
@@ -945,7 +946,7 @@ public class InventoryRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LossReportTerms.class)))
     private void lossReportTerms(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         var requires = lossReportService.requirementFor(id);
@@ -963,7 +964,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reportLoss(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
 
@@ -994,7 +995,7 @@ public class InventoryRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySettings.class)))
     private void getInventorySettings(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(new InventorySettings(lossService.lossNoteRequired(session.stationId())));
     }
 
@@ -1006,7 +1007,7 @@ public class InventoryRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InventorySettings.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySettings.class)))
     private void updateInventorySettings(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(InventorySettings.class);
         ctx.json(new InventorySettings(lossService.requireLossNote(session.stationId(), request.lossNoteRequired())));
     }
@@ -1023,7 +1024,7 @@ public class InventoryRoutes implements Routes {
             })
     private void markFound(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifyItemOwnership(id, UserSession.from(ctx));
+        verifyItemOwnership(id, StationSession.from(ctx));
         inventoryService.markFound(id).ifPresentOrElse(ctx::json, () -> {
             throw Refusal.ITEM_NOT_MARKED_FOUND.raise();
         });
@@ -1040,10 +1041,10 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
-        if (inventoryService.deleteItem(id, describingClusterId(session))) {
+        if (inventoryService.deleteItem(id, describingClusterId(session.user()))) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw Refusal.ITEM_NOT_DELETED.raise();
@@ -1058,7 +1059,7 @@ public class InventoryRoutes implements Routes {
             description = "The station's own and those of the cluster above it, the latter named and read-only.",
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequirementResponse[].class)))
     private void listAllRequirements(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String clusterName = inventoryService.ownerAbove(session.stationId()).orElse(null);
         ctx.json(inventoryService.findRequirementsVisibleAt(session.stationId()).stream()
                 .map(visible -> new RequirementResponse(
@@ -1083,7 +1084,7 @@ public class InventoryRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OwnerAboveResponse.class)))
     private void ownerAbove(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(new OwnerAboveResponse(
                 inventoryService.ownerAbove(session.stationId()).orElse(null)));
     }
@@ -1098,7 +1099,7 @@ public class InventoryRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = BorrowedItemResponse[].class)))
     private void listBorrowed(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(borrowedGearService.borrowedAt(session.stationId()).stream()
                 .map(borrowed -> new BorrowedItemResponse(
                         borrowed.item(),
@@ -1137,7 +1138,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createRequirement(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(RequirementRequest.class);
         if (request.inventoryId() == 0) {
             throw Refusal.REQUIREMENT_NEEDS_AN_INVENTORY.raise();
@@ -1169,7 +1170,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateRequirement(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyRequirementOwnership(id, session);
         var request = ctx.bodyAsClass(UpdateRequirementRequest.class);
@@ -1192,7 +1193,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateRequirementPosition(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyRequirementOwnership(id, session);
         var request = ctx.bodyAsClass(UpdatePositionRequest.class);
@@ -1214,7 +1215,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteRequirement(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyRequirementOwnership(id, session);
         if (inventoryService.deleteRequirement(id)) {
@@ -1235,9 +1236,9 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
             })
     private void exportMembers(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(MemberExportRequest.class);
-        var account = session.account();
+        var account = session.user().account();
         String generatedBy = NameParts.of(account).official();
         boolean asSpreadsheet = "csv".equalsIgnoreCase(ctx.queryParam("format"));
         var document = inventoryExportService.export(

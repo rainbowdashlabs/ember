@@ -612,9 +612,6 @@ public enum Refusal {
     /** An absence that went before the deletion reached it. */
     ABSENCE_NOT_HERE_TO_DELETE(Area.ATTENDANCE, 39, HttpStatus.NOT_FOUND, Sentences.ABSENCE_NOT_HERE_ON_WRITE),
 
-    /** An absence written down for oneself by somebody who is not a member of the station. */
-    ABSENCE_NOT_A_STATION_MEMBER(Area.ATTENDANCE, 40, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** An absence written down for oneself without its first or its last day. */
     MY_ABSENCE_SPAN_MISSING(Area.ATTENDANCE, 41, HttpStatus.BAD_REQUEST, Sentences.ABSENCE_SPAN_MISSING),
 
@@ -2383,9 +2380,6 @@ public enum Refusal {
     /** A form offered without a title. */
     FORM_NEEDS_A_TITLE(Area.FORMS, 24, HttpStatus.BAD_REQUEST, "A form needs a title, so nothing was saved"),
 
-    /** Making a form while belonging to no station. */
-    NOT_A_MEMBER_ON_FORM_CREATION(Area.FORMS, 25, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** Publishing a form that is past being a draft. */
     FORM_NOT_A_DRAFT(Area.FORMS, 26, HttpStatus.BAD_REQUEST, "Only a form that is still a draft can be published"),
 
@@ -2407,12 +2401,6 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "Some of these questions cannot be asked on a form of this kind, so nothing was saved"),
 
-    /** Reading one's own answer while belonging to no station. */
-    NOT_A_MEMBER_READING_OWN_ANSWER(Area.FORMS, 31, HttpStatus.BAD_REQUEST, "You are not a member of this station"),
-
-    /** Answering a form while belonging to no station. */
-    NOT_A_MEMBER_ANSWERING_FORM(Area.FORMS, 32, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** A form that is closed, not yet open or never published, answered by a member. */
     FORM_TAKES_NO_ANSWERS(Area.FORMS, 33, HttpStatus.BAD_REQUEST, Sentences.FORM_TAKES_NO_ANSWERS),
 
@@ -2422,9 +2410,6 @@ public enum Refusal {
     /** Answers that were read and then refused for what they said. */
     FORM_ANSWERS_NOT_SAVED(Area.FORMS, 35, HttpStatus.BAD_REQUEST, Sentences.FORM_ANSWERS_NOT_SAVED),
 
-    /** Changing one's own answer while belonging to no station. */
-    NOT_A_MEMBER_CHANGING_FORM_ANSWER(Area.FORMS, 36, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** A form that takes an answer once and does not take it again. */
     FORM_ANSWER_NOT_CHANGEABLE(Area.FORMS, 37, HttpStatus.BAD_REQUEST, Sentences.FORM_ANSWER_NOT_CHANGEABLE),
 
@@ -2433,9 +2418,6 @@ public enum Refusal {
 
     /** A changed answer that was read and then refused for what it said. */
     FORM_ANSWER_CHANGE_NOT_SAVED(Area.FORMS, 39, HttpStatus.BAD_REQUEST, Sentences.FORM_ANSWERS_NOT_SAVED),
-
-    /** Answering for somebody who is looked after, while belonging to no station. */
-    NOT_A_MEMBER_ANSWERING_FOR_MEMBER(Area.FORMS, 40, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
 
     /** A form that takes no answers, at the moment one is given for somebody looked after. */
     FORM_TAKES_NO_ANSWERS_FOR_MEMBER(Area.FORMS, 41, HttpStatus.BAD_REQUEST, Sentences.FORM_TAKES_NO_ANSWERS),
@@ -2489,10 +2471,6 @@ public enum Refusal {
      */
     FORM_ANSWER_ALREADY_ON_FILE(
             Area.FORMS, 51, HttpStatus.CONFLICT, "This form has already been answered, so nothing was saved"),
-
-    /** Reading the answer of somebody looked after while belonging to no station. */
-    NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER(
-            Area.FORMS, 52, HttpStatus.BAD_REQUEST, "You are not a member of this station"),
 
     /**
      * Saving a question whose options or statements do not each carry a key of their own. Answers
@@ -2561,9 +2539,6 @@ public enum Refusal {
     /** A copy of a form asked for without a title. */
     FORM_COPY_NEEDS_A_TITLE(Area.FORMS, 62, HttpStatus.BAD_REQUEST, "A copy needs a title, so nothing was copied"),
 
-    /** Copying a form while belonging to no station. */
-    NOT_A_MEMBER_COPYING_FORM(Area.FORMS, 63, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** A form that went before it could be copied. */
     FORM_NOT_HERE_ON_COPY(Area.FORMS, 64, HttpStatus.NOT_FOUND, Sentences.FORM_NOT_HERE),
 
@@ -2576,9 +2551,6 @@ public enum Refusal {
             65,
             HttpStatus.BAD_REQUEST,
             "The link after sending has to be a web address or an address on this site, so nothing was saved"),
-
-    /** Keeping, reading or ending a half-filled form while belonging to no station. */
-    NOT_A_MEMBER_KEEPING_FORM_DRAFT(Area.FORMS, 66, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
 
     /** A half-filled form kept for later on a form that is not taking answers. */
     FORM_TAKES_NO_DRAFTS(Area.FORMS, 67, HttpStatus.BAD_REQUEST, Sentences.FORM_TAKES_NO_ANSWERS),
@@ -4944,9 +4916,6 @@ public enum Refusal {
     QUIZ_TEST_RUNNING_CANNOT_CHANGE(
             Area.QUIZZES, 27, HttpStatus.BAD_REQUEST, "This test is running, so nothing was changed"),
 
-    /** An attempt reached for by a session that stands for no member of the station. */
-    QUIZ_ATTEMPT_NEEDS_MEMBERSHIP(Area.QUIZZES, 28, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** A catalog written down without a name. */
     QUIZ_CATALOG_NEEDS_A_NAME(Area.QUIZZES, 29, HttpStatus.BAD_REQUEST, "A catalog needs a name, so nothing was saved"),
 
@@ -5011,16 +4980,9 @@ public enum Refusal {
     /** A picture for a question that could not be worked through at all. */
     QUIZ_PICTURE_NOT_PROCESSED(Area.QUIZZES, 45, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.UPLOAD_NOT_PROCESSED),
 
-    /** A paper started by a session that stands for no member of the station. */
-    QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_START(Area.QUIZZES, 46, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** A test started by somebody it is not open to, whether by time or by who may sit it. */
     QUIZ_TEST_NOT_OPEN_TO_YOU(
             Area.QUIZZES, 47, HttpStatus.FORBIDDEN, "This test is not open to you now, so no attempt was started"),
-
-    /** A paper read back by a session that stands for no member of the station. */
-    QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_READ(
-            Area.QUIZZES, 48, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER_TO_READ),
 
     /** An answer on a paper that is gone, reached for by somebody marking it. */
     QUIZ_ANSWER_NOT_HERE(Area.QUIZZES, 49, HttpStatus.NOT_FOUND, "That answer is not here any more"),
@@ -5029,9 +4991,6 @@ public enum Refusal {
     QUIZ_GRADE_NEEDS_POINTS(
             Area.QUIZZES, 50, HttpStatus.BAD_REQUEST, "Give the points for this answer, so no mark was saved"),
 
-    /** A paper marked by a session that stands for no member of the station. */
-    QUIZ_GRADING_NEEDS_MEMBERSHIP(Area.QUIZZES, 51, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
-
     /** A paper that went between its marks being written and being read back, with the marks in. */
     QUIZ_ATTEMPT_NOT_HERE_AFTER_GRADING(
             Area.QUIZZES,
@@ -5039,9 +4998,6 @@ public enum Refusal {
             HttpStatus.NOT_FOUND,
             "The marks were saved, but that attempt could not be read back. "
                     + "Reload the page to see it as it stands"),
-
-    /** A test written down by a session that stands for no member of the station. */
-    QUIZ_TEST_NEEDS_MEMBERSHIP(Area.QUIZZES, 53, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
 
     /** A test written down without a title. */
     QUIZ_TEST_NEEDS_A_TITLE(Area.QUIZZES, 54, HttpStatus.BAD_REQUEST, "A test needs a title, so nothing was saved"),
@@ -5947,7 +5903,6 @@ public enum Refusal {
         private static final String QUIZ_QUESTION_NOTE_NOT_HERE = "That note about a question is not here any more";
         private static final String QUIZ_QUESTION_NOT_HERE_ON_WRITE =
                 "That question is not here any more, so nothing was changed";
-        private static final String NOT_A_STATION_MEMBER_TO_READ = "You are not a member of this station";
         private static final String PROTOCOL_NOT_HERE_BEHIND_RUN =
                 "The protocol this test run follows is not here any more";
 

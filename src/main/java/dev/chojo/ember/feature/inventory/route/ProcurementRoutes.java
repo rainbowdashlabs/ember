@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -88,7 +88,7 @@ public class ProcurementRoutes implements Routes {
             tags = {"Procurement"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcurementResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var procurements = procurementService.findByStation(session.stationId());
         ctx.json(procurements.stream().map(this::toResponse).toList());
     }
@@ -100,7 +100,7 @@ public class ProcurementRoutes implements Routes {
             tags = {"Procurement"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcurementResponse[].class)))
     private void listOpen(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var procurements = procurementService.findOpen(session.stationId());
         ctx.json(procurements.stream().map(this::toResponse).toList());
     }
@@ -113,7 +113,7 @@ public class ProcurementRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateProcurementRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = ProcurementResponse.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateProcurementRequest.class);
         var procurement = procurementService.create(
                 session.stationId(), request.inventoryId(), request.memberId(), request.sizeId(), request.notes());

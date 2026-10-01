@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -158,10 +159,10 @@ public class MovementRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var movements = guards.visibleAmong(session, movementService.findByStation(session.stationId()));
+        StationSession session = StationSession.from(ctx);
+        var movements = guards.visibleAmong(session.user(), movementService.findByStation(session.stationId()));
         ctx.json(movements.stream()
-                .map(movement -> toResponse(movement, session))
+                .map(movement -> toResponse(movement, session.user()))
                 .toList());
     }
 
@@ -176,9 +177,11 @@ public class MovementRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
     private void listAtMember(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var rows = guards.visibleAmong(session, movementService.findAtMemberByStation(session.stationId()));
-        ctx.json(rows.stream().map(movement -> toResponse(movement, session)).toList());
+        StationSession session = StationSession.from(ctx);
+        var rows = guards.visibleAmong(session.user(), movementService.findAtMemberByStation(session.stationId()));
+        ctx.json(rows.stream()
+                .map(movement -> toResponse(movement, session.user()))
+                .toList());
     }
 
     @OpenApi(
@@ -205,12 +208,12 @@ public class MovementRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateMovementRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = MovementDetail.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateMovementRequest.class);
         if (request.purpose() == null) throw Refusal.MOVEMENT_NEEDS_A_PURPOSE.raise();
 
         Integer memberId = request.memberId();
-        guards.requireMayStartFor(session, memberId);
+        guards.requireMayStartFor(session.user(), memberId);
         ItemMovement movement = movementService.create(
                 session.stationId(),
                 request.purpose(),
@@ -221,7 +224,7 @@ public class MovementRoutes implements Routes {
                 request.oldSizeId(),
                 request.newSizeId(),
                 Objects.requireNonNullElse(request.reason(), ""),
-                actorOf(session, null),
+                actorOf(session.user(), null),
                 request.pickedItemId());
         Integer selfCheckId = request.selfCheckId();
         if (selfCheckId != null) {
@@ -233,7 +236,7 @@ public class MovementRoutes implements Routes {
                     request.outgoingItemId(),
                     movement.id());
         }
-        ctx.status(HttpStatus.CREATED).json(toDetail(movement, session));
+        ctx.status(HttpStatus.CREATED).json(toDetail(movement, session.user()));
     }
 
     @OpenApi(
@@ -297,7 +300,7 @@ public class MovementRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReturnEverythingRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
     private void returnEverything(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ReturnEverythingRequest.class);
         Integer memberId = request.memberId();
         if (memberId == null) throw Refusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER.raise();
@@ -307,8 +310,10 @@ public class MovementRoutes implements Routes {
                 .orElseThrow(Refusal.MEMBER_NOT_AT_THIS_STATION::raise);
 
         var started = movementService.requestEverythingBack(
-                session.stationId(), member.id(), names.called(member.id()), actorOf(session, null));
-        ctx.json(started.stream().map(movement -> toResponse(movement, session)).toList());
+                session.stationId(), member.id(), names.called(member.id()), actorOf(session.user(), null));
+        ctx.json(started.stream()
+                .map(movement -> toResponse(movement, session.user()))
+                .toList());
     }
 
     @OpenApi(
@@ -366,7 +371,7 @@ public class MovementRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void exportPdf(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ExportMovementsRequest.class);
         var generatedBy =
                 Optional.ofNullable(names.official(session.member().id())).orElse("?");

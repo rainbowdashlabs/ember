@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -112,9 +113,9 @@ public class FormRoutes implements Routes {
      * both when the form is absent and when it is owned by another station, so a form id from
      * one station cannot be read, answered, or have its analytics and responses exposed to another.
      */
-    private Form requireOwnedForm(int formId, UserSession session) {
+    private Form requireOwnedForm(int formId, StationSession session) {
         var form = formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE::raise);
-        RouteSupport.requireSameStation(session, form.stationId());
+        RouteSupport.requireSameStation(session.user(), form.stationId());
         return form;
     }
 
@@ -194,7 +195,7 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Form[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var purposeParam = ctx.queryParam("purpose");
         if (purposeParam == null || purposeParam.isBlank()) {
             ctx.json(formService.findByStation(session.stationId()));
@@ -227,7 +228,7 @@ public class FormRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormSearchResult[].class)))
     private void search(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String purposeParam = ctx.queryParam("purpose");
         if (purposeParam == null || purposeParam.isBlank()) {
             throw Refusal.FORM_KIND_NOT_NAMED.raise();
@@ -271,10 +272,9 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(FormRequest.class);
         if (req.title() == null || req.title().isBlank()) throw Refusal.FORM_NEEDS_A_TITLE.raise();
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_FORM_CREATION.raise();
         FormService.requireOfferableCompletionLink(req.completionLink());
         var form = formService.create(
                 session.stationId(),
@@ -302,7 +302,7 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         ctx.json(requireOwnedForm(id, session));
     }
@@ -320,7 +320,7 @@ public class FormRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         var req = ctx.bodyAsClass(FormRequest.class);
         FormService.requireOfferableCompletionLink(req.completionLink());
         if (!formService.update(
@@ -350,7 +350,7 @@ public class FormRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         if (formService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -370,7 +370,7 @@ public class FormRoutes implements Routes {
             })
     private void publish(Context ctx) {
         int id = pathInt(ctx, "id");
-        var form = requireOwnedForm(id, UserSession.from(ctx));
+        var form = requireOwnedForm(id, StationSession.from(ctx));
         if (form.status() != Form.FormStatus.DRAFT) throw Refusal.FORM_NOT_A_DRAFT.raise();
         formService.publish(id);
 
@@ -392,9 +392,8 @@ public class FormRoutes implements Routes {
             })
     private void duplicate(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         requireOwnedForm(id, session);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_COPYING_FORM.raise();
         var request = ctx.bodyAsClass(FormDuplicateRequest.class);
         if (request.title() == null || request.title().isBlank()) throw Refusal.FORM_COPY_NEEDS_A_TITLE.raise();
         var copy = formService
@@ -423,7 +422,7 @@ public class FormRoutes implements Routes {
             })
     private void setVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
-        var form = requireOwnedForm(id, UserSession.from(ctx));
+        var form = requireOwnedForm(id, StationSession.from(ctx));
         var request = ctx.bodyAsClass(FormVisibilityRequest.class);
         if (request.visibility() == null) {
             throw Refusal.FORM_REACH_NOT_SAID.raise();
@@ -460,7 +459,7 @@ public class FormRoutes implements Routes {
             })
     private void getShareLink(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var form = requireOwnedForm(id, session);
         requireSendableByLink(form);
         ctx.json(new FormShareLinkResponse(formService.shareLink(id).orElse(null)));
@@ -495,7 +494,7 @@ public class FormRoutes implements Routes {
             })
     private void replaceShareLink(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         var request = ctx.bodyAsClass(ReplaceFormShareLinkRequest.class);
         var replaced = formService
                 .replaceShareLink(id, request.currentToken())
@@ -515,7 +514,7 @@ public class FormRoutes implements Routes {
             })
     private void close(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         if (!formService.close(id)) throw Refusal.FORM_NOT_HERE_ON_CLOSE.raise();
         respondWithForm(ctx, id);
     }
@@ -533,7 +532,7 @@ public class FormRoutes implements Routes {
             })
     private void clearResponses(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         ctx.json(new ClearedFormResponses(formService.clearResponses(id)));
     }
 
@@ -547,7 +546,7 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)))
     private void listQuestions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(formService.findQuestions(id));
@@ -562,7 +561,7 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuestionAnswerCount[].class)))
     private void countAnswersPerQuestion(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         ctx.json(formService.countAnswersPerQuestion(id));
     }
 
@@ -575,7 +574,7 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormPage[].class)))
     private void listPages(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         ctx.json(formService.findPages(id));
     }
 
@@ -596,7 +595,7 @@ public class FormRoutes implements Routes {
             })
     private void setQuestions(Context ctx) {
         int id = pathInt(ctx, "id");
-        var form = requireOwnedForm(id, UserSession.from(ctx));
+        var form = requireOwnedForm(id, StationSession.from(ctx));
         var layout = ctx.bodyAsClass(FormLayoutRequest.class);
         var questions = layout.questions() == null ? List.<FormQuestionRequest>of() : layout.questions();
         var pages = layout.pages() == null ? List.<FormPageRequest>of() : layout.pages();
@@ -633,7 +632,7 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void getRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         var restrictions = formService.findRestrictions(id);
@@ -655,7 +654,7 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void setRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        requireOwnedForm(id, StationSession.from(ctx));
         var req = ctx.bodyAsClass(FormRestrictions.class);
         var mode = req.mode();
         formService.setRestrictions(
@@ -677,8 +676,7 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseDetail.class)))
     private void getMyResponse(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_READING_OWN_ANSWER.raise();
+        StationSession session = StationSession.from(ctx);
         requireOwnedForm(id, session);
         respondWithAnswerOf(ctx, id, session.member().id());
     }
@@ -699,8 +697,7 @@ public class FormRoutes implements Routes {
     private void getMemberResponse(Context ctx) {
         int id = pathInt(ctx, "id");
         int memberId = pathInt(ctx, "memberId");
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER.raise();
+        StationSession session = StationSession.from(ctx);
         requireFormForManagedMember(session, id, memberId);
         respondWithAnswerOf(ctx, id, memberId);
     }
@@ -730,7 +727,7 @@ public class FormRoutes implements Routes {
             ctx.json(new EligibleMembers(false, List.of()));
             return;
         }
-        requireOwnedForm(id, session);
+        requireOwnedForm(id, StationSession.of(session));
         boolean selfEligible = formService.canMemberAccess(id, session.member().id());
         var managed = guardianPolicy.wards(session);
         var eligibleManagedIds = managed.stream()
@@ -753,8 +750,7 @@ public class FormRoutes implements Routes {
             })
     private void submitResponse(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ANSWERING_FORM.raise();
+        StationSession session = StationSession.from(ctx);
         var form = requireOwnedForm(id, session);
         if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_ANSWERS.raise();
         if (!formService.canMemberAccess(id, session.member().id())) {
@@ -786,8 +782,7 @@ public class FormRoutes implements Routes {
             })
     private void updateResponse(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_CHANGING_FORM_ANSWER.raise();
+        StationSession session = StationSession.from(ctx);
         var form = requireOwnedForm(id, session);
         if (!form.allowEdit()) throw Refusal.FORM_ANSWER_NOT_CHANGEABLE.raise();
         if (!formService.canMemberAccess(id, session.member().id())) {
@@ -857,8 +852,7 @@ public class FormRoutes implements Routes {
     private void respondForMember(Context ctx, boolean creating) {
         int id = pathInt(ctx, "id");
         int memberId = pathInt(ctx, "memberId");
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ANSWERING_FOR_MEMBER.raise();
+        StationSession session = StationSession.from(ctx);
         var form = requireFormForManagedMember(session, id, memberId);
         if (creating) {
             if (!formService.isAcceptingResponses(form)) {
@@ -893,7 +887,7 @@ public class FormRoutes implements Routes {
      * @param memberId the managed member the form is answered for
      * @return the form
      */
-    private Form requireFormForManagedMember(UserSession session, int formId, int memberId) {
+    private Form requireFormForManagedMember(StationSession session, int formId, int memberId) {
         verifyManages(session, memberId);
         var form = requireOwnedForm(formId, session);
         if (!formService.canMemberAccess(formId, memberId)) {
@@ -911,8 +905,8 @@ public class FormRoutes implements Routes {
      * @param session  the current user session
      * @param memberId the member ID to verify management of
      */
-    private void verifyManages(UserSession session, int memberId) {
-        if (!guardianPolicy.mayActFor(session, memberId)) {
+    private void verifyManages(StationSession session, int memberId) {
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) {
             throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
     }
@@ -987,7 +981,7 @@ public class FormRoutes implements Routes {
     private void saveDraftFor(Context ctx) {
         int id = pathInt(ctx, "id");
         int memberId = managedDraftMember(ctx, id);
-        keepDraft(ctx, id, memberId, UserSession.from(ctx).member().id());
+        keepDraft(ctx, id, memberId, StationSession.from(ctx).member().id());
     }
 
     @OpenApi(
@@ -1010,8 +1004,7 @@ public class FormRoutes implements Routes {
      * The caller as the member a draft of the form is kept for, once the form is theirs to answer.
      */
     private int draftingMember(Context ctx, int formId) {
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
+        var session = StationSession.from(ctx);
         requireOwnedForm(formId, session);
         if (!formService.canMemberAccess(formId, session.member().id())) {
             throw Refusal.FORM_NOT_YOURS_TO_DRAFT.raise();
@@ -1027,17 +1020,16 @@ public class FormRoutes implements Routes {
      * read or change what the member has not sent.
      */
     private int managedDraftMember(Context ctx, int formId) {
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
+        var session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
-        if (!guardianPolicy.mayActFor(session, memberId)) throw Refusal.FORM_DRAFT_NOT_YOURS.raise();
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw Refusal.FORM_DRAFT_NOT_YOURS.raise();
         requireFormForManagedMember(session, formId, memberId);
         return memberId;
     }
 
     /** Keeps a draft while the form takes answers; a closed form keeps none. */
     private void keepDraft(Context ctx, int formId, int memberId, int savedBy) {
-        var form = requireOwnedForm(formId, UserSession.from(ctx));
+        var form = requireOwnedForm(formId, StationSession.from(ctx));
         if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_DRAFTS.raise();
         var request = ctx.bodyAsClass(FormDraftRequest.class);
         formService.saveDraft(formId, memberId, savedBy, request.answers(), request.path());
@@ -1069,7 +1061,7 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalytics.class)))
     private void getAnalytics(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(analyticsAssembler.buildAnalytics(id));
@@ -1091,7 +1083,7 @@ public class FormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormResultQuery.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalytics.class)))
     private void queryAnalytics(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, session);
         if (form.purpose() != FormPurpose.INTERNAL) {
@@ -1106,7 +1098,7 @@ public class FormRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200"))
     private void exportResponses(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, session);
         var station = stationService
@@ -1118,7 +1110,7 @@ public class FormRoutes implements Routes {
                     id,
                     form.title(),
                     station,
-                    NameParts.of(session.account()).official(),
+                    NameParts.of(session.user().account()).official(),
                     asSpreadsheet ? CsvWriter.Separator.of(ctx.queryParam("separator")) : null);
             ctx.contentType(asSpreadsheet ? "text/csv" : "application/pdf");
             ctx.header("Content-Disposition", document.contentDisposition());
@@ -1137,7 +1129,7 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntry[].class)))
     private void listResponses(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(analyticsAssembler.listResponses(id));
@@ -1154,7 +1146,7 @@ public class FormRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseDetail.class)))
     private void getResponseDetail(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int formId = pathInt(ctx, "id");
         int responseId = pathInt(ctx, "responseId");
         requireOwnedForm(formId, session);

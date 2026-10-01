@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.waitinglist.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -464,7 +464,7 @@ public class WaitingListRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListWithCount[].class)))
     private void listAll(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var lists = service.findByStation(session.member().stationId());
         ctx.json(lists.stream()
                 .map(l -> new WaitingListWithCount(l, service.countEntries(l.id())))
@@ -479,7 +479,7 @@ public class WaitingListRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = WaitingList.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(WaitingListRequest.class);
         validateFormula(request.scoringFormula(), List.of());
         var list = service.create(
@@ -857,12 +857,13 @@ public class WaitingListRoutes implements Routes {
         if (request == null) return null;
         Integer eventId = request.eventId();
         if (eventId == null) return null;
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var event = eventCrudService
                 .findById(eventId)
                 .filter(candidate -> candidate.stationId() == session.stationId())
                 .orElseThrow(Refusal.APPOINTMENT_NOT_HERE_FOR_INVITATION::raise);
-        if (!eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
+        if (!eventRestrictionService.canView(
+                event.id(), session.member().id(), session.user().permissions())) {
             throw Refusal.APPOINTMENT_NOT_YOURS_TO_INVITE_TO.raise();
         }
         return new WaitingListInvitation(event.id(), parseDate(request.date()), parseTime(request.arrivalTime()));

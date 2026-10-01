@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.equipment.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.equipment.entity.Recommendation;
 import dev.chojo.ember.feature.equipment.service.EquipmentBrowseService;
@@ -61,7 +61,7 @@ public class EquipmentBrowseRoutes implements Routes {
             queryParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Recommendation[].class)))
     private void recommendations(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String raw = ctx.queryParam("itemId");
         if (raw == null || raw.isBlank()) throw Refusal.RECOMMENDATION_PIECE_MISSING.raise();
         int itemId;
@@ -83,7 +83,7 @@ public class EquipmentBrowseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RecheckRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RecheckResponse.class)))
     private void recheck(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(RecheckRequest.class);
         if (body.from() == null) throw Refusal.COLLECTED_LIST_WINDOW_MISSING.raise();
         List<EquipmentBrowseService.CollectedLine> lines = body.lines() == null ? List.of() : body.lines();

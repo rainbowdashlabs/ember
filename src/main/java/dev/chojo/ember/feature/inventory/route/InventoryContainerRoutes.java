@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
@@ -72,9 +72,9 @@ public class InventoryContainerRoutes implements Routes {
         routes.get(prefix + "/inventory-containers/{id}/history", this::getHistory, StationPermission.INVENTORY_READ);
     }
 
-    private InventoryContainer verifyContainerOwnership(int id, UserSession session) {
+    private InventoryContainer verifyContainerOwnership(int id, StationSession session) {
         InventoryContainer container = containerService.findById(id).orElseThrow(Refusal.CONTAINER_NOT_HERE::raise);
-        RouteSupport.requireSameStation(session, container.stationId());
+        RouteSupport.requireSameStation(session.user(), container.stationId());
         return container;
     }
 
@@ -86,7 +86,7 @@ public class InventoryContainerRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryContainerKind[].class)))
     private void listKinds(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(containerService.listKinds(session.stationId()));
     }
 
@@ -101,7 +101,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createKind(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(KindRequest.class);
         try {
             InventoryContainerKind kind = containerService.createKind(
@@ -130,7 +130,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateKind(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
             throw Refusal.CONTAINER_KIND_NOT_HERE.raise();
@@ -158,7 +158,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteKind(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
             throw Refusal.CONTAINER_KIND_NOT_HERE_ON_DELETE.raise();
@@ -177,7 +177,7 @@ public class InventoryContainerRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryContainer[].class)))
     private void listContainers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(containerService.findByStation(session.stationId()));
     }
 
@@ -188,7 +188,7 @@ public class InventoryContainerRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryContainer[].class)))
     private void listRoots(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(containerService.findRoots(session.stationId()));
     }
 
@@ -203,7 +203,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createContainer(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(ContainerRequest.class);
         try {
             InventoryContainer created = containerService.create(
@@ -232,7 +232,7 @@ public class InventoryContainerRoutes implements Routes {
             })
     private void getContainer(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         InventoryContainer container = verifyContainerOwnership(id, session);
         ContainerPath path = containerService.pathOf(id);
         ctx.json(new ContainerDetail(container, path.segments(), path.ids(), path.display()));
@@ -252,7 +252,7 @@ public class InventoryContainerRoutes implements Routes {
             })
     private void updateContainer(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         verifyContainerOwnership(id, session);
         var body = ctx.bodyAsClass(ContainerRequest.class);
         try {
@@ -285,7 +285,7 @@ public class InventoryContainerRoutes implements Routes {
             })
     private void deleteContainer(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         verifyContainerOwnership(id, session);
         if (containerService.delete(id, session.member().id())) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -304,7 +304,7 @@ public class InventoryContainerRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ContainerContents.class)))
     private void listContents(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         verifyContainerOwnership(id, session);
         boolean recursive = "true".equalsIgnoreCase(ctx.queryParam("recursive"));
         List<InventoryContainer> children =
@@ -323,7 +323,7 @@ public class InventoryContainerRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ContainerPathResponse.class)))
     private void getPath(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         verifyContainerOwnership(id, session);
         ContainerPath path = containerService.pathOf(id);
         ctx.json(new ContainerPathResponse(path.segments(), path.ids(), path.display()));
@@ -341,7 +341,7 @@ public class InventoryContainerRoutes implements Routes {
                             content = @OpenApiContent(from = InventoryContainerHistory[].class)))
     private void getHistory(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         verifyContainerOwnership(id, session);
         ctx.json(containerService.findHistory(id));
     }
@@ -357,7 +357,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void resolveByScan(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String internalId = ctx.queryParam("internalId");
         if (internalId == null || internalId.isBlank()) {
             throw Refusal.NO_CODE_GIVEN_FOR_CONTAINER.raise();

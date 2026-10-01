@@ -214,7 +214,6 @@ const PUBLIC_STATION_NOT_REACHED = 'Dieser Link führt zu keiner Wache'
 const PUBLIC_CATALOGS_NOT_NAMED = 'Dieser Link nennt keinen Katalog, aus dem eine Frage gezogen werden kann'
 const QUIZ_NOTE_NOT_HERE = 'Diese Meldung zu einer Frage gibt es nicht mehr'
 const QUESTION_NOT_HERE_ON_WRITE = 'Diese Frage gibt es nicht mehr, es wurde nichts geändert'
-const NOT_A_STATION_MEMBER_TO_READ = 'Du bist kein Mitglied dieser Wache'
 const PROTOCOL_NOT_HERE_BEHIND_RUN = 'Den Prüfungsbogen zu diesem Prüfungslauf gibt es nicht mehr'
 const CATEGORY_NOT_HERE = 'Diese Kategorie gibt es nicht mehr'
 const TEST_NOT_HERE = 'Diesen Test gibt es nicht mehr'
@@ -372,7 +371,6 @@ export default {
     'AT-037': ABSENCE_ENDS_BEFORE_IT_STARTS,
     'AT-038': ABSENCE_NOT_HERE,
     'AT-039': ABSENCE_NOT_HERE_ON_WRITE,
-    'AT-040': NOT_A_STATION_MEMBER,
     'AT-041': ABSENCE_SPAN_MISSING,
     'AT-042': ABSENCE_ENDS_BEFORE_IT_STARTS,
     'AT-043': MEMBER_NOT_YOURS,
@@ -856,23 +854,18 @@ export default {
     'F-022': 'Sag, nach welcher Art von Formular gesucht werden soll',
     'F-023': FORM_KIND_UNKNOWN,
     'F-024': 'Ein Formular braucht einen Titel, es wurde nichts gespeichert',
-    'F-025': NOT_A_STATION_MEMBER,
     'F-026': 'Nur ein Formular, das noch ein Entwurf ist, lässt sich veröffentlichen',
     'F-027': 'Sag, wie weit das Formular reichen soll',
     'F-028': 'Ein Formular für die eigenen Mitglieder der Wache wird nicht per Link verschickt',
     'F-029': 'Dieses Formular hat seit deinem letzten Blick einen anderen Link bekommen',
     'F-030': 'Einige dieser Fragen lassen sich in einem Formular dieser Art nicht stellen, '
         + 'es wurde nichts gespeichert',
-    'F-031': 'Du bist kein Mitglied dieser Wache',
-    'F-032': NOT_A_STATION_MEMBER,
     'F-033': FORM_TAKES_NO_ANSWERS,
     'F-034': FORM_NOT_YOURS_TO_ANSWER,
     'F-035': FORM_ANSWERS_NOT_SAVED,
-    'F-036': NOT_A_STATION_MEMBER,
     'F-037': FORM_ANSWER_NOT_CHANGEABLE,
     'F-038': FORM_NOT_YOURS_TO_ANSWER,
     'F-039': FORM_ANSWERS_NOT_SAVED,
-    'F-040': NOT_A_STATION_MEMBER,
     'F-041': FORM_TAKES_NO_ANSWERS,
     'F-042': FORM_ANSWER_NOT_CHANGEABLE,
     'F-043': 'Dieses Formular wurde dem Mitglied, für das du antwortest, nicht gestellt',
@@ -884,7 +877,6 @@ export default {
     'F-049': 'Einige dieser Fragen gehören nicht zu diesem Formular, es wurde nichts gespeichert',
     'F-050': 'Eine Frage, die es schon gibt, behält ihre Art, es wurde nichts gespeichert',
     'F-051': 'Dieses Formular wurde bereits beantwortet, es wurde nichts gespeichert',
-    'F-052': 'Du bist kein Mitglied dieser Wache',
     'F-053': 'Jede Option einer Frage braucht einen eigenen Schlüssel, es wurde nichts gespeichert',
     'F-054': 'Ein Formular braucht mindestens eine Seite und jede Seite einen eigenen Schlüssel, es wurde nichts gespeichert',
     'F-055': 'Eine Seite kann nur zu einer Seite weiter unten führen, es wurde nichts gespeichert',
@@ -895,10 +887,8 @@ export default {
     'F-060': 'Diese Antwort passt nicht zur Frage',
     'F-061': 'Diese Antwort gehört zu einer Frage, die das Formular nicht hat',
     'F-062': 'Eine Kopie braucht einen Titel, es wurde nichts kopiert',
-    'F-063': 'Du bist kein Mitglied dieser Wache',
     'F-064': FORM_NOT_HERE,
     'F-065': 'Der Link nach dem Absenden muss mit https://, http:// oder / beginnen, es wurde nichts gespeichert',
-    'F-066': 'Du bist kein Mitglied dieser Wache',
     'F-067': FORM_TAKES_NO_ANSWERS,
     'F-068': FORM_NOT_YOURS_TO_ANSWER,
     'F-069': 'Eine nicht abgesendete Antwort sehen und speichern nur das Mitglied selbst und wer es betreut',
@@ -1494,7 +1484,6 @@ export default {
     'Q-025': PUBLIC_CATALOGS_NOT_NAMED,
     'Q-026': 'Aus diesen Katalogen gibt es hier keine Frage zu zeigen',
     'Q-027': 'Dieser Test läuft gerade, es wurde nichts geändert',
-    'Q-028': NOT_A_STATION_MEMBER,
     'Q-029': 'Ein Katalog braucht einen Namen, es wurde nichts gespeichert',
     'Q-030': 'Eine Kategorie braucht einen Namen, es wurde nichts gespeichert',
     'Q-031': 'Dieser Katalog ist nicht zum Üben freigegeben',
@@ -1513,15 +1502,11 @@ export default {
     'Q-043': KB_PICTURE_KIND_NOT_TAKEN,
     'Q-044': 'Dieses Bild konnte nicht gespeichert werden, die Frage behält das bisherige',
     'Q-045': UPLOAD_NOT_PROCESSED,
-    'Q-046': NOT_A_STATION_MEMBER,
     'Q-047': 'Dieser Test ist für dich gerade nicht offen, es wurde kein Versuch begonnen',
-    'Q-048': NOT_A_STATION_MEMBER_TO_READ,
     'Q-049': 'Diese Antwort gibt es nicht mehr',
     'Q-050': 'Gib die Punkte für diese Antwort an, es wurde keine Bewertung gespeichert',
-    'Q-051': NOT_A_STATION_MEMBER,
     'Q-052': 'Die Bewertung wurde gespeichert, der Versuch konnte aber nicht zurückgelesen werden. '
         + 'Lade die Seite neu, um den aktuellen Stand zu sehen',
-    'Q-053': NOT_A_STATION_MEMBER,
     'Q-054': 'Ein Test braucht einen Titel, es wurde nichts gespeichert',
     'Q-055': 'Dieser Test wurde bereits gestartet, es wurde nichts geändert',
     'Q-056': 'Dieser Test läuft gerade, seine Fragen lassen sich nicht neu ziehen',

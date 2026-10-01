@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.quiz.route;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
@@ -85,11 +85,10 @@ public class QuizAttemptRoutes implements Routes {
             })
     private void startAttempt(Context ctx) {
         int testId = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_START.raise();
+        var session = StationSession.from(ctx);
         var test = guards.requireOwnedTest(ctx, testId);
         int memberId = session.member().id();
-        if (!accessService.isTestAccessible(test, memberId, session.permissions())) {
+        if (!accessService.isTestAccessible(test, memberId, session.user().permissions())) {
             throw Refusal.QUIZ_TEST_NOT_OPEN_TO_YOU.raise();
         }
         var existing = attemptService.findAttempt(testId, session.member().id());
@@ -114,8 +113,7 @@ public class QuizAttemptRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyQuizAttempt.class)))
     private void getMyAttempt(Context ctx) {
         int testId = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_READ.raise();
+        var session = StationSession.from(ctx);
         guards.requireOwnedTest(ctx, testId);
         var attempt = attemptService.findAttempt(testId, session.member().id());
         if (attempt.isEmpty()) {
@@ -136,7 +134,7 @@ public class QuizAttemptRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizAnswerRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizSuccessResponse.class)))
     private void saveAnswer(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
         if (attempt.status() != AttemptStatus.IN_PROGRESS) {
             throw Refusal.QUIZ_ALREADY_HANDED_IN.raise();
@@ -159,7 +157,7 @@ public class QuizAttemptRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizTestAttempt.class)))
     private void submitAttempt(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
         if (!attemptService.submitAttempt(attempt.id())) {
             throw Refusal.QUIZ_NOT_HANDED_IN.raise();
@@ -222,8 +220,7 @@ public class QuizAttemptRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizTestAttempt.class)))
     private void gradeAttempt(Context ctx) {
         int attemptId = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.QUIZ_GRADING_NEEDS_MEMBERSHIP.raise();
+        var session = StationSession.from(ctx);
         guards.requireOwnedAttempt(ctx, attemptId);
         attemptService.gradeAttempt(attemptId, session.member().id());
         attemptService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {

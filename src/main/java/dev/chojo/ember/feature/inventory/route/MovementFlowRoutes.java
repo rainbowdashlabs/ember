@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.inventory.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.FlowProblem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -22,7 +22,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService.ChosenLanding;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -89,7 +88,7 @@ public class MovementFlowRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(flowService.findFlows(session.stationId()).stream()
                 .map(this::toResponse)
                 .toList());
@@ -122,7 +121,7 @@ public class MovementFlowRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void resolve(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         MovementPurpose purpose = purposeOf(ctx.queryParam("purpose"));
         Integer memberId = optionalInt(ctx, "memberId");
         Integer itemId = optionalInt(ctx, "itemId");
@@ -179,7 +178,7 @@ public class MovementFlowRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getFlow(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(flowAsItStands(requireOwnFlow(pathInt(ctx, "id"), session)));
     }
 
@@ -191,7 +190,7 @@ public class MovementFlowRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FlowRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FlowResponse.class)))
     private void createFlow(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(FlowRequest.class);
         if (request.purpose() == null) throw Refusal.FLOW_NEEDS_A_PURPOSE.raise();
         var flow = flowService.createFlow(session.stationId(), request.name(), request.purpose());
@@ -210,7 +209,7 @@ public class MovementFlowRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void renameFlow(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(FlowRequest.class);
         if (!flowService.renameFlow(id, request.name())) throw Refusal.FLOW_NOT_RENAMED.raise();
@@ -225,7 +224,7 @@ public class MovementFlowRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)))
     private void archiveFlow(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
         if (!flowService.archiveFlow(id)) throw Refusal.FLOW_NOT_ARCHIVED.raise();
         ctx.json(flowAsItStands(id));
@@ -240,7 +239,7 @@ public class MovementFlowRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StepRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StepResponse.class)))
     private void addStep(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(StepRequest.class);
         requireStepFields(request);
@@ -263,7 +262,7 @@ public class MovementFlowRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StepRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)))
     private void updateStep(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int stepId = pathInt(ctx, "id");
         int flowId = requireOwnStep(stepId, session);
         var request = ctx.bodyAsClass(StepRequest.class);
@@ -288,7 +287,7 @@ public class MovementFlowRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)))
     private void archiveStep(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int stepId = pathInt(ctx, "id");
         int flowId = requireOwnStep(stepId, session);
         if (!flowService.archiveStep(stepId)) throw Refusal.FLOW_STEP_NOT_ARCHIVED.raise();
@@ -302,7 +301,7 @@ public class MovementFlowRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BindingResponse[].class)))
     private void listBindings(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(flowService.findBindings(session.stationId()).stream()
                 .map(b -> new BindingResponse(b.inventoryId(), b.ownerKind(), b.purpose(), b.party(), b.flowId()))
                 .toList());
@@ -316,7 +315,7 @@ public class MovementFlowRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BindingRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void bind(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(BindingRequest.class);
         if (request.ownerKind() == null || request.purpose() == null) {
             throw Refusal.BINDING_NEEDS_AN_OWNER_AND_A_PURPOSE.raise();
@@ -349,7 +348,7 @@ public class MovementFlowRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reorderSteps(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(StepOrderRequest.class);
         if (request.stepIds() == null || request.stepIds().isEmpty()) {
@@ -381,7 +380,7 @@ public class MovementFlowRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void restorePlan(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(flowService.planRestore(requireOwnFlow(pathInt(ctx, "id"), session)));
     }
 
@@ -407,12 +406,11 @@ public class MovementFlowRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void restoreToPreset(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.body().isBlank() ? null : ctx.bodyAsClass(RestoreRequest.class);
         var mappings = request == null || request.mappings() == null ? List.<ChosenLanding>of() : request.mappings();
-        flowService.restoreToPreset(
-                flowId, session.memberOpt().map(StationMember::id).orElse(null), mappings);
+        flowService.restoreToPreset(flowId, session.member().id(), mappings);
         ctx.json(flowAsItStands(flowId));
     }
 
@@ -426,7 +424,7 @@ public class MovementFlowRoutes implements Routes {
      * Answers 404 both when the flow is absent and when it belongs to somebody else, so the two stay
      * indistinguishable from outside.
      */
-    private int requireOwnFlow(int flowId, UserSession session) {
+    private int requireOwnFlow(int flowId, StationSession session) {
         MovementFlow flow = flowService.findFlow(flowId).orElseThrow(Refusal.FLOW_NOT_HERE::raise);
         if (flow.stationId() == null || !flow.stationId().equals(session.stationId())) {
             throw Refusal.FLOW_NOT_HERE.raise();
@@ -435,7 +433,7 @@ public class MovementFlowRoutes implements Routes {
     }
 
     /** The chain a step belongs to, once it is established that the station may touch it. */
-    private int requireOwnStep(int stepId, UserSession session) {
+    private int requireOwnStep(int stepId, StationSession session) {
         MovementFlowStep step = flowService.findStep(stepId).orElseThrow(Refusal.FLOW_STEP_NOT_HERE::raise);
         return requireOwnFlow(step.flowId(), session);
     }

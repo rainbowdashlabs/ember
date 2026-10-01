@@ -186,7 +186,7 @@ class AttendanceTemplateAudienceRouteTest extends RepositoryTestBase {
                 new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
                 1,
                 at.id(),
-                null,
+                at.uid(),
                 member,
                 EnumSet.of(StationPermission.USER, held),
                 Set.of(),

@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.cluster.entity.RecommendedTag;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryTagService;
@@ -73,7 +73,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TagResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var counts = tagService.countItemsPerTag(session.stationId());
         ctx.json(tagService.findByStation(session.stationId()).stream()
                 .map(tag -> TagResponse.of(tag, counts.getOrDefault(tag.id(), 0)))
@@ -91,7 +91,7 @@ public class InventoryTagRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(InventoryTagRequest.class);
         var tag = tagService.create(session.stationId(), request.name(), request.color());
         ctx.status(HttpStatus.CREATED).json(counted(session.stationId(), tag));
@@ -110,7 +110,7 @@ public class InventoryTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(InventoryTagRequest.class);
         var tag = tagService.update(
                 session.stationId(), pathInt(ctx, "tagId"), request.name(), request.color(), request.position());
@@ -128,7 +128,7 @@ public class InventoryTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         tagService.delete(session.stationId(), pathInt(ctx, "tagId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -140,7 +140,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RecommendedTag[].class)))
     private void recommended(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(clusterTagService.recommendationsFor(session.stationId()));
     }
 
@@ -152,7 +152,7 @@ public class InventoryTagRoutes implements Routes {
             queryParams = @OpenApiParam(name = "tag", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TaggedItemSummary[].class)))
     private void itemsByTag(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(tagService.findItemsByTag(List.of(session.stationId()), ctx.queryParam("tag")));
     }
 
@@ -164,7 +164,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemTagsResponse[].class)))
     private void inventoryItemTags(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var byItem = tagService.findTagsInInventory(session.stationId(), pathInt(ctx, "inventoryId"));
         ctx.json(byItem.entrySet().stream()
                 .map(entry -> new ItemTagsResponse(entry.getKey(), entry.getValue()))
@@ -179,7 +179,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryTag[].class)))
     private void itemTags(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(tagService.findTagsForItem(session.stationId(), pathInt(ctx, "itemId")));
     }
 
@@ -195,7 +195,7 @@ public class InventoryTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setItemTags(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ItemTagsRequest.class);
         ctx.json(tagService.setItemTags(session.stationId(), pathInt(ctx, "itemId"), request.names()));
     }

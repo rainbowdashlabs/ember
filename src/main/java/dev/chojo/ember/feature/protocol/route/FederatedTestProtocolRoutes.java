@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.protocol.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes.RemoteProtocolDetail;
@@ -61,7 +61,7 @@ public class FederatedTestProtocolRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SharedProtocolView[].class)))
     private void federatedBrowseProtocols(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(service.browseSharedProtocolViews(session.stationId()));
     }
 
@@ -70,7 +70,7 @@ public class FederatedTestProtocolRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RemoteProtocolDetail.class)))
     private void federatedGetProtocol(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
@@ -85,7 +85,7 @@ public class FederatedTestProtocolRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocol.class)))
     private void federatedCopyProtocol(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         var copied = service.copyProtocol(protocolId, session.stationId());
         ctx.status(HttpStatus.CREATED).json(copied);

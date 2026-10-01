@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.lostandfound.route;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
@@ -96,7 +96,7 @@ public class LostAndFoundRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = LostAndFoundItemResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
         var items = isManager
                 ? lostAndFoundService.findByStation(session.stationId())
@@ -113,7 +113,7 @@ public class LostAndFoundRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = LostAndFoundItemResponse.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateItemRequest.class);
         LocalDate foundAt = parseFoundAt(request.foundAt());
         var item = lostAndFoundService.create(
@@ -145,7 +145,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void getImage(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
@@ -169,7 +169,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void uploadImage(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedItem(ctx, id);
         var file = ctx.uploadedFile("image");
@@ -202,7 +202,7 @@ public class LostAndFoundRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClaimRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void claim(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedItem(ctx, id);
         var request = ctx.bodyAsClass(ClaimRequest.class);
@@ -230,7 +230,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void release(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var item = requireOwnedItem(ctx, id);
         Integer claimedBy = item.claimedBy();
@@ -255,7 +255,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void provided(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var item = requireOwnedItem(ctx, id);
         if (item.claimedBy() == null) {
@@ -273,7 +273,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedItem(ctx, id);
         lostAndFoundService.delete(session.stationId(), id);
@@ -288,12 +288,12 @@ public class LostAndFoundRoutes implements Routes {
         return requireOwnedOrNotFound(ctx, id, lostAndFoundService::findById, LostAndFoundItem::stationId);
     }
 
-    private List<Integer> speaksFor(UserSession session) {
-        return guardians.household(session);
+    private List<Integer> speaksFor(StationSession session) {
+        return guardians.household(session.user());
     }
 
-    private boolean maySpeakFor(UserSession session, int memberId) {
-        return guardians.mayActFor(session, memberId);
+    private boolean maySpeakFor(StationSession session, int memberId) {
+        return guardians.mayActFor(session.user(), memberId);
     }
 
     /**

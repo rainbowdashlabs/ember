@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.protocol.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
@@ -140,7 +140,7 @@ public class TestProtocolRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProtocolListResponse.class)))
     private void listProtocols(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var protocols = service.findProtocols(session.stationId());
         ctx.json(new ProtocolListResponse(protocols, service.browseSharedProtocolViews(session.stationId())));
     }
@@ -151,7 +151,7 @@ public class TestProtocolRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocol.class)))
     private void createProtocol(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProtocolRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.PROTOCOL_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
@@ -195,7 +195,7 @@ public class TestProtocolRoutes implements Routes {
     private void deleteProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, id);
-        service.deleteProtocol(id, UserSession.from(ctx).stationId());
+        service.deleteProtocol(id, StationSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -301,7 +301,7 @@ public class TestProtocolRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRun[].class)))
     private void listRuns(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var runs = service.findRuns(session.stationId());
         ctx.json(runs);
     }
@@ -312,7 +312,7 @@ public class TestProtocolRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolRunRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocolRun.class)))
     private void createRun(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, protocolId);
         var run = runs.start(
@@ -368,7 +368,7 @@ public class TestProtocolRoutes implements Routes {
     private void deleteRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
-        service.deleteRun(id, UserSession.from(ctx).stationId());
+        service.deleteRun(id, StationSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -377,7 +377,7 @@ public class TestProtocolRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunMember.class)))
     private void lockMember(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         guards.requireRun(ctx, runId);
@@ -420,7 +420,7 @@ public class TestProtocolRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestProtocolRunCheck[].class)))
     private void saveChecks(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var req = ctx.bodyAsClass(ProtocolChecksRequest.class);
@@ -458,7 +458,7 @@ public class TestProtocolRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void toggleSectionDone(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         int sectionId = ctx.pathParamAsClass("sectionId", Integer.class).get();

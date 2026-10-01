@@ -9,7 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
@@ -78,36 +78,36 @@ public class InventoryCheckRoutes implements Routes {
     /**
      * Asserts the given container belongs to the caller's station.
      */
-    private void verifyContainerInStation(int containerId, UserSession session) {
+    private void verifyContainerInStation(int containerId, StationSession session) {
         var container = containerService.findById(containerId).orElseThrow(Refusal.CONTAINER_NOT_HERE_ON_CHECK::raise);
-        RouteSupport.requireSameStation(session, container.stationId());
+        RouteSupport.requireSameStation(session.user(), container.stationId());
     }
 
     /**
      * Asserts the given item's inventory belongs to the caller's station.
      */
-    private void verifyItemInStation(int itemId, UserSession session) {
+    private void verifyItemInStation(int itemId, StationSession session) {
         var item = inventoryService.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE_ON_CHECK::raise);
         var inventory = inventoryService
                 .findById(item.inventoryId())
                 .orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_CHECKED_ITEM::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
     }
 
     /**
      * Asserts the given inventory belongs to the caller's station.
      */
-    private void verifyInventoryInStation(int inventoryId, UserSession session) {
+    private void verifyInventoryInStation(int inventoryId, StationSession session) {
         var inventory = inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_CHECK::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
     }
 
     /**
      * Asserts the given member belongs to the caller's station.
      */
-    private void verifyMemberInStation(int memberId, UserSession session) {
+    private void verifyMemberInStation(int memberId, StationSession session) {
         var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_ON_CHECK::raise);
-        RouteSupport.requireSameStation(session, member.stationId());
+        RouteSupport.requireSameStation(session.user(), member.stationId());
     }
 
     @Override
@@ -160,7 +160,7 @@ public class InventoryCheckRoutes implements Routes {
             queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem[].class)))
     private void containerExpectedItems(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int containerId = pathInt(ctx, "containerId");
         verifyContainerInStation(containerId, session);
         boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
@@ -176,7 +176,7 @@ public class InventoryCheckRoutes implements Routes {
             queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemLastCheck[].class)))
     private void containerLastItemResults(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int containerId = pathInt(ctx, "containerId");
         verifyContainerInStation(containerId, session);
         boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
@@ -192,7 +192,7 @@ public class InventoryCheckRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemCheckHistoryEntry[].class)))
     private void itemCheckHistory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
         verifyItemInStation(itemId, session);
         ctx.json(checkService.findCheckHistoryForItem(itemId));
@@ -207,7 +207,7 @@ public class InventoryCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CompleteContainerCheckRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryCheck.class)))
     private void completeContainerCheck(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int containerId = pathInt(ctx, "containerId");
         var request = ctx.bodyAsClass(CompleteContainerCheckRequest.class);
         if (request.items() == null) {
@@ -230,7 +230,7 @@ public class InventoryCheckRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = EnrichedCheckSummary[].class)))
     private void overview(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var summaries = checkService.getCheckOverview(session.stationId());
         var enriched = summaries.stream()
                 .map(s -> new EnrichedCheckSummary(s, memberIdentityFactory.local(session.stationId(), s.memberId())))
@@ -246,7 +246,7 @@ public class InventoryCheckRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void startCheck(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         var state = checkService.startCheck(
                 session.stationId(), memberId, session.member().id());
@@ -262,7 +262,7 @@ public class InventoryCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CompleteCheckRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryCheck.class)))
     private void completeCheck(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(CompleteCheckRequest.class);
 
@@ -288,7 +288,7 @@ public class InventoryCheckRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void cancelCheck(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         verifyMemberInStation(memberId, session);
         checkService.cancelCheck(memberId, session.member().id());
@@ -306,7 +306,7 @@ public class InventoryCheckRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void lastCheck(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         verifyMemberInStation(memberId, session);
         var detail = checkService.lastCheckDetail(memberId);
@@ -323,10 +323,10 @@ public class InventoryCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignItemRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void assignItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(AssignItemRequest.class);
-        String memberName = NameParts.of(session.account()).called();
+        String memberName = NameParts.of(session.user().account()).called();
         // Unassign old item if swapping
         Integer oldItemId = request.oldItemId();
         if (oldItemId != null && oldItemId > 0) {
@@ -348,7 +348,7 @@ public class InventoryCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UnassignItemRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void unassignItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(UnassignItemRequest.class);
         inventoryService.assignItem(request.itemId(), null, null);
@@ -366,10 +366,10 @@ public class InventoryCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateAndAssignRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberCheckState.class)))
     private void createAndAssign(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(CreateAndAssignRequest.class);
-        String memberName = NameParts.of(session.account()).called();
+        String memberName = NameParts.of(session.user().account()).called();
 
         Integer oldItemId = request.oldItemId();
         if (oldItemId != null && oldItemId > 0) {
@@ -392,7 +392,7 @@ public class InventoryCheckRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CorrectItemRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void correctItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         verifyMemberInStation(memberId, session);
         var request = ctx.bodyAsClass(CorrectItemRequest.class);
@@ -413,7 +413,7 @@ public class InventoryCheckRoutes implements Routes {
             queryParams = @OpenApiParam(name = "currentMemberId", type = Integer.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NextMemberResponse.class)))
     private void nextMember(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int currentMemberId =
                 ctx.queryParamAsClass("currentMemberId", Integer.class).getOrDefault(0);
         boolean teamOnly = ctx.queryParamAsClass("teamOnly", Boolean.class).getOrDefault(false);

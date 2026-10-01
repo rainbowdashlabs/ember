@@ -111,7 +111,7 @@ class FormCompletionRouteTest extends RepositoryTestBase {
                 new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
                 1,
                 station.id(),
-                null,
+                station.uid(),
                 member,
                 Set.of(StationPermission.USER, StationPermission.POLL_CREATE),
                 Set.of(),

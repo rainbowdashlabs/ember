@@ -160,7 +160,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
                 new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
                 1,
                 station.id(),
-                null,
+                station.uid(),
                 member,
                 Set.of(StationPermission.USER),
                 Set.of(),
@@ -291,7 +291,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     void somebodyOutsideTheStationIsRefused() {
         var refused = harness.request(client -> client.get(forChild(editableFormId), harness.as(sessionOf(null))));
 
-        assertEquals(Refusal.NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER, refusalOf(refused));
+        assertEquals(Refusal.NOT_A_MEMBER_OF_THIS_STATION, refusalOf(refused));
     }
 
     @Test

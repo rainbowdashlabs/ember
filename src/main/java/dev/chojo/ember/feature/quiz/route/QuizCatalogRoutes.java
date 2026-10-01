@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
@@ -124,7 +124,7 @@ public class QuizCatalogRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CatalogListResponse.class)))
     private void listCatalogs(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var catalogs = catalogService.findCatalogs(session.stationId());
         ctx.json(new CatalogListResponse(catalogs, federationService.browseSharedCatalogs(session.stationId())));
     }
@@ -169,7 +169,7 @@ public class QuizCatalogRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizCatalogRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizCatalog.class)))
     private void createCatalog(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(QuizCatalogRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATALOG_NEEDS_A_NAME.raise();
         var catalog = catalogService.createCatalog(
@@ -222,7 +222,7 @@ public class QuizCatalogRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCategory[].class)))
     private void listCategories(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(catalogService.findCategories(session.stationId()));
     }
 
@@ -232,7 +232,7 @@ public class QuizCatalogRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizCategoryRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizCategory.class)))
     private void createCategory(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(QuizCategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
@@ -281,7 +281,7 @@ public class QuizCatalogRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalog[].class)))
     private void listTrainingCatalogs(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(catalogService.findTrainingCatalogs(session.stationId()));
     }
 
@@ -318,7 +318,7 @@ public class QuizCatalogRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = CatalogImportRejected.class))
             })
     private void importCatalog(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var transfer = transferService.read(ctx.bodyAsClass(JsonNode.class));
         var outcome = transferService.importInto(session.stationId(), transfer);
         var imported = outcome.catalog();

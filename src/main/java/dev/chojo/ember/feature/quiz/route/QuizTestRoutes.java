@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -206,8 +207,7 @@ public class QuizTestRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizTestRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizTest.class)))
     private void createTest(Context ctx) {
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.QUIZ_TEST_NEEDS_MEMBERSHIP.raise();
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(QuizTestRequest.class);
         if (req.title() == null || req.title().isBlank()) throw Refusal.QUIZ_TEST_NEEDS_A_TITLE.raise();
         var test = testService.createTest(

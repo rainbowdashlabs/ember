@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
@@ -76,10 +76,10 @@ public class InventoryArtRoutes implements Routes {
                 prefix + "/inventories/{inventoryId}/art-merges", this::mergeIntoArt, StationPermission.INVENTORY_EDIT);
     }
 
-    private Inventory ownedInventory(int inventoryId, UserSession session) {
+    private Inventory ownedInventory(int inventoryId, StationSession session) {
         Inventory inventory =
                 inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_KIND::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
         return inventory;
     }
 
@@ -98,7 +98,7 @@ public class InventoryArtRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryArt[].class)))
     private void listArts(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         ctx.json(artService.findByInventory(inventoryId));
     }
 
@@ -115,7 +115,7 @@ public class InventoryArtRoutes implements Routes {
             })
     private void createArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         var body = ctx.bodyAsClass(ArtRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(artService.create(
@@ -140,7 +140,7 @@ public class InventoryArtRoutes implements Routes {
     private void updateArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int artId = pathInt(ctx, "artId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
         var body = ctx.bodyAsClass(ArtRequest.class);
         artService
@@ -166,7 +166,7 @@ public class InventoryArtRoutes implements Routes {
     private void deleteArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int artId = pathInt(ctx, "artId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
         if (artService.delete(artId)) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -184,7 +184,7 @@ public class InventoryArtRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ArtStock[].class)))
     private void artStock(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         ctx.json(artService.stock(inventoryId));
     }
 
@@ -197,7 +197,7 @@ public class InventoryArtRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemNameCount[].class)))
     private void itemNames(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         ctx.json(artService.nameCounts(inventoryId));
     }
 
@@ -214,7 +214,7 @@ public class InventoryArtRoutes implements Routes {
     private void itemsOfArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int artId = pathInt(ctx, "artId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
         ctx.json(artService.findItems(artId));
     }
@@ -232,7 +232,7 @@ public class InventoryArtRoutes implements Routes {
             })
     private void assignArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         var body = ctx.bodyAsClass(ArtAssignRequest.class);
         ctx.json(new TidyResult(artService.assign(inventoryId, body.artId(), itemIds(body.itemIds()))));
     }
@@ -250,7 +250,7 @@ public class InventoryArtRoutes implements Routes {
             })
     private void mergeIntoArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         var body = ctx.bodyAsClass(ArtMergeRequest.class);
         ctx.json(new TidyResult(artService.merge(inventoryId, body.artId(), itemIds(body.itemIds()))));
     }

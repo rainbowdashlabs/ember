@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.quiz.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
@@ -74,7 +74,7 @@ public class AiRoutes implements Routes {
             tags = {"Quiz AI"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSettingsResponse.class)))
     private void getSettings(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var providers = aiService.getProviders(session.stationId()).stream()
                 .map(StationAiProvider::withoutKey)
                 .toList();
@@ -90,7 +90,7 @@ public class AiRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiPromptRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSuccessResponse.class)))
     private void savePrompt(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(AiPromptRequest.class);
         aiService.setPrompt(session.stationId(), Objects.requireNonNullElse(req.prompt(), ""));
         ctx.json(new AiSuccessResponse(true));
@@ -108,7 +108,7 @@ public class AiRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void saveProvider(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String provider = ctx.pathParam("provider");
         var req = ctx.bodyAsClass(AiProviderRequest.class);
         if (req.apiKey() == null || req.apiKey().isBlank()) {
@@ -126,7 +126,7 @@ public class AiRoutes implements Routes {
             pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void deleteProvider(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String provider = ctx.pathParam("provider");
         aiService.deleteProvider(session.stationId(), provider);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -144,7 +144,7 @@ public class AiRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void fetchModels(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String provider = ctx.pathParam("provider");
         var req = ctx.bodyAsClass(TransientKeyRequest.class);
         try {
@@ -170,7 +170,7 @@ public class AiRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void generate(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(AiGenerateRequest.class);
         if (req.question() == null || req.question().isBlank()) {
             throw Refusal.AI_GENERATION_NEEDS_A_QUESTION.raise();
@@ -209,7 +209,7 @@ public class AiRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void generateQuestions(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(GenerateQuestionsRequest.class);
         ctx.json(
                 new JobIdResponse(generationService.startQuestions(session.stationId(), session.accountId(), request)));
@@ -226,7 +226,7 @@ public class AiRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void pollGeneration(Context ctx) {
-        ctx.json(generationService.poll(UserSession.from(ctx).stationId(), ctx.pathParam("jobId")));
+        ctx.json(generationService.poll(StationSession.from(ctx).stationId(), ctx.pathParam("jobId")));
     }
 
     @OpenApi(
@@ -238,7 +238,7 @@ public class AiRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BatchGenerateRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchResult.class)))
     private void batchGenerate(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(BatchGenerateRequest.class);
         ctx.json(generationService.fillDistractors(
                 session.stationId(), session.accountId(), pathInt(ctx, "catalogId"), request));

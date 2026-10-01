@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.quiz.service;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -148,15 +149,13 @@ class QuizRouteGuardsTest {
         when(attempts.findAttemptById(40)).thenReturn(Optional.of(mine));
         when(attempts.findAttemptById(41)).thenReturn(Optional.of(theirs));
 
+        var member = StationSession.of(session);
         pathId(40);
-        assertSame(mine, guards.requireMemberAttempt(ctx, session));
+        assertSame(mine, guards.requireMemberAttempt(ctx, member));
         pathId(41);
-        assertEquals(Refusal.QUIZ_ATTEMPT_NOT_YOURS, refusalOf(() -> guards.requireMemberAttempt(ctx, session)));
+        assertEquals(Refusal.QUIZ_ATTEMPT_NOT_YOURS, refusalOf(() -> guards.requireMemberAttempt(ctx, member)));
         pathId(42);
         assertEquals(
-                Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER, refusalOf(() -> guards.requireMemberAttempt(ctx, session)));
-        assertEquals(
-                Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP,
-                refusalOf(() -> guards.requireMemberAttempt(ctx, TestSessions.administrator())));
+                Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER, refusalOf(() -> guards.requireMemberAttempt(ctx, member)));
     }
 }

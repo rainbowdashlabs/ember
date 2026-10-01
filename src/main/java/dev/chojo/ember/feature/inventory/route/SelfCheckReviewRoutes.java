@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
@@ -78,7 +78,7 @@ public class SelfCheckReviewRoutes implements Routes {
             queryParams = @OpenApiParam(name = "includeEnded", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckTask[].class)))
     private void forStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         boolean includeEnded = "true".equalsIgnoreCase(ctx.queryParam("includeEnded"));
         var tasks = reviewService.forStation(session.stationId(), includeEnded);
         ctx.json(tasks.stream().map(this::toTask).toList());
@@ -92,7 +92,7 @@ public class SelfCheckReviewRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void read(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(reviewService.read(
                 pathInt(ctx, "id"), session.stationId(), session.member().id()));
     }
@@ -108,7 +108,7 @@ public class SelfCheckReviewRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void take(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(reviewService.take(
                 pathInt(ctx, "id"),
                 pathInt(ctx, "rowId"),
@@ -128,7 +128,7 @@ public class SelfCheckReviewRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CorrectRowRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void correct(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CorrectRowRequest.class);
         ctx.json(reviewService.correctAndTake(
                 pathInt(ctx, "id"),
@@ -150,7 +150,7 @@ public class SelfCheckReviewRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RefuseRowRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void refuse(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(RefuseRowRequest.class);
         ctx.json(reviewService.refuse(
                 pathInt(ctx, "id"),

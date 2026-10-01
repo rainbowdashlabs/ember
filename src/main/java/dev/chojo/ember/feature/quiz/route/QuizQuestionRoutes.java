@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
@@ -232,7 +233,7 @@ public class QuizQuestionRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200"))
     private void getQuestionImage(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
@@ -253,7 +254,7 @@ public class QuizQuestionRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizSuccessResponse.class)))
     private void uploadQuestionImage(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         guards.requireOwnedQuestion(ctx, id);
         var file = ctx.uploadedFile("image");
@@ -282,7 +283,7 @@ public class QuizQuestionRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteQuestionImage(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         imageService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);

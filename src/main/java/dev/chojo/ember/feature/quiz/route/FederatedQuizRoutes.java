@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes.RemoteCatalogDetail;
@@ -63,7 +63,7 @@ public class FederatedQuizRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SharedQuizCatalog[].class)))
     private void browseCatalogs(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(federationService.browseSharedCatalogs(session.stationId()));
     }
 
@@ -72,7 +72,7 @@ public class FederatedQuizRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RemoteCatalogDetail.class)))
     private void getCatalog(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int catalogId = pathInt(ctx, "id");
         ctx.json(federationService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
@@ -87,7 +87,7 @@ public class FederatedQuizRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizCatalog.class)))
     private void copyCatalog(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int catalogId = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, catalogId);
         var copied = federationService.copyQuizCatalog(catalogId, session.stationId());

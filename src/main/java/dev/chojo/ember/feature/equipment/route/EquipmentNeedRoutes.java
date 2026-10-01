@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.equipment.entity.EquipmentHandover;
 import dev.chojo.ember.feature.equipment.entity.EquipmentNeed;
@@ -103,12 +103,12 @@ public class EquipmentNeedRoutes implements Routes {
     }
 
     private StationEvent ownEvent(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         StationEvent event = eventService
                 .findById(pathInt(ctx, "eventId"))
                 .orElseThrow(Refusal.EQUIPMENT_APPOINTMENT_NOT_HERE::raise);
-        RouteSupport.requireSameStation(session, event.stationId());
-        if (!visibility.canSee(session, event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
+        RouteSupport.requireSameStation(session.user(), event.stationId());
+        if (!visibility.canSee(session.user(), event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
         return event;
     }
 
@@ -270,7 +270,7 @@ public class EquipmentNeedRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void handOver(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         EquipmentNeed need = ownNeed(ctx);
         var body = ctx.bodyAsClass(HandoverRequest.class);
         if (body.itemIds() == null || body.itemIds().isEmpty()) {

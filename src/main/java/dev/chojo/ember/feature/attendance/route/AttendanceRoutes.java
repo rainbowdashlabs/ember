@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -247,7 +248,7 @@ public class AttendanceRoutes implements Routes {
         routes.delete(prefix + "/profile/absences/{id}", this::deleteMyAbsence, StationPermission.USER);
     }
 
-    private void verifySessionOwnership(int sessionId, UserSession userSession) {
+    private void verifySessionOwnership(int sessionId, StationSession userSession) {
         var attSession =
                 attendanceService.findSessionById(sessionId).orElseThrow(Refusal.ATTENDANCE_SHEET_NOT_HERE::raise);
         var template = attendanceService
@@ -261,7 +262,7 @@ public class AttendanceRoutes implements Routes {
     /**
      * Asserts the given template belongs to the caller's station.
      */
-    private void verifyTemplateOwnership(int templateId, UserSession userSession) {
+    private void verifyTemplateOwnership(int templateId, StationSession userSession) {
         var template = attendanceService
                 .findTemplateById(templateId)
                 .orElseThrow(Refusal.ATTENDANCE_TEMPLATE_NOT_HERE_OR_NOT_YOURS::raise);
@@ -273,7 +274,7 @@ public class AttendanceRoutes implements Routes {
     /**
      * Asserts the given entry's session (and thus template) belongs to the caller's station.
      */
-    private void verifyEntryOwnership(int entryId, UserSession userSession) {
+    private void verifyEntryOwnership(int entryId, StationSession userSession) {
         var entry = attendanceService.findEntryById(entryId).orElseThrow(Refusal.ATTENDANCE_ENTRY_NOT_HERE::raise);
         verifySessionOwnership(entry.sessionId(), userSession);
     }
@@ -281,7 +282,7 @@ public class AttendanceRoutes implements Routes {
     /**
      * Asserts the given member belongs to the caller's station.
      */
-    private void verifyMemberInStation(int memberId, UserSession userSession) {
+    private void verifyMemberInStation(int memberId, StationSession userSession) {
         var member = memberService.findById(memberId).orElseThrow(Refusal.ATTENDANCE_MEMBER_NOT_HERE::raise);
         if (member.stationId() != userSession.stationId()) {
             throw Refusal.ATTENDANCE_MEMBER_NOT_HERE.raise();
@@ -322,7 +323,7 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceTemplate[].class)))
     private void listTemplates(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(attendanceService.findTemplatesByStation(session.stationId()));
     }
 
@@ -333,7 +334,7 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateDetail[].class)))
     private void listTemplateDetails(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(attendanceService.findTemplatesByStation(session.stationId()).stream()
                 .map(this::detailOf)
                 .toList());
@@ -362,7 +363,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createTemplate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(TemplateRequest.class);
         if (isBlank(request.name())) {
             throw Refusal.ATTENDANCE_TEMPLATE_NEEDS_A_NAME.raise();
@@ -381,7 +382,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getTemplate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyTemplateOwnership(id, session);
         attendanceService.findTemplateById(id).ifPresentOrElse(template -> ctx.json(detailOf(template)), () -> {
@@ -484,7 +485,7 @@ public class AttendanceRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceTemplateField[].class)))
     private void listTemplateFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int templateId = pathInt(ctx, "templateId");
         verifyTemplateOwnership(templateId, session);
         ctx.json(attendanceService.findTemplateFields(templateId));
@@ -572,7 +573,7 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionSummary[].class)))
     private void listSessionSummaries(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(attendanceService.findSessionSummaries(session.stationId()));
     }
 
@@ -584,7 +585,7 @@ public class AttendanceRoutes implements Routes {
             pathParams = @OpenApiParam(name = "templateId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSession[].class)))
     private void listSessions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int templateId = pathInt(ctx, "templateId");
         verifyTemplateOwnership(templateId, session);
         ctx.json(attendanceService.findSessionsByTemplate(templateId));
@@ -631,7 +632,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "204")
             })
     private void getSessionForEvent(Context ctx) {
-        UserSession userSession = UserSession.from(ctx);
+        StationSession userSession = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         String date = ctx.queryParam("date");
         LocalDate day;
@@ -660,7 +661,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getSession(Context ctx) {
-        UserSession userSession = UserSession.from(ctx);
+        StationSession userSession = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifySessionOwnership(id, userSession);
         attendanceService
@@ -692,11 +693,11 @@ public class AttendanceRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = MemberCheckNotesService.MemberNotes[].class)))
     private void listMemberNotes(Context ctx) {
-        UserSession userSession = UserSession.from(ctx);
+        StationSession userSession = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifySessionOwnership(id, userSession);
         ctx.json(memberCheckNotesService
-                .findForStation(userSession.stationId(), userSession.permissions())
+                .findForStation(userSession.stationId(), userSession.user().permissions())
                 .values());
     }
 
@@ -711,7 +712,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void unlockSession(Context ctx) {
-        UserSession userSession = UserSession.from(ctx);
+        StationSession userSession = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifySessionOwnership(id, userSession);
         attendanceService.unlockSession(id).ifPresentOrElse(ctx::json, () -> {
@@ -730,7 +731,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void lockSession(Context ctx) {
-        UserSession userSession = UserSession.from(ctx);
+        StationSession userSession = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifySessionOwnership(id, userSession);
         attendanceService.lockSession(id).ifPresentOrElse(ctx::json, () -> {
@@ -751,7 +752,7 @@ public class AttendanceRoutes implements Routes {
             })
     private void updateSession(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifySessionOwnership(id, UserSession.from(ctx));
+        verifySessionOwnership(id, StationSession.from(ctx));
         var request = ctx.bodyAsClass(SessionRequest.class);
         attendanceService
                 .updateSession(id, request.startTime(), request.endTime(), request.title(), request.countedMinutes())
@@ -774,7 +775,7 @@ public class AttendanceRoutes implements Routes {
             })
     private void deleteSession(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifySessionOwnership(id, UserSession.from(ctx));
+        verifySessionOwnership(id, StationSession.from(ctx));
         if (attendanceService.deleteSession(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -791,7 +792,7 @@ public class AttendanceRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSessionField[].class)))
     private void listSessionFields(Context ctx) {
-        UserSession userSession = UserSession.from(ctx);
+        StationSession userSession = StationSession.from(ctx);
         int sessionId = pathInt(ctx, "sessionId");
         verifySessionOwnership(sessionId, userSession);
         ctx.json(attendanceService.findSessionFields(sessionId));
@@ -811,7 +812,7 @@ public class AttendanceRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSessionField[].class)))
     private void setSessionFields(Context ctx) {
         int sessionId = pathInt(ctx, "sessionId");
-        verifySessionOwnership(sessionId, UserSession.from(ctx));
+        verifySessionOwnership(sessionId, StationSession.from(ctx));
         var request = ctx.bodyAsClass(SetSessionFieldsRequest.class);
         List<AttendanceFieldValueEntry> entries = request.fields() != null ? request.fields() : List.of();
         ctx.json(attendanceService.setSessionFields(sessionId, entries));
@@ -825,7 +826,7 @@ public class AttendanceRoutes implements Routes {
             pathParams = @OpenApiParam(name = "sessionId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void listEntries(Context ctx) {
-        UserSession userSession = UserSession.from(ctx);
+        StationSession userSession = StationSession.from(ctx);
         int sessionId = pathInt(ctx, "sessionId");
         verifySessionOwnership(sessionId, userSession);
         ctx.json(attendanceService.findEntries(sessionId));
@@ -841,7 +842,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void createEntry(Context ctx) {
         int sessionId = pathInt(ctx, "sessionId");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         verifySessionOwnership(sessionId, session);
         var request = ctx.bodyAsClass(CreateEntryRequest.class);
         if (request.memberId() == null) {
@@ -896,7 +897,7 @@ public class AttendanceRoutes implements Routes {
      * Resolves the owned entry id and the effective timestamp shared by check-in and check-out.
      */
     private EntryTime resolveEntryTime(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyEntryOwnership(id, session);
         var request = ctx.bodyAsClass(TimestampRequest.class);
@@ -917,7 +918,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteEntry(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyEntryOwnership(id, session);
         if (attendanceService.deleteEntry(id)) {
@@ -940,7 +941,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateEntryStatus(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyEntryOwnership(id, session);
         var request = ctx.bodyAsClass(StatusRequest.class);
@@ -966,7 +967,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void resetTimes(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyEntryOwnership(id, session);
         if (attendanceService.resetTimes(id)) {
@@ -985,7 +986,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void syncFromEvent(Context ctx) {
         int sessionId = pathInt(ctx, "sessionId");
-        verifySessionOwnership(sessionId, UserSession.from(ctx));
+        verifySessionOwnership(sessionId, StationSession.from(ctx));
         ctx.json(attendanceService.syncFromEvent(sessionId));
     }
 
@@ -1003,9 +1004,9 @@ public class AttendanceRoutes implements Routes {
             })
     private void exportPdf(Context ctx) {
         int sessionId = pathInt(ctx, "sessionId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         verifySessionOwnership(sessionId, session);
-        String generatedBy = NameParts.of(session.account()).official();
+        String generatedBy = NameParts.of(session.user().account()).official();
         var pdf = exportService.exportSessionPdf(sessionId, generatedBy, sheetOptions(ctx));
         if (pdf.isEmpty()) {
             throw Refusal.ATTENDANCE_SHEET_PDF_NOT_MADE.raise();
@@ -1047,7 +1048,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reportPreview(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var query = parseReportQuery(ctx);
         ctx.json(reportService.buildReport(
                 session.stationId(), query.userTypes(), query.groupIds(), query.from(), query.to(), query.rounding()));
@@ -1086,7 +1087,7 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200"))
     private void reportExportCsv(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var query = parseReportQuery(ctx);
         String period = ctx.queryParamAsClass("period", String.class).getOrDefault("month");
         var csv = reportService.exportReportCsv(
@@ -1125,9 +1126,9 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reportExport(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var query = parseReportQuery(ctx);
-        String generatedBy = NameParts.of(session.account()).official();
+        String generatedBy = NameParts.of(session.user().account()).official();
         String period = ctx.queryParamAsClass("period", String.class).getOrDefault("month");
         var pdf = reportService.exportReportPdf(
                 session.stationId(),
@@ -1154,7 +1155,7 @@ public class AttendanceRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceReportPreset[].class)))
     private void listPresets(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(reportService.findPresets(session.stationId()));
     }
 
@@ -1169,7 +1170,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createPreset(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreatePresetRequest.class);
         if (isBlank(request.name())) {
             throw Refusal.ATTENDANCE_REPORT_PRESET_NEEDS_A_NAME.raise();
@@ -1197,7 +1198,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deletePreset(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (reportService.findPresets(session.stationId()).stream().noneMatch(p -> p.id() == id)) {
             throw Refusal.ATTENDANCE_REPORT_PRESET_NOT_YOURS.raise();
@@ -1216,7 +1217,7 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberAbsence[].class)))
     private void listActiveAbsences(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(attendanceService.findActiveAbsencesByStation(session.stationId()));
     }
 
@@ -1228,7 +1229,7 @@ public class AttendanceRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberAbsence[].class)))
     private void listMemberAbsences(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         verifyMemberInStation(memberId, session);
         ctx.json(attendanceService.findAbsencesByMember(memberId));
@@ -1247,7 +1248,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createAbsence(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(AbsenceRequest.class);
         if (request.memberId() == null) {
             throw Refusal.ABSENCE_MEMBER_NOT_NAMED.raise();
@@ -1277,7 +1278,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteAbsence(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var absence = attendanceService.findAbsenceById(id).orElseThrow(Refusal.ABSENCE_NOT_HERE::raise);
         verifyMemberInStation(absence.memberId(), session);
@@ -1323,10 +1324,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createMyAbsence(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            throw Refusal.ABSENCE_NOT_A_STATION_MEMBER.raise();
-        }
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(MyAbsenceRequest.class);
         if (req.absentFrom() == null || req.absentUntil() == null) {
             throw Refusal.MY_ABSENCE_SPAN_MISSING.raise();
@@ -1374,7 +1372,7 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteMyAbsence(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var absence = attendanceService.findAbsenceById(id);
         if (absence.isEmpty()) {
@@ -1382,9 +1380,8 @@ public class AttendanceRoutes implements Routes {
         }
         // Allow deleting own or managed members' absences
         int absMemberId = absence.get().memberId();
-        boolean isOwn = session.member() != null && session.member().id() == absMemberId;
-        boolean manages = session.member() != null
-                && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
+        boolean isOwn = session.member().id() == absMemberId;
+        boolean manages = session.hasPermission(StationPermission.MEMBER_GUARDIAN)
                 && attendanceService.findManagedMemberIds(session.member().id()).contains(absMemberId);
         if (!isOwn && !manages) {
             throw Refusal.MY_ABSENCE_NOT_YOURS_TO_DELETE.raise();
