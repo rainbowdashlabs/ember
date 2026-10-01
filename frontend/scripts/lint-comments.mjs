@@ -49,6 +49,8 @@ const FRONTEND_EXTENSIONS = ['.ts', '.vue', '.js', '.mjs']
 const ROOT_TARGETS = [
     {path: 'src/main/java', extensions: ['.java']},
     {path: 'src/test/java', extensions: ['.java']},
+    {path: 'frontend/e2e', extensions: FRONTEND_EXTENSIONS},
+    {path: 'frontend/scripts', extensions: FRONTEND_EXTENSIONS},
 ]
 
 const REPO_ROOT = new URL('../..', import.meta.url).pathname
@@ -64,6 +66,9 @@ const BLOCK_OPENER = /^\s*\/\*/
 const LICENCE_MARKER = /SPDX-License-Identifier/
 
 const TODO = /^\s*(\/\/|\/\*|\*)\s*TODO\b/
+
+/** Where a comment opens in a Vue template, which is markup and holds no doc comments at all. */
+const TEMPLATE_COMMENT = /<!--/
 
 /**
  * Whether a `//` sits inside a string or a regular expression rather than
@@ -97,10 +102,23 @@ function check(file) {
     const key = relative(REPO_ROOT, file)
     const allowed = baseline[key] ?? 0
     const found = []
+    const markup = file.endsWith('.vue')
     let inBlock = false
+    let inTemplateComment = false
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
+
+        if (inTemplateComment) {
+            if (line.includes('-->')) inTemplateComment = false
+            continue
+        }
+
+        if (markup && TEMPLATE_COMMENT.test(line)) {
+            inTemplateComment = !line.slice(line.indexOf('<!--')).includes('-->')
+            found.push({line: i + 1, message: 'Template comment. Name the block with a component or a class instead.'})
+            continue
+        }
 
         if (inBlock) {
             if (line.includes('*/')) inBlock = false
