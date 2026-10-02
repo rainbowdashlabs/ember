@@ -215,1473 +215,1473 @@ Stations, associations and the instance now follow the same rules for profile qu
 
 ### New Features
 
-- **Ember can keep itself up to date.** If you like, the installer sets up a job that fetches the newest version every hour, restarts Ember on it and clears away the old image. The install page offers the same as a switch, and the hosting help shows the line to set it up by hand.
+- **The installer can keep Ember up to date.** On request it sets up a cron job that pulls the newest version every hour, restarts Ember with it and removes the image it replaced, and the install page offers the same as a switch. The hosting help page shows the line for setting it up by hand.
 
 ### Security
 
-- **Daily figures no longer give away their sender.** The counts sent to a beacon were signed with your instance's key, so the beacon could tell where they came from. They now go out unsigned, just as the beacon settings always promised.
+- **Daily figures no longer reveal which instance sent them.** The counts reported to a beacon were signed with the instance's key, so a beacon could tell which instance they came from. They are now sent unsigned, as the beacon settings always promised.
 
 ### Fixes
 
-- **Search finds every word again after a database upgrade.** In some cases, after PostgreSQL moved to a new major version, search in the wiki, documents and boards missed words spelled with "ae", "oe" or "ue". Ember now rebuilds its search indexes on the first start after such an upgrade.
-- **Editing a form keeps its answers.** In some cases, saving a form that already had answers deleted them. Now saving only removes answers to questions you removed, and it asks you first.
-- **Changed dates in the history are easy to read.** When a date in a member's profile changed, the history showed both dates as stored, such as 2026-03-31. You now see them as 31.03.2026, just like in the profile.
-- **Team members and managers see the members in their care.** Their relations tab was named after guardians and offered to assign one, which cannot be done for them. It now lists the members they look after, as it does for guardians.
-- **Filling in a form again keeps your earlier answer.** A form for a member in your care always started empty, and sending a form twice could overwrite the first answer, even where answers cannot be changed. The earlier answer now opens for editing where the form allows it, and stays untouched where it does not.
-- **Hiding the age next to a birth date saves again.** Switching off the age shown next to a date of birth field made saving the field fail. The setting now saves and is respected.
-- **Quick templates for profile fields add their fields.** Most quick templates in the member field settings, such as the address or the date of birth, failed to add anything. They now add their fields, with the right ones marked as required or as editable only by the member management.
+- **Search could miss words after a database upgrade.** In some cases, after PostgreSQL moved to a new major version, searches in the wiki, documents and boards no longer found words such as those written with "ae", "oe" or "ue". Ember now builds its search indexes again on the first start after such an upgrade.
+- **Editing a form keeps its answers.** In some cases saving a form that already had answers deleted them. Saving now only removes the answers to questions that were removed, and asks first when there are any.
+- **Changed dates in the change history were hard to read.** When a date in a member's profile changed, the member's page and the list of changes showed both dates the way they are stored, such as 2026-03-31. They are now written as 31.03.2026, the way the profile shows them.
+- **Team members and managers were offered guardians instead of the members in their care.** Their relations tab, on the member's page and when editing them, was named after guardians and offered to assign one, which cannot be done for them. It now shows the members they look after, as it does for guardians.
+- **Filling in a form again could replace the earlier answer.** Filling in a form for a member in your care always started empty, and sending a form a second time, for them or in some cases for yourself, could replace the answer already given, even on a form whose answers cannot be changed. The earlier answer now opens for editing where the form allows it, and is kept where it does not.
+- **Hiding the age of a date of birth could not be saved.** Switching off the age shown next to a date of birth field made saving the field fail. The setting is now saved and respected.
+- **Quick templates for profile fields could not be added.** Most of the quick templates in the member field settings, such as the address or the date of birth, failed to add their fields. They now add them, with the right fields marked as required or as editable by the member management only.
 
 ## v26.19.4
 
 ### Improvements
 
-- **Appointments over several days show both ends.** The Appointments page and the list for managing appointments now show such an appointment from its first day and time to its last. It no longer reads as running from eight to four on every single day.
+- **Appointments over several days show both ends in every list.** The Appointments page and the list for managing appointments write such an appointment from its first day and time to its last day and time, so it no longer reads as running from eight to four on every day.
 
 ### Fixes
 
-- **Appointments over several days end on the right day.** Their own page showed the end on the day they start. It now shows the day they actually end.
+- **An appointment over several days seemed to end on its first day.** Its own page showed the end on the day it starts. It now shows the day it actually ends.
 
 ## v26.19.3
 
 ### Improvements
 
-- **An exchange shows both sizes at a glance.** In the movements list, a swap shows the size handed in and the size asked for side by side, with an arrow between them. You see what is being exchanged without opening it.
-- **Picking the replacement points at the right size.** The size asked for stands above the piece you pick or write down. Pieces on the shelf in that size are highlighted and offered first.
+- **An exchange shows both sizes in the movements list.** A row swapping one size for another shows the size handed in and the size asked for side by side, with an arrow between, so what is being exchanged reads at a glance.
+- **Choosing the replacement piece points at the right size.** The size asked for stands above the piece being picked or written down, and pieces on the shelf in that size are highlighted and offered first.
 
 ### Changes
 
-- **Answering per date only on repeating appointments.** The switch to answer a question separately for each date no longer shows on a one-off appointment. There is only one date to answer for there.
-- **Today's appointments moved to the Appointments page.** Managing appointments no longer lists them on top. You find them, and attendance for them, on the Appointments page in the sidebar.
+- **Answering per date is offered only on repeating appointments.** The switch to answer a question separately for each date no longer shows on an appointment that happens once, where there is only one date to answer for.
+- **Managing appointments no longer lists today's appointments on top.** Today's appointments, and taking attendance for them, are on the Appointments page that opens from the sidebar.
 
 ### Fixes
 
-- **Attendance sheets no longer assume everyone came.** A sheet made from an appointment marked everybody who had accepted as present, so there was nothing left to check. Those rows now stay open for you to mark.
-- **Required forms and tests ask only their audience.** A form or test limited to certain groups still asked every member of the station. Now only the people it is meant for are asked, and guardians are asked for the members in their care.
-- **Mentions added while editing a comment now notify.** Only mentions in the first version of a comment reached anybody, so a name added later went unnoticed. Mentions added by an edit now notify, and the ones already there are not sent again.
+- **An attendance sheet made from an appointment marked everybody who had accepted as present.** Accepting beforehand counted as having come, so the check had nothing left to check. Those rows are now left open to be marked.
+- **Forms and tests that must be answered were demanded from everybody.** A form or test limited to certain groups still asked every member of the station to fill it in. Now only the people it is meant for are asked, and guardians are asked for the members in their care.
+- **A mention added while editing a comment notified nobody.** Only mentions in a comment as first posted reached anybody, so a name added a moment later went unnoticed. Mentions added by an edit now notify, while those already there are not repeated.
 
 ## v26.19.2
 
 ### Improvements
 
-- **When something goes wrong, it says what.** Instead of "that did not work", a failure now names what happened, whose it is to fix and what to do next. If it looks like a fault in Ember, you can report it right there, and the people running your installation get everything they need.
-- **Rules no longer ask you to report a bug.** Something you may not do, a name already taken, a file too large: each now says so plainly and offers no report. That way the reports that do arrive are the ones worth reading.
-- **Things that worked no longer report a failure.** Saving, deleting, inviting and handing over said they had failed when only the list behind them would not refresh, so many people did it twice. Ember now tells the two apart, and a screen that is merely out of date says so.
-- **Every failure carries a short code.** Error messages now show a code such as F-021, short enough to read out over the phone. It is part of the report too, and points straight at the one place the problem came from.
-- **Failure messages are in German.** Messages coming from the server itself used to reach you in English. They are now German throughout, and a message not yet translated still shows instead of vanishing.
+- **When something goes wrong, it says what.** Instead of "that did not work", a failure now names what happened, whether it is yours to put right or ours, and what to do next. Where it looks like a fault in Ember, the same message offers to report it, and the report reaches the people who run your installation with everything they need to find it.
+- **A failure that turns out to be a rule no longer asks you to report a bug.** Something you may not do, a name already taken, a file too large: each says so plainly and offers no report, so the reports that do arrive are the ones worth reading.
+- **An action that worked is no longer reported as one that failed.** Saving, deleting, inviting and handing over used to say they had failed when only the list behind them would not refresh, and many people did the thing a second time. The two are now told apart, and a screen that is merely out of date says so.
+- **Every failure carries a short code.** A message that says something went wrong now also shows a code such as F-021, short enough to read out over the telephone and included in the report, so whoever looks into it is pointed at the one place it came from instead of at a description of what you were doing.
+- **Failure messages are in German.** The sentence naming what went wrong used to reach you in English wherever it came from the server itself. It is now written in German throughout, and any message not yet translated still shows rather than being swallowed.
 
-- **Past appointments have a tab of their own.** Both appointment lists now keep what is coming apart from what is done, so you no longer scroll through years of history to find next week. A repeating appointment stays with the coming ones while it still comes round, shown with its next date.
-- **Search, filter and page through appointment lists.** Every list on both pages takes a search, a category and a date range, and loads page by page. Your choices stay in the address, so you can bookmark the list or pass it on.
-- **The planner reads by date.** One-off appointments stand in one list in date order, each with its category, and repeating appointments get a block of their own. Picking a category is now a filter instead of a heading to scroll to.
-- **Closed surveys can be reopened.** The menu on a closed survey now offers to open it again. Last season's survey can run again without being written a second time.
-- **Clear a survey's answers and start over.** The menu can clear every answer a survey has collected, while the survey and its questions stay. A trial run or a round sent to the wrong people can be cleared, and everyone may answer again.
-- **An expired survey says when it ended.** Its tile in the station's list shows the date it stopped. The page behind its link says it has taken no answers since that date, not just that it is closed.
-- **Survey settings save as you change them.** The name, dates, reach and switches are saved the moment you change them, so you can no longer forget to save a survey that reaches too far. The questions still wait for Save, and the page tells you so.
+- **Appointments that have happened have a tab of their own.** Both appointment lists now separate what is coming from what is done, so a station that has been running for years no longer reads years of finished appointments to find next week's. A repeating appointment stays with the coming ones as long as it still comes round, shown against the date it next falls on.
+- **The appointment lists can be searched, narrowed to a stretch of dates and paged.** Every list on both pages takes a search, a category and a from and to, loads in pages instead of all at once, and keeps what you chose in the address, so the list you are looking at can be bookmarked or passed on.
+- **The planner reads by date.** Appointments that happen once stand in one list in the order they fall, each showing its category, and repeating appointments have a block of their own. Picking a category is now a filter rather than a heading to scroll to.
+- **A closed survey can be opened again.** The menu on a closed survey now offers to reopen it, so a survey asked last season can be asked again without being written a second time.
+- **A survey's answers can be thrown away.** The menu offers to clear every answer a survey has collected, leaving the survey and its questions standing. A trial run or a round that went to the wrong people can be cleared and asked again, and whoever answered before may answer again.
+- **A survey that has run out says when it did.** Its tile in the station's list carries the date it stopped, and the page somebody opens the link to says it has taken no answers since that date instead of only that it is shut.
+- **A survey's settings are kept as they are changed.** Its name, its dates, its reach and its switches are saved the moment you change them, so a survey left reaching further than intended is no longer one forgotten press away. The questions still wait for Save, and the page says so.
 
 ### Security
 
-- **Signing in no longer reveals who has an account.** A wrong address, a wrong password and an account that signs in another way now get exactly the same answer. Nobody can use the sign-in form to find out which addresses are registered, and the same now holds for confirmation links, passkey sign-in, device sign-in codes and the second-factor steps.
+- **Signing in gives nothing away about who has an account here.** A wrong address, a wrong password and an account that signs in another way now answer exactly alike, so the sign-in form can no longer be used to find out which addresses are registered. The same is now true of confirmation links, passkey sign-in, device sign-in codes and the second-factor steps.
 
 ### Changes
 
-- **No more hint about passwordless accounts.** The sign-in page no longer says when an account signs in without a password, since that difference let the form be read as a list of accounts. If you use a passkey, the passkey button is where it always was.
+- **The sign-in page no longer says when an account signs in without a password.** Telling that apart from a wrong password is what let the form be read as a list of accounts. Whoever signs in with a passkey uses the passkey button, which is on the page as before.
 
 ### Fixes
 
-- **Confirming who you are names the real reason.** The extra confirmation before a sensitive change always said "wrong password" or "invalid code", so too many tries or an expired confirmation looked like a typo. It now says what actually went wrong.
-- **No more English failures for German readers.** Messages from the server itself were shown as they came, so German readers met English sentences. Every one of them is now translated.
+- **Confirming who you are named the wrong reason.** The extra confirmation asked for before a sensitive change said "wrong password" or "invalid code" whatever had really happened, so trying too often, an expired confirmation or an account with nothing set up all read as a typing mistake. Each now says what actually went wrong.
+- **Some failures arrived in English.** Messages that came from the server itself were shown as they stood, so a German reader met an English sentence. Every one of them is now translated.
 
-- **Headings between profile questions are headings again.** The form for a new member, and the one guardians fill in, showed each of the station's headings as an empty question to type into. Both now show headings as headings, with the questions in the order the station arranged them.
-- **Guardians can no longer answer reserved questions.** A question the station kept for its member management, readable but not writable, was offered to guardians like any other. It now shows filled in and locked.
-- **Monthly and quarterly appointments open on the right day.** Opened without a day in the address, such an appointment showed the next matching weekday, so sign-ups, attendance and questions belonged to a day it does not happen. It now opens on the day it next falls on, respecting the station's breaks and the end of the series.
-- **Public survey links open the survey again.** The link offered for a public survey used the station's readable name, but only the address with its internal identifier was accepted. Every link copied from the survey's page led to "not found", and those links now open the survey.
-- **A public survey shows even when it is all you share.** A public survey sits inside the station's frame, and a station with no public pages, wiki, calendar, waiting list or blog answered nothing about itself. The survey's page stayed empty for everybody, and it now shows the survey.
-- **"Exactly" on choice questions saves again.** Setting "exactly" on a question that takes several answers was refused on save, and the survey came back unchanged without a word. The setting now saves.
-- **Survey tiles know when a survey has closed.** A tile showed a survey as open after its closing date, while its page told visitors it had closed, because the tile only checked for a manual close. It now reads the dates too, and says when a survey has not started yet.
+- **A heading between profile questions was drawn as a box to type in.** The form for a new member, and the one a guardian fills in for somebody in their care, showed every heading the station had arranged its questions under as an empty question of its own. Both now lay the questions out the way the rest of the product does, headings and all, and in the order the station arranged them.
+- **A guardian could answer questions the station had reserved for its member management.** On the screen for somebody in their care, a question marked as theirs to read but not to write was offered like any other. It is now shown filled in and closed to writing.
+- **A monthly or quarterly appointment opened on the wrong day.** Opened without a day named in the address, it showed the next time its weekday came round instead of the day it actually falls on, so the sign-ups, the attendance and the questions on that page all belonged to a day the appointment does not happen. It now opens on the day it next falls on, with the weeks the station is off and the end of the series taken into account.
+- **A public survey could not be opened at the address it was handed out with.** The address offered for a survey open to everybody spelled the station's readable name, and only the address spelling its identifier was accepted, so every link copied from the survey's own page led to "not found".
+- **A station whose only public thing was a survey showed nothing at all.** A survey open to everybody is drawn inside the station's frame, and a station with no public pages, wiki, calendar, waiting list or blog answered nothing about itself, so the survey's page stayed empty for everybody it was sent to.
+- **A choice question limiting the answer to an exact number could not be saved.** Setting "exactly" on a question that takes several answers was refused when the survey was saved, and the survey came back unchanged with no explanation.
+- **A survey's tile said it was open after its closing date had passed.** The list showed a survey as taking answers while its own page told every visitor it had closed, because the tile read only whether somebody had closed it by hand. It now reads the dates too, and says when a survey has not started yet.
 
 ## v26.19.1
 
 ### Improvements
 
-- **Open list entries in a new tab.** Rows and cards across the station now behave like the links they are. Middle-click to open a new tab, right-click to copy the address, reach them by keyboard and hear them announced as links.
-- **The public wiki looks like the real wiki.** Public folders and articles now look the way members see them, with the same entries, search results, folder pictures and file previews. The switch between tiles and a one-line list is there too.
-- **Shared public links say what they show.** The calendar, blog entries, wiki articles and the waiting list each carry their own name and a short description. A link pasted into a chat now shows a proper preview with the station's logo.
-- **Public pages arrive complete.** Pages, the calendar, blog entries and wiki articles now come from the server ready to read, with no spinner while the browser fetches them. Search engines can now see what is on them, too.
-- **Public dates follow the station's clock.** Appointments, blog entries and wiki articles show date and time in the station's time zone, wherever they are read. An appointment at seven in the evening says seven to a reader abroad as well.
+- **Rows and cards that open a page can be opened in a new tab.** Entries in the lists throughout the station now behave as the links they always were: middle-click one to open it in its own tab, right-click to copy its address, reach it with the keyboard, and hear it announced as a link. Nothing about the press itself changes.
+- **The public wiki looks like the wiki itself.** Folders and articles open to everybody are now drawn the way the station's own members see them, with the same entries, the same search results, the pictures the station gave its folders and the preview a photo or a document draws on its own tile. The switch between tiles and one entry to a line is there too.
+- **A shared link to a public page says what the page is.** The calendar, a blog entry, a wiki article and the waiting list each now carry their own name and a short description, so a link pasted into a chat draws a preview of that page with the station's logo instead of the same nameless card for everything.
+- **Public pages arrive with their content.** A station's pages, its calendar, its blog entries and its wiki articles now come from the server complete instead of showing a spinner until the browser has fetched them, which is also what lets a search engine see what is on them.
+- **Dates on public pages are the station's own.** An appointment, a blog entry and a wiki article now show the date and time on the station's clock wherever they are read, so an appointment at seven in the evening says seven to a reader in another country as well.
 
 ### Fixes
 
-- **The public wiki keeps its readable addresses.** Opening a folder or article in a public wiki switched to an address with the station's internal identifier instead of its name. Readers lost the readable address and shared the wrong link, and every public link now uses the readable name where the station has one.
+- **The public wiki led back to unreadable addresses.** Opening a folder or an article in a station's public wiki went to an address spelled with the station's internal identifier rather than its name, so a reader who had arrived at the readable address was taken off it and copied the wrong link when sharing the page. Every link on the public pages now uses the readable name wherever the station has one.
 
 ## v26.19.0
 
 ### New Features
 
-- **Send a survey or contact form by link.** Every survey and contact form now has its own link, opening it on a clean page with just the station's name around it. Anyone with the link can answer, it appears in no menu and search engines skip it, and a fresh link ends every copy of the old one.
-- **Public forms can answer at their link alone.** Surveys and contact forms are publicly reachable by default, so they can sit on a public page. Switch that off and only the link works, so a fresh link really does close every way in.
-- **Pages reachable by link alone.** Besides draft and public, a page can now open for anyone holding its link. It stays out of the menu and the sitemap, stands on its own without parent or child pages, and its link can be replaced the same way.
-- **Member fields can be filled in per date.** A member field on a repeating appointment can hold its own entry for each date. Now it can say who drives this week and who drives next, and without the setting one entry covers the whole series as before.
+- **A survey or contact form can be sent by link.** Every survey and contact form has a link of its own that opens it on a page of its own, with nothing around it but the station's name. Anybody holding the link can answer; it stands in no menu and is not picked up by search engines. A new link can be made at any time, which ends every copy of the previous one.
+- **A public form can be set to answer only at its link.** A survey or contact form is publicly reachable by default, which is what it needs to sit on a public page. Switched off, it answers at its link alone: its own address stops working, so making a new link really does end every way in that was given out. The setting sits with the form's other settings while you write it.
+- **A page can be reachable by its link alone.** Beside draft and public, a page can now be set to open for anybody holding its link. Such a page is absent from the station's menu and from its sitemap, and it stands on its own: it has no page above it and none under it. The link can be replaced the same way.
+- **A member field on an appointment can be filled in per date.** A field of an appointment that names members can be set to hold its own entry for each date of a repeating appointment, so it can say who drives this week and who drives next. Without the setting one entry holds for the whole series, as before.
 
 ### Improvements
 
-- **A member field puts you on the list.** Whoever is entered in a member field of an appointment now takes part: they are on the registration list, counted, and see it in their calendar and subscription. The place is confirmed at once and is given back by removing the name from the field.
-- **The calendar subscription reaches a year back.** It used to keep only the last week, so last autumn was out of reach. It now covers a year in both directions.
-- **Limiting a survey to its link names affected pages.** A survey on a page stops working there once it answers only at its link. Switching it over now names those pages, and they show a note in place of the survey until someone removes it.
-- **Ratings, rankings and scales work on public surveys.** Public surveys offered these three question types in the editor, but showed nothing for them when someone came to answer. All six question types now work wherever a survey is answered.
+- **Standing in a member field puts you on the appointment's list.** Whoever is entered in a field of the appointment that names members counts as taking part: they are on the registration list, they are counted, and the appointment reaches their calendar and their calendar subscription. The place is confirmed at once and is given back by taking the name out of the field rather than by signing off.
+- **The calendar subscription reaches a year back.** It used to keep only the last week, so looking up what happened last autumn was impossible. It now covers a year in both directions.
+- **Closing a survey to its link says which pages still show it.** A survey sitting on a page stops working there the moment it answers at its link alone, so switching it over now names the pages that still carry it. Those pages say so in place of the survey until somebody takes it off them.
+- **A rating, a ranking and a scale can be answered on a public survey.** A survey open to the public offered these three kinds of question when it was written but drew nothing for them when somebody came to answer, so only the text, date and choice questions could be filled in. All six kinds now work wherever a survey is answered.
 
 ### Fixes
 
-- **Unopened or closed public surveys say so.** A survey on a public page before opening or after closing showed its questions and a send button that ended in "try again". It now plainly says it is not open yet, or has closed, and offers nothing to fill in.
-- **Links to other pages lead somewhere again.** A card pointing at another page lost its target on saving, so it showed a stand-in title and went nowhere. Cards now keep their target and follow it when a page is renamed or moved.
-- **Switched-off public pages stay switched off.** Turning off public pages removed them from the menu and sitemap, but anyone with the address could still open them. The setting is now checked on every request, by address or by shared link.
-- **Repeating appointments show all their dates.** The upcoming list kept only one entry per appointment, so a weekly drill was a single row however far you paged. The list now runs date by date, ten at a time.
-- **Public forms no longer crowd the internal list.** The list under `/station/forms` showed surveys and contact forms meant for public pages next to the station's own. It now shows only the station's own surveys.
-- **Public forms no longer offer useless settings.** Forms answered without signing in still offered "answers may be changed" and "an answer is expected", which need to know who answered. Both now show only where people sign in to answer.
-- **Public forms no longer pretend to limit who answers.** Public surveys and contact forms offered the same picker of member types, groups, tags and people as internal surveys, but nothing used it. The picker now shows only on surveys the station's own members answer.
-- **Leaving public survey results leads back correctly.** The way back from a public survey's results went to the internal survey list, which does not hold it. It now returns to the list you came from.
-- **Pages under unpublished pages stay private.** A published page below an unpublished one could still be opened by address and appeared in the sitemap. A page is now public only when everything above it is.
-- **Public forms no longer notify the whole station.** Opening a contact form or a public survey told every member about a new form, which then refused them. Only internal surveys are announced now.
+- **A public survey could offer a send button that could never work.** A survey placed on a public page before it was opened, or left there after it was closed, showed all its questions and a send button, and answering it ended in a message that asked the reader to try again. Such a survey now says plainly that it is not yet open, or that it has closed, and offers nothing to fill in.
+- **A link to another page led nowhere.** A card pointing at another page of the station lost the page it was pointing at the moment it was saved, so every one of them showed a stand-in title and went nowhere when clicked. Cards keep their target now and follow it when a page is renamed or moved.
+- **Public pages were served after the setting was switched off.** Turning off a station's public pages removed them from the menu and from the sitemap but went on serving every one of them to anybody who still had the address. The setting is now consulted whenever a page is asked for, by its own address or by a link it was sent with.
+- **A repeating appointment showed only its next date.** The upcoming list kept one entry per appointment and dropped the rest, so a weekly drill was a single row however far you paged, and asking for more added nothing. The list now runs date by date, ten at a time.
+- **Appointments meant for the public stood in the internal list.** The list under `/station/forms` showed surveys and contact forms written for a public page alongside the station's own, and offered to send them by link from there. It now shows the station's own surveys only.
+- **Settings that could do nothing were offered on public forms.** A survey or contact form answered without signing in was still offered "answers may be changed" and "an answer is expected", neither of which can work without knowing who answered. Both are now shown only where somebody signs in to answer.
+- **Who may answer could be set on a form nobody signs in to answer.** A contact form and a survey on a public page offered the same picker of member types, groups, tags and named people as an internal survey, and nothing anywhere read it: whoever opened the link could answer regardless. The picker is now shown only on surveys the station's own members answer.
+- **Leaving a public survey's results led to the wrong list.** The way back from the results of a survey on a public page went to the internal survey list, which does not hold it. It now returns to the list it was opened from.
+- **A page under an unpublished one was public.** A page that was published while the page above it was not could still be opened at an address spelling the unpublished page's name, and it appeared in the sitemap. A page is now public only when everything above it is.
+- **Every member was told about forms meant for the public.** Opening a contact form or a public survey sent a notification to the whole station about a new form to fill in, pointing at a page that then refused them. Only internal surveys are announced now.
 
 ## v26.18.7
 
 ### Improvements
 
-- **Appointments and attendance sheets link up.** The menu on an appointment opens the sheet for the date shown, or starts one if there is none yet. The menu on a sheet leads back to the appointment on that same date.
-- **Device sign-in asks you to match a number.** The device that wants in shows a two-digit number, and the approving device picks it out of six. Someone who only got a picture of the code cannot see that number, so a forwarded code is no longer enough.
-- **Approving a device is just a scan.** The QR code now carries the sign-in code, so your phone opens straight onto what it is about to approve. No more typing eight characters, though the code still shows for anyone who cannot scan.
-- **New settings for shared internet connections.** If your members reach the internet through one shared address, you can widen the per-address limits for device sign-in. The settings live under `auth.deviceHandshake`.
+- **An appointment and its attendance sheet lead to each other.** The menu on an appointment opens the sheet for the date shown, or starts one where there is none yet, and the menu on a sheet leads back to the appointment on that same date.
+- **Signing in from another device asks for a number.** The device that wants to get in shows a two-digit number, and the device approving picks it out of six. Somebody who was only sent a picture of the code cannot see that number, so a forwarded code is no longer enough on its own.
+- **Scanning is all the approving device has to do.** The QR code now carries the sign-in code, so the phone opens straight onto what it is about to approve instead of asking for eight characters to be typed in. The code is still shown for anyone who cannot scan.
+- **New settings for shared internet connections.** An installation whose members reach the internet through one address can widen the per-address limits on signing in from another device under `auth.deviceHandshake`.
 
 ### Security
 
-- **Sign-in codes now belong to one account.** Until now any signed-in member could approve any open code, so a code passed round a group handed over the account to whoever answered it. You now give your address or username before the code is made, and only that account can approve it.
+- **A sign-in code now belongs to one account.** Until now any signed-in member could approve any open code, so a code sent round a group handed over the account of whoever answered it. You give your address or username before the code is made, and only that account can approve it.
 
 ### Fixes
 
-- **Take attendance on any date.** The attendance entry only appeared while today was the date on screen, so a list written the morning after or prepared the evening before had no way in. It now works for whichever date the page shows, and the sheet belongs to that date.
-- **Rare appointments reach the upcoming list.** The list only looked four weeks ahead, so quarterly or yearly appointments never showed up there. It now looks as far ahead as it needs to fill the page.
-- **Each repeating date gets its own attendance sheet.** Attendance for a weekly appointment was dated to the first date of the series, and that one sheet reopened on every later date. Each date now gets its own sheet, dated to the day it covers.
-- **Several devices can sign in behind one address.** In an office or hall sharing one connection, the second device waiting for approval was refused and then waited forever without a word. Every device and every account now has its own allowance.
-- **Being asked to slow down says so.** A screen told it was trying too often showed a generic error and suggested a new code, which used up another attempt. It now says too many attempts were made and waits before trying again.
-- **Device sign-in shows in every browser.** The link on the sign-in page only appeared in browsers that can hold a passkey, though this way of signing in never needs one. It now shows for everybody.
+- **Attendance could only be taken on the day itself.** The entry for it appeared on an appointment only while today was the date on screen, so a list written up the morning after, or prepared the evening before, had no way in at all. It now offers whichever date the page is showing, and the sheet belongs to that date.
+- **Rarer appointments never reached the upcoming list.** The list looked four weeks ahead, so an appointment that comes round once a quarter or once a year was missing from it entirely, although the calendar beside it showed the same appointment as soon as you paged forward. The list now looks as far ahead as it needs to fill the page.
+- **Attendance for a repeating appointment was recorded on the wrong date.** Starting the attendance for a weekly appointment dated the sheet to the first date of the series and reopened that same sheet on every later date. Each date now gets its own sheet, dated to the day it covers.
+- **Only one device at a time could sign in where an address is shared.** In an office or a hall where everybody reaches the internet through one connection, the second device waiting for approval was refused and then waited for ever without saying why. Every device and every account now has its own allowance.
+- **Being asked to slow down looked like a general failure.** A screen that was told it was trying too often showed the same message as any other error and advised fetching a new code, which used up another attempt. It now says that too many attempts were made and waits instead of asking again straight away.
+- **Signing in from another device was hidden from some browsers.** The link on the sign-in page only appeared where the browser could hold a passkey, although this way of signing in never needed one. It now shows for everybody.
 
 ## v26.18.6
 
 ### New Features
 
-- **See survey results by who answered.** You can filter and group an internal survey's results by member type, groups, tags, age and profile answers. Compare the youth group with the active members, or look at the over-40s on their own, side by side in their own colours and ready to bookmark.
+- **Survey results by who answered.** The results of an internal survey can be filtered and grouped by the members' type, groups, tags, age and profile answers, so the youth group can be compared with the active members or the answers of the over-40s looked at on their own. Groups show side by side in their own colours, and the view can be bookmarked.
 
 ### Improvements
 
-- **Survey exports say who answered.** The spreadsheet or printout of an internal survey now shows each member's type, groups and age next to their name.
-- **Pictures open large with a click.** Pictures and gallery pictures on pages and page-editor articles, and lost and found photos, now open full screen, uncropped and with their caption. Escape or a click beside the picture closes it.
-- **Callouts, quotes and captions stand out in PDFs.** In a wiki PDF, callouts and quotes print in a shaded box with a coloured bar at their side. The line under a picture prints small and centred as its caption.
+- **Survey exports say who answered.** The spreadsheet or printout of an internal survey's answers now carries each member's type, groups and age beside their name.
+- **Pictures open large on a click.** A picture or gallery picture on a page or in an article written with the page editor, and the photo of a lost and found item, opens over the whole screen, uncropped and with its caption. Escape or a click beside it closes it again.
+- **Callouts, quotes and captions stand out in a wiki PDF.** Callouts and quotes print in a shaded box with a coloured bar at their side, and the line under a picture prints small and centred beneath it as its caption.
 
 ### Changes
 
-- **Markdown files in the wiki are now articles.** The New menu and the type shown on a tile now say "Article" instead of "Markdown file".
+- **Markdown files in the wiki are called articles.** The entry in the New menu and the type shown on a tile say "Article" instead of "Markdown file".
 
 ### Fixes
 
-- **Wiki PDFs include their pictures.** Saving an article as a PDF left out every picture, showing at most its alt text. The station's own pictures now print, fitted to the page or at the width they were given.
-- **Wiki PDFs keep their formatting.** Coloured text, highlights and underlining printed as plain text, and highlights kept their equals signs. They now print just as they look in the article.
-- **Page-editor pictures show their stored description.** When a picture block had no text of its own, the alt text and description from the media library were missing in articles and news. They now show there and in search, previews and PDFs, as they already did on pages.
-- **Tiles stay a sensible size on wide screens.** On a large monitor the wiki kept four columns and lost and found three, so tiles stretched huge. The number of columns now grows with the window.
-- **Lost and found photos show the whole item.** Photos were cropped to fill their card, which could hide the item itself. The whole photo now shows, scaled to fit.
+- **Pictures were missing from wiki PDFs.** Saving an article as a PDF left out every picture and showed at most its alt text. The station's own pictures now print, scaled to fit the page or at the width they were given.
+- **Formatting was lost in wiki PDFs.** Coloured text, highlights and underlining printed as plain text, and a highlight kept its equals signs. They now print as they look in the article.
+- **Pictures in articles and news written with the page editor lacked their stored description.** When the picture block said nothing of its own, the alt text and description saved with the picture in the media library showed neither in the article or news entry nor in its search entry, preview or PDF. They now do, as they already did on pages.
+- **Tiles grew very large on wide screens.** On a large monitor the wiki kept four columns and lost and found three, so each tile stretched across a large part of the screen. The number of columns now grows with the width of the window.
+- **Photos in lost and found were cut off.** An item's photo was cropped to fill its card, which could hide the item itself. The whole photo now shows, scaled down to fit.
 
 ## v26.18.5
 
 ### New Features
 
-- **Favourites in the wiki.** Star any file or folder, even one a partner station shares, on its tile or at the top of an open file. It then waits for you in the Favourites folder at the start of the wiki, and only you see your favourites.
-- **The wiki shows what its files are.** Pictures and PDFs now preview on their tile, the PDF by its first page, so you can tell a folder of sheets apart without opening each one. Existing files get their preview the first time someone opens their folder.
+- **Favourites in the wiki.** Any file or folder, including what a partner station shares, can be marked with the star on its tile or at the top of an open file, and is then found in the Favourites folder at the start of the wiki. Only you see your favourites.
+- **The wiki shows what its files are.** A picture or a PDF now shows itself on its tile, the picture scaled down and the PDF by its first page, so a folder of sheets can be told apart without opening each one. Files that were already there get their picture the first time somebody opens their folder.
 
 ### Improvements
 
-- **Download wiki files straight from their tile.** Uploaded files now have a download button on their tile, just like articles offer their PDF. You get the file exactly as it was uploaded.
-- **Page pictures load at the size shown.** Banners, galleries and pictures on pages now fetch a copy sized for the page instead of the original photo. Pages open faster and use less data on your phone.
+- **Files in the wiki can be downloaded from their tile.** An uploaded file offers a download button on its tile, the way an article already offers its PDF, and hands over the file exactly as it was uploaded.
+- **Pictures on pages load at the size they are shown.** A banner, a gallery or a picture on a page now fetches a copy sized for the page rather than the photograph as it was taken, so pages open faster and use less data on a phone.
 
 ### Fixes
 
-- **Saving a PDF in the installed app works.** On Android, saving a PDF from Ember installed through Firefox left an empty page and saved nothing, and other files reported a failure although they had saved. PDFs now open in the browser's own viewer for saving, and saved files no longer report a failure.
-- **Saved attendance report filters work again.** Saving a filter under a name ended in a general error, and older saved filters could lose their user types or most of their groups. Saved filters now keep every user type and group, applied to the current week, month, quarter or year.
+- **Saving a PDF in the installed app left an empty window.** On Android, saving a PDF from Ember installed to the home screen through Firefox replaced the page with an empty one and saved nothing, and saving any other file reported a failure although it had worked. A PDF now opens in the browser's own viewer, where it can be saved, and a saved file is no longer reported as failed.
+- **Saving a filter on the attendance report did nothing.** Saving the filter under a name ended in a general error, and a filter saved earlier could come back without its user types or with only one of its groups. A saved filter now keeps every user type and every group it was saved with, and applies them to the current week, month, quarter or year.
 
 ## v26.18.4
 
 ### New Features
 
-- **We keep your unsaved writing for you.** Leave a page, a news entry or a wiki article without saving, and your text stays in your browser. Come back and Ember offers it to you again, until you save or a week has passed.
+- **Unsaved writing is kept for you.** What you write on a page, a news entry or a wiki article stays in your browser when you leave without saving, and is offered back when you return. A draft is forgotten once you save, and after a week.
 
 ### Improvements
 
-- **Files open on your phone instead of vanishing.** Documents, pictures and recordings now open right in the app on a phone or tablet, with a button to save them. Slow downloads used to end in nothing at all, and now they arrive.
-- **Exports carry a name that says what's inside.** A report arrives as something like `Attendance - January 2026.pdf` instead of the same word every time. The name follows the language of your station's documents.
-- **Spreadsheets open cleanly in your software.** You pick a semicolon or a comma when you export. Umlauts now open correctly every time.
-- **Attendance reports by quarter.** Next to week, month and year, you can now pick a quarter.
-- **The attendance report comes as a spreadsheet.** You can export the hours per name as a table, not only print them. That helps anyone who adds them up elsewhere.
-- **You can print the answers to a form.** Before, you could only take them away as a spreadsheet.
-- **The attendance report skips people who weren't there.** Members with no hours and no appointments no longer fill the summary with empty rows. The monthly tables already worked this way.
-- **Pictures keep their alt text and caption.** When a file has an alt text or a caption, a page uses it. A tile with its own text still wins.
-- **Lists are easier to work through on a phone.** Row actions now sit at the foot of each card, every button full width. The columns on a card get more breathing room, too.
-- **Appointment texts read nicely in the lists.** Under Appointments → Upcoming and when starting an attendance sheet, descriptions used to show raw markup or push everything else off screen. Now they're formatted as written and cut after a few lines, just like news.
-- **Twenty new pictures for your gear.** Clothing gains trousers, boots, trainers, a t-shirt, a jumper, a cap and socks, and equipment gains thirteen more, from an axe to a map. The old stand-ins stay under plainer names, such as Soles for the footprints.
+- **Files open on a phone instead of quietly not saving.** A document, a picture or a recording fetched on a phone or tablet now opens in the app itself, with a button to save it from there; a list of values or an archive is handed to the share sheet as before. Downloads that took long enough for the share sheet to be refused used to end in nothing at all.
+- **Exports are named after what they hold.** A report, list or sheet arrives as something like `Attendance - January 2026.pdf` instead of the same word every time, so two of them no longer sit side by side as numbered copies. The name follows the language the station's documents are written in.
+- **Spreadsheets open the way your software expects them to.** You choose between a semicolon and a comma when you ask for one, and every spreadsheet now carries the mark that makes umlauts open correctly instead of as rubbish.
+- **Attendance can be reported by quarter.** The report offers a quarter beside the week, the month and the year.
+- **The attendance report can be had as a spreadsheet.** The hours against each name can be exported as a table as well as printed, for anyone who has to add them up somewhere else.
+- **The answers to a form can be printed.** They could only be taken away as a spreadsheet before.
+- **The attendance report leaves out who was at nothing.** Members with no hours and no appointments no longer fill the summary with empty rows, which is what the monthly tables already did.
+- **A picture keeps the words written about it.** Where a file carries an alt text or a caption, a page showing it uses them unless that tile says something of its own.
+- **Lists are easier to work through on a phone.** What can be done with a row now stands at the foot of its card, each button across the full width, rather than squeezed in beside the title. The columns on a card have more room between them as well.
+- **An appointment's text reads properly in the lists.** Under Appointments → Upcoming and when starting an attendance sheet, a description written with headings, emphasis or a list showed its raw markings, or ran to its full length and pushed the next appointment off the screen. It is now formatted as it was written and cut off after a few lines, the way a news entry already was.
+- **Twenty more pictures for a piece of gear.** Trousers, boots, trainers, a t-shirt, a jumper, a cap and socks join the clothing, and an axe, a torch, a ladder, a cone, a jerrycan, a shovel, a rucksack, binoculars, a life ring, an engine, a blue light, a campfire and a map join the equipment. The old stand-ins keep their place under plainer names: the footprints are now Soles and the pool ladder is no longer just Ladder.
 
 ### Changes
 
-- **Documents are German unless you ask for English.** A station with no language set used to get its reports and sheets in English, and now gets them in German. Set your station's language to English to keep things as they were.
+- **Documents are written in German unless English is asked for.** A station that has set no language received its reports and sheets in English; it now receives them in German. Set the station's language to English to keep them as they were.
 
 ### Fixes
 
-- **Tables in a tile no longer get lost.** A table written in the text editor kept only its words, so the rows were gone after saving. Ember now keeps a table as a table.
-- **Table columns fit their content.** Columns grew to match the longest word, and dragging an edge fought back. They now share the width evenly, in the editor and on the published page.
-- **The save button stays within reach.** Long text pushed it past the bottom of the dialog. The editor now applies what you write as you go, so it needs no button.
-- **Searches find things once the list has loaded.** Typing into a picker before its list had loaded could leave it stuck on no results. It now searches again as soon as the list arrives.
-- **Attendance sheets arrive already marked.** A sheet for an appointment started with every name open, so you had to look up who was coming. Now everyone who accepted is marked present, and on appointments that need registration, everyone else is marked declined.
-- **Adding someone by hand reads the right day.** On a repeating appointment, Ember read today's answers instead of those for the sheet's evening, so people could show up as declined. Now the sheet's own day decides.
-- **Loss report documents save on an iPhone again.** This one download button skipped the share sheet, so the file could go unsaved on an iPhone or iPad. It now works like all the others.
-- **Exports work on Android phones.** A download button could leave a blank tab and no file, especially in browsers inside other apps. Reports and sheets now open on screen, ready to read, save or share.
+- **A table written in a tile was lost.** Writing a table in the text editor stored only the words that were in it, so the rows were gone once the page was saved. A table is now kept as a table.
+- **Table cells were far wider than what they held.** A table sized its columns by whichever cell held the longest word, and dragging an edge fought it. The columns now share the width evenly, in the editor and on the published page alike.
+- **The save button could move out of reach.** Writing enough in the text editor pushed it past the bottom of the dialog. The editor now applies what you write as you write it and needs no button.
+- **A search could keep saying there was nothing to find.** Typing into a picker for kinds, inventories or gear pictures before its list had finished loading could leave it showing no results, even once everything had arrived. It now searches again as soon as the list is there.
+- **An attendance sheet for an appointment arrived unmarked.** Opening one left every name open, so whoever ran the evening first had to look up on the appointment who had said they were coming. A sheet now arrives with everybody who accepted marked present, and, where the appointment demanded a registration, everybody who did not accept marked as declined.
+- **Adding somebody to a sheet by hand could mark them as declined.** On a sheet for a repeating appointment, this read the answers given for today rather than for the evening the sheet is about, so somebody who had signed off for a different evening arrived as not coming. The answers for the sheet's own day now decide.
+- **A loss report's document did not save on an iPhone.** The download that opens the share sheet reached every button but this one, so pressing it on an iPhone or iPad could leave the file unsaved. It now goes the same way as the rest.
+- **Exports did nothing on an Android phone.** Pressing a download button could leave a blank tab and no file at all, most of all in a browser built into another app. A report, list or sheet now opens on screen where it can be read, and can still be saved or shared from there.
 
 ## v26.18.3
 
 ### Improvements
 
-- **The column list closes on its own.** It used to stay open until you pressed its button again. Now a press anywhere else or Escape closes it, and opening one row's menu closes the other.
-- **Show all columns or none in one go.** Two buttons at the top of the column list do it for you. A long list now spreads over several columns instead of running off the screen.
-- **Table filters fit what a column holds.** The member list, inventory pieces and appointment sign-ups filter dates by day, birth dates by age, numbers by range and choices by name. Sorting follows suit, so numbers and days come out in order.
-- **Tables remember your columns.** If you allowed conveniences, your chosen columns are still there next time in the same browser. The privacy notice now lists this once for all tables, so it asks for your consent one more time.
-- **Sort and filter on your phone too.** On a small screen, rows become cards showing your chosen columns. Sort and filter controls sit right above them.
-- **More station lists sort and filter by every column.** The movement queue, borrowed gear, inventory checks, waiting lists, former members, the board backlog and more now work like the member list. Every column header sorts and filters, and longer tables let you pick their columns.
-- **Association and administration lists join in.** The association's members, storage, movements and gear, and the administration's applications, logs and beacon figures sort and filter from every column header. You can choose their columns, too.
-- **Unconfirmed applications are easy to spot.** An application whose address isn't confirmed yet no longer looks like any other waiting one. You can tell them apart and filter for them.
-- **Beacon figures show accounts and stations.** These two columns were collected but never shown. You can now switch them on in the column list.
+- **A table's column list closes on its own.** It stayed open until its button was pressed again; it now closes on a press anywhere else on the page or on escape. A row's menu also closes when the menu of another row is opened.
+- **The column list shows all or none at once.** Two buttons at its top show or hide every column, and a long list spreads over several columns instead of running off the screen.
+- **Table filters match what a column holds.** Every column of the member list, an inventory's pieces and an appointment's sign-ups offers the filter its contents call for: dates by day, birth dates also by age, numbers by a range, and choices by their names. Sorting follows the same rule, so numbers and days come out in order and choices in the order they were set up.
+- **Tables remember their columns.** Where you allowed storing conveniences, the columns chosen for a table are still chosen on the next visit in the same browser, and the member list keeps its own choice for each tab. The privacy notice lists this once for every table, so it asks for your consent again one time.
+- **Tables sort and filter on a phone too.** On a small screen the rows are cards showing the chosen columns, with a sort and a filter control above them.
+- **More station lists sort and filter by every column.** The movement queue, borrowed gear, inventory checks, the inventory overview, the inventory member list, waiting lists, registration statistics, former members, two-factor status, feed usage and the board backlog and archive work like the member list: every column header sorts and filters, and the longer ones let you choose their columns.
+- **The association and administration lists follow.** The association's member list, storage, movements and gear out at stations, and the administration's applications, two-factor log, API status, data tracking, mail log and beacon figures sort and filter from every column header and let you choose their columns.
+- **Applications awaiting a confirmed address say so.** An application whose address has not been confirmed yet no longer shows as waiting like the others, so the two can be told apart and filtered.
+- **Beacon figures show accounts and stations.** Two columns that were collected but never shown can be switched on in the column list.
 
 ### Changes
 
-- **Sorting and filtering live in the column headers.** The separate sort and filter buttons in the movement queue, borrowed gear and inventory checks are gone, and the column headers do the job. The inventory member list forgets its earlier column choice once.
+- **Sorting and filtering moved into the column headers.** The sort list and filter buttons of the movement queue, the sort buttons of borrowed gear and the sort toggle of inventory checks are gone; the column headers sort and filter instead, and the movement queue filters its items by inventory and its step column by state, whose turn it is and the step reached by name. The inventory member list forgets the columns chosen before this release once.
 
 ### Fixes
 
-- **Sign-ups sort by date correctly.** A date column in an appointment's sign-ups sorted days as text, so 2 January came before 15 December of the year before. It now sorts by the actual day.
-- **Saved member filters keep open questions.** A saved filter for people who hadn't answered a question lost that condition when used again. It now comes back complete.
-- **Grouped inventory follows the table controls.** When pieces were grouped by kind, choosing columns, sorting and filtering did nothing. They now apply to every group.
-- **Guardians can open an event's files.** A guardian could see a restricted event through their child but was refused its files. Now they get the files whenever one of their children may see the event.
-- **Downloads work on an iPhone.** A download button on an iPhone or iPad could leave the file unsaved without a word, especially in browsers inside other apps. The file now opens the share sheet, so you can save it to Files or send it on.
+- **Sign-ups sorted by a date came out of order.** In the table of an appointment's sign-ups, a date column sorted the days as text, so 2 January came before 15 December of the year before. It now sorts by the day.
+- **A saved member filter forgot the questions left open.** A saved filter asking for people who had not answered a question came back without that condition when chosen again. It now comes back complete.
+- **Grouped inventory ignored the table controls.** Where an inventory's pieces are grouped by kind, choosing columns and sorting or filtering from a column header had no effect. They now apply to every group.
+- **Guardians could not open an event's files.** For an event shown only to certain members, a guardian saw it through the children they look after but was refused its files. The files are now handed to a guardian whenever one of their children may see the event.
+- **Downloads did nothing on an iPhone.** Pressing a download button on an iPhone or iPad could leave the file unsaved without any message, most of all in the browser built into other apps. The file now opens the share sheet, from where it can be saved to Files or sent on.
 
 ## v26.18.2
 
 ### New Features
 
-- **People lists with the columns you choose.** The guest list of an appointment and the register show whatever your station wants next to each name. Save a column choice under a name and take it away as a printed sheet or a table, always limited to what you may see.
+- **A list of people can be drawn with the columns you choose.** Who is coming to an appointment is shown with whatever the station wants beside each name, the register offers the same table, and a selection of columns can be saved under a name and taken away as a sheet to carry or a table for the desk. Only what you are allowed to see is ever offered or written down, and a question you may not read is left out rather than shown empty.
 
 ### Fixes
 
-- **Yearly appointments land on the right day.** For stations whose clock runs ahead of the server's, a yearly appointment could fall a day early. Ember now reads the day on your station's own clock.
-- **Registration no longer closes a day early.** The deadline check asked the server what day it was, not the station, so stations ahead of the server closed their lists a day too soon. It now asks the station.
+- **A yearly appointment could come up on the wrong day.** For a station whose clock runs ahead of the server's, an evening beginning at midnight counted as the day before, so the anniversary of a yearly appointment fell a day early. The day is now read on the station's own clock.
+- **Registration could close a day early.** The check that closes a list a set number of days before an appointment asked the server what day it was rather than the station, so a station ahead of it spent the last hours of the evening being told it was still yesterday and closed its lists one day out.
 
 ## v26.18.1
 
 ### New Features
 
-- **Give a partner station places of its own.** A shared appointment can set aside places for another station, with or without a limit. That station then picks its own people for them, no confirmation needed.
-- **Choose when your notifications are mailed.** Under Station → Mailing you set the times your gathered notifications go out, say seven in the morning and two in the afternoon, or every hour. Want one mail a day? Now you get exactly one.
+- **A partner station can be given places of its own.** An appointment shared with another station can set aside places for it, with or without a limit on how many, and that station then picks which of its own people fill them instead of waiting to be confirmed. Where nothing is set aside, the station holding the appointment confirms each guest itself, as it always did.
+- **A station says when its notifications are mailed out.** Under Station → Mailing it names the times of day its gathered notifications go out, seven in the morning and two in the afternoon for instance, or simply every hour. What arrives between two of them waits for the next, so a station that wants one mail a day now gets one mail a day.
 
 ### Improvements
 
-- **Changed your mind? Take your sign-off back.** For five minutes, the message after giving up a place lets you undo it, and you keep your old spot in the queue. The last two buttons that gave a place away in one press now ask first, like all the others.
-- **Signing up too late tells you who can help.** After the list has closed, you used to get a bare failure. Now Ember says the list is closed and that the organisers can still add you.
-- **Partner station guests are treated like members.** Their sign-up is accepted at once where no confirmation is needed, and refused where sign-ups are closed or the appointment is off. Signing off keeps the record, so the host can tell who left from who never answered.
-- **Three more pictures for your gear.** Headphones, a key and a stapler join the choices under Equipment and General.
-- **Following a cluster brings its partners' news.** Cluster notifications were gathered but never mailed, so followers heard nothing. They now go out with the same times and settings as a station's.
-- **Appointment files open right where they are.** Press a file to see it, so finding the map among four sheets no longer means saving all four. Saving still has its own button.
-- **Files show what's inside.** Pictures and the first page of a PDF now appear next to each file, in an appointment's list and in the media library. No more rows of identical icons.
-- **Appointment and waiting list choices get one row each.** Both used to take the whole list in one box, so a choice containing a comma quietly became two. They now use the familiar editor, with one reorderable row per choice.
-- **The delete button on appointment fields stays put.** It used to wander into the middle of the panel when its row wrapped. Now it sits at the top right of its field.
-- **The news list reads like a list again.** Long entries are cut to a few lines with an invitation to read on. The full text waits on the entry's own page.
+- **Giving up a place at an appointment can be taken back.** For five minutes afterwards the sign-off can be undone from the message that appears, and what comes back is the place that was held rather than a fresh sign-up at the end of the queue. The last two buttons that gave a place away on a single press, the one for a whole household and the one on a partner station's appointment, now ask first as the others already did.
+- **Being too late to sign up now says who can help.** Trying to sign up again after the list has closed answered with a bare failure. It now says the list is closed and that whoever runs the appointment can still add somebody.
+- **A guest from a partner station is treated like a member of the station.** Their sign-up is accepted straight away where the appointment asks for no confirmation, rather than waiting for one that nobody was ever asked to give, and it is refused where the appointment takes no sign-ups, has been called off, or has closed its list. Signing off keeps the record, so the station holding the appointment can tell somebody who left from somebody who never answered.
+- **Three more pictures to give a piece of gear.** Headphones, a key and a stapler join the ones a station can choose from, under Equipment and General.
+- **People following a cluster hear about its partner stations.** Notifications from a cluster were gathered but never mailed to anybody, so somebody who followed one to keep up with its partners heard nothing at all. They now go out with the same times and settings as a station's.
+- **An appointment's files are shown rather than only offered.** Pressing one opens it where it is, so finding out which of four sheets is the map no longer means saving all four. Saving is still a button of its own.
+- **Files show what they hold.** Pictures and the first page of a PDF now stand beside a file in an appointment's list and in the media library, instead of a row of identical icons.
+- **Choices on an appointment and on a waiting list are written one to a row.** Both still asked for the whole list in a single box, one splitting it at line breaks and the other at commas, so a choice containing a comma quietly became two. They now use the same editor as everywhere else, with a row per choice that can be reordered.
+- **The delete button on an appointment's fields sits in one place.** It shared a row that wrapped, so it could end up in the middle of the panel between other settings; it now stays at the top right of the field it belongs to.
+- **The news list reads as a list again.** A long entry no longer fills the page: entries are cut to a few lines with an invitation to read on, and the entry's own page is where the rest of it is.
 
 ### Changes
 
-- **Notification mail goes out on the hour at the earliest.** Installations set to gather notifications for less than an hour now mail at the top of the hour. Operators who relied on a shorter wait should take note.
+- **Notification mail goes out on the hour at the earliest.** An installation set to gather notifications for less than an hour now has its stations written to at the top of the hour instead. Operators relying on a shorter gathering time should know it no longer shortens the wait below that.
 
 ### Fixes
 
-- **News from the Ember team now carries its mark in the list.** The Ember logo showed only once you opened such an entry, so the list couldn't tell it apart from your station's own news.
-- **Deleting an account no longer reports phantom problems.** It listed data it couldn't clear up, even though nothing was left behind. Ember now checks that list against the database itself, so it stays accurate.
-- **People who give up a place stay visible.** An unconfirmed place given back used to vanish from the list without a trace, even though a notification went out. Every returned place now stays on the list as withdrawn, and signing up again works as before.
-- **Late-evening sheets open for the right day.** Starting an attendance from a repeating appointment read the server's clock, so shortly before midnight it opened the previous evening. Ember now uses the station's day throughout.
+- **News from the makers of Ember carried no mark in the list.** The Ember logo appeared once an entry was opened but not on the list it was opened from, so nothing there told such an entry apart from one written at the station.
+- **Deleting an account reported problems that were not real.** Removing an account listed several kinds of data it could not clear up, although the database had already removed them and nothing was left behind. The list of what to clear is now checked against the database itself, so it cannot fall out of step again unnoticed.
+- **Somebody giving up a place could vanish from the list entirely.** A place that had not been confirmed was removed outright when it was given back, so the registration list was simply one shorter and nothing said who had dropped out, even though the notification about it had gone out. Every place given back now stays on the list as withdrawn, and signing up again works as before.
+- **A sheet opened late in the evening was made for the day before.** Starting an attendance from a repeating appointment read the date off the server's clock rather than the station's, so in the last hours before midnight the sheet was opened for the previous occurrence and carried that evening's times. The day is now the station's throughout.
 
 ## v26.18.0
 
 ### New Features
 
-- **Add a picture of the page to a problem report.** Share this tab or attach your own screenshot, then paint over anything private before sending. Nothing is ever captured on its own, and password fields are covered before you even see the picture.
-- **Call members by the name everyone actually uses.** Maximilian sets the nickname Max on his profile, and the board, comments, notifications and mails all say Max, while member lists show `Maximilian "Max" Hoffmann`. Members, their guardians and the member management can set it, and a station that prefers register names can switch the feature off without losing any nickname.
-- **Documents keep the register name.** Attendance sheets, test protocols, exports and data requests say Maximilian Hoffmann, whatever the screens show. Members who leave keep the name the station knew them by in old entries.
-- **Start an attendance without a fitting template.** Next to the templates there is now an empty attendance. It asks which member types and groups to add, then opens the usual pre-filled sheet.
+- **A problem report can carry a picture of the page.** Press for one and the browser asks what to share, offering this tab first so that no dialog of the operating system's is needed, or attach a picture you took yourself; drag over anything that should not be seen and it is painted out before the report is sent. The dialog steps out of the way while the picture is taken, so what is reported is the page and not the dialog. Nothing is ever captured on its own, password fields are covered before the picture is shown at all, and a report without a picture is as it always was.
+- **A member can be called by the name everybody actually uses.** Somebody entered in the register as Maximilian and known to the whole station as Max sets a nickname on their profile, and from then on the board, the comments, who is coming on Friday, the notifications and the mails all say Max. A member list says `Maximilian "Max" Hoffmann`, so nobody has to guess who that is. A member sets their own on their profile, whoever looks after them may set one for them, and whoever keeps the station's members may put one right from the member's profile in the administration. Nobody else may, and who wrote it is recorded either way. A station that would rather keep register names throughout can switch the whole thing off, and every nickname is kept rather than deleted.
+- **A document still carries the name in the register.** The attendance sheet, the test protocol, the inventory and movement exports and the data handed over under a data request read Maximilian Hoffmann, whatever the screens say. A member who leaves keeps the name the station knew them by in the old entries that name them.
+- **An attendance can be started without a template that fits.** Beside the templates there is now a Leere Anwesenheit, which asks in a second step which member types and which groups to enter and then opens the usual pre-filled sheet. The two answers add up, and a station no longer has to keep an empty template around for the purpose.
 
 ### Improvements
 
-- **Templates tell you what they bring.** Each tile on the new attendance screen names the groups it adds and the questions it asks. No more choosing from memory.
-- **The changelog shows each release date.** Every version carries the day it came out, with the exact time on hover. A link at the end shows its changes on GitHub.
-- **Show a birth date without the age.** The field has a new switch, on by default. Stations that ask for the age separately no longer show it twice.
-- **Calculated fields show only settings that matter.** Nobody types into them, so they no longer ask about required answers, write access, change reports or starting values.
-- **Attendance sheets stay clean and readable.** Open items no longer spread out under every row; a row shows their count next to any birthday, and one press opens them. Forty members with a swap each no longer turn the sheet into a to-do list.
-- **Call off a swap on the spot.** Whoever runs the check can drop a swap from the sheet after a quick confirmation naming the piece. Only swaps where nothing has changed hands are offered, so nothing needs putting back.
-- **Check report pictures before they reach a beacon.** A report with a picture waits in the admin list, where you can paint out more or drop the picture before sending. A switch in the beacon settings sends them straight away instead.
-- **Problem reports tidy themselves up.** Thirty days after a report is marked as dealt with, it is deleted along with its picture. Until now they were kept forever.
+- **A template says what it provides before you pick it.** Each tile on the new attendance screen now names the groups it enters and the questions it asks, so the choice no longer runs on memory. A template that enters nobody says so.
+- **The changelog says when each version was released.** Every entry now carries the day it came out, with the exact time under the pointer, and ends with a link that opens its changes against the release before it on GitHub.
+- **A birth date can be shown without the age behind it.** The field now carries a switch for it, on as before, so a station that also asks the age as a question of its own no longer states it twice on one row.
+- **A calculated field only offers the settings that reach it.** Nobody writes the answer to one, so it no longer asks whether an answer is expected, whether it may be written, whether a change should be reported, or what it should start out as.
+- **A sheet of names stays a sheet of names.** What is outstanding for somebody no longer stands open under every row. A row says how many there are, and a birthday still shows beside the count; pressing it opens the lot. A station of forty people with a swap each had turned the attendance sheet into a page of errands.
+- **A swap can be called off while the member is standing there.** Whoever runs the check can drop one from the sheet, which asks first and names the piece. Only swaps where nothing has changed hands are offered there, so there is never anything to put back.
+- **A report's picture can be passed on to a beacon, after somebody here has looked at it.** A report carrying one waits in the admin list until it is sent, where more of the picture can be painted out first or the picture dropped from the delivery; a switch in the beacon settings sends them straight out instead. A picture left out of a report is never sent after it.
+- **Problem reports are cleaned up.** Thirty days after a report is marked dealt with, it is deleted with its picture. Until now they were kept for good.
 
 ### Fixes
 
-- **Choosing a profile photo no longer freezes the page.** The page stopped responding while the photo was shrunk, with no sign of progress, so people pressed again. Now a waiting mark appears right away, and the work runs in the background where the browser allows.
-- **Saving a profile no longer reports phantom changes.** Unanswered questions and automatic ages showed up as changes nobody made. They are no longer recorded or put up for confirmation.
-- **Guardians can read their child's documents.** Consent forms, medical notes and other documents were refused to the very person who signs them. They now appear under the guardian's own documents, read-only, and anything hidden from the member stays hidden from them too.
-- **Nobody turns a year older a day early.** On devices in a timezone behind UTC, ages were a day ahead. A birth date now means the same day wherever you are.
-- **Ages calculated from a date stay current.** The profile and the answer form showed a number written once and never updated. Ember now works it out wherever it is shown, and nobody can type over it.
-- **Members can open their own movement without errors.** The page showed a member four refusals and a form they couldn't use. Choosing the replacement is now offered only to those who may see that store, with a note that the station handles it otherwise.
-- **Only the right person can refuse a step.** Every open movement offered the refuse button to anyone looking, so an onlooker could close it by mistake. The panel now shows only for the party whose turn it is, and for those who may override.
-- **Late-evening appointments show their sign-ups.** An appointment ending after midnight in your timezone could show an empty registration list, with no way to start a checklist or survey. Ember now reads the day from the station's clock throughout.
-- **Renaming a date question keeps its ages.** Age fields pointed at the question's name, so renaming it left the column blank. They now follow the question itself, and existing age fields carry over.
+- **Picking a photograph held the page still.** Choosing a picture for a profile made the whole page stop answering while it was made small enough to send, with nothing on screen to say so, long enough that people pressed again and asked whether it had worked. The waiting mark now appears before the work starts, and the work itself is handed to another thread where the browser has one.
+- **A profile change was reported that nobody had made.** Opening somebody's profile and saving it counted every unanswered question that stayed unanswered as a change, because a question never answered and a question answered with an empty box were stored differently and read as different. An age that counts itself from a date of birth was reported the same way, though nobody can write one. Neither is recorded now, and neither is put in front of anybody to confirm.
+- **A guardian could not read the documents of the member they answer for.** The consent, the medical note and everything else a station holds for a child were refused to the person who signs them, and no screen offered them either. They now stand under the guardian's own documents on their profile, to read rather than to add to, and a document hidden from the member is hidden from them too.
+- **Somebody could turn a year older the day before their birthday.** On a device set to a timezone behind UTC, the age behind a birth date and the age in a column of its own were both a day ahead of themselves. A birth date is now read as the day it names, wherever the reader sits.
+- **An age worked out from a date could show an old number.** A member's profile and the form their answers are given on showed whatever had once been written into the field rather than the number it comes to, and that never changed again. It is now worked out wherever it is shown, and shown without being offered to be typed over.
+- **A member opening their own movement was refused four times over.** The page offered the form for picking the replacement part to whoever could see the movement, and that form asks for the whole inventory and everybody at the station to fill itself, so a member got four refusals and a form they could not use. Naming the replacement is now offered only to whoever may read the store it comes off, with a line saying the station enters it otherwise.
+- **A member could call off a step that was not theirs.** Every open movement offered the refuse button to anybody looking at it, whichever party the step was waiting on, so a movement could be closed by mistake by somebody who was only watching it. The panel is now shown only to the party whose turn it is, and to whoever may override one.
+- **An appointment late in the evening showed none of its sign-ups.** The page worked the appointment's day out on the reader's own clock while everything filed against it is filed on the station's, so an appointment ending after midnight in the reader's timezone, or seen from a country the station is not in, came up with an empty list of registrations and no way to start a checklist or a survey from it. The day is now read off the station's clock throughout.
+- **Renaming a date emptied every age worked out from it.** An age field held on to the name of the question it counts from, so renaming that question left the column blank with nothing to say why. It now holds on to the question itself, and existing age fields are picked up as they are.
 
 ### Changes
 
-- **Names are written the same way everywhere.** Ember used to work out each name in about 160 places on its own, so a list and a picker could disagree. Now there is one rule for every screen.
+- **A person is spelled one way.** Ember worked out how to write somebody's name in about a hundred and sixty places, each deciding for itself, which is why a list and a picker could disagree about the same member. There is now one place that answers the question and one way to ask it, in Java and in the database alike, and a test that holds the two to the same answer.
 
 ## v26.17.3
 
 ### Fixes
 
-- **Appointment times follow your station's clock.** An evening from 09:00 to 14:00 showed up in the notification feed as 07:00 to 12:00, because the station's timezone was never asked. Feeds, exported checklists and calendar files now use the station's time, and stations without a timezone still read in UTC.
-- **Reminders for just after midnight arrive on time.** Ember worked out the days on the server's clock, so half past midnight at the station counted as the evening before. Reminders for such appointments went out a day early, and now they don't.
+- **An appointment was written in the server's clock rather than the station's.** An evening running from 09:00 to 14:00 arrived in the notification feed as 07:00 to 12:00, because the machine building the feed keeps UTC and the station's own timezone was never asked for. Times are now written where the appointment takes place, and a station that has named no timezone still reads in UTC. The time on an exported checklist follows the station too, and a calendar file for a station whose timezone cannot be read no longer falls back to the server's.
+- **A reminder for an appointment just after midnight went out a day early.** Which day an appointment falls on, and which day it is now, were both worked out in the server's clock, so half past midnight at the station counted as the evening before and every reminder for it was one day out.
 
 ## v26.17.2
 
 ### Improvements
 
-- **Beacons learn what a fault actually was.** A fault used to arrive as just a source, a level and a count, so different failures merged into one nameless row. Its logged details now travel along, with mail addresses removed.
-- **Forwarded problem reports include the screen behind them.** The browser, window size, the writer's permissions and the screen's recent calls now come along, with addresses stripped of their query. The writer's name stays at their station, since "The button does nothing" rarely names a defect on its own.
+- **A beacon is now told what a fault actually was.** A fault arrived as a logger name, a level and a count, and for a warning logged without an exception that is everything there is, so several different failures of one class arrived as one row naming none of them. What it was logged with now travels too, with mail addresses taken out.
+- **A forwarded problem report arrives with the screen it was written about.** The browser, the size of the window, what the reader was allowed to do and the calls the screen had just made all travel with it, each address stripped of its query the way the page already was. Who wrote it still stays at their station. "Der Knopf tut nichts" names no defect on its own.
 
 ### Fixes
 
-- **Links to other Ember screens work again.** Links written as a path, which is how Ember links to itself, arrived as underlined words that went nowhere. The link in the post-update news entry was one of them, while links to other sites were never affected.
-- **System entries no longer show buttons that fail.** Editing, deleting and checking who has read an entry from Ember itself all answered "not found". These buttons are gone, and such entries now carry the Ember logo instead of initials nobody has.
-- **Notifications show dates the way you write them.** Reminders and other notifications with a day showed it as 2026-09-19. They now say 19.09.2026.
+- **A link to another screen of this instance was not a link.** Anything written as a path, which is how everything inside Ember is written, lost its address on the way to the screen and arrived as underlined words nobody could follow. The link in the entry Ember writes after an update was one of them. Links to other sites were never affected.
+- **A system entry offered a station three buttons that could not work.** Editing it, deleting it and asking who has read it are a station's rights over its own entries, and an entry the instance wrote belongs to no station, so each of them answered "not found". They are no longer offered, and such an entry now carries the Ember logo rather than initials of a name nobody has.
+- **A notification wrote the date the way a database writes it.** A reminder for an appointment said it fell on 2026-09-19 rather than on 19.09.2026, as did every other notification carrying a day: new appointments, an answer still wanted, a check to hand back.
 
 ## v26.17.1
 
 ### Fixes
 
-- **Beacon deliveries finally arrive.** Every fault and report was refused as unsigned because a delivery lacked the key to check it, and nothing reached the log. Deliveries now carry that key, and the log says when a beacon turns one away or can't be reached.
-- **Send problem reports to a beacon by hand.** Reports written before the switch was turned on had no way to get there. The list now lets you see exactly what would leave and send it, just like the error log.
+- **Nothing reported to a beacon ever arrived.** Every fault and every report was refused as unsigned before it could be stored, because a delivery did not carry the key its signature is checked against. The refusal reached no log either, so an operator saw a beacon holding figures and nothing else, even on an instance reporting to itself. Deliveries now carry that key, and a beacon that turns one away or cannot be reached is said so in the log.
+- **A problem report could not be passed on by hand.** Reports reached a beacon only as they were written, so anything written before the switch was turned on stayed where it was, with no way to send it. The list now offers what the error log has always offered: see exactly what would leave, then send it.
 
 ## v26.17.0
 
 ### New Features
 
-- **Hand out files with an event.** Pick or upload the route sheet, a form to bring or the evening's plan, and it appears on the event page ready to download. Each file is either for everyone who may see the event, partner stations included, or just for the organisers.
-- **The changelog speaks German and ships with Ember.** The page now reads its entries from your own instance instead of fetching them from GitHub. It works without internet access, and nobody leaves a trace at GitHub to read it.
-- **After an update, the news tells you what changed.** Ember writes one entry for the managers with exactly that version's changes. A link leads to the full changelog.
+- **An event can hand over files.** The route sheet, the form to bring or the plan for the evening is picked or uploaded through the media library and appears on the event page, ready to download. Each file is either for everybody who may see the event, partner stations included, or kept back for the people who run it.
+- **The changelog reads German and arrives with the instance.** The page no longer fetches its entries from GitHub out of the reader's browser; it reads them from the instance itself. It stays readable on an installation with no way out, and nobody has to leave an address at GitHub to read it.
+- **After an update the news say what changed.** Where an instance has been lifted to a new version, Ember writes one entry for the managers with the changes of exactly that version and a link to the full changelog.
 
 ### Changes
 
-- **A new permission for an event's internal details.** It opens the material an event needs and the files kept back for organisers, without allowing changes. Everyone who may edit events has it already, so grant it to helpers who run evenings but don't keep inventory.
-- **Write a profile question once and choose who answers.** Members → Configuration no longer has a tab per member type, so each question exists once and you pick any member types and groups to ask it. Required answers, field width and write access can differ per audience, and each form keeps its own order.
-- **New questions wait until you choose an audience.** A question reaches no profile until you say who it's for, and the list flags it right on the row. Trial members are now a type of their own, so you can ask them less.
-- **Arrange a form right in its preview.** Drag a field into place and pull its right edge to set its width. Drop in a spacer to line up questions just the way you want.
-- **Assign several questions to an audience at once.** Tick them in the list and choose a member type or group. Done in one go.
+- **A new right for what an event keeps internal.** It opens the material an event needs and the files kept back from the room, without allowing anything to be changed. Whoever may edit events holds it already, so nothing has to be granted again; grant it to the people who help run evenings but keep no inventory.
+- **A profile question is written once and put to whoever should answer it.** Members → Configuration no longer has a tab per kind of member: the questions stand on one side, each written once, and beside them, for the question you picked, who is asked it, any number of kinds of member and any number of groups, on the same screen an association uses for its own questions. Whether an answer is expected, how wide the field is drawn and whether that audience may write to it can each differ per audience, and the order of every form is that form's own.
+- **A new question is asked of nobody until you say who.** It is written down and reaches no profile until an audience is named, which the list says at the row rather than leaving it to be noticed. A trial member is now a kind of their own, so a station can ask them less than it asks a member.
+- **A form is arranged where it is read.** The preview beside the questions is the form itself: drag a field to put it where it belongs, pull its right edge to set how wide it is drawn, and drop in a spacer to push what follows it along, so two questions line up under two others.
+- **Several questions can be put to an audience in one go.** Tick them in the list, choose a kind of member or a group, and every one of them is asked of that audience at once.
 
 ### Fixes
 
-- **Duplicate questions are merged into one.** A question written once per member type showed up twice for people who belong to both, collecting two different answers. On update, same-named questions of the same type are merged, keeping the filled-in answer, and a backup is first written to the data volume.
-- **The missing-gear button shows only to those who may use it.** Asking the association for missing gear refused anyone without that right. Now only people who may request gear see the button, while everyone still sees what's missing.
-- **Past sheets carry the evening's own date.** A sheet filled in weeks later was listed under the day it was typed, so a July evening sat at the top showing September. Past sheets now show their own date, newest evening first.
-- **Problem reports now reach the beacon.** Turning on "Pass problem reports on automatically" saved the choice but sent nothing. Reports now go out as they are written, without the page's query string.
-- **Beacons accept what is reported to them.** Unless an instance reported to itself, a beacon refused every delivery as meant for someone else, with no hint why. A beacon now checks deliveries against its own address, the one in `api.baseUrl`.
+- **The same question could stand on one profile twice.** Where a station had written the same question once for one kind of member and once for another, somebody who counts as both met it twice, and the two copies collected different answers to what reads as one question. Questions of the same name and type are merged into one on update, keeping the answer that was filled in where only one of them was; the state of the questions and their answers from before the merge is written to a file in the data volume first.
+- **What an appointment is missing offered a button that refused the person pressing it.** Asking the association for the gear an evening lacks is now offered only to the people who may ask for gear at all; everybody else still sees what is missing.
+- **A sheet filled in later carried the wrong date among the past ones.** An evening written down days or weeks afterwards was listed under the date somebody typed it in rather than the date it happened, and sorted among that week's sheets, so an evening in July sat at the top showing September. Past sheets now carry their own date and run newest evening first.
+- **Problem reports were never passed on to a beacon.** Switching on "Pass problem reports on automatically" stored the choice and changed nothing: a report somebody wrote was filed on the instance and went no further, so a beacon collected faults and figures but never a word anybody had written. Reports are now passed on as they are written, and the query string of the page is left behind.
+- **A beacon turned away everything reported to it.** Unless the instance happened to report to itself, every signed delivery was refused as addressed to another beacon, so operators saw an empty beacon with nothing to say why. A beacon now weighs a delivery against its own address, which is the one in `api.baseUrl`.
 
 ## v26.16.0
 
 ### New Features
 
-- **Sign in a new device from one you hold.** The new device shows a short code and a QR code. You type the code under `Account → Security → Unlock a new device` on a device you're already signed in on, and the new one is in without a passkey, until the session ends.
-- **Guardians can sign in and confirm for their members.** The same screen asks whom the sign-in is for, so a child without a password can get onto the machine in the hall. When that child later has to confirm something, the guardian's device answers.
-- **Confirm a sensitive action on another device.** If you have no password or passkey on the machine in front of you, the confirmation dialog now lets you confirm on a device you're signed in on. That device shows what you are confirming and answers with its own passkey or password.
-- **Print attendance sheets for signing by hand.** The export now asks how the sheet should look: a signature column, a heading or a blank line for one, and spare lines for people not on the list. A sheet for signing leaves the recorded status off, because the paper is what counts.
-- **Start any kind of movement, not only swaps.** A wizard asks what should happen, with whom, with which piece and why. It then draws the chain your answers lead to, and tells you plainly when the station has no chain for that combination.
-- **One queue for everything under way.** Inventory → Movements lists every movement with its state, whose turn it is and since when. The button on each row names the next step, and a manager can correct a movement when the gear is really somewhere else.
-- **Give your gear a picture.** An inventory, and each kind inside a collection, can have an icon and a colour. Every picker, list and queue then shows that picture next to the piece, with its size and identifier.
-- **Plan a hand-out instead of doing it now.** Every screen that assigns gear lets you hand the piece over now or promise it. A promised piece stays on the shelf, marked as spoken for, until the hand-over is confirmed.
-- **An arriving order starts the hand-out.** Marking an order as arrived no longer puts the piece straight onto the member. It records what turned up and keeps the piece spoken for until somebody actually hands it over.
-- **Run a waiting list without any mail.** One switch in the list's settings stops everything it would send, including the "still interested?" reminders. Public registrations arrive without a confirmation link, and nobody is removed for an unanswered reminder.
+- **A device can be signed in from one you already hold.** The device shows a short code and a QR, you open `Account → Security → Unlock a new device` on a device you are already signed in on and type the code there. The new device is signed in without a passkey being created on it, which is what a borrowed or shared machine wants, and the sign-in ends when the session does.
+- **A guardian can sign in a member in their care, and confirm for them.** The same screen asks whom the sign-in is for, offering the people the guardian already manages and still allowed to sign in. It is the way a child with no password of their own gets onto the machine in the hall, and the guardian's device is what answers when that child is later asked to confirm something.
+- **A sensitive action can be confirmed on another device.** Where an account has no password and no passkey on the machine in front of it, the confirmation dialog now offers confirming on a device it is already signed in on. That device shows what it is confirming and answers with its own passkey or password.
+- **An attendance sheet can be printed to be signed by hand.** The export now asks how the sheet should look: with a column to sign in, with a heading of its own or a blank line to write one on, and with as many empty lines as the evening might need for people who are not on the list. A sheet meant for signing leaves the recorded status off, because what is written on the paper is what counts.
+- **Every kind of movement can be started, not only swaps.** A wizard asks what should happen, with whom, about which piece and why, and then draws the chain those answers lead to before anything is written. Handing gear out, taking it back, swapping it and asking the association above for a piece all start the same way, and a combination the station has no chain for says so instead of failing.
+- **One queue for everything under way.** Inventory → Movements lists every movement with the state it has reached, whose turn it is now, and since when. The button on the row carries the name of the next step, so pressing it says what has happened, and a manager can put a movement right when the gear is in reality somewhere else than the record says.
+- **Gear can be given a picture.** An inventory, and each kind inside a collection, can be given an icon and a colour. Wherever a piece is named after that, in a picker, a list or the queue, it carries that picture along with its size and the identifier written on it.
+- **A hand-out can be planned rather than done.** Every screen that assigns gear to a member now offers the same choice: hand the piece over now, or promise it. A promised piece stays on the shelf, is marked as spoken for so nobody else is given it, and the handing over is confirmed later.
+- **An order that arrives sets the hand-out going.** Marking a procurement as arrived no longer writes the piece straight onto the member. It records what turned up and starts the hand-out, so the piece stays on the shelf, spoken for, until somebody gives it to them and says so.
+- **A waiting list can be kept without any mail.** A switch in the list's settings stops everything it would send, so a public registration lands without a confirmation link and an invitation is passed on by hand. The reminders that ask whether somebody is still interested stop with it, and nobody is removed for leaving one unanswered.
 
 ### Improvements
 
-- **Open items name the step they're on.** On the attendance list and in the quick check, the button next to a member now names its step, the piece and its size. Only what concerns the member in the room is shown, not gear travelling between station and association.
-- **Leave the installation's address off PDFs.** A switch in the station settings drops it from the footer of every export, and the attendance export can override it per document. The logo, the station name, the author and the page number stay.
-- **Search and walk the gear pickers by keyboard.** Arrow keys move, Enter picks and Escape closes, so a few letters and Enter usually do it. The picked entry looks just like the list: picture, name, size and identifier.
-- **Choosing a member works the same everywhere.** One menu shows a face, the name in its group's colour, and a search that is always there. It replaces the dropdowns with hundreds of lines, and three letters and Enter usually do it.
-- **See who you've chosen at a glance.** When a screen takes several people, each one appears as a removable chip above the search. Past five they fold away, so a group of fifty stays a tidy field.
-- **Movements name whose gear it is.** The queue, the movement page and its chain drawing name the owning station or association instead of saying "owner". A swap also names both pieces: the one going back and the one asked for, with its size.
-- **Movements show when they last moved.** Each row now says when somebody last moved it on, next to the day it started. That's how you tell a waiting movement from a forgotten one.
-- **Replacements come only from pieces you can give.** The search for the arriving piece now offers only free pieces of the same inventory, owner and kind. Nothing held by a member, missing, or promised to another movement shows up.
-- **Names in the inventory lead to their gear.** The gear lists, the queue and the overview all link a member's name to their inventory. Several of them didn't before.
-- **Tags are simply called tags now.** The old German word for them is gone from the interface. The tag column only appears on an inventory where something actually has a tag.
-- **Register publicly without an e-mail address.** On a waiting list that sends no mail, the form no longer insists on an address. The registration reaches the station right away and waits to be accepted as before.
+- **What is outstanding with a member names the step it is on.** Beside a name on the attendance list and in the quick check, the button now carries the name of the step it walks, along with the piece it is about and the size written on it. Only what happens with the member in the room is shown, so a piece travelling between the station and the association no longer stands beside their name.
+- **Exported PDFs can leave the address of the installation off.** A switch in the station's settings drops it from the foot of every export, and the attendance export can differ from that for one document. Everything else the footer carries stays: the logo, the station's name, who made the document and which page it is.
+- **The inventory and item pickers are searched and walked with the keyboard.** Arrow keys walk the list, Enter takes the highlighted entry and Escape closes, so the usual case is a few letters and Enter. The picked entry is shown the same way as the list: picture, name, size and identifier.
+- **Every place that asks which member now asks the same way.** A member is chosen from one menu throughout the product: a face, the name in the colour their group gives it, and a search that is always there, in place of the dropdowns of several hundred lines that some screens still offered. Arrow keys walk the list, Enter takes the highlighted person and Escape closes, so the usual case is three letters and Enter.
+- **Choosing several members shows who is chosen.** Where a screen takes more than one person, each one appears as a removable chip above the search, folded away past five so a group of fifty stays a field rather than a wall.
+- **A movement says whose gear it is about, by name.** The queue, the movement page and the drawing of its chain name the station or the association that owns the piece, in place of the word "owner". The page also names both ends of a swap: the piece going back, and the piece asked for with its size, even before one has been picked.
+- **A movement records when it last moved.** Beside the day it started, a row says when somebody last took it a step further, which is what tells a movement that is waiting from one that has been forgotten.
+- **Picking a replacement only offers pieces that can be given.** The search on the step that asks which piece arrived is now limited to free pieces of the same inventory and the same owner: nothing on a member, nothing reported missing, nothing another movement has already promised, and nothing out of a different kind of gear.
+- **A name in the inventory leads to what that person is holding.** The lists of gear, the queue and the overview all link the member's name to their inventory, which several of them did not.
+- **Tags are called tags.** The word "Schlagwörter" is gone from the German interface, and the column of them appears on an inventory only where something in it wears one.
+- **A public registration can be made without an address.** On a waiting list that sends no mail the form no longer insists on an e-mail address, and the registration reaches the station at once, where it waits to be accepted as before.
 
 ### Changes
 
-- **Movements replace the exchange page.** Everything the exchange list did now lives on Inventory → Movements, for every kind of movement. The five old swap statuses are gone too, because a movement's step shows where the pieces really are.
-- **The exchange right becomes the movement right.** Everyone who had the old right keeps the new one, for stations and associations alike. Nothing has to be granted again.
-- **The inventory menu is regrouped.** Daily work is at the top, the checks sit together, and the settings pages share one heading. Lending has its own, and the pages themselves are unchanged.
+- **The exchange page is gone and movements stand in its place.** Everything the exchange list did is on Inventory → Movements, for every kind of movement rather than swaps alone. The five statuses a swap used to carry are gone with it: where a movement stands is the step it is on, which is read off where the pieces actually are.
+- **The right to work on exchanges is now the right to work on movements.** Anyone who held the old right keeps the new one, and station and association rights are renamed in the same way, so nothing has to be granted again.
+- **The inventory menu is regrouped.** The daily work stands at the top, the checks sit together, the settings pages (inventories, flows, requirements) sit under one heading, and lending has its own. The pages themselves are unchanged.
 
 ### Fixes
 
-- **Creating a member now offers guardians first.** The manager step promised existing managers but listed every member as unsearchable cards, which was unusable on a real station. It now opens on the guardians, with every other kind one filter away.
-- **Inventory columns line up with their headings again.** The tags column had a heading but no cells, so every value slid one column left and the holder showed up as a tag. The columns line up again, and a new tag shows without leaving the page.
+- **The manager step of member creation offered the whole station.** It promised existing managers and listed every member instead, as cards with no way to search them, which on a station of any size was unusable. It now opens on the guardians, with every other kind one filter away.
+- **A column of an inventory list showed the wrong thing under its heading.** The list of gear in an inventory had a heading for tags but no cell for them, so every value after it slid one column to the left and the person holding a piece appeared as its tag. The columns and the values line up again, and a tag added to a piece now shows without leaving the page.
 
 ## v26.15.2
 
 ### Fixes
 
-- **Switched inventories accept their own exchanges again.** After an inventory was switched between the station's own gear and the gear of the body above, exchanges could be refused, and pieces sent back outside Ember could linger as stock. Switching now updates the owner of every piece it holds except borrowed gear, and the upgrade tidies existing records and clears that dead stock.
+- **A switched inventory could refuse its own exchanges.** In an inventory switched between the station's own gear and the gear of the body above it after items were created, an exchange could be refused when the arriving piece was recorded, and a piece that had gone back to a body outside Ember could stay on the shelf as stock. Switching an inventory now rewrites the owner on the items it holds, borrowed gear excepted, a replacement is owned by whoever the inventory says it holds gear of, and the upgrade brings existing records into line and clears the dead stock those finished exchanges piled up.
 
 ## v26.15.1
 
 ### Improvements
 
-- **Missing answers show up after you sign in.** When an appointment gains a question after you registered, the page you see after signing in now lists it, for you and everyone you answer for. The button next to it opens the appointment, where you give the answer.
+- **The requirements page lists registrations short of an answer.** A registration owing an answer to a question its appointment gained later now stands on the post-login requirements page as well, for the reader and for everyone they answer for. The button beside it opens the appointment where the answer is given.
 
 ## v26.15.0
 
 ### New Features
 
-- **Report faults to a beacon.** A beacon is an Ember instance that others send their faults to, so you see whether thirty installations hit a fault or just one. You switch it on under Administration, it points at `https://ember-panel.de` by default, and while it's off nothing leaves your instance.
-- **Forward errors by hand or automatically.** Each entry in the error log has a send button, you can tick several at once, and one switch forwards new ones as they appear. You always see the exact contents first, since an error can quote an address or a name.
-- **A daily count of what your instance holds.** Once switched on, your instance reports daily how many accounts, stations, members and pieces of equipment it has. The counts travel as ranges like `10-50` with identifiers used for nothing else, so they say how much without saying whose.
-- **Run a beacon yourself.** Switched on, your instance collects what others report under Administration. Each fault shows how many installations met it and in which versions, you can write back to the sender, and the daily figures build a picture over time.
-- **Documents get their own rights.** Reading and editing documents can now be granted separately from the member list. Whoever keeps the test certificates gets the store without seeing the people, and documents about a member stay behind their own rights.
-- **The document store becomes a module.** A station that doesn't use it can switch it off. That hides the page and closes its addresses, just like the other modules.
-- **Paperwork that arrives by mail files itself.** Under `Manage → Mail import` you connect a mailbox once, name the senders you trust and the file types you want, and every matching attachment becomes a document. The message text is never read, stored or searched, only the sender, the subject and the files.
-- **A log of what became of every attachment.** Each attachment is listed with its outcome, from "filed" and "already there" to "sender not allowed" or "no room left". If a rule quietly files nothing, this is where you find out why.
-- **Documents show where they came from.** A document that arrived by mail shows the sender's address and the day it arrived. That replaces the uploader it never had.
+- **An instance can report to a beacon.** A beacon is an Ember instance that others report their faults to, so a fault thirty installations hit can be told apart from one that happened once. Switched on under Administration and pointed at `https://ember-panel.de` by default, and switched off nothing whatsoever leaves the instance.
+- **Errors are forwarded by hand or on their own.** In the error log each entry has a send button, several can be ticked and sent together, and one switch forwards each new one as it appears. Before anything is sent the exact contents are shown, because an error message quotes what failed and that is sometimes an address or a name.
+- **A daily count of how much an instance holds.** Switched on, an instance reports once a day how many accounts, stations, members and pieces of equipment it has. The counts travel as ranges such as `10-50` rather than exact numbers, and each station and instance carries an identifier used for this and nothing else, so the figures say how much without saying whose.
+- **An instance can be a beacon itself.** Switched on, it accepts what others report and gathers it under Administration, where a fault names how many installations met it and in which versions, forwarded reports can be answered by writing to the operator who sent them, and the daily figures build a picture over time.
+- **The document store has rights of its own.** Reading and editing documents can now be granted apart from the member list, so whoever keeps the station's test certificates can be given the store without being given sight of the people in it. The documents that name a member sit behind rights of their own again, so granting somebody the store does not hand them anybody's paperwork.
+- **The document store is a module.** It can be switched off for a station that does not use it, which hides the page and closes the addresses behind it, the way the other modules already work.
+- **Paperwork that arrives by mail files itself.** Under `Manage → Mail import` a station connects a mailbox once, says which senders it trusts and which kinds of file it wants, and every attachment that passes becomes a document by itself. The text of a message is never read, never stored and never searched: what is kept of a message is who sent it, what it was called, and the files that hung off it.
+- **A log that says what became of every attachment.** Each one that was looked at is listed with its answer: filed, already there, sender not allowed, no rule matched, wrong kind of file, too large, too small, no attachment, no room left. A rule that quietly files nothing is the likeliest thing to go wrong, and this is what answers it.
+- **A document says where it came from.** One that arrived by mail shows the address it came from and the day it arrived, in place of the uploader it never had.
 
 ### Improvements
 
-- **Move a movement onto the right flow.** A movement on a flow meant for someone else's gear walks steps that make no sense for its piece. Inventory managers can now switch it over from the movement's page and pick the step it continues on.
-- **Reset a flow to its prepared version.** An edited or outdated flow can go back to the prepared version. Movements under way move to the matching step, and where that isn't clear, the page asks you instead of guessing.
-- **Flows are drawn, not just listed.** Each flow now shows the piece's journey in columns for owner, post, station and member. Outgoing and arriving pieces get a line each, so you finally see both halves of an exchange.
-- **Moving an exchange on starts at the next step.** The step it would take anyway is already filled in, so usually one press does it. Later steps are still there for an exchange that skips one.
-- **Show just the station's own paperwork.** A switch on the documents page narrows the list to documents that belong to nobody in particular, like a test certificate or a service agreement. Before, they were mixed in with every member's documents.
+- **A movement can be put on the right flow.** A movement that set out on a flow meant for somebody else's gear walks steps that mean nothing for the piece it carries. Whoever manages the inventory can now move it across from the movement's own page and say which step it continues on, instead of forcing those steps through or cancelling it.
+- **A flow can be put back as it was prepared.** A flow that was edited, or one written before the prepared version changed, can be set back to it. Movements still under way are carried over to the step that means what theirs meant, and where that is not clear the page asks rather than guessing.
+- **A flow is drawn, not only listed.** Each flow now shows the journey the piece takes: a column for the owner, the post, the station and the member, with the outgoing piece on one line and the arriving one on another. An exchange moves two pieces in opposite directions at once, which a list of steps could not show.
+- **Moving an exchange on starts at the next step.** The step the exchange would take anyway is filled in, so the usual case is one press instead of picking the same answer every time. The later steps are still there for an exchange that skips one.
+- **The document page can show the station's own paperwork on its own.** A switch on the page narrows the list to the documents that belong to nobody in particular, which is what a test certificate or a service agreement is. Without it the station's own papers were mixed in among the documents of every member.
 
 ### Changes
 
-- **Each flow says what it is for.** The table that pointed every combination of owner, purpose and counterparty at a flow is gone. Each flow now carries that line itself, so a flow can no longer be pointed at the wrong case.
+- **The flows page says on each flow what it is for.** The table that pointed each combination of owner, purpose and counterparty at a flow is gone, and each flow now carries that line itself. There was exactly one flow per combination, so the choice it offered was one nobody wanted and one that let a flow written for one case be pointed at another.
 
 ### Fixes
 
-- **The station's own gear takes the right flow.** In an inventory holding both the station's gear and that of the body above, the station's own pieces followed the other flow, with steps like sending them away. The flow now follows the piece instead of the inventory.
-- **Labels on the exchange list line up when wrapping.** On a narrow screen, the second of two labels sat slightly indented under the first, with no space between them. They now line up properly.
-- **The error log is readable on a phone.** Messages were cut off at the screen's width, often after a single word, and only a hover revealed the rest. Messages now wrap onto the next line instead.
-- **Probing bots no longer flood the error log.** Instances on the internet get asked for files and admin pages of other software, and each refusal was logged as a fault. They are still refused, but no longer bury the faults worth reading.
-- **Empty error entries no longer offer to open.** Entries with a single message and no stack trace still showed an arrow and opened an empty panel. They don't invite a click anymore.
-- **Deleting a member now tidies up their documents.** Their documents stayed in the store, tied to nobody, where no one could reach or remove them. Deleting now follows the same rule as marking a member former: what was marked to keep stays, the rest goes.
-- **Mistyped addresses no longer send you to sign in.** Visitors who weren't signed in and followed a broken link landed on the sign-in page instead of being told the page doesn't exist. The "not found" page now stays put.
-- **Exchanges can always be moved on again.** When the step asking which piece arrived wasn't the last one, the screen had no field for that piece, so every attempt ended in an error. The field now appears whenever the exchange stands on that step.
+- **The station's own gear could take the wrong flow.** In an inventory that holds both the station's own gear and that of the body above it, a movement of the station's own piece followed the flow written for the other one, which asks for steps such as sending it away that gear never leaving the station cannot take. The flow now follows the piece rather than the inventory it sits in.
+- **Two labels on the exchange list did not line up when they wrapped.** On a narrow screen the second one sat slightly indented under the first, with nothing between them.
+- **The error log was unreadable on a phone.** Each entry cut its message off at the width of the screen, which on a phone left barely a word of it, and the full messages behind an entry were cut the same way with only a hover to reveal them, which a phone does not have. Messages now wrap where there is no room for them on one line.
+- **The error log filled up with strangers rattling the doors.** Any instance reachable from the internet is asked for credentials files and administration pages belonging to software it is not, and each of those refusals arrived as a fault of its own, burying the ones worth reading. Those addresses are now answered as before but no longer written down as faults.
+- **An error log entry offered to open when it had nothing inside.** Entries with no stacktrace and a single message still showed the arrow and answered a click with an empty panel. They no longer invite one.
+- **Deleting a member left their documents in the store.** They stayed bound to somebody who no longer existed, so nothing could reach them and nothing tidied them away; deletion now follows the same rule as marking a member former, keeping what was marked to keep and removing the rest.
+- **A mistyped address sent visitors to the login screen.** Somebody not signed in who followed a broken link, or typed an address wrong, was taken to the sign-in page with the bad address carried along instead of being told the page does not exist. The page that explains it now stays.
+- **An exchange could refuse every attempt to move it on.** Where the step asking which piece arrived comes before the last one, the screen offered no field to name that piece, so pressing on answered with an error about naming it and the exchange sat where it was. The screen now asks for the piece whenever the exchange is standing on the step that wants it, wherever in the chain that falls.
 
 ### Security
 
-- **Unlocking a device asks for proof every time.** Approving a device now asks for a fresh passkey, second factor or password, and each answer covers exactly one approval. Operators set how long it counts with `auth.twoFactor.localProofFreshnessSeconds`.
-- **A device let in by another can't let in a third.** Confirming on another device never satisfies the approval screen, and a session signed in that way can never approve anything. Without both rules, two devices could vouch for each other in a circle forever.
-- **Ending all sessions also stops pending approvals.** Up to ten minutes can pass between approving a device and that device picking up its access. Ending every session, changing your password or an administrator reset now cancels anything still waiting.
-- **Confirmations count only for what was shown.** The approving screen names the kind of action in Ember's own words, and the answer counts for that kind alone. Being talked into confirming something small never confirms something large.
-- **Every sign-in from another device is recorded and announced.** The record names the account, the device and who approved it, and outlives the request itself. You also get a mail saying a device was signed in and that nothing was stored on it.
-- **Calendar feed keys stay out of the statistics.** A personal calendar feed's address contains the key that opens it, and the endpoint statistics recorded it as is. That key is now replaced by a placeholder, just like numbers and identifiers already were.
-- **Nothing leaves your instance unasked.** Every beacon switch stays off until an operator turns it on under Administration. Forwarded reports carry no names, members, stations or query strings, only the operator's own contact so the beacon can write back.
-- **Mailbox passwords are encrypted, and only trusted senders file.** Mail import needs `storage.credentialEncryptionKey`, and without it a mailbox can't be saved. A rule accepts one address or one whole domain, never anything wider, and a rule without a sender accepts nothing.
-- **A mailbox can insist on signed mail.** Anyone can write any sender address, so a mailbox can be set to file only mail with a valid signature from that domain. It's off by default, because senders who don't sign would be refused along with the forgeries.
-- **File types are read from the file itself.** An attachment's type comes from its first bytes, not its name or the mail's claim, and a mismatch is refused. Operators can bound the feature with `mailImport.enabled`, `mailImport.minimumIntervalMinutes`, `mailImport.maxAttachmentsPerCycle`, `mailImport.timeoutSeconds` and `mailImport.logRetentionDays`.
+- **Unlocking a device now asks for a proof every time.** Approving a device used to pass on the strength of a confirmation given earlier in the session, so somebody who had confirmed something minutes before was never asked again. It now asks for a passkey, a factor or a password at the moment of approving, and that answer buys exactly one approval. Operators can set the window it counts for with `auth.twoFactor.localProofFreshnessSeconds`.
+- **A device that was let in by another one cannot let in a third.** Confirming on another device never satisfies the approval screen, and a session that was itself signed in this way may never approve anything, whatever it proves later. Without both rules two devices could vouch for each other in a circle and nobody would ever have to prove anything again.
+- **Ending every session also stops a grant that was already approved.** Up to ten minutes can pass between somebody approving a device and that device collecting what it was given. Revoking every session, changing the password and the administrator's reset now void anything still waiting, so the action somebody takes when they are worried is not the one it survives.
+- **A confirmation given on another device answers only what it was shown.** The approving screen names the kind of action being confirmed, in the product's own words rather than any the asking side supplied, and the answer counts for that kind alone. Somebody talked into confirming a small thing has not confirmed a large one at the same time.
+- **Every sign-in from another device is written down and its owner told.** The record names the account that was signed in, the device and the person who approved it, and outlives the short-lived request itself. A mail goes to the account saying a device was signed in, which says plainly that nothing was stored on it.
+- **A feed address no longer leaves its key in the statistics.** The address of a personal calendar feed carries the token that opens it, and the endpoint statistics recorded addresses as they were requested, so every subscriber's key was written down and every subscription counted as an endpoint of its own. Such a token is now replaced by a placeholder, the way a number or an identifier already was.
+- **Nothing leaves an instance unasked.** Every beacon switch is off until an operator sets it under Administration, forwarded reports carry no name, no member and no station and their page addresses travel without query strings, and the contact that travels with a report is the operator's own so that a beacon can write back without anybody's members being named.
+- **A mailbox password is never kept in the clear, and only trusted senders may file anything.** Mail import needs `storage.credentialEncryptionKey` set: without it the page refuses to save a mailbox rather than storing the password anyway. A rule accepts one address, or every address at one domain, and nothing wider can be written, so no rule can be made to take files from anybody who asks. A rule naming no sender accepts nothing.
+- **A mailbox can demand that mail be signed.** The address a message says it comes from is written by whoever sent it, so a mailbox can be set to file only messages carrying a valid signature of that same domain. It is off unless a station turns it on, because correspondents who do not sign their mail would otherwise be refused along with the forgeries.
+- **What a file is, is read from the file.** The kind of an attachment is decided by its first bytes and not by its name or by what the mail claims, and one whose name contradicts its contents is refused. Operators can bound the whole feature with `mailImport.enabled`, `mailImport.minimumIntervalMinutes`, `mailImport.maxAttachmentsPerCycle`, `mailImport.timeoutSeconds` and `mailImport.logRetentionDays`.
 
 ## v26.14.4
 
 ### Improvements
 
-- **Assign members from the guardian's own page.** A guardian's page used to list their members without letting you add any. Now you can link them from either side, and naming a guardian on a member's page works as before.
-- **Two more ready-made sets of member fields.** The member settings now offer a first aid course, with its date and hours. There is also the portable pump operator qualification with its date.
+- **A guardian can be given members to look after from their own page.** Their page used to list them and offer nothing, so the link could only be made from each member in turn. It is the same link either way round, and naming a guardian on a member's page still works as before.
+- **Two more ready-made sets of member fields.** The member settings offer a first aid course, with the date it was taken and the hours it ran to, and the portable pump operator qualification with its date, beside the sets that were already there.
 
 ### Changes
 
-- **Both member pages handle guardians the same way.** The guardians tab in the member editor had its own layout and name. It now looks and reads like the one on the member's page, naming the people instead of the pairing.
+- **Both member pages ask about guardians the same way.** The tab for it while editing a member carried its own layout and its own name; it now looks and reads like the one on the member's own page, which names the people rather than the pairing.
 
 ## v26.14.3
 
 ### Improvements
 
-- **Giving back a place is now recorded.** Someone who gives back a confirmed place now shows as withdrawn, next to those who were turned down, instead of vanishing from the list. A registration still waiting for an answer is removed as before, since no place was given yet.
-- **Confirmed places are withdrawn, not declined.** Once you're confirmed, answering no records a withdrawal. The list keeps apart those who never had a place and those who gave one up.
-- **Registrations show when they were made.** The date next to someone on the registration list is now when they signed up or said no. Before, it showed the appointment's date, the same for everybody.
-- **Registration notices name the member.** The notice on the dashboard and in the feed now says who signed up or gave their place back. Organisers used to see only the appointment and the new answer.
-- **Attach several files to a ticket at once.** The attachment picker on a ticket now takes more than one file at a time. It used to take a single file each time you opened it.
+- **A place given back is written down.** Somebody who takes back a place an appointment had confirmed is now recorded as having withdrawn, beside those who were turned down, instead of disappearing from the list as though they had never signed up. A registration still waiting on an answer is removed as before, since nothing had been given away.
+- **A confirmed place can only be taken back, not declined.** Once an appointment has confirmed somebody, answering no records a withdrawal rather than a declination, so the list keeps apart the people who never had a place and the people who gave one up.
+- **A registration says when it was made.** The date beside somebody on an appointment's registration list is now the moment they signed up or said no, not the day the appointment runs, which was the same for everybody on the list and told the reader nothing.
+- **A registration notice names the member.** The notice on the dashboard and in the feed says who signed up or gave their place back. Whoever runs an appointment was told only its name and the new answer, which for a station of forty people did not say whose answer it was.
+- **A ticket takes several attachments at once.** The attachment picker on a ticket accepts more than one file per go and adds all of them in one step. It used to take a single file each time it was opened.
 
 ### Fixes
 
-- **Missing pages now show Ember's own error page.** A mistyped or outdated link ended on a bare page without Ember's navigation. Missing addresses and other errors now get Ember's own page, with the usual header, footer and a way back to the start.
-- **The file picker works for board-only members.** Members who only work on boards got a permissions error when adding a picture to a ticket, and saw not even their own files. The picker now asks only for what they may read, so it opens with their files in it.
-- **Withdrawals no longer show untranslated text.** The dashboard notice about someone giving back their place printed an internal word instead of a German one. It now shows a proper translation.
+- **An address that does not exist showed a bare error page.** A mistyped or outdated link ended on a plain page carrying none of Ember's own navigation. Ember now answers a missing address, and any other error, with its own page, keeping the usual header and footer and offering a way back to the start.
+- **The file picker turned away a member who only works on boards.** Opening it to put a picture on a ticket answered with an error naming permissions for pages, news and the wiki, and the picker stayed empty even of the files that member had uploaded themselves. It now asks only for what the member may read, so it opens and their files are in it.
+- **A withdrawal showed as untranslated text on the dashboard.** The notice about somebody taking their place back had no German word for that state and printed an internal one instead.
 
 ## v26.14.2
 
 ### New Features
 
-- **Give an attendance sheet its own worth.** When hours stand in for pay, the clock isn't always what's owed, so a sheet can carry its own figure. A weekend from Friday evening to Sunday afternoon can count as sixteen hours instead of forty-six, and partial attendance counts its share.
-- **Record a sheet over several days.** Choosing a template now asks when the sheet runs, with a date on both ends, prefilled from now and the template's last length. You can finally record a camp or a weekend duty without an appointment behind it.
+- **An attendance sheet can say what being there is worth.** Where hours stand in for something that is paid, the clock is not always the number that is owed, so a sheet takes a figure of its own: a weekend that runs from Friday evening to Sunday afternoon counts as sixteen hours rather than forty-six. The times on the sheet stay what they were, and somebody who was there for part of it counts their share.
+- **A sheet can be recorded over several days.** Choosing a template now asks when the sheet runs, with both ends carrying their date and prefilled from the current time and the length that template last ran for. A camp or a weekend duty can be written down without an appointment behind it, which was not possible before.
 
 ### Improvements
 
-- **Sheets own their start and end times.** You can correct both on any sheet, even one opened from an appointment. Where they differ, the appointment's times show alongside, ready to take back with one click.
-- **Multi-day sheets show the day beside every time.** Arrivals and departures carry their day in the sheet, its export and the report. The report also names both days of the sheet.
-- **Appointments can't end before they begin.** The editor points it out next to the end, and such an appointment is refused. Running past midnight or over several days still works, because that's what a camp is.
+- **The times of a sheet belong to the sheet.** Beginning and end can be corrected on any sheet, including one an appointment opened, and where they no longer match the appointment its own times are shown beside them and can be taken back with one click. Until now a sheet made from an appointment could not be moved by so much as a minute.
+- **A sheet over several days shows the day beside every time.** Arrival and departure, in the sheet, in its exported document and in the report, carry the day they happened on, and the report names both days of the sheet.
+- **An appointment cannot end before it begins.** The editor says so beside the end, and an appointment sent that way is refused. Running past midnight or over several days is still allowed, because that is what a camp is.
 
 ### Changes
 
-- **New releases are checked for hourly.** Your instance used to ask every six hours, so a release could go unnoticed for most of a day. `updates.checkIntervalHours` still sets any span between an hour and a week.
+- **An instance asks about a new release once an hour.** It used to ask every six hours, so a release could sit unnoticed for most of a day. One request an hour is far below what the interface allows an instance that identifies itself to nobody, and `updates.checkIntervalHours` still sets any span between an hour and a week.
 
 ### Fixes
 
-- **Times on older sheets stay on their day.** Entering an arrival or departure on an earlier sheet put it on today, so the hours came out as zero or several days. The time now belongs to the sheet's own day.
-- **Correcting an older sheet no longer moves it.** A corrected start or end landed on today, dragging the sheet along, sometimes into another month of the report. Both ends now keep their date and stay put.
-- **Sheets from repeating appointments get the right date.** Such a sheet took the day the series was first set up, so it counted in a long-gone month. It now runs on the day it is opened for, with the appointment's time and length.
-- **Sheets from templates now have a length.** They began and ended the moment they were opened, so everyone counted zero hours unless times were typed by hand. Opening one now asks when it runs.
+- **An arrival written on an older sheet landed on today.** Typing when somebody came or went on a sheet from an earlier day put that moment on the current date, so the hours counted from it came out as nothing at all or as several days. The time now belongs to the day its sheet runs on.
+- **Correcting the beginning or end of an older sheet moved the sheet itself.** The corrected time was placed on the current day, which carried the whole sheet with it and could move it into another month of the report. Both ends are now written with their date and stay where they are.
+- **A sheet opened from a repeating appointment carried the wrong date.** It took the appointment's stored date, which is the day somebody first set the series up, so the sheet was opened for an evening long past and counted in that month of the report. A sheet now runs on the day it is opened for, keeping the appointment's time of day and its length.
+- **A sheet opened from a template had no length.** It began and ended at the moment it was opened, so everybody on it counted zero hours unless each of their times was written down by hand. The sheet is now asked when it runs.
 
 ## v26.14.1
 
 ### New Features
 
-- **Appointments ask for missing answers.** When a question is added after you signed up, you and whoever answers for you are told once, and the registration is marked on the dashboard and the organiser's list. You can answer on the appointment's page, even after registration has closed.
+- **An appointment asks for an answer that is still missing.** A question added to an appointment after somebody has signed up leaves their registration short of an answer: they and whoever answers for them are told once, the registration is marked on the dashboard and in the organiser's list, and the appointment's page says beside their answer that one is wanted. It can be given there even after registration has closed, because the question is younger than the deadline.
 
 ### Improvements
 
-- **Every question uses the same answer field.** Dates open a calendar, times a clock, long answers get several lines, and member questions a searchable picker. This now works the same on the profile, attendance sheet, appointment, waiting list and equipment fields.
-- **Answer choices get one line each.** Wherever a question offers choices, you now add, reorder and remove them in a list instead of one text box. It's the same list on appointments, attendance sheets, member settings, surveys, quizzes and equipment fields.
-- **Correct your answers from the appointment.** A button next to your answer opens the questions again, for you and whoever answers for you. Before, only the organiser could fix a wrong answer.
-- **Member pages show whom they look after.** For someone who looks after others, the guardians tab now reads Managed Members and lists them, each linking to their page. It used to ask a question that didn't apply to them.
+- **Every question is answered in the same box.** A date opens a calendar, a time offers a clock, a long answer gets room for several lines and a question naming members offers a searchable picker, on the member profile, the attendance sheet, an appointment, the waiting list and the equipment fields alike. Until now each of those screens drew its own box, and some of them were missing the control the question called for.
+- **The choices of a question are written one to a line of their own.** Everywhere a question offers a set of answers, they are now typed into a list that can be added to, reordered and thinned out, instead of one box of text pulled apart afterwards. It is the same list on an appointment, on an attendance sheet, in the member settings, on a survey question, on a quiz question and on an equipment field, each keeping what it carries beside an answer.
+- **Answers to an appointment's questions can be corrected from the appointment itself.** Beside the answer already given stands a button that opens the questions again, for the member and for whoever answers for them. Until now a wrong answer could only be put right by whoever runs the appointment.
+- **A member's page says whom they look after.** For somebody who looks after other members, the tab that asked after guardians reads Managed Members and lists them, each opening their own page. It used to ask a question that had no answer for them, and said nothing about the people they actually manage.
 
 ### Changes
 
-- **Answers must fit their question everywhere.** A date field takes a date, a choice one of its options, and a number stays in its printed range, on every screen that asks questions. Only what a save changes is checked, so older answers stay exactly as they are.
-- **Organiser-only questions are now asked at sign-up.** That setting used to hide the question from the sign-up form too, so the person who could answer never saw it. The answers stay readable only to the organisers and the household they concern.
+- **Answers are measured against the question they answer, everywhere.** A date field takes a date, a choice takes one of the choices written down, and a number stays inside the range printed beside it, on the member profile, the attendance sheet, the waiting list, the equipment fields and the appointment questions alike. Only what a save actually changes is measured, so an answer stored before this is left exactly where it is.
+- **A question whose answer only organisers may read is now asked of whoever registers.** The setting says who may read the answer, and it used to keep the question out of the sign-up form as well, so the one person who could answer it never saw it. The answers stay unreadable to everybody but the organisers and the household they are about.
 
 ### Fixes
 
-- **Attendance fields offer more than one choice again.** The settings asked for a comma-separated list but saved by line, so "A, B, C" became one single choice. Choices now go one per line, and existing fields keep theirs.
-- **Default values are checked where you set them.** A choice could get a default outside its options, or a number outside its range, and someone else got the error later. Such a value is now picked from the choices and refused right where it is set.
-- **Appointment fields only take answers they offer.** A field offering red or blue accepted yellow, and a date field accepted a word, and both spread into every list and export. Appointment fields now check what goes into them.
-- **Editing appointment questions keeps the answers.** Moving, adding or correcting a question rewrote the whole set, and every registration lost its answers. A question that keeps its name now keeps its answers too.
-- **No more empty answer boxes on appointments.** When nobody in the household had answered and registration had closed, an empty block sat there with nothing to press. It's now left out when there's nothing to show or give.
-- **Attendance checks name only swaps you can settle.** Next to a name stood every running swap, even ones with the piece on the shelf or in the post. Now only swaps where the member holds the piece, or is about to receive one, are named.
-- **Sheets from appointments include the named people.** People named in an appointment's answers, for a field that adds them to attendance, only appeared once someone filled the sheet from the appointment. They are now marked present as soon as the sheet opens.
-- **Trial evenings on waiting lists count correctly.** The count only rose when someone pressed present by hand, and removing a mark didn't lower it. It now reads straight from the attendance sheets.
-- **Tabs scroll on narrow screens.** On a phone, page tabs squeezed together until labels overlapped and the last ones were out of reach. The row now scrolls sideways.
-- **The storage overview names every file type.** The media library, member documents, inventory receipts and station logos showed as internal codes in the same grey. They now have proper names and colours, and the media library's quota is labelled for what it limits.
+- **An attendance field could only ever offer one choice.** Its settings asked for a comma-separated list and the field took a single line, while what was saved was split on line breaks, so "A, B, C" became one choice called "A, B, C" and a second one could not be typed at all. The choices are written one per line of their own now, and an existing field keeps the choices it has.
+- **A starting value the question would refuse could be set on it.** A choice could be given a starting value that is not one of its choices and a number one outside its range, and the refusal came later, at somebody else's screen, in words about an answer they had not given. Such a value is now picked from the choices themselves and refused where it is set, on an appointment's questions, its own fields, the templates behind both, and what an appointment fills an attendance sheet with.
+- **An appointment could carry an answer its own field does not offer.** A field of an appointment offering red or blue took yellow, and a date field took a word that is not a date, and both travelled on into every list and export. What stands in a field of an appointment is measured against that field.
+- **Saving the questions of an appointment threw away every answer already given.** Moving a question, adding one or correcting a spelling rewrote the whole set, and every registration lost what it had answered. A question that comes back under the name it had now keeps its answers.
+- **An appointment showed an empty answer box.** Where nobody in the household had answered and registration had closed, the block for the answer stood there with nothing in it and nothing to press. It is left out where there is neither an answer to show nor one that can still be given.
+- **An attendance check named swaps the member could do nothing about.** Beside a name stood every swap that member had running, including the ones whose piece is on the station's shelf or in the post, which nobody standing in the hall can settle. Only a swap the member is holding the piece of, or one whose next step puts a piece into their hands, is named now.
+- **A sheet opened from an appointment left out the people its answers named.** Where an appointment answered a question tied to a field that adds the people it names to the attendance automatically, they reached the sheet only once somebody pressed the button that fills it in from the appointment. They are written down as present the moment the sheet is opened.
+- **The trial evenings on a waiting list were counted short.** The number went up only when somebody pressed present on a sheet by hand, so an evening recorded any other way never counted, and taking a mark back left the number standing. It is now read off the attendance sheets themselves, and says what they say.
+- **A row of tabs was unusable on a narrow screen.** On a phone the tabs of a page were squeezed together until their labels ran into each other and the ones at the end could not be reached at all. The row now scrolls sideways instead.
+- **The storage overview named several kinds of file by a code.** The media library, member documents, inventory receipts and station logos were listed under an internal code and drawn in the same grey as each other, so the breakdown could not be read. They are named and given a colour of their own now, and the quota for the media library is labelled for what it actually limits rather than for pages.
 
 ## v26.14.0
 
 ### New Features
 
-- **Attendance shows what is still open per person.** Next to each name you now see that member's running swap, a found item waiting for them, or a birthday in the last six days. If you hold the rights, you can move the swap on or hand over the found item right there, and anyone who only ticks names sees the list as before.
-- **The footer tells you about new versions.** Station administrators see the new version number and a link, so no instance gets stuck on an old release. The check runs every few hours in the background, and `updates.enabled`, `updates.checkIntervalHours` and `updates.repository` let operators switch it off or tune it.
-- **Attendance sheets close once the evening is old.** After seven days, or whatever span the operator sets, a sheet takes no more changes. Whoever manages attendance can reopen it or close it early, so a late correction is a deliberate choice.
-- **Connect two instances with a single code.** An invite code knows the instance that made it, so entering it sets up the connection on both sides. Each code works once, and if the instances cannot reach each other or do not fit together, the dialog tells you which.
-- **Appointments say which equipment they need.** Next to a date's sign-ups you list the gear it takes, by piece, by kind or by count, and Ember checks it against what your station really has. A weekly date is planned once for every evening, and each line says how many hours before and after the gear is away.
-- **Borrow what a date is short of from partners.** A button on a missing line shows what partner stations offer, counted by kind, and lets you build one list across several of them. Everything is counted again just before sending, and the button says how many requests go out or why it cannot send.
-- **Turn the people coming into a list.** From an appointment's sign-ups you can make a checklist or a survey for exactly the people booked on that evening. The dialog tells you how many come across, and anyone signing up later is added by hand.
-- **Every piece in a mixed drawer has a kind.** In an inventory of blue radios, green radios and a charger, each piece can carry a kind next to its name, so "the blue ones" can be counted and requested. A tidying screen under Inventory lists the names in use with counts, and merging two spellings fixes them everywhere.
-- **Tie a checklist to one evening of an appointment.** Instead of roles, groups or names, a list can point at an appointment and a date, and Refresh brings in everyone who booked since. People who cancel keep their row, marked as no longer belonging, and you can change what a list is made of later.
-- **You decide what partner stations may borrow.** Offer a whole inventory, one kind in it or a single piece, to every partner or only named ones, and the narrower choice wins. Gear that belongs to the body above your station is never offered, and Inventory, Lending shows everything you offer and keep.
-- **Members check their own equipment from home.** Members go through their recorded gear piece by piece: still have it, no longer fits, broken, missing, or something nobody wrote down, with real sizes picked from a list. Guardians answer for those in their care, and the station reviews each line before the result becomes a proper check signed with both names.
-- **Waiting list invitations name a real evening.** An invitation now picks an upcoming appointment and date, adds an arrival time and goes out as a proper mail, without putting anyone on the roster. People answer from the link without signing in, and you see their answer next to their entry.
-- **Mark several wiki entries and act at once.** A folder now has a marking mode with a box per entry, and shift marks a whole range. You can move the selection, change tags or send it to the trash, and Ember tells you afterwards which entries had to stay and why.
-- **Deleted wiki entries wait in a trash.** A deleted folder or article goes to a trash first, and anyone allowed to delete it can bring it back with its references, tags and history. The trash shows the storage it still takes and can be emptied, and it clears itself after `trashRetentionDays`, thirty days by default.
+- **An attendance says what is still open with the person standing in front of you.** Beside a name, on the list and in the quick check alike, stands what that member still has running: a swap and what it is waiting on, a found item of theirs waiting to be collected, and a birthday in the last six days, said as today, yesterday or the number of days. Two of them can be dealt with on the spot, moving a swap a step on, which where the replacement is ready is the handover itself, and signing a found item over; everything is shown and offered only to somebody who holds the rights that part of Ember asks of them anyway, so whoever only ticks names off sees the list exactly as before.
+- **The footer says when a newer version has been released.** Whoever administers a station is shown the new version number and a link to it, so an instance no longer sits on an old release because nobody was watching for one. The check runs on its own every few hours and never while a page is loading, so a slow or unreachable answer costs nobody anything; `updates.enabled` switches it off entirely for an installation with no outbound access, and `updates.checkIntervalHours` and `updates.repository` set how often it asks and which repository it asks about.
+- **An attendance sheet closes once its evening is old.** After a configurable span, seven days unless an operator says otherwise, a sheet stops taking changes: no statuses, no times, no fields, and no new names. Whoever manages attendance can reopen one for the same span again or close it before its time, so a late correction is still possible and is a decision somebody makes rather than something anybody can do for months.
+- **Two instances can now be connected with a code.** An invite code carries the address of the instance that made it, so entering one that came from somewhere else reaches that instance, redeems the code there, and puts the connection in place on both sides. A code works exactly once, and where the two instances cannot reach each other or run federation versions that do not fit together, the dialog says which of those it is.
+- **An appointment says what it needs, and the panel answers for that evening.** Beside the sign-ups of a date there is now a list of the equipment it takes: a named piece, four of one kind, or a count out of an inventory, each found by typing part of its name and set against how many pieces the station actually has, so asking for more than there are is said where it is typed rather than discovered on the Saturday; it stands where the station runs an inventory and the reader may read it, and anything it could not read or write says why rather than reading as a date that needs nothing. A weekly date is written once and holds for every evening it produces, and each line carries how many hours before and after the date the gear is actually away, because the radios are fetched the evening before and come back on the Monday.
+- **What a date is short of is collected from the partner stations.** Where a line still misses something, a button leads to a screen that shows what the partners offer, counted by kind of thing rather than by drawer, and lets a list be put together across several of them. Nothing is held while the list grows: what it asks for is counted again just before it goes out, what has moved is shown rather than quietly dropped, and the send button says how many requests it will make, one per station, or why it cannot send at all.
+- **Lists made out of who is coming.** The sign-ups of an appointment carry a menu that turns the people holding a place on that one evening into a checklist to tick off, or into a survey addressed to exactly them. The set is taken as it stands, so the dialog says how many people come across, who cannot be carried over, and that anybody signing up later is added by hand.
+- **A drawer of different things says what kind each piece is.** An inventory holding six blue radios, five green ones and a charging station can give every piece an Art beside its name, which leaves "Pager 01" reading as "Pager 01" while making "the blue ones" something that can be counted and asked for; an empty Art is perfectly normal and most pieces will have none. A tidying screen under Inventory lists the names actually written on the pieces with a count each, which is where one word spelled two ways shows itself, and bringing them together writes the chosen name onto those pieces so the misspelling leaves every list and export as well.
+- **A checklist can be tied to one evening of an appointment.** Instead of describing who belongs on it by role, group or name, a list can now name an appointment and a date, and Refresh brings in everybody who has taken a place since. Somebody who cancels keeps their row and is marked as no longer belonging, so nothing already ticked off is lost, and what a list is made of can now be changed after it exists.
+- **A station decides what it offers its partner stations.** An inventory, one kind of thing in it, or a single piece can now be put on offer, to every partner station or only to named ones, and the narrower decision wins, so the drawer goes out while the good radios stay. The switch stands on the inventory itself, in the list under Inventory and on the inventory's own page, each saying what it is offered as; an inventory holding only gear of the body above the station offers none, because a station cannot lend what is not its own. One screen under Inventory, Lending lists everything the station currently offers and everything it keeps.
+- **Members can answer for their own equipment from home.** Whoever looks after the equipment can ask members to go through what is recorded against their name and say, piece by piece, whether they still have it, whether it no longer fits, whether it is broken, whether it has gone missing, or whether they are holding something nobody wrote down; where that kind of gear comes in sizes the real size is picked from a box rather than written into a sentence, both for a piece nobody wrote down and for one the record has at the wrong size, so a shirt written down as 128 that is really a 134 is put right as a size and not as a note somebody has to read, both "no longer fits" and "is broken" raise the same swap saying which of the two it was and letting a broken piece come back in the same size, a report of a missing piece and a swap both take effect at once except on a line where the size is being put right, where the line says so and the report goes out once the station has taken the correction, so that it carries the size the member actually holds rather than the one they have just corrected, a guardian answers for anybody in their care, and the answers can be saved and finished later. The submission goes back to the station, where it is read line by line and either taken, put right where the record was wrong, or sent back with a reason, and approving the last line writes a real check carrying both names, the person who reported it and the person who signed it off.
+- **An invitation from the waiting list names an evening and can be answered.** Inviting somebody now picks one appointment and date out of what is coming up, adds a time to be there, and sends a proper invitation carrying all of it, without putting anybody on the attendee list or on the roster. They answer from the link in that mail without signing in, with "I am coming", "the date does not suit" or "not interested", and the answer shows beside their entry where the waiting list is already being read.
+- **Several wiki entries can be marked and handled together.** A folder being browsed now offers a marking mode: every entry gets a box, holding shift marks a whole stretch, and folders and files can be marked side by side. The bar that appears moves the whole selection into one folder, adds and removes tags across it, or puts all of it in the trash after saying how many entries that really is with folder contents counted, and it names afterwards which entries had to stay behind and why.
+- **Deleted wiki entries wait in a trash.** Deleting a folder or an article no longer takes it away at once: it goes to a trash reached from the bin above the listing, where anyone who was allowed to delete it can put it back with everything that went down with it, references, tags and version history included. The header says how much storage the trash is still holding and offers to empty it, because those files are still on disk and still count against the station's room, and what waits there is cleared out for good after `trashRetentionDays`, thirty days unless the operator sets otherwise.
 
 ### Improvements
 
-- **Date columns filter by year, month and day.** Instead of one checkbox per date, the filter offers years and months that open down to the day. You can also set a range, in the member list and the inventory tables alike.
-- **Birth dates show the age and filter by it.** Birth date columns now show the current age next to the date. The filter can bound the current age or the age at the end of this year.
-- **Step back one piece in a quick check.** A wrong tap during an equipment check used to stick until you closed and reopened the whole check. Now one step back returns to the last piece and clears what you said about it.
-- **Set setup link lifetimes in the browser.** How long a setup link stays valid used to live only in the server's config file. You now find it under Settings, Security, Tokens, from one to thirty days.
-- **Add members now, invite them later.** Adding a member always sent the setup mail at once, which is wrong for a year group entered before term starts. Single entry, batch entry and spreadsheet import can now hold the mail back, and the member list sends it with a fresh link when you are ready.
-- **The member list shows expired setup links.** A member never written to and one whose link expired looked the same. An expired link now has its own symbol and label, and the resend button turns red.
-- **Borrowed gear counts towards an appointment's needs.** Fourteen needed, ten your own and four borrowed now reads as covered, not as a shortfall. If two dates plan the same trailer for one weekend, Ember shows the clash and names the other date.
-- **Partner offers are counted by kind.** A partner's offer used to show one number per drawer, which said little for a drawer of radios, chargers and cases. It now shows a row per kind, so you can ask for exactly four blue ones.
-- **Requests say which date they are for.** A lending request now carries the name of the date it was collected for. Nothing else about the appointment travels with it.
-- **Inventories are either uniform or a collection.** Requirements, procurements and exchanges only make sense for many copies of one thing, so they no longer show up on a drawer of odds and ends. Every inventory starts as uniform, and nothing changes until you mark one as a collection.
-- **See at a glance how much of a size is free.** The size table now draws a thin strip under each size, split into free, held by members, and on loan or missing. The counts are written in its label too, so you do not need to tell the colours apart.
-- **Announce an appointment from its own page.** The menu next to a date opens the news editor with a ready draft, so you never type a weekly date out twice. If only some members may see the appointment, only they can read the entry.
-- **Split an inventory and keep the history.** You can now move pieces into another inventory of your station, with their number, holder and history intact. Before, you had to delete and re-enter them and lose all of that.
-- **Custom fields for one kind or one piece.** A field used to apply to a whole inventory, and a call sign makes no sense on a charger. A field can now belong to one kind or one piece, with values still kept per piece.
-- **Start a procedure from who is coming.** The sign-ups menu can now prepare one shared procedure for everyone booked on that evening, with steps from a template and the evening as due date. It links back to the appointment, and pressing the entry again opens the existing one.
-- **Borrowed equipment lives in your inventory.** Gear a partner lends you appears under Inventory as soon as the handover is recorded, on its own shelf. You can put it in a container, hand it out and check it, and it disappears again once returned.
-- **Lent-out gear names the partner holding it.** Equipment on loan only said it was with a partner, so you had to open the request to find out which. The partner's name now sits on the equipment itself.
-- **Give equipment keywords across inventories.** A radio, its charger and an antenna stored elsewhere can now share one keyword. You pick keywords from those your station already uses, and the stock list gains a column to filter by them.
-- **Keywords find gear at partner stations too.** A keyword search now also asks every partner that lends to you, regardless of capital letters, and each station keeps its own spelling. An association can recommend keywords, which sit beside your own and never replace them.
-- **Take attendance questions straight into an appointment.** When an appointment names a sheet, the sheet's fields are offered above the appointment's questions, one at a time or all at once. They stay linked, so answers land on the sheet, and the appointment templates offer the same.
-- **Filter and sort exchange requests.** The list now has a member search plus filters for inventory and status, and it opens on the requests still running. You can sort by member, inventory, status or date, and the export takes exactly the filtered rows.
-- **Partner requests keep the days you searched.** The free count next to a partner's inventory depends on the days you asked about. The request form now starts with those days and counts again when you change them.
-- **Empty partner searches explain themselves.** The screen looked the same whether no partner shares anything or everything shared is booked. It now tells you which, without naming inventories a partner keeps back.
-- **Take back a claim on a found item.** A claim made by mistake used to stick until someone deleted the entry. You can now release your own claims and those for people in your care, and the lost and found team can release any.
-- **Claim a found item for someone in your care.** A parent picking up a glove for their child had to claim it in their own name. The dialog now asks who it is for and records that name.
-- **Add a picture to a find later.** An entry reported without a photo could never get one. Anyone who may report a find can now add a picture to it.
-- **Move wiki folders and articles.** The menu next to an entry now offers Move, to any folder at any level, and a folder takes its contents along. Links to a moved article keep working.
-- **Moves tell you who will see the entry.** The target folder decides who can read an entry, so the dialog shows its reach now and after the move. A move that would clash with a name, go into itself or share further than allowed is refused with the reason.
-- **Deleting a wiki article names the pages using it.** Public pages can show a wiki article, and deleting it used to leave a placeholder there unnoticed. The dialog now lists those pages first and warns more clearly if one is published.
-- **Wiki articles show what links to them.** Below an article's further reading, a second list now shows the articles that link to it. Pages you may not open are left out.
-- **Further reading searches the whole wiki.** The picker used to offer only top-level articles, matched by title and description. It now searches every article including its text and shows its folder, so same-named articles are easy to tell apart.
-- **Comment notices open on the comment.** A reply or mention used to land at the top of the page, leaving you to hunt through the thread. It now scrolls to the comment and highlights it, or tells you if it is gone.
+- **Date columns filter by year, month and day.** Instead of one checkbox per single date, a date column's filter offers whole years and months, expandable down to the day, plus a range where "from" includes the chosen day and "before" excludes it. This holds for the member list and the inventory tables alike.
+- **A birth date shows the age and can filter by it.** Birth date columns carry the current age beside the date, and their filter can also bound the current age and the calendar age, the age on December 31 of the running year: "at least" includes the value, "below" excludes it.
+- **A quick check can step back to the piece before.** A wrong tap on the walk through somebody's equipment used to stand until the whole check was closed and reopened from the list behind it. One step back is now offered, which puts the walk on the piece it just left and takes off what was said about it.
+- **How long a setup link lasts is set in the browser.** The time somebody has to follow the link in their setup mail could only be changed in the file on the server. It now sits under Settings, Security, Tokens with the other lifetimes, between one and thirty days.
+- **Entering somebody and telling them about it can now happen on different days.** Writing a member down always sent the mail with the setup link at once, which is wrong for a whole year group written in before the term starts. Entering one member, entering a batch and reading a list out of a spreadsheet each now offer to hold that mail back, still sending it at once unless somebody says otherwise, and the button in the member list sends it when the station is ready, making a fresh link at that moment.
+- **The member list says when a setup link has run out.** A member who had never been written to and one whose link expired weeks ago looked exactly alike, so nobody knew which of them was waiting on a mail that no longer works. An expired link is now marked with its own symbol and the words beside the name, and the button that sends the mail again turns red.
+- **A line of an appointment counts borrowed equipment towards itself.** Fourteen needed, ten of our own, four borrowed from a partner and nothing outstanding is one answer rather than two, so a list stops reporting a shortfall that was settled a week ago. Two dates that both plan the same trailer for the same weekend are not stopped from writing it down: the shortage is shown with the other date named, which is what makes it something anybody can act on beforehand.
+- **A partner's offer is counted by kind of thing.** Browsing what a partner lends used to answer with one number per drawer, which for a drawer holding radios, a charger and a case said nothing useful. It now answers a row per kind, so asking for four blue ones is a request that can be filled with four blue ones.
+- **A request tells the asked station what it is for.** Alongside the dates it now carries the name of the date it was collected for, which is the thing that decides a yes. Nothing else about the appointment travels: not the sign-ups, not the questions, not the description.
+- **An inventory says whether it holds one thing or many different ones.** Requirements, procurements and exchanges only mean something for a shelf of the same thing in many copies, and they were offered just as readily on a drawer of odds and ends, where "everybody needs one" and "order three more" say nothing at all. The two are called uniform and collection wherever they are named, every inventory starts as a uniform one, so nothing changes until a station marks a drawer as a drawer, and the three then stop offering themselves for it.
+- **A size says at a glance how much of it is still free.** The table by size under an inventory now draws a thin strip beneath each size, splitting that size's stock into what is free, what members are holding, and what is out on loan or missing. The three counts stand in the strip's own label as well, so it reads without telling the colours apart, and a size nothing is kept in draws nothing rather than reading as full or as empty.
+- **An appointment can be announced from its own page.** The menu beside a date opens the news editor on a finished draft: the appointment's name, the evening being announced and the details it shows at a glance, so a weekly date stops being typed out again in a second screen. An appointment only some members may know about produces an entry only those members can read, which reaches neither partner stations nor the public page until somebody lifts that on purpose.
+- **An inventory can be split without the equipment losing its history.** Where one inventory turns out to hold two different things, its pieces can now be moved into another inventory of the same station under Inventory, keeping their number, who has them and everywhere they have been. Until now the only way was to delete them and write them down again, which threw all of that away.
+- **A custom field can belong to one kind of thing or to one single piece.** A field used to hang on the whole inventory, which is why a mixed drawer had none worth adding: a call sign is nonsense on the charging station standing beside the radios. A field can now be written for one Art or for one piece alone, and the values still belong to each piece separately.
+- **A procedure starts from who is coming.** The same menu in the sign-ups of an appointment now also prepares one shared procedure for the people holding a place on that evening, taking its steps from a template and its due date from the evening itself. Everybody on it works through the same steps together, it links back to the appointment, and pressing the entry again offers the procedure already there instead of a second one.
+- **Borrowed equipment now sits where the rest of the equipment sits.** Gear a partner station lends you appears under Inventory the moment the handover is recorded, on a shelf of its own for everything belonging to somebody else, so it can go in a container, be handed to a member and be walked in a check like anything else. It is marked as the partner's, carries the day it goes back, and disappears again when the loan is recorded as returned.
+- **A lent-out piece says which partner has it.** Equipment out on loan showed as being with a partner without naming which one, so answering "where is that radio" meant opening the lending request. The name now stands on the equipment itself.
+- **Equipment can be given words that span the inventories.** A radio, its charging station and an antenna filed somewhere else can now carry the same word, which is something neither the inventory nor the kind of thing could say. Words are picked from the ones the station already uses rather than typed on each piece, a new one is written down only when the piece is saved, and the stock list gains a column that can be narrowed to one of them.
+- **A word finds equipment at partner stations too.** Searching for one now also asks every partner that lends to the station, and two stations that use the same word find each other's gear even where one writes it in capitals and the other does not; each keeps its own spelling on screen. An association can recommend words to its stations, which stand beside what a station already calls things and never replace them.
+- **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
+- **Exchange requests can be narrowed down and put in order.** Above the list stand a search for the member and two tick lists, one of inventories and one of statuses, so several statuses can stand in the list together while the three still narrow one another and ticking nothing restricts nothing. It opens on the requests still running, can be ordered by member, inventory, status or date, the status along the steps it passes through rather than the alphabet, and the export takes exactly the rows the filters leave.
+- **A request for a partner's gear opens on the days that were searched for.** The count beside a partner's inventory is what is free in the days asked about, so a form that started on no dates made somebody type the same two again and counted something else in the meantime. The days come across now, and changing them on the form counts again.
+- **An empty search for a partner's gear says why it is empty.** The screen read the same whether no partner station shares anything with yours or whether everything shared is spoken for in the chosen period. It now says which of the two it is, and it never names the inventories a partner keeps back.
+- **A claim on a found item can be taken back.** Whoever claimed something by mistake had no way back: the entry stayed theirs until somebody removed it altogether. Their own claims, and those they made for somebody in their care, can now be released, and whoever looks after the lost and found can release any of them.
+- **A found item can be claimed for somebody in your care.** A parent collecting a glove for their child had to claim it under their own name. The dialog now asks who it is for, and the entry carries that person's name.
+- **A picture can be added to a reported find afterwards.** An entry reported without a photo could never gain one. Anybody who may report a find can now attach a picture to an entry that has none.
+- **A wiki folder or article can be moved somewhere else.** The menu beside an entry now offers Move, which puts it into any other folder of the station over as many levels as it takes, the top level included, and a folder takes everything inside it along. Links to a moved article keep working, only the trail above it reads differently.
+- **A move says beforehand who will be able to see the entry.** Because the folder an entry lands in decides who reads it, the dialog names how far it reaches now and how far it would reach there, so an article does not appear on the public wiki or at every partner station without anybody meaning it to. A move into a folder that already holds a folder of that name, into the folder being moved, or one that would carry a share further than the folder above allows is turned down and says which of those it was.
+- **A wiki delete says which pages carry the article.** A public page can put a wiki article on itself, and deleting the article used to leave a stand-in title standing there with nobody told. The dialog now names those pages before the delete, and says so more plainly when one of them is published.
+- **A wiki article shows what points at it.** Below the further reading of an article there is now a second list naming the articles that link to it, which fills itself from the links that already exist. It is removed where it was written, and pages the reader may not open are left out of both lists rather than counted.
+- **Picking further reading reaches the whole wiki.** The picker used to offer only the articles at the top level, matched on their title and description. It now searches every article of the station, body text included, and shows the folder each one sits in, so two articles of the same name can be told apart.
+- **A notice about a comment opens on that comment.** Tapping a reply or a mention used to land at the top of the article, the wiki file or the appointment and leave the reader to find the comment in a long thread. It now scrolls to the comment and marks it, and says plainly when the comment is no longer there or cannot be read.
 
 ### Security
 
-- **Waiting list links are no longer cached.** The page a family opens from their mail shows a name, an address and their place on the list, yet any cache on the way could keep it for an hour. It is now stored nowhere, so it also always shows the latest answer.
+- **A waiting list entry behind its own link is no longer cached.** The page a family opens from the link in their mail carries a name, an address and where they stand on the list, and it was marked as freely cacheable for an hour, so any cache along the way could keep a copy. It is now stored nowhere, which also means the page shows what has just been answered instead of what it said an hour ago.
 
 ### Changes
 
-- **Tickets go only to people who can work on them.** The assignee list offered every station member, even those the board keeps out. It now offers people who may write on the board and board administrators, and existing assignments stay as they are.
-- **The first start asks for a real address.** New installations used to get an administrator with a made-up address, so password resets and security notices went nowhere. The account is now called `admin` with no address, and the first sign-in asks for a real one right after the new password.
-- **Running instances ask for that address once.** An administrator still carrying the made-up address from an earlier first start is asked for a real one at the next sign-in. As soon as it is set, they are in.
-- **No mail set up means no waiting for confirmations.** Without mail, new accounts stayed unverified, address changes never applied and stations could not be deleted. Without a mail provider these confirmations now count as given, while public demos and password links are unaffected.
-- **Fixing an unreadable address needs one confirmation.** An address change asks both the old and the new address, which never finishes if the old one is made up. In that case only the new address is asked now.
-- **Administrators can correct each other's addresses.** Instance administrators can open any account's details without joining that station, so a mistyped address can be fixed. Your own address still needs a confirmation, so a stolen session cannot move your account.
-- **Attendance expects only the groups on its sheet.** People an appointment was not open to used to show up on the sheet already marked off. Who is expected now follows the sheet alone, while sign-ups and refusals still show next to each name.
-- **Two first steps now show rather than ask.** The appointment step now explains the two kinds, the ones you sign up for and the ones you are simply expected at, without signing you up. The profile step is offered even when nothing is missing, because a full profile is still worth a read.
-- **Busy button rows become one button and a menu.** Attendance sheets, wiki files, question catalogues and test sheets showed up to seven buttons, filling a phone screen. Each now shows its main action and keeps the rest in a menu beside it.
-- **Partners see nothing until you offer it.** Partner stations used to browse every inventory you had. From this version nothing is shared until you offer it, by inventory, kind or piece.
-- **The start page takes you back where you were.** When signed in, it opens the area you last worked in: your station, your association or the administration. The Ember logo and `/?home` still open the start page itself.
+- **A ticket is handed only to somebody who may work on its board.** The list to pick from offered every member of the station, the people a board keeps out included, so a ticket could land on a name that cannot open it. It now offers whoever may write on that board and whoever administers the boards, while a ticket already assigned keeps the name it carries even if that person later loses the right.
+- **The first start now asks where to write.** A new installation used to be handed an administrator account under a made-up address that nothing could be delivered to, which quietly cost that account every password reset and every security notice. The account is now created with the user name `admin` and no address at all, and the first sign-in asks for a real one right after the new password; an address that cannot be written to is refused.
+- **An instance that is already running asks the same thing once.** Whoever administers it and still carries the made-up address from an earlier first start is asked for a real one the next time they sign in, and reaches the application as soon as it is set.
+- **An instance with no mail set up stops waiting for confirmations it cannot send.** A new account was left unverified, an address change never took effect and a station could not be deleted, each of them waiting for a link that was never written. Where no mail provider is configured, every such confirmation now counts as given and the thing happens straight away; a public demo is unaffected, and password links are untouched because they hand over a credential rather than confirm something already chosen.
+- **Correcting an address nobody can read now takes one confirmation instead of two.** Changing an address used to ask the old address to release it and the new one to claim it, which could never finish when the old one was a made-up address with no reader. The new address alone is now asked in that case, and its confirmation settles it; where the old address does reach somebody, both are still asked.
+- **One administrator can now put another one's address right.** Whoever administers the instance reaches any account's details, without having to be a member of that person's station first, which is what makes a mistyped address recoverable. Nobody writes their own address this way, however senior the account: that one still goes through a confirmation, because otherwise a stolen session would be enough to move an account to an address of its own.
+- **An attendance expects only the groups its sheet names.** Whoever an appointment was not open to used to arrive on the attendance already marked off, which filled the sheet with people the evening never concerned. Whom an appointment is open to now has no say over who is expected, while a sign-up or a refusal still settles what stands beside a name.
+- **Two of the first steps now ask you to look rather than to act.** Answering an appointment has become a short explanation of the two kinds, the ones you sign up for and the ones where you are simply expected, and it no longer ends in a sign-up nobody asked for. Going through your profile is offered even when nothing is missing, because a profile that looks complete is the one worth reading over.
+- **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
+- **Nothing reaches a partner station until somebody offers it.** Partner stations used to browse every inventory a station had. From this version a station offers nothing until it says so, on the inventory, on a kind of thing or on the single piece, so every station starts this version offering nothing at all.
+- **The start page carries you back to where you were.** Opening it while signed in now leads straight to the area you last worked in, your station, your association or the administration. The Ember logo still opens the start page itself, as does `/?home` in the address bar.
 
 ### Fixes
 
-- **Yearly appointments near midnight export on the right day.** The export read the repeat day off a different clock than every other date, so such an appointment could land a day off. It now uses the station's own clock, like the rest.
-- **Wiki search no longer comes back short.** Search fetched only as many articles as it showed, then removed restricted ones, so results could be thin or empty. It now looks further ahead and fills the page, in member search, public wiki and partner searches alike.
-- **Quick ticket edits are no longer lost.** Moving straight from one field to the next could silently drop the second change, mistaken for a double click. The later change now goes out as soon as the first one is saved.
-- **Members without an entry can be marked again.** Someone who joined a group after the sheet opened showed "no entry" with nothing to press. Their row now has the usual buttons, and nobody is offered for evenings before they joined.
-- **Members without a login no longer get a fake address.** Adding someone who never signs in, usually a child, gave them a made-up address ending in `.local` that showed in every list and export. Such members now have no address, and anything about them goes to their guardians.
-- **Guardians added with a member can sign in.** A guardian added from a member's page or during member entry was saved as an ordinary member and could not sign in. They are now recorded as guardians, with the right to sign in and act for those in their care.
-- **Anyone with someone in their care can act for them.** Only the guardian member kind could act for others, so a helper or manager given a child could not, and there was no way to grant it. It now comes with having someone in your care and ends with the last one.
-- **Quick checks no longer offer swaps that cannot happen.** A piece already on its way could not be swapped, but you only learned that after filling in the swap. The check now shows what is running and offers the swap once it is done.
-- **Missing equipment stays missing when the record is corrected.** A piece reported missing went quietly back on the shelf when a check corrected the record, so the station counted a jacket nobody could find. It now stays missing with its note until someone says it turned up.
-- **Gear the association took back leaves your stock.** After a correction, a piece owned by the body above your station went home but still showed in your stock and counts. Both now check who owns a piece first, like the availability figures already did.
-- **Failed answers for a household now stay visible.** When answering for several children at once and one failed, the next answer wiped the error, so everyone looked signed up. The error now stays until the next answer.
-- **Checks finish when two of the same are missing.** If a member should have had two of something and had neither, recording both gaps was refused and the check stayed open. Both gaps can now be recorded.
-- **Requests for four now get four.** Each piece set aside for a line replaced the one before, so asking for four radios returned one. Every piece now counts, and the inventory overview follows.
-- **Trial attendance counts actually go up.** The waiting list compares a trial member's evenings with the station's target, but the count stayed at zero. Being marked present now counts, while taking someone on remains the station's decision.
-- **Deleting a wiki folder frees its storage.** The folder vanished, but its uploaded files stayed in storage, so the space used never went down. Deleting a folder now removes those files too.
-- **Narrowing a shared news entry now withdraws it.** An entry narrowed to a few groups after sharing kept travelling to partners. Partners are now checked against the entry's own audience, as appointments already were.
-- **Gear owned above your station is not lent on.** Your station only holds such gear, so lending it sent it where its owner never agreed. Only your station's own gear is offered now, and a body running its own station still lends freely.
-- **Switching off lending for a partner works.** The setting was ignored, so the partner kept browsing and requesting. Lending now respects it, like shared wikis, quizzes and boards do.
-- **Requests can only name the lender's own gear.** A request's inventory and piece were taken on trust, so approving it could reserve gear on another station's shelf. Ember now checks them against the lender's own stock first.
-- **Gear already lent cannot be promised twice.** Approving a request for one piece reserved it without checking where it was, even if it was already out or missing. Only gear truly at hand for those days is now reserved.
-- **Deleting a station group explains what blocks it.** When a stock requirement counted at that group, deleting it failed with a bare error. It now names what is in the way.
-- **Procedure due dates are saved again.** Picking a due date made the whole save fail silently, so the procedure never became overdue. The date now saves, and shows again when you edit.
-- **Procedure notices open the procedure.** Being added, a ticked step, closing or reopening all sent links to the dashboard. Each notice now opens the procedure it is about.
-- **A guide for notifications on your phone.** The help used to list a few reader apps to choose from. It now walks you through one route to the end, with Feeder on Android and NetNewsWire on iPhone, and says why it is worth it.
-- **Attendance checks reach everyone the sheet expects.** The check skipped people who joined a group after the sheet opened, and was missing when that was everyone. Filling the sheet from its appointment now adds them too.
-- **Late appointment answers still reach the sheet.** Filling a sheet from its appointment now picks up answers given after the sheet was opened. Fields the sheet already answers stay as they are.
-- **Dates and times are written properly everywhere.** Sign-ups, the dashboard, planner breaks, the attendance report and date answers showed 2026-10-12 instead of 12.10.2026. They now match the rest of Ember.
-- **Late evening appointments show the right day.** The page took the day from London's clock and the time from yours, so half past midnight showed on the evening before. Both now come from the same moment, in the calendar, dashboard and day-only deadlines too.
-- **Weekly appointments show today on their own day.** Opening one on the day it happens showed next week's date. Today now counts as long as this evening is still ahead.
-- **Form, test and waiting list times stay put.** Start and end were edited on London's clock instead of yours, so they shifted a little more with every save. They now open and save on your own clock.
-- **Quick check exchanges ask about the handover.** The exchange now asks whether the piece was handed over, which decides whether the old piece is already back. Either way the check moves on to the next piece.
-- **Pairs of the same piece are counted off.** If someone is owed two shirts, the rows read 1/2 and 2/2, in the list and the quick check. You always know which one you are marking.
-- **Save an inventory check before you finish.** Only what you marked is recorded. Pieces nobody looked at keep their last result.
-- **Attendance made from an appointment includes everyone.** When the appointment answered one of the sheet's questions, the sheet opened without a single name. Both the answer and the expected members now arrive.
-- **First steps no longer point off screen on phones.** On a narrow screen the guide circled a menu hidden past the left edge, so you saw nothing. It now points at the menu button first with a dashed ring, then moves on once the menu opens.
-- **Exchange list names are readable again.** Names were always white, which nearly vanished in the light theme. Uncoloured names now match the page, and station colours stay.
-- **Notifications no longer outlive their subject.** Deleting a news entry, appointment or form left its notices in the feed, leading to missing pages. They are now removed with it, read or unread.
-- **Ticket mentions open the ticket.** A mention in a ticket comment used a number the board pages do not know, so nothing happened. It now opens the ticket at that comment.
-- **Deleted comments vanish from notices too.** Deleting a comment left its excerpt readable in unopened notices. Those notices now go with it, and notices about other comments stay.
-- **Coloured labels pick readable letters.** Labels in the exchange list always used white text, which was hard to read on pale colours. They now choose dark or light text to match, and update when you switch theme.
-- **Admin charts follow the theme switch.** Some chart axis labels kept the colours of the theme they were first drawn in and became hard to read. They now change with the theme.
-- **Walked first steps now count as done.** Steps like finding absences, opening an article or trying a training ended by saying the task was not done yet. Walking such a step now completes it, and data-based steps work as before.
-- **The training step shows the way again.** The step meant to show where training lives jumped there instead when its navigation group was folded. It now points at the group, like the other steps.
-- **Four notification types now have proper titles.** Sign-up closing reminders, pieces sent on by the cluster, missing pieces and cancelled movements reached feed readers titled in capital letters. They are now titled and filed in German and English, like all others.
-- **Member answers show names, not numbers.** When an appointment asks who drives or supervises, notices and calendar entries showed an internal number. They now name the members.
-- **Setting a password completes your account.** The member list waited for a first sign-in, so people who had set a password got chased with more setup mails. Choosing a password now settles it, and only an administrator-set password still counts as open.
-- **Connection codes explain the real refusal.** These codes never expire, yet every refusal claimed they had. Ember now names the real reason, and a station with a pending request can use the code it receives.
-- **The second factor window opens in front.** When connecting to a partner, the authenticator window opened behind the one that asked for it. Windows now stack in the order they open.
-- **Phone photos work for found items.** Camera photos exceed the five megabyte limit and use formats the server does not keep, and the error said nothing. Pictures are now shrunk and converted in the browser for found items, profile pictures and quiz questions, and any refusal shows the server's reason.
-- **Failed uploads no longer file a find twice.** When the picture failed, the entry was already saved, and pressing again created a second one. Ember now remembers the entry, sends only the picture again, and tells you the entry is safe.
-- **Handed-out finds take their picture along.** Handing over an item kept its picture in storage for good, counting against the quota. Handing over and deleting now remove everything, notices included.
-- **Claiming a find withdraws its announcement.** Everyone kept an unread notice about an item already claimed. The withdrawal now names the exact entry it is about.
-- **Station administrators hear about claimed finds.** The notice went only to members holding that one specific right. Broader rights that include it now count for every such notice.
-- **Other stations' finds are out of reach.** Claiming or adding a picture to a find did not check its station, unlike opening or deleting it. Both now answer `404` for another station's item.
-- **Broken pictures show a placeholder.** A picture that failed to load left an empty card. It now shows a placeholder saying the picture is unavailable.
-- **Small print keeps its line breaks.** In the legal sections dialog and the help on importing a question catalogue, two lines ran together without even a space. Each now has its own line.
+- **A yearly appointment close to midnight was exported on the wrong day.** Which day of the year it repeats on was read off a different clock than every other date on the sheet, so an appointment near midnight was listed a day out from the one it is on. It is now read on the station's own clock, like the rest of the export.
+- **A wiki search could come back short, or empty, while matching articles existed.** The search read only as many articles as it meant to show and then removed the ones the reader may not open, so anything restricted at the top of the list ate the places of readable articles behind it. It now reads well beyond what it shows and counts to the page afterwards, on the member search, the public wiki and the search a partner station asks of you alike.
+- **A change to a ticket made while an earlier one was still saving was thrown away.** Leaving one field and going straight to another sent the first and dropped the second, with nothing on screen to say so, because the two are one save and the second was taken for a double click. The later change now goes out as soon as the first has finished.
+- **A member standing on an attendance sheet with no entry could not be marked.** Anybody who joined a group after the sheet was opened stood there saying there was no entry, with nothing to press, and the only way to give them one was hidden in a menu. The same buttons now stand on that row and write the entry on the first press, and nobody is offered for an evening before the day they joined the station.
+- **Members without a login carried a made-up address.** Entering somebody who is not meant to sign in, a child being the usual case, wrote an address for them anyway, built out of their name and ending in `.local`. It stood in the member list and in every export looking like somewhere a letter could go, and nothing could ever be delivered to it. Such a member now has no address at all, which is what the list shows, and whatever concerns them goes to the guardians who answer for them.
+- **A guardian entered beside a member could not sign in.** Adding a new guardian from the member's own page, or from the guardian step while entering somebody, wrote that person down as an ordinary member, and an ordinary member may not sign in: they were created for a job and then locked out of it. Whoever is entered as a guardian is now recorded as one, which is what carries the right to sign in and to answer for the people in their care.
+- **Somebody put in charge of a member could not act for them.** Being allowed to answer for the people in your care came with the guardian member kind and with nothing else, so a helper or a station manager who was handed a child kept their own kind and never gained it, and there was no way to hand it over either, because the list of grants deliberately does not offer it. It now follows from having somebody in your care, and it ends with the last person in it unless the member kind carries it anyway.
+- **A quick check offered a swap for a piece that was already on its way.** A piece can only be on one movement at a time, so the swap was turned down after it had been filled in and asked for, with nothing beforehand saying why. The walk now says what is running on such a piece and offers the swap again once that is finished.
+- **Equipment reported missing came back into stock the moment the record was put right.** Where somebody had said they could not find a piece and a check afterwards put that record right, the piece was quietly taken off the member and laid back on the shelf, so the loss was gone and the station counted a jacket nobody could find among the ones it could hand out. A piece reported missing now stays missing when it leaves a member's record, keeps the note that came with the report, and goes to its store only when somebody says it has turned up.
+- **Equipment the association had taken back still lay in the station's inventory.** Where a check put a record right, a piece belonging to the body above the station went home but stayed in the station's stock list and in the count beside the inventory, so the shelf read as fuller than it was and the same piece appeared to be in two places. Both now ask who owns a piece before counting it as being here, which is the rule the availability figures already followed.
+- **An answer given for two children could fail for one of them without a word.** Where somebody answered for a household at once and only part of it went through, the message about the person it failed for was wiped by the answer that followed, so the dialog closed and everybody looked signed up. What went wrong now stays on screen until the next answer is given.
+- **A check could not be finished where somebody was short of two of the same thing.** Where a member should have had two of something and had neither, saying so about both places at once was refused and the check stayed open. Both gaps can now be recorded.
+- **A request for four of something could only ever be answered with one.** The lending station set a piece aside for a line, and each further piece overwrote the one before, so a line asking for four came back with a single radio however many were picked. A line now records every piece set aside for it, and the count on the inventory overview follows.
+- **The attendance count of a trial period stood at zero however often somebody came.** A waiting list shows how many evenings a trial member has been to against the number the station asks for, and nothing ever raised that number, so the measure it was set up for never worked. Being marked present at an evening now counts towards it; reaching the number still changes nothing on its own, because taking somebody on stays a decision the station makes.
+- **Deleting a wiki folder left its uploads taking up storage.** The folder and everything in it disappeared from the wiki, but the uploaded files behind the articles stayed in the station's storage where nothing would ever look for them again, so the room used never went back down. Clearing a folder out now takes those files with it.
+- **Narrowing a shared news entry did not withdraw it.** Sharing with partner stations and keeping an entry to a few groups were decided apart, so an entry narrowed after it had been shared carried on travelling. What a partner is offered is now checked against the entry's own audience, the same way an appointment already was.
+- **Gear belonging to the body above the station could be lent to a partner.** A station only holds such gear, and lending it on put it somewhere its owner never agreed to and cannot look. Only what a station owns itself is now offered, suggested and handed over, while a body running a station of its own still lends its own gear freely.
+- **Turning lending off for a partner did not stop them asking.** The setting was there to be switched and then went unread, so a partner kept browsing the whole inventory and kept sending requests. Lending now follows it the same way shared wikis, quizzes and boards already do.
+- **A request could name gear the asked station does not keep.** The inventory and the piece a request names were taken as given, so approving one could set aside something standing on another station's shelf. What is set aside is now checked against the lending station's own stock first.
+- **A piece already out with a partner could be promised to a second one.** Approving a request that asked for one particular piece set that piece aside without asking where it was, so a radio already lent out, on its way somewhere or missing was promised all over again. Only what the station can actually put its hands on over the requested days is now set aside.
+- **Deleting an association's group of stations could fail without saying why.** Where a stock requirement counted at that group, the delete broke off with a bare error instead of the plain sentence the same screen gives for questions and switched-off modules. It now names what is in the way.
+- **A due date on a procedure was thrown away.** The date was picked and saved, and the whole save was refused without a word, so the procedure ended up with no due date and never counted as overdue. A date now arrives as picked, and one already set shows in the field when the procedure is edited.
+- **A notice about a procedure led nowhere near it.** Being put on one, a step being ticked, and the procedure being closed or opened again all sent a notice whose link landed on the dashboard, leaving the reader to find the procedure themselves. Every one of them now opens the procedure it is about.
+- **A page that walks you through putting your notifications on your phone.** Until now the help named a handful of reader apps to choose from; there is now one route told to the end, with Feeder on Android and NetNewsWire on iPhone. It also says plainly why it is worth doing: a notification left inside Ember waits until you next open Ember.
+- **Checking an attendance reaches everybody the sheet expects.** It walked only the names something had already been recorded against, so anybody who joined a group after the sheet was opened was passed over and, where that was everybody, the button was not offered at all. Filling the sheet in from its appointment now puts such a member on it as well.
+- **An answer given on an appointment still reaches the sheet afterwards.** Filling an attendance in from its appointment takes over the answers to the questions tied to the sheet's own fields, so an answer entered after the sheet was opened no longer stays behind; a field the sheet already answers is left as it is.
+- **Dates and times appeared raw in a number of places.** A date read as 2026-10-12 rather than as the 12.10.2026 it is: on the sign-ups of an appointment, on the dashboard, in the break periods of the appointment planner, in the attendance report and in the answer to a date or time question. All of them are now written the way the rest of the screens write them.
+- **An appointment late in the evening was dated a day early.** Its page took the day from the clock in London and the time from your own, so an appointment at half past midnight was written over the evening before. The day and the time are now read off one and the same moment, and the same correction reaches the calendar, the dashboard and the deadlines that are only a day.
+- **A weekly appointment sent you a week forward on the day it takes place.** Opening one on its own day showed next week's date, because what had already happened was judged against the very first evening of the series rather than against today's. Today counts now as long as today's evening is still ahead.
+- **The times of a form, a test and a waiting list entry moved every time they were saved.** The start and the end were offered for editing on the London clock rather than yours, so they were already wrong when the editor opened and moved by the same difference again on every save. They now open and save on your own clock.
+- **The exchange raised during a quick check asks whether the piece was handed over.** The answer decides whether the exchange stands as announced or with the old piece already back, and the check moves on to the next piece either way instead of offering the same one again.
+- **Two of the same piece are counted off during an inventory check.** Where somebody is owed two shirts, each row reads 1/2 and 2/2, in the list and in the quick check alike, so it is clear which of them is being marked.
+- **An inventory check can be saved before every piece has been marked.** Only what was actually marked is recorded, and a piece nobody looked at keeps what the last check said about it.
+- **An attendance made from an appointment could arrive with nobody on it.** Where the appointment answered one of the sheet's own questions, making the attendance broke off halfway: the sheet opened without a single name, and there was nothing to check off. Both the answer and the expected members now arrive.
+- **The guided first steps pointed off the edge of the screen on a phone.** The navigation is present at every width and merely slides out of sight on a narrow one, so the ring was drawn faithfully at a place beyond the left edge and the reader saw nothing at all. It now points at the menu button first, in a dashed ring that says this is the way rather than the destination, and moves on to what it was after once the menu is open.
+- **Member names on the exchange list were written in white whatever the page had behind them.** In the light theme that left them all but invisible. A name nobody gave a colour now reads in the same colour as the rest of the page, and one a station did give a colour keeps it.
+- **A notification could outlive the thing it was about.** Deleting a news entry, an appointment or a form left every notice about it standing in the feed, and tapping one of them led to a page that was no longer there. Those notices are now taken away with it, read or unread, while notices about anything else are left alone.
+- **Being mentioned in a comment on a ticket led nowhere.** The notice named the ticket by a number the board pages do not answer to, so pressing it left the reader where they were. It now opens the ticket, at the comment that mentioned them.
+- **A deleted comment left its wording standing in the notices quoting it.** Removing a comment took the comment but not the notices about it, so the excerpt they carry stayed readable to everybody who had not opened them yet. Those notices now go with the comment, while the notices about the other comments of the same page stay.
+- **The coloured labels were written in white letters whatever colour they sat on.** Every row of the exchange list wears one, and on the pale colours they were barely readable, in the light theme worst of all. They now take dark or light letters from the colour actually behind them, and answer again the moment the theme is switched.
+- **Some charts in the administration kept the colours of the theme they were first drawn in.** Their axis labels did not follow a switch between the light and the dark theme and could end up hard to read, and they now change with it.
+- **A first step stayed open after it had been walked to the end.** Looking up where absences are recorded, opening an article, trying a training: each of these ended with Ember saying the task was not settled yet and suggesting the reader check whether their entry had saved, two steps after telling them there was nothing to enter. Walking such a step now settles it, while anything Ember reads from the data is unchanged.
+- **The step about trying a training offered to jump there instead of showing the way.** The point of that step is to show where training lives, and it skipped its own purpose whenever the group in the navigation was folded away. It now points at the group, as the other steps already did.
+- **Four kinds of notification reached a feed reader under their internal name.** A reminder that a sign-up is about to close, a piece the cluster has sent on its way, a piece reported missing and a movement called off all arrived titled in capital letters rather than in a sentence. All four are now titled and filed in German and English, like every other kind of notification.
+- **A question asking for a member showed a number instead of the name.** Where an appointment asks who drives or who supervises, the notification body and the subscribed calendar entry listed the answer as an internal number, which named nobody. Both now write out the members the question holds.
+- **Somebody who had set their password still counted as not set up.** The member list waited for a first sign-in before dropping the hourglass beside a name, so people who had chosen their password and gone no further were chased with another setup mail. Choosing a password is now what settles the account, and only a password an administrator laid down still counts as outstanding.
+- **A code for connecting two stations was refused as having expired.** Such a code never runs out, so whatever really stood in the way, a connection that already existed, a request still waiting to be answered, or a code made on another Ember instance, was reported as a deadline that does not exist. The refusal now says which of them it is, and a station that had already asked to connect can use the code it is then handed instead of being turned away by its own unanswered request.
+- **The window asking for your second factor opened behind the window that needed it.** Connecting to a partner station asks for the code from your authenticator, and that window came up underneath the one it was raised from, where it could neither be read nor typed into. Windows now stand in the order they were opened, so the one opened last is in front.
+- **A photo taken on a phone was refused when reporting a find.** Cameras write far more than the five megabytes allowed, in formats the server does not keep, and the refusal reached the screen as a bare error saying nothing. Pictures are now made smaller and rewritten in the browser before they leave the device, for a found item, a profile picture and a quiz question alike, and anything still refused is reported in the words the server used.
+- **A picture that failed to upload could file the same find twice.** The dialog stayed open with everything still filled in while the entry had in fact been saved, so pressing the button again wrote a second entry and left the first standing without its picture. The saved entry is now remembered: pressing again sends only the picture, and the dialog says the entry is already safe.
+- **A handed-out find left its picture behind.** Marking an item as handed over removed the entry but kept its picture in storage for good, counting against the station's quota, where deleting the entry had always removed both. Handing over and deleting now clear everything belonging to the item, its notices included.
+- **Claiming a find did not take back the notice announcing it.** Everybody kept an unread notice about an item that was already spoken for, and where nothing had been written about the item the withdrawal could not tell one entry from another. A withdrawal now names the entry it is about.
+- **Whoever runs the station was never told a find had been claimed.** The notice went only to members with that one right written beside their name, so a station administrator, who may do everything in the lost and found, never received one. A wider right that carries the narrower one now counts, wherever a notice goes to the people who look after something.
+- **A find belonging to another station could be reached through its number.** Claiming one and giving one a picture did not check whose station it was, unlike opening or deleting it. Both now answer `404` for an item that is not the station's own.
+- **A card stayed empty where a picture could not be shown.** An entry whose picture failed to load left a blank space rather than the placeholder an entry without a picture gets. It now shows a placeholder saying the picture is unavailable.
+- **Two lines of small print could arrive as one run-on sentence.** In the dialog that loads the shipped legal sections and in the help article about importing a question catalogue, a short line and the one meant to follow it were printed with nothing at all between them, not even a space. Each now stands on a line of its own.
 
 ## v26.13.12
 
 ### New Features
 
-- **Put a stuck exchange back on track.** Whoever manages exchanges can now move one to the right status by hand, forwards or backwards, with a reason kept in its history. The gear moves along with it, quietly and without notifying anyone.
+- **An exchange can be set to the right status by hand.** Whoever manages exchanges can put one where it belongs, forwards or backwards, giving a reason that the exchange's history keeps beside their name. It exists for exchanges that ended up in the wrong place and could not be moved back, and it moves the gear to match the status rather than only relabelling the row; nobody is notified about a correction.
 
 ### Security
 
-- **Mail secrets no longer land in the log.** At startup Ember recorded its whole configuration, mail password, API key and webhook secrets included, in a log readable from the administration pages. They now show only as set or not set, and you should replace any of these values your instance has used.
-- **The container keeps your secrets to itself.** On every start the container printed all its settings into its log, and a restart loop repeated them again and again. Nothing is printed there now, and you should replace any database password, token pepper, mail credential, storage key or second-factor key an affected instance has used.
-- **Wiki search shows only what you may open.** Search returned the title and an excerpt of every article in the station, even those kept for the leadership, for one group, or not shared with a partner. It now answers only with articles the reader may actually open.
+- **Mail credentials were written into the application log in plain text.** The whole configuration is recorded once when Ember starts, and the mail password, the API key and the two webhook secrets were spelled out in it; that log is kept in the database and can be read from the administration pages. They are now reported only as set or not set. Treat any mail password, API key or webhook secret this instance has used as compromised and replace it.
+- **The container printed every setting it was given, secrets included, each time it started.** The database password, the token pepper, the mail credentials, the storage encryption key and the second-factor key all appeared in the container log, and an instance that cannot reach its database restarts until it can, filling the log with copies of them. Those logs are what gets pasted into a bug report. Nothing is printed there now. Treat any of these values that an affected instance has used as compromised and replace them.
+- **Searching the wiki found articles the reader was not allowed to open.** Anybody who could sign in got the title, the description and an excerpt around the matching words of every article of their station, including the ones kept for the leadership or for a single group, and the same held for the articles a partner station had not shared. A search now answers only what the reader may actually open, and a partner is answered only what the station shares with it.
 
 ### Fixes
 
-- **Naming a new manager now hands the station over.** The new manager got full administrator rights, but the station itself stayed with the old one. Now it really changes hands, and the previous manager keeps their rights and membership.
-- **Handing over a station finds its managers again.** The list of people to hand a station to always came back empty, even with two managers in place. It now offers every manager except the current owner, and says so plainly if the list can't be loaded.
-- **A taken address now gets a clear answer.** Naming a manager with an address that already belonged to someone failed with a bare server error. Ember now says the address is taken, wherever an account is handed out.
-- **Calling off an exchange no longer looks like finishing it.** A cancelled or declined exchange jumped straight to Done. It now says Cancelled or Declined, leaves the open lists and can no longer be advanced.
-- **One piece of gear, one exchange at a time.** The same piece could be sent out on two exchanges at once, and a step on one made the other seem to move by itself. Ember now refuses the second one and names the exchange that already has the piece.
+- **Naming a new manager for a station left the old one in charge.** The address given was set up and granted full administrator rights, but the field kept showing the previous manager and the station itself never changed hands, so the new manager could neither pass it on nor take it into an association. Naming a manager now hands the station over, while the previous one keeps their rights and their membership.
+- **A station could not be handed to anybody, however many managers it had.** The list of people to hand it to was built from a role that does not exist, so it came back empty and the page said there was nobody, even where the station had two managers. It now offers every manager but the current owner, and where the list cannot be read at all it says so rather than reading as an empty station.
+- **Naming a station's manager could fail with nothing but a server error.** Where the address given already belonged to somebody, the page answered with a fault and no explanation, so there was nothing to do but press the button again. The refusal now says that the address is taken, and it says it wherever an account is handed out rather than only on the pages that remembered to ask.
+- **Calling off an exchange made it look as though it had been completed.** An exchange that was called off, or refused by the owner, jumped from wherever it stood to Done, so pressing the button that stops one looked exactly like pressing the one that finishes it. Such an exchange now says Cancelled or Declined, drops out of the lists of open exchanges, and no longer offers to be advanced.
+- **The same piece of gear could be sent out on two exchanges at once.** Because an exchange reads where it stands from where the piece actually is, the two then moved each other: a step taken on one made the other appear to advance on its own. Raising a second movement for a piece that is already on its way is now refused, naming the one that has it.
 
 ## v26.13.11
 
 ### New Features
 
-- **Sign in with a passkey.** Your device asks for your fingerprint, your face or its PIN, and you're in without a password. Your password keeps working as before until you switch it off under Account → Security.
-- **Run your instance fully passwordless.** New accounts then start without a password, and invitations, self-registration and the very first start hand out a passkey instead. You can choose this only after a test mail has gone through, because mail is every member's way back in.
+- **Sign in with a passkey.** A passkey signs you in without a password: your device asks for your fingerprint, your face or its PIN, and that is it. Your password keeps working exactly as before until you switch it off yourself under Account → Security.
+- **An instance can go fully passwordless.** New accounts are then created without any password, and invitations, self-registration and the very first start hand out a passkey instead. That step refuses to be chosen until a test mail has proven the instance can deliver one, because for every member with an address the mail is the way back in.
 
 ### Security
 
-- **Sensitive actions always ask for fresh proof.** Accounts without a second factor used to pass these checks without being asked; now every account gives what it has, be it second factor, passkey or password. A password sign-in counts as proof for a few minutes, so everyday work asks nothing extra.
-- **Member editors can no longer take over administrators.** Whoever could edit members was able to reset an instance administrator's password and change their mail address. Both actions now refuse administrators and ask for fresh proof.
+- **Sensitive actions now always ask for a fresh proof.** Accounts without a second factor used to pass these checks without being asked anything; every account is now asked for whatever it can give: the second factor, the passkey, or the password where nothing else exists. Signing in with a password counts as that proof for the next few minutes, so the everyday flows ask nothing extra.
+- **A member editor could reset or re-address an administrator.** Whoever may edit members could trigger a password reset for an instance administrator in their own station and even move that administrator's mail address, which together opened a takeover path. Both actions now refuse administrators as targets and stand behind the fresh-proof check.
 
 ### Changes
 
-- **New operator setting `auth.passkeys.mode`.** It has five steps from off to fully passwordless and starts at optional, so an upgraded instance behaves as before until you move it under Admin → Settings → Security. Ember won't lower it below passkey sign-in while any account depends on one.
-- **WebAuthn settings now live under `auth.webauthn`.** Passkeys and security keys share them, and the old place under `auth.twoFactor.webauthn` is still read for one release. The resident-key switch is gone: passkeys always need one, security keys never do.
-- **A console rescue for locked-out administrators.** Set `auth.passkeys.printAdminEnrollmentLink`, and the next start prints a one-time passkey link into the log, replacing any earlier one. The link lasts an hour and works once.
-- **Attendance expects only the groups its sheet names.** People an appointment wasn't open to used to appear on the attendance already marked off. Now only the sheet decides who is expected, while a sign-up or refusal still shows beside a name.
-- **Two first steps now ask you to look.** The step about answering appointments now explains the two kinds, the ones you sign up for and the ones you're simply expected at, without ending in an unwanted sign-up. The profile step is offered even when nothing is missing, because a complete-looking profile is the one worth reading over.
+- **New operator setting `auth.passkeys.mode`.** Five steps from off to fully passwordless, optional by default: nothing changes on an upgraded instance until an operator moves it under Admin → Settings → Security. Lowering it below the step that offers passkeys at sign-in is refused while any account depends on one.
+- **The WebAuthn settings moved to `auth.webauthn`.** Passkeys and security keys share them now, and the old place under `auth.twoFactor.webauthn` is still read for one release. The resident-key switch is gone: a passkey always requires one and a security key never does.
+- **A console rescue for a locked-out administrator.** Setting `auth.passkeys.printAdminEnrollmentLink` prints a one-time passkey link into the log at the next start and kills the one before it. The link lives an hour and dies on use.
+- **An attendance expects only the groups its sheet names.** Whoever an appointment was not open to used to arrive on the attendance already marked off, which filled the sheet with people the evening never concerned. Whom an appointment is open to now has no say over who is expected, while a sign-up or a refusal still settles what stands beside a name.
+- **Two of the first steps now ask you to look rather than to act.** Answering an appointment has become a short explanation of the two kinds, the ones you sign up for and the ones where you are simply expected, and it no longer ends in a sign-up nobody asked for. Going through your profile is offered even when nothing is missing, because a profile that looks complete is the one worth reading over.
 
 ### Improvements
 
-- **Appointments say who may answer them.** When more people may see an appointment than answer it, the upcoming list says so ("Registration only for: ..."). A missing button now reads as intended, not as a bug.
-- **The dashboard shows each appointment's category.** Every appointment tile on the dashboard now carries the same coloured category badge as the appointment pages. That covers upcoming appointments, registrations and answers you still owe.
-- **Let a signed-in device welcome a new one.** On a device without a passkey, the login screen shows a short code. Enter it under Account → Security on a signed-in device, and the new one creates its own passkey and signs in.
-- **See where passkeys stand.** Under Admin → Settings → Security, three figures show who has a working passkey, who still has a password and who can't move yet. Before the passwordless switch, a report counts who it would leave behind.
-- **A guide to notifications on your phone.** The help used to list a few reader apps; now it walks one route to the end, with Feeder on Android and NetNewsWire on iPhone. It also says why it's worth it: a notification left inside Ember waits until you next open Ember.
-- **Take sheet questions straight into an appointment.** When an appointment names an attendance sheet, its fields are offered above the appointment's questions, one by one or all at once, here and in appointment templates. They arrive tied to their field, so the answers land right on the sheet.
-- **Attendance checks reach everyone the sheet expects.** Checking used to cover only names with something already recorded, so people who joined a group later were skipped. Filling the sheet from its appointment now adds them too.
-- **Late answers still reach the sheet.** Filling an attendance from its appointment now takes over answers given after the sheet was opened. A field the sheet already answers stays as it is.
-- **Quick-check exchanges ask about the handover.** An exchange raised during a quick check asks whether the piece was already handed over. Either way, the check then moves on to the next piece.
-- **Two of the same piece count as 1/2 and 2/2.** When someone is owed two shirts, each row in the inventory check shows its number. You always know which one you're marking, in the list and the quick check alike.
-- **Save an inventory check part way.** You no longer have to mark every piece before saving. Only what you marked is recorded, and everything else keeps its last result.
+- **An appointment now says who may answer it.** Where more people may see an appointment than may answer it, the upcoming list spells the answering audience out ("Registration only for: ..."), so the missing button reads as intended rather than as a bug.
+- **The dashboard shows each appointment's category.** Every appointment tile on the dashboard, in the upcoming list, the registrations and the answers still owed, now carries the same coloured category badge the appointment pages show.
+- **A new device can be freed by one that is already signed in.** The login screen offers it for a device that holds no passkey yet: it shows a short code, and entering that code under Account → Security on a signed-in device lets the new one create its own passkey and sign in with it.
+- **The operator sees where passkeys stand.** Under Admin → Settings → Security three figures show who holds a working passkey, who still holds a password and who cannot move yet, and a report before the passwordless switch counts who it would leave behind.
+- **A page that walks you through putting your notifications on your phone.** Until now the help named a handful of reader apps to choose from; there is now one route told to the end, with Feeder on Android and NetNewsWire on iPhone. It also says plainly why it is worth doing: a notification left inside Ember waits until you next open Ember.
+- **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
+- **Checking an attendance reaches everybody the sheet expects.** It walked only the names something had already been recorded against, so anybody who joined a group after the sheet was opened was passed over and, where that was everybody, the button was not offered at all. Filling the sheet in from its appointment now puts such a member on it as well.
+- **An answer given on an appointment still reaches the sheet afterwards.** Filling an attendance in from its appointment takes over the answers to the questions tied to the sheet's own fields, so an answer entered after the sheet was opened no longer stays behind; a field the sheet already answers is left as it is.
+- **The exchange raised during a quick check asks whether the piece was handed over.** The answer decides whether the exchange stands as announced or with the old piece already back, and the check moves on to the next piece either way instead of offering the same one again.
+- **Two of the same piece are counted off during an inventory check.** Where somebody is owed two shirts, each row reads 1/2 and 2/2, in the list and in the quick check alike, so it is clear which of them is being marked.
+- **An inventory check can be saved before every piece has been marked.** Only what was actually marked is recorded, and a piece nobody looked at keeps what the last check said about it.
 
 ### Fixes
 
-- **Attendance from an appointment arrives with its names.** When the appointment answered one of the sheet's questions, creating the attendance broke off halfway and left the sheet empty. Now both the answers and the expected members arrive.
-- **First steps point at the menu on phones.** On a narrow screen the guide drew its ring beyond the left edge, so you saw nothing at all. It now points at the menu button first and moves on once the menu is open.
-- **Finished first steps now count as done.** Some steps, like opening an article or trying a training, ended by saying the task wasn't settled yet. Walking such a step to the end now settles it.
-- **The training step shows the way again.** When its navigation group was folded away, the step jumped straight to training instead of showing where it lives. It now points at the group, like the other steps.
-- **Four notification kinds now have real titles.** Feed readers showed four kinds, such as a closing sign-up or a missing piece, under a capitalised internal name. They now have proper titles in German and English.
-- **Member questions show names, not numbers.** When an appointment asks who drives or supervises, notifications and the subscribed calendar showed an internal number. Both now show the members' names.
-- **The waiting-list confirmation link works.** The button in the waiting-list confirmation mail opened a page that doesn't exist, so the registration could never finish. It now opens the confirmation page.
-- **Choosing a password completes the setup.** The member list waited for a first sign-in, so people who had already set a password got another setup mail. Choosing a password now settles the account, and only one set by an administrator still counts as outstanding.
+- **An attendance made from an appointment could arrive with nobody on it.** Where the appointment answered one of the sheet's own questions, making the attendance broke off halfway: the sheet opened without a single name, and there was nothing to check off. Both the answer and the expected members now arrive.
+- **The guided first steps pointed off the edge of the screen on a phone.** The navigation is present at every width and merely slides out of sight on a narrow one, so the ring was drawn faithfully at a place beyond the left edge and the reader saw nothing at all. It now points at the menu button first, in a dashed ring that says this is the way rather than the destination, and moves on to what it was after once the menu is open.
+- **A first step stayed open after it had been walked to the end.** Looking up where absences are recorded, opening an article, trying a training: each of these ended with Ember saying the task was not settled yet and suggesting the reader check whether their entry had saved, two steps after telling them there was nothing to enter. Walking such a step now settles it, while anything Ember reads from the data is unchanged.
+- **The step about trying a training offered to jump there instead of showing the way.** The point of that step is to show where training lives, and it skipped its own purpose whenever the group in the navigation was folded away. It now points at the group, as the other steps already did.
+- **Four kinds of notification reached a feed reader under their internal name.** A reminder that a sign-up is about to close, a piece the cluster has sent on its way, a piece reported missing and a movement called off all arrived titled in capital letters rather than in a sentence. All four are now titled and filed in German and English, like every other kind of notification.
+- **A question asking for a member showed a number instead of the name.** Where an appointment asks who drives or who supervises, the notification body and the subscribed calendar entry listed the answer as an internal number, which named nobody. Both now write out the members the question holds.
+- **The waiting-list confirmation link led to an empty page.** Registering through a station's public waiting list sends a mail asking to confirm the address, but the button in that mail opened a page that does not exist, so the registration could never be completed. The button now opens the confirmation page.
+- **Somebody who had set their password still counted as not set up.** The member list waited for a first sign-in before dropping the hourglass beside a name, so people who had chosen their password and gone no further were chased with another setup mail. Choosing a password is now what settles the account, and only a password an administrator laid down still counts as outstanding.
 
 ## v26.13.10
 
 ### New Features
 
-- **Explainer videos in the help centre.** A new page under Basics plays the whole series in order, from the invitation to the parts the team and the leadership use. It uses YouTube's cookie-free address, so nothing is stored on your device until you press play.
+- **The help centre carries the explanatory videos.** Under Basics there is now a page that plays the whole series in order, one video per topic, from the invitation through to the parts the team and the leadership use. It runs on YouTube's cookie-free address, so nothing is stored on the reader's device until they actually play something.
 
 ### Changes
 
-- **Forms are now called surveys.** "Form" made a quick two-question feedback round sound like paperwork. Everything under `/station/forms` now says survey, with the address and all answers unchanged, while the contact forms on public pages keep their name.
+- **Forms are now called surveys.** The word made a two-question feedback round sound like paperwork, which is the opposite of what it is for. Everything under `/station/forms` reads as a survey now, and the address, the questions and the answers already given are untouched; the contact forms on a station's public page keep their name, because that is what they are.
 
 ### Improvements
 
-- **Setting a password signs you straight in.** Invitations and resets used to end at the sign-in form, asking for the new password once more. The link now takes you right into your account.
-- **Correct an answer for a member.** Anyone who may edit an appointment can now fix an answer from the list of sign-ups, like a mistyped shirt size. Members can still change their own answers as before.
+- **Setting a password from a link signs you straight in.** An invitation ended at the sign-in form, where the password just chosen had to be typed again, and a reset did the same. Choosing it proves what typing it would prove, so the link now leads into the account rather than back to the front door.
+- **Whoever runs an appointment can correct an answer to its questions.** The answers were the member's alone to change, although the person planning from them is the one reading them, so a shirt size typed wrong meant chasing the member while the order was going out. Anybody who may edit the appointment can now put an answer right from the list of sign-ups, and the member's own answers stay theirs to change as before.
 
 ### Security
 
-- **Password links still ask for the second factor.** Otherwise a link would turn an account guarded by an authenticator into one guarded by a mailbox. Where a second factor is set up it is asked for as usual, and a password change revokes every remembered device.
+- **A password set from a link still asks for the second factor.** Signing in from the link would otherwise have turned an account guarded by an authenticator into one guarded by a mailbox. Where a second factor is set up it is asked for exactly as at the sign-in form, and every remembered device is revoked when the password changes, so none can vouch for the factor either.
 
 ### Fixes
 
-- **See who signed off from expected appointments.** Appointments without sign-ups only collect refusals, yet their page had nowhere to read them. The page now has an Attendance tab listing who isn't coming.
-- **Member questions offer the member picker again.** When answering for a whole household, a question asking for a member showed a plain text box, and lists later showed a stray number. That window now offers the usual picker and shows the question's starting value.
-- **Group questions now count as missing.** Someone could skip a question required of their group and still be told their profile was complete. Missing answers now match exactly what the profile screen asks, in the task list and on the dashboard too.
+- **An appointment nobody signs up for did not show who had signed off.** Everybody is expected at such an appointment and the only answer anybody gives is a refusal, but its page had no second tab at all, so the refusals could be given and never read. The page now carries an Attendance tab listing who is not coming.
+- **A question asking for a member could not be answered properly.** Where an appointment asks which member is driving or who brings the trailer, the window that answers for a whole household offered a plain text box instead of the list of members, so what was stored was the text somebody typed and every list read it back as a stray number. That window now offers the same picker as the one used elsewhere, and it shows the starting value a question was given instead of leaving the field empty.
+- **A question put to a group was never counted as missing.** Somebody in the instructors' group could leave an answer the instructors are required to give empty and still be told their profile was complete, so the gap reached neither the task list, nor the number beside it, nor the reminder on the dashboard. What counts as missing is now read off the same list the profile screen shows, so anything asked of somebody is asked of them everywhere.
 
 ## v26.13.9
 
 ### New Features
 
-- **See who subscribes to your calendar and notifications.** A new Monitor entry lists which members have set up a subscription, since when, and when it was last fetched. The key itself is never shown, and only the member can withdraw it.
+- **A station can see who subscribes to its calendar and notifications.** Members set up their own subscription in their profile, and until now nobody at the station could tell whether anybody used one. A new Monitor entry lists who has set one up, since when, and when a calendar or reader last fetched it, so a subscription nothing has touched in a week is visible as such. The key itself is never shown, and only the member can withdraw it.
 
 ### Changes
 
-- **Narrowing an appointment limits sign-ups, not visibility.** Appointments for one group used to vanish from everyone else's calendar, so a drill night looked like a free evening. They now stay visible to all and only the group can answer, which also makes earlier narrowed appointments visible to the whole station.
-- **Hiding an appointment is its own setting.** A second audience under Restrictions decides who may see an appointment at all, and for everyone else it is gone from calendar, search and notifications. Hidden appointments can't be published or shared with partner stations, and templates carry both audiences.
-- **Unanswered appointments leave the calendar after closing.** A subscribed calendar kept showing appointments you never answered, which looked like a held place. Once the closing date passes, no answer counts as a refusal, so only places actually taken stay in your calendar.
-- **Procurement belongs to the gap, not the lost piece.** Marking something lost used to offer a replacement order, mixing up two separate questions. The offer now sits at the empty place in the stock-taking, and marking a piece lost only records that it's gone.
-- **Your account opens on the profile.** The settings entry used to land on appearance. It now opens on your profile, with appearance one click below.
-- **Traffic, statistics and storage moved to Monitor.** They sat under Manage, though you look in on them regularly. All three now live under Monitor at `/station/monitoring`, beside the new feed list, while setting up storage stays under Manage.
+- **Narrowing an appointment now decides who may sign up, not who may see it.** An appointment meant for one group used to vanish from everybody else's calendar, so a Tuesday with a drill on it looked like a Tuesday with nothing on it. Such an appointment now stays in everyone's calendar and simply cannot be answered by anybody outside the group, which also means appointments that were narrowed before this version become visible to the whole station.
+- **Hiding an appointment is a setting of its own.** Where an appointment really should not be known about, a second audience under Restrictions decides who may see it at all; for everybody else it is absent from the calendar, the search, the subscribed calendar and every notification. Only these carry the lock in the lists, and they can be neither published on the station's page nor shared with partner stations. Appointment templates carry both audiences, so a series does not have to be set up again on every date.
+- **An appointment nobody signed up for leaves the calendar when the closing date passes.** A subscribed calendar kept showing an appointment that asks to be signed up for even where the answer was still outstanding after the closing date, which reads as a place held. An answer not given by then counts the same as a refusal, so only a place actually taken stays in the calendar. While the closing date is still ahead, an outstanding answer keeps the appointment where it is.
+- **A procurement now belongs to the gap it fills, not to a lost piece.** Marking something lost offered to order a replacement, although what is missing from a member and what the store has to buy are two different questions, and a piece that was never handed out got no offer at all. The offer now stands at the empty place in the stock-taking, where nothing in the store fits, and marking a piece lost only records that it is gone.
+- **The account opens on the profile.** Following the settings entry landed on the appearance settings, although the profile is what the account's own sidebar lists first and what most people go there for. It now opens on the profile, and appearance is the click below it, where it always was.
+- **Traffic, the page statistics and the storage overview have moved to Monitor.** They sat under Manage, between the things a station sets up once, although looking in on them is something one does regularly. All three now stand under a Monitor section of their own at `/station/monitoring`, together with the new feed list. The old addresses are gone; the sidebar leads to the new ones. Setting up where the files are kept stays under Manage, because that is something one configures rather than watches.
 
 ### Improvements
 
-- **Upcoming appointments lead with their date.** Date and time now stand above the name, because you read such a list by date. Appointments that need a sign-up say so on the line too.
-- **Add notes during the quick stock-taking.** Each piece in the quick walk now has a line for a note. It's the same note the long list and the finished stock-taking show.
-- **Stock-taking exchanges ask why.** There's now one exchange button instead of two fixed reasons. Its window offers too small, damaged or your own words, and the suggested size can still be corrected.
-- **Attendance sheets start with the times filled in.** Every line now shows the attendance's own times faintly, so nobody types them per member. Only a time you correct is saved.
-- **A member's page shows what's still missing.** The equipment tab now names every requirement that isn't covered. It offers a free piece from the store or a new one on the spot, asking the size where needed.
-- **Handing out gear offers a search.** Both hand-out dialogs now use the usual picker, with name search and a filter by kind of member. Every such picker is now in alphabetical order.
-- **The member list says where a setup mail goes.** Members without their own address are written to through their guardians, which used to look like a mistake. The button now names where the mail lands, and the hourglass explains what to do when nobody can be reached.
-- **Setup links now last a month.** Invitation links expired after three days, so one sent before a holiday was dead before anyone read it. The new `auth.setupTokenDays` setting starts at 30 days and can't go higher, while the reset link stays short.
+- **The list of upcoming appointments leads with when they are.** The date and the time now stand above the name rather than trailing behind it, because a list of appointments is read by date first. An appointment that asks to be signed up for also says so on the line, which until now only the dashboard did.
+- **A note can be written during the quick stock-taking.** The walk that shows one piece at a time took a decision and nothing else, so anything worth saying about a piece had to wait for the long list or go unsaid. Every piece now has a line for a note on it, the same one the list offers and the same one the finished stock-taking shows.
+- **An exchange raised during a stock-taking asks why in words.** Two buttons stood side by side for the two common reasons and left nowhere to put a third, so anything else was raised as one of them or not at all. There is now one exchange button, and the window behind it offers too small, damaged, or a reason written out, with the size it suggests still open to correction.
+- **An attendance sheet starts with the times already on it.** Somebody who was there from beginning to end had two empty boxes beside their name, and typing the same two times out once per member is work that says nothing. Every line now shows the times of the attendance itself, faintly, and only a time somebody corrects is written down.
+- **A member's page says what they are still missing.** The equipment tab listed what somebody had been given and said nothing about what they were owed, so finding a gap meant starting a stock-taking. It now names every requirement that is not covered, and offers either a free piece from the store or a new one written down on the spot, asking the size where the store keeps sizes.
+- **Handing gear out offers a search instead of one long list.** The two dialogs that give a piece to somebody listed every member of the station in whatever order they arrived. They now use the same picker as everywhere else, with a name search and a filter by kind of member, and every such picker is in alphabetical order.
+- **The member list says who a setup mail actually goes to.** A member with no address of their own is written to through their guardians, so the offer to send stood beside an address that looks undeliverable and read as a mistake. The button now says where the mail lands, and where nobody at all can be reached the hourglass beside the name explains that too, and what to do about it.
+- **The link that sets up a new account now lasts a month.** It had the same three days as an administrator's password reset, so an invitation sent before a holiday was dead before anybody read it. It has its own setting, `auth.setupTokenDays`, which starts at 30 days and is never allowed past that: it is still a link in a mailbox. The self-service reset link is untouched and stays short.
 
 ### Security
 
-- **Calendar feeds show only what you may see.** The personal calendar feed carried every appointment of the station, restricted ones included. It now carries only what the household may see.
-- **Restricted appointments never go public.** An appointment in a public category became public too, even when restricted. A restricted appointment is now never public, whatever its category says.
+- **A subscribed calendar handed out appointments the subscriber was never meant to see.** The personal calendar feed carried every appointment of the station, restrictions included, with its name and description. It now carries only what the household may see.
+- **An appointment could reach the public page through its category.** Where a category is public, the appointments in it inherit that, and no restriction was consulted on the way out, so a narrowed appointment could end up readable by anyone on the internet. An appointment whose visibility is restricted is now never public, whatever the category says.
 
 ### Fixes
 
-- **Expired setup links explain themselves.** An expired link showed the password form and only called itself invalid after you had typed twice. It now says up front that the account is still there and the administration can send a new mail, and a reset link offers to resend itself.
-- **Absent members no longer get attendance hours.** Exports and reports gave every member the session's times, so someone absent seemed to stay all evening. Only members who were there get those times now, and the counted hours were always right.
-- **Two notification kinds now read as sentences.** A closing-registration reminder and a cancelled movement reached the feed as bare details strung together. Both now read as proper sentences in German and English.
+- **An expired setup link ended in a form and a shrug.** Following one that had run out showed the password form, took a password twice, and only then said the link was invalid. It now explains itself before anything is typed: that the link has run out, that the account is still there, and that the station's administration can send a new mail. A reset link explains the same and offers to send itself again.
+- **An attendance handed its hours to people who were not there.** The exported document and the report filled the session's start and end into the two time columns of every member, so somebody marked absent read as having stayed the whole evening. Only a member who was actually there is given those times now, and the hours that were counted were right throughout.
+- **Two kinds of notification arrived without their wording.** A reminder that a registration is about to close, and word that a movement was called off, reached the subscribed feed as their bare details strung together with dashes, because no sentence had ever been written for them. Both now read as sentences, in German and in English.
 
 ## v26.13.8
 
 ### Improvements
 
-- **Answer an appointment from its own page.** Signing up and refusing used to live only in the list of what's coming up. The same answer, with any questions, now sits on the appointment's page too.
-- **Answer dialogs from the keyboard.** A dialog now puts the cursor on its confirm button, so Enter is enough. Inside a text field, Shift and Enter confirm instead.
-- **Hold Shift to skip the safety question.** Answering the same question row after row teaches nobody to read it. Hold Shift while pressing delete, or any other action that asks first, and it happens at once.
-- **Row menus no longer get cut off.** On wide tables a row's menu was clipped by the scrolling list. It now floats over the page, opens upwards when needed and stays inside the window.
+- **An appointment can be answered from its own page.** Signing up, refusing and taking either back stood only in the list of what is coming up, so anybody who had opened the appointment itself had to go back to answer it. The same answer, with the same questions where the appointment asks any, now stands on the page too.
+- **A dialog can be answered from the keyboard.** Opening one puts the cursor straight on the button that confirms it, so the enter key is enough. Inside a text field, where the enter key belongs to the field, holding shift with it confirms the dialog instead.
+- **Holding shift skips the safety question.** Clearing out a row after row means answering the same question over and over, which teaches nobody to read it. Holding shift while pressing delete, or any other action that asks first, carries it out at once.
+- **The menu of a row is no longer cut off by the list it sits in.** On a wide table the menu opened inside the scrolling area and was clipped at its edge, so reading one's own menu meant scrolling sideways. It now lies over the page, opens upwards where there is no room below, and stays inside the window.
 
 ### Fixes
 
-- **Group questions reach the member's own profile.** The last version showed such questions in the editing screen, but members never saw them in their own profile. The profile now shows them, and managers also see the questions put to the team.
-- **Member names can be corrected again.** The editing screen guessed first and last name by splitting at the first space, so "Millie Jo Harnack" got the surname "Jo Harnack". Your correction was saved but the guess came back on the next visit, and now the correction stays.
-- **Appointment totals count only people coming.** Answers kept counting after someone was turned away or called off, which threw off the catering. Only people with a place count now, just like for deciding whether it takes place.
+- **A question asked of one group still reached nobody.** The last version put such a question on the member's page in the editing screen, but the reader's own profile worked the rule out for itself and threw away everything of group scope, so somebody in the instructors' group was never shown what the instructors are asked. The profile now asks which questions apply to it rather than deciding again. A manager is also shown the questions put to the team, which is what a complete profile already expected of them.
+- **A member's name could not be corrected.** The editing screen guessed the two halves by splitting the whole name at the first space, so somebody stored as "Millie Jo" and "Harnack" was offered a surname of "Jo Harnack". Correcting it saved the right thing and the next visit showed the guess again, which read as a change that had not been kept.
+- **The totals under an appointment counted people who are not coming.** An answer stays on file after the place it was given with is gone, so somebody turned away or who called off still counted towards the catering. Only people with a place are counted now, which is the same set the appointment already uses to decide whether it takes place.
 
 ## v26.13.7
 
 ### Improvements
 
-- **Take plain pieces into stock with a tick.** When an inventory has no sizes, no fields and no numbers, a stock-taking row had nothing to fill in and was skipped. A tick in the first column now takes the piece anyway and hands it to the member on that line.
+- **A piece with nothing to write down can still be taken into stock.** Where an inventory keeps no sizes and no fields of its own, and the gear carries no number, a line of the stock-taking table had nothing in it and was passed over. A tick in the first column now takes that piece anyway and hands it to the member on its line.
 
 ### Fixes
 
-- **Signing in no longer freezes the page.** When the terms had changed and the session had been idle for an hour, two checks kept sending each other back and forth. The sign-in had worked all along, and now the page lets you through.
-- **Group questions now reach the group.** A profile field set up for a group was saved but never appeared on its members' profiles. It now shows there, beside the questions for their kind of member.
-- **Date-of-birth fields show their type again.** A station can ask for a date of birth per kind of member, but the settings only ever read the first one, so the others looked empty. Each tab now reads the date of birth for its own members.
-- **The footer shows the new version right away.** After an update the footer kept naming the old version for up to an hour. It is now checked on every visit.
+- **Signing in could leave the button turning until the browser gave up on the page.** Where the terms had changed and the session had been idle for an hour, two checks sent each other back and forth without end, so the page froze even though the sign-in itself had worked and a reload showed it. Each of the two now lets the other's page through.
+- **A question asked of one group reached nobody.** A profile field set up for a group was stored and listed in the configuration, but never appeared on the profile of the members of that group. It now stands on their profile beside the questions their kind of member is asked.
+- **The type of a date-of-birth field was shown as empty.** A station may ask for a date of birth once per kind of member, but the configuration only ever looked at the first of them, so opening any other offered every type except the one it already had. Each tab now reads the date of birth of the members it is about.
+- **After an update the footer kept naming the previous version.** The answer that carries it was held in the browser for an hour, so a fresh version looked as though it had not arrived until the hour was out. It is now checked on every visit, which costs nothing on the days nothing changed.
 
 ## v26.13.6
 
 ### Security
 
-- **News entries are now formatted by the server.** Formatted text sent by a browser was stored and shown to every reader unchecked, so someone reaching the interface directly could inject any markup. The server now builds and cleans the formatted text itself and ignores what the browser sends.
+- **The body of a news entry is now written by the server.** What a browser sent as formatted markup was stored and served back to every reader unchecked, so anybody able to reach the interface directly could have put arbitrary markup into an entry. The formatted body is rendered from the text of the entry and cleaned on the server, and what a browser sends is no longer read at all.
 
 ### Improvements
 
-- **Sort the stock-taking table by either name.** The member column now sorts by first name or surname, and a second press reverses the order. The table can match whatever list lies on the desk beside you.
+- **The stock-taking table can be put in either order of name.** The member column now offers first name and surname, and a second press on the same one turns the order round. The table then lies in the order of whatever list is on the desk beside it.
 
 ### Fixes
 
-- **Upcoming appointments are in date order again.** Every appointment spanning several days was pulled to the top, so one months away stood above tomorrow's drill. The list now runs from nearest to furthest, and by time within a day.
-- **Formatted text keeps its formatting.** Lists lost their bullets, headings looked like plain text and paragraphs ran together. News entries, ticket descriptions, appointment details, help articles and the public calendar now read as they were written.
-- **Setup mails are offered only where they can arrive.** Members entered without an address still got a send button, which produced an error. It now appears only when the mail reaches the member or a guardian, and a note says when the current link runs out.
+- **The list of upcoming appointments was not in date order.** Every appointment running over more than one day was pulled to the top, so one months away stood above tomorrow's drill. The list now reads from the nearest date to the furthest, and several on the same day in the order of the clock.
+- **Formatted text was shown without any of its formatting.** Lists lost their bullets, headings read like ordinary text and paragraphs ran together, so a news entry written with a list arrived as a wall of words. Every place that shows written text now reads as it was written: news entries, ticket descriptions, appointment details, help articles and the public calendar.
+- **The member list still offered to send a setup mail that could not arrive.** Somebody entered without an address carries one that was made up for them, and the button beside their name was offered all the same, producing an error when pressed. It now appears only where the mail would reach the member or one of their guardians, and the note beside it says when the current link runs out.
 
 ## v26.13.5
 
 ### New Features
 
-- **Record a whole inventory in one pass.** A new page opens a table with one row per member, picked by kind of member, by group or all at once. One save records every piece and hands each to the member on its line, and empty rows are simply skipped.
-- **Gear checks can correct what they find.** When a member holds something other than what's on record, a correction button records what they really have, from the store or as a new piece. Nothing changes hands, and the piece coming off the record goes back to its owner.
+- **A whole inventory is written down in one pass.** Gear the station has long owned no longer has to be entered one window at a time: a new page opens a table with a row per member, chosen by kind of member, by group or all of them, and one save writes every piece and hands each to the member on its line. A size picked once fills every row that has none, a number is optional, and a row left empty is passed over.
+- **A gear check can put right what it finds.** Where a member turns out to be holding something other than what is written down, a correction button opens a window that records what they really have: a free piece from the station's own store, or a new one with its size, number and the inventory's own fields. Nothing changes hands, because the gear is already in the right ones, and the piece coming off the record goes back to whoever owns it.
 
 ### Improvements
 
-- **New containers are named after their kind.** Choosing a container's kind fills an empty name with it, so a shelf is called "Shelf" without typing it twice. A name you already wrote stays as it is.
+- **A new container is named after what it is.** Choosing the kind of a container fills an empty name with that kind, so a shelf is called "Regal" without typing the word twice. A name already written is left alone.
 
 ### Changes
 
-- **Gear checks no longer change a piece's size.** The two loose fields on every item, for swapping a piece or making one in another size, give way to the correction window. A piece in the wrong size is the wrong piece, so it is replaced rather than resized.
+- **A gear check no longer offers to change a piece's size.** The two loose fields on every item, one to swap in another piece and one to make a new piece in another size, are replaced by the correction window. A piece with the wrong size is the wrong piece, so it is replaced rather than resized.
 
 ### Fixes
 
-- **Changing a member's email address works.** Saving a new address only sent confirmation links, one of them to the old address, so a dead address could never be fixed. Whoever may edit members now sets it directly, which signs the member out everywhere and informs both addresses.
-- **Replacement pieces in a gear check get made.** On an inventory holding the association's gear, the new piece was made as the station's own and refused with an error. It now belongs to whoever owns the inventory.
+- **Changing a member's email address did nothing.** Typing a new address on the member's page and saving only sent out confirmation links, one of them to the address being replaced, so a wrong or dead address could never be put right. Somebody with the right to edit members now sets the address directly, which signs that member out everywhere and tells both addresses.
+- **Creating a replacement piece during a gear check did nothing.** On an inventory that holds the association's gear the new piece was always made as the station's own, which such an inventory refuses, so the button only produced an error. A piece made during a check now belongs to whoever the inventory belongs to.
 
 ## v26.13.4
 
 ### New Features
 
-- **Give a repeating appointment an end.** A series can now run forever, stop on a day you name, or stop after a set number of dates. After the last one it leaves the calendar, the reminders and the subscribed calendar, and partner stations learn the end too.
+- **A repeating appointment can be given an end.** A series now either runs without an end as before, stops on a day you name, or stops after a number of times counted from its first date. After the last one it is gone from the calendar, the reminders and the subscribed calendar file, instead of having to be deleted on the day. An appointment shared with partner stations carries its end to them as well.
 
 ### Improvements
 
-- **Template questions can start with an answer.** Every question in a template takes a default, and new appointments open with it filled in and still changeable. A weekly drill with the same meeting point is written down once, not on every date.
-- **Picking someone shows faces, not just names.** Adding a member to an appointment or attendance sheet now shows a proper list with pictures, the way groups show their members. It opens as you type, stays out of the way otherwise, and one pick adds the person right away.
-- **Editing a chain no longer reloads the page.** Saving, adding, retiring or moving a step now updates only that chain. Everything else stays open and in place.
-- **The dashboard shows your answer and takes a refusal.** Upcoming appointments show the answer you gave instead of a reminder, and appointments that expect everybody carry a small refusal button. If you answer for others, you're asked who the refusal is for.
-- **The appointment list shows each appointment's kind.** A badge in the category's colour sits beside the name. You can tell a drill from an open day at a glance.
-- **Sidebar groups no longer show empty halves.** Someone who can neither write nor sit a test sees the quiz entries alone, without an empty tests heading. A member whose only inventory management entry was the exchange now reaches it directly, beside their own gear.
-- **Chains explain problems right where you work.** What a chain is missing shows on the chain itself, and so does the reason a change was refused. Both now read in plain German instead of English.
+- **A question in an event template can start with an answer.** Every question of a template takes a standard value, and an appointment made from the template opens with it already filled in, where it can still be changed. A weekly drill whose meeting point is the same every time is written down once instead of on every date.
+- **Picking somebody now shows faces rather than a list of names.** Entering a member on an appointment or on an attendance sheet offers a proper list with their picture and their name, the way a group shows its members, instead of a dropdown of every name in the station. It opens as soon as anything is typed and otherwise waits behind an arrow, so it does not push the page around, and picking somebody enters them straight away.
+- **Editing a chain of steps no longer reloads the page around it.** Saving, adding, retiring or moving a step now updates only the chain it was about, so everything else stays open and in place.
+- **The dashboard says what you answered, and takes a refusal.** The list of upcoming appointments shows your answer where you gave one instead of the reminder that one is needed, and an appointment that expects everybody carries a small refusal button. Whoever answers for others is asked who the refusal is for.
+- **The appointment list says what kind each appointment is.** A badge in the category's own colour stands beside the name, so a drill and an open day are told apart at a glance instead of by reading the description.
+- **A sidebar group no longer names a half nobody can open.** Somebody who may neither write a test sheet nor sit one is shown the quiz entries on their own, without an empty tests heading above them, exactly as at a station that runs no tests. A member whose only entry under the inventory's management heading was the exchange now reaches it directly, at the same level as their own gear.
+- **A chain says what is wrong with it in German, where the change was made.** What a chain is missing stands on the chain itself, and a refused change is explained there too instead of at the top of the page, in plain German rather than in English.
 
 ### Changes
 
-- **Household answers get one line each.** In the appointment list, everyone you answer for has their own row with their answer and a button to take it back. Nothing wraps across one crowded line anymore.
-- **An appointment's page leads with what it is.** The category sits as a badge beside the name, and start and end always stand side by side. Which attendance sheet it writes into is shown only to those who may edit it.
-- **Sharing with partners pauses until both sides update.** Shared appointments now include when their repetition ends, which both instances must understand. Everything else keeps working, and sharing resumes by itself once the partner has updated.
+- **The answers of a household stand one per line.** In the appointment list every person the reader answers for has a row of their own with their answer and a button to take it back, instead of all of them running across one line that wrapped wherever it ran out of room.
+- **An appointment's page leads with what it is.** The category stands as a badge beside the name instead of as the first entry of the list below, beginning and end always sit side by side, and which attendance sheet the appointment writes into is shown only to those who may edit it.
+- **Sharing appointments with a partner station pauses until both sides run this version.** What a shared appointment says now includes when its repetition ends, which both instances have to agree on. Everything else keeps working, and sharing resumes on its own once the partner has updated; nothing has to be paired again.
 
 ### Fixes
 
-- **Answering for one child no longer leaves a blank button.** After answering for one person, the choice stayed on them, so the button went blank and could answer for them twice. The choice now resets, and the button waits until you pick someone.
-- **The chains page loads the first time.** A new station wrote its starting chains twice at once, and the second attempt left the page empty with an error. Chains and their assignments are now written once, whatever the timing.
-- **Two starting chains can be finished again.** The return to the association ended with the gear still in the post, and the issue from the association never confirmed arrival. Both are completed on upgrade, and chains a station changed itself stay untouched.
-- **Picking a size from the quick selection works.** Clicking a size picked it and dropped it again, and the list closed as soon as the pointer moved off. A press now picks the size, and the list stays open until you use it, cancel or click away.
-- **Questions tie only to the sheet in use.** Every sheet's fields were offered, so two fields called "Beginner instructor" were indistinguishable and answers landed on a sheet nobody opens. Only fields of the sheet in use are offered now, and other ties are dropped on save.
-- **The attendance field dropdown fits its box.** It took its width from its longest entry and ran into the field beside it. It now takes the width of the box it sits in.
+- **After answering for one child, the appointment offered a button with no name on it.** The choice of who the answer was for stayed on somebody who had just answered and was no longer on the list, so the box beside the button went blank and pressing it answered for them a second time. The choice now falls back to nobody, and the button waits until somebody is picked.
+- **The chains page could fail to load the very first time it was opened.** A station being set up wrote its starting chains twice at once and the second attempt ended in an error, leaving the page empty. Chains and their assignments are now written once whatever the timing.
+- **Two of the chains a station started with could not be walked to the end.** The return to the association ended with the gear still in the post, and the issue from the association was a single step that asked for gear and never confirmed it arrived, so both were reported as broken on the first day. Both are completed on upgrade, leaving any chain a station has changed itself alone.
+- **A single size could not be picked from the quick selection, and the list ran away from the pointer.** Clicking a size took it and gave it straight back, so the only way to pick one was to press beside it and drag across, and the list closed as soon as the pointer left the row it hangs under. A size is now taken by pressing it, and the list stays open until it is used, cancelled, or clicked away from.
+- **A question could be tied to a field of an attendance sheet the appointment does not use.** Every sheet of the station was offered at once, so two sheets each carrying a field called "Ausbilder Anfänger" were impossible to tell apart in the list. The answer was then written into a sheet nobody opens, and the field on the sheet actually in use kept asking to be prefilled. Only the fields of the sheet in use are offered now, and a tie into any other is dropped when the appointment or the template is saved.
+- **A dropdown for the attendance field ran into the width beside it.** It took its width from its longest entry instead of from the box it sits in.
 
 ## v26.13.3
 
 ### Improvements
 
-- **Members and trials start without sign-in rights.** Signing in is something a guardian hands to a child, so imports and returns from the former list leave it off. Team members, guardians and managers are unaffected.
-- **No more made-up addresses.** Members entered without an address used to get an invented one ending in `.local`, which looked real but reached nobody. The member list, the setup mail and every other place now know plainly whether someone can be reached.
-- **Search and filter long member lists.** Groups, tags, the attendance sheet and manual registration now offer a name search above the picker. A filter by kind of member sits right beside it.
-- **Event managers can add people after the deadline.** Whoever runs the event keeps its list rather than answering it. Someone who rang up late can still be entered.
-- **Attendance skips people the event wasn't open to.** They couldn't see the event, so they now start marked off instead of undecided. Anyone who could see it and said nothing stays undecided.
-- **Delete an attendance sheet again.** Whoever may take an attendance may also throw one away. Everything recorded on it goes along.
+- **Members and trials no longer arrive with the right to sign in.** Signing in is something a guardian hands a child, so an import and a return from the former list leave it off. Team members, guardians and managers are unaffected.
+- **Somebody entered without an address now has none.** An address was made up for them ending in `.local`, which looked like something that could be written to and could not be. The member list, the setup mail and every other place that asks whether somebody can be reached now get a straight answer.
+- **Picking a member out of a long list can be searched and narrowed.** Groups, tags, the attendance sheet and the manual registration of an appointment all offer a name search and a filter by kind of member above the picker.
+- **An event manager can still put somebody on the list after the deadline.** Whoever runs the event is keeping its list rather than answering it, so somebody who rang up late can still be entered.
+- **An attendance made from an event starts with the people it was never open to already marked off.** They could not see the event and so could not answer it, and having them appear as undecided asked whoever fills the sheet in to rule on people who were never invited. Somebody who could see it and said nothing stays undecided, which is what the attendance itself answers.
+- **An attendance sheet can be deleted again.** Whoever may take one may throw one away, and everything recorded on it goes with it.
 
 ### Fixes
 
-- **Add people by hand before anyone signs up.** The registration section only appeared after the first sign-up. Now the person allowed to add names has a place to start.
-- **The sign-up button disappears after the deadline.** It used to stay, and pressing it only produced an error. Now it's gone once the deadline passes.
-- **Appointments offer only the answer they take.** Sign-up appointments offer signing up and, once you have a place, giving it back; appointments that expect everyone offer only a refusal and taking it back. Taking an answer back now removes it, so nobody is recorded as refusing something they never signed up for.
-- **Declined members are no longer asked again.** Someone who had declined was still offered a place or a refusal. They aren't asking to come, so there's nothing to decide.
-- **Descriptions in the appointment list show clean text.** Asterisks and hashes from the formatting appeared as typed. The opening words now read as the text they were meant to be.
-- **Finished onboarding lists leave the dashboard.** A list where everything was done or dismissed kept hanging around. It now goes away.
-- **The instance-wide storage overview loads again.** Stations with files from before the media library broke the page with an error. Those files now count toward the media library, and anything that can't be placed is left out.
+- **Nobody could be put on an appointment by hand until somebody had signed up.** The whole registration section only appeared once the first entry existed, so the one person allowed to enter the first name had nowhere to enter it.
+- **The sign-up button stayed after the deadline had passed.** Pressing it produced an error and nothing else.
+- **An appointment offered two answers where it only takes one.** An appointment that has to be signed up for now offers signing up, and once there is a place, giving it back. One that expects everybody offers only the refusal, and once refused, taking that back. Giving either back removes the answer instead of writing down the opposite, so nobody is recorded as refusing something they were never down for.
+- **Somebody who had declined was offered a place or a refusal.** They are not asking to come, so there is nothing to decide about them.
+- **The description in the appointment list showed its own markdown.** Asterisks and hashes appeared as written; the opening words are now shown as the text they were meant to be.
+- **The onboarding lists stayed on the dashboard after everything was settled.** A list where everything is done or thrown away asks nothing and now goes away.
+- **The instance-wide storage overview would not load.** Where a station had files from before the media library existed, the page counting what every station uses ended in an error instead of showing the list. Those counts are added to the media library's own, and a count that cannot be attributed to anything is now left out of the page rather than taking it down.
 
 ## v26.13.2
 
 ### Improvements
 
-- **Event templates know who they're for.** A template can now name groups, tags and individual members, not just kinds of member, and passes that audience on to each appointment. You pick the youngest group once instead of on every date of the year.
+- **An event template says who its appointments are for.** A template can now name groups, tags and individual members as well as the kinds of member it could always name, and applying it hands that audience to the appointment, where it can still be widened or narrowed. A station running one evening for the youngest group picks that group once rather than on every date of the year.
 
 ### Fixes
 
-- **Profile headings read as headings.** When reading a profile, every heading showed as an unanswered question with a dash beside it. Headings now look like headings, and short questions sit side by side as on the form.
-- **Profile dates read like dates.** A birthday showed as 2019-11-03 wherever a profile was read rather than filled in. It now reads 03.11.2019.
-- **Date fields let you type again.** Every click reopened the calendar and sent your typing back to the start. The calendar now opens once, and typing carries on from there.
-- **Templates pass on their attendance sheet.** A template naming an attendance sheet didn't hand it to its appointments, so it had to be set by hand every time. It now comes along.
-- **New appointments ask each answer once.** A sheet field already filled by one of the appointment's questions was offered again under prefill, and the last one set quietly won. That field is no longer offered there.
-- **Prefill names field kinds properly.** The prefill section showed English shorthand for each field's kind. It now uses the same German names as the rest of the product.
-- **The width hint no longer crowds its neighbour.** In the event template editor, the sentence under a question's width pushed the next setting out of line. It now sits behind an information icon beside the label.
-- **Managers' edits skip their own confirmation.** Changing a watched question on someone else's profile put the change on a list only the manager themselves ever saw. Only members' changes to themselves wait there now, and the history keeps both.
+- **A heading in a member's profile was shown as a question nobody had answered.** The page that reads a profile listed every heading as a name with a dash beside it, so the arrangement the station made turned into noise. Headings now stand as headings there too, and short questions stand beside each other the way they do on the form.
+- **A date in a profile was shown the way it is stored.** A birthday read 2019-11-03 instead of 03.11.2019, wherever a profile is read rather than filled in.
+- **A date field opened its calendar on every click, so the date could not be typed.** Clicking to put the cursor on the year opened the calendar again and threw the typing back to the start. The calendar now opens once, when the field is reached, and typing carries on from there.
+- **Applying an event template left the appointment without an attendance sheet.** A template naming the sheet the attendance is taken on handed nothing over, so it had to be set again by hand on every appointment made from it.
+- **A new appointment asked twice for the same answer.** A field of the attendance sheet already filled in by one of the appointment's own questions was asked for again under the prefill heading, where whichever was set last quietly won. Such a field is no longer offered there.
+- **The prefill section named the kind of each field in English shorthand.** It showed the raw wording the sheet stores rather than the German names the rest of the product uses for the same kinds.
+- **The explanation of a question's width crowded the setting beside it.** In the event template editor the sentence under the width pushed the neighbouring selection out of line; it now sits behind an information icon next to the label.
+- **A manager's own edit waited for their own confirmation.** Changing a watched profile question on somebody else's profile put the change on the list of things to be acknowledged, where the only person it was ever shown to was the one who made it. Only what a member changes about themselves waits there now; the history keeps both.
 
 ## v26.13.1
 
 ### Improvements
 
-- **Map import values to real answers.** When you say what a value in the file becomes, the import now offers the answers the question allows, instead of asking you to type them. Group columns can be mapped too, so a differently named group no longer gets a duplicate.
-- **Map each distinct answer once.** The editor reads the whole file and lists every answer once. Thirty identical answers are one line to fill in, and nothing far down the file is missed.
-- **Leave single rows out of an import.** Each row in the preview can be struck out and put back. That beats editing the file when one line belongs to someone who has left.
+- **The member import translates a column into the answers that exist.** Saying what a value in the file becomes now offers the answers the question allows, the options of a choice, yes or no, or the groups the station keeps, instead of asking for them to be typed. Group columns can be translated at all now, so a file calling a group something else no longer creates a second one beside it.
+- **A column is translated by the answers it actually holds.** The editor reads the whole file and lists each answer once, so a column answered the same way thirty times is one line to fill in and an answer far down the file is no longer missed.
+- **Single rows of an import can be left out.** Each row of the preview can be struck out and put back, which beats editing the file when one line belongs to somebody who has left.
 
 ### Fixes
 
-- **Imports with profile questions run through.** Mapping a column onto a profile question, like a phone number or shoe size, stopped the whole import with an error. Those columns now arrive, with dates, numbers and yes or no read correctly.
-- **Mapped answers reach the imported members.** Even when the import ran through, answers from those columns were dropped. Members now arrive with their profiles filled in.
-- **A parent's phone number no longer stops the import.** Such a column ended the import part way, with some members added and the rest left out. Contact columns now arrive with everything else.
-- **Parents without an email address are kept.** They were silently dropped and never linked to their child. They now get a made-up address, just like members who arrive without one.
-- **Parents' surnames no longer appear twice.** A column with a contact's full name produced names like "Rita Sommer Sommer". The last word of a full name is now read as the surname.
-- **Importing the same list twice makes no duplicates.** Rows are matched by address, or by name within the station when there is none. New people are added, existing ones are skipped and listed in the result.
+- **A member import that filled in profile questions ended in an error.** Mapping a column onto a question the station asks, a telephone number or a shoe size, stopped the whole import with a general failure and imported nobody. Those columns now arrive, with dates read as dates, numbers as numbers and yes or no as the answer it is.
+- **Mapped questions never reached the imported members.** Even where the import ran through, the answers from those columns were dropped on the way in, so the people arrived with empty profiles.
+- **A list carrying a parent's telephone number stopped the import.** The number was written to the parent's profile as it stood and ended the reading in a general failure, part way through, with some members already added and the rest of the list untouched. Contact columns now arrive with the rest.
+- **A parent given without an e-mail address was dropped without a word.** They were neither written down nor connected to their child, though the list named them; an address is now made up for them the same way it is for a member who arrives without one.
+- **A parent read out of a single column carried their surname twice.** A column headed with the contact's whole name left them recorded as "Rita Sommer Sommer", the child's surname standing in for the one that seemed to be missing. The last word of a whole name is now read as the surname it already is.
+- **Reading the same member list a second time made a second copy of everybody.** A row is matched on its address, and where it carries none, on the name within the station, so importing an updated list adds the new people and passes over the ones already there. The result says how many were passed over and who they were.
 
 ## v26.13.0
 
 ### New Features
 
-- **Ember walks you through your first steps.** When the introduction tour ends, a short list of real tasks begins: your profile, your notifications, the next event and the calendar subscription. Ember points at the button to press and the page stays usable, so you learn the way by doing it.
-- **Guided setup for stations and the instance.** Managers see what their station still needs beyond the setup wizard, and administrators see what the instance needs, each on their own start page. Both lists are shared, so a step one manager settles is settled for everyone, with a note of who did it.
-- **Your station gets a media library.** Everything your station has uploaded lives in one place at `/station/media`, with folders, tags and search, and every editor can reach into it. Anyone who may sign in can upload and insert their own files, so a picture fits into a board ticket as easily as onto a public page.
-- **News entries can hand you a file.** Authors pick attachments from the library, name and order them, and they show up as downloads under the text. They travel with the blog feed and to partner stations, so readers there get the same file.
-- **Write a news entry with the page editor.** You can switch an entry from the plain text field to rows and columns, with images beside text, callouts, galleries and code blocks. The switch is one way: your text moves into a single block and nothing is lost, but the plain field does not come back.
-- **Tell every station something at once.** Under Stations → System news an administrator writes a notice that appears in every station's news list, from Ember and marked with a System badge. It can be limited to certain member types and notifies only when asked, and a correction or withdrawal applies everywhere at once.
-- **The instance keeps its own library.** Pictures and files in a system notice belong to the instance, so a station tidying up its own files can never break them. You upload and pick them while writing the notice, and every station that reads it gets them.
-- **Wiki articles get the page editor too.** A markdown article can switch to the page editor just like a news entry, which suits a training document with a diagram beside its explanation. Search, the PDF export and the version history keep working, though old versions can be read but not restored.
-- **Your station decides how gear moves.** Under Inventory → Chains there is a chain for every way gear travels, from issuing and handing back to exchanging and requesting, and you shape each one step by step. The gear's owner and the person at the other end decide which chain applies, so one inventory can follow different chains for different rows.
-- **Every handover ends with a confirmed receipt.** Each chain starts with a request and ends with the person holding the gear confirming it under Inventory → My equipment. If somebody never answers, a manager can still complete the step with a note.
-- **Ask for everything a member holds at once.** One button on their equipment page starts a return for every piece, each on the chain that fits it. The station's own gear goes back to its store and the association's goes into the post.
-- **Stations can belong to an association.** An administrator creates one under Admin → Associations. Whoever runs it gets their own area at `/cluster`, with rights kept separate from any station.
-- **Stations apply, and associations answer.** Only a station's owner can apply, under Manage → Association, and the association approves or refuses with a reason both sides can read. An association can also create stations of its own, which belong to it from day one.
-- **Stations in an association connect on their own.** Joining links a station to its association and, unless the association turns this off, to every other station under it, with calendars, knowledge and gear shared both ways. These connections belong to the association, so no station can end them or pause the one carrying the association's content.
-- **An association shapes what its stations use.** It can lock modules without deleting anything in them, hand down or lock colours, theme, shape and logo, and share out storage from a pool the instance grants. It can also keep files on storage of its own, and moves them one station at a time, never behind anyone's back.
-- **An association has members of its own.** Who acts for it is set there, by role, by their own grants or through a group, with the same permission picker a station uses, and nothing held at a station grants it. A trusted member can search and edit the people at every station below, except their own membership and any station's owner.
-- **Association questions in every member's profile.** The fields an association adds appear in the station's own profile form, marked as the association's and read-only at the station unless it says otherwise. Changes land in the profile's change history, and when a station leaves the answers are cleared while the history stays.
-- **An association keeps track of its own gear.** It sees every piece it owns and where it is, and steps only it can confirm wait in a list of its own. An association that does not keep its gear here says so, and its stations carry on as before.
-- **An association can talk to its stations.** News, appointments and wiki articles it writes reach every member station with the association as sender, written on the same screens stations already know. Nothing is copied: stations read what was written once, over the connection they already have.
-- **Sign in with a username.** Under Account → Profile you can pick a name to sign in with, and your email address keeps working too. A guardian can give one to a child under Profile → Managed profiles, so a child without an address can sign in while all mail, the password invitation included, goes to the guardians.
-- **The directory groups stations by association.** Stations under the same association appear under its name instead of scattered through the list, with everything else below. An association has no page of its own, only its stations do.
-- **Install Ember like an app.** Where your browser supports it, Ember goes onto your home screen or dock and opens in its own window, offered with one button among your first steps. Other browsers keep the written instructions for a bookmark.
+- **Ember walks you through your first steps.** Where the introduction tour ended, a short list of things to actually do now begins: fill in the profile, choose where notifications go, answer the next event, subscribe the calendar. Ember points at the button to press and the page stays usable throughout, so the way is learned rather than watched.
+- **Setting up a station and the instance comes with the same guidance.** Managers get the steps their station still needs beyond the setup wizard, administrators the ones the instance needs, each on their own start page. Both lists are shared: what one manager settles is settled for the next, and it says who settled it.
+- **The station has a media library.** Everything the station has uploaded lives in one place at `/station/media`, with folders, tags and a search, and every editor reaches into it. Anyone who may log in can upload and insert what they uploaded themselves, so a picture belongs in a board ticket as readily as on a public page.
+- **News entries can hand a file over.** An entry carries attachments picked from the library, named and ordered as the author likes, and they appear as downloads under the text rather than inside it. They travel with the blog feed and to partner stations, so a reader elsewhere is handed the same file.
+- **A news entry can be written with the page editor.** An entry can be switched from the plain text field to rows and columns, with images beside the text, callouts, galleries and code blocks. The switch is one way: the text already written moves into a single block and nothing is lost, but an author who wants the plain field back writes a new entry.
+- **The instance can say something to every station at once.** Under Stations → System news an administrator writes a notice that appears in every station's own news list, from Ember rather than from anyone in the station, with a System badge beside it. It can be limited to certain member types, it notifies only when asked to, and correcting or withdrawing it does so everywhere at once.
+- **The instance keeps a library of its own.** Pictures and files used in a system notice belong to the instance rather than to one station, so a station clearing out its unused files cannot leave a notice with a broken picture. They are uploaded and picked while writing the notice, and served to every station that reads it.
+- **A wiki article can be written the same way.** A markdown article switches to the page editor as a news entry does, which is what a training document with a diagram beside its explanation needs. Search, the PDF export and the version history keep working; old versions can be read but not restored, because what is stored is derived from the blocks.
+- **A station decides how gear moves, in every direction it moves.** Under Inventory → Chains there is a chain for each way gear travels: issued by the body above into the store or straight to a member, handed back from the store or from a member, exchanged, and asked for. Each one is edited step by step, with steps renamed, reordered and removed: what a step is called, who confirms it, which of the two pieces it is about and where that piece is afterwards. Which chain applies follows the owner of the gear and who is at the other end, so one inventory holding both can reach different chains for different rows.
+- **Every chain begins with a request and ends with the person holding the gear confirming they have it.** A member sees what is on its way to them under Inventory → My equipment and confirms the receipt there, so what a station has handed over is recorded by the person who took it rather than claimed on their behalf. Where somebody never answers, a manager can still force the step with a note.
+- **Everything a member holds can be asked for at once.** One button on their equipment page starts a return for every piece they have, each on the chain that fits it: the station's own gear back to its store and the association's into the post.
+- **Stations can belong to an association.** An administrator creates one under Admin → Associations, and whoever runs it gets their own area at `/cluster`, with rights counted separately from those held at any station.
+- **A station asks to join an association, and the association answers.** Only a station's owner can apply, under Manage → Association, and the association approves or refuses it with a reason both sides can read. An association can also create stations of its own, which belong to it from the first moment.
+- **Stations in an association are connected without anybody arranging it.** Joining one connects the station to the association and, unless the association turns that off, to every other station under it, with calendars, knowledge, gear and the rest already shared both ways. Those connections are the association's, so neither station can end one, and the one carrying the association's own content cannot be paused either.
+- **An association decides what its stations may use, how they look, how much room they have and where it is kept.** A module it switches off is locked at every station, with the association named as the reason and nothing already put in it deleted. Colours, theme, shape and logo are handed down as a starting point or locked outright, one by one, and storage is shared out of a pool the instance grants. An association can also keep its files on storage of its own, for itself alone or for every station under it, and either let its stations bring their own or hold them to what it decided. Nothing moves on its own: a station whose files are not yet where the decision says they belong is listed as such and carried across one at a time, and a station joining or leaving takes its files with it before the membership changes.
+- **An association has its own members, and one of them can look after every station at once.** Who acts for the association is set there, by role, by grants of their own or through a group, all three separate from anything they hold at a station, and all three edited with the same permission picker a station edits its own members with. Nothing at a station makes somebody a member of the association above it, however senior they are there; belonging is always granted at the association, and it opens its pages and nothing it governs. Somebody trusted with it can also search and edit the people at every station under the association, except their own membership and any station's owner.
+- **An association can ask its own questions in every member's profile.** The fields it adds appear in the same form as the station's own, marked as the association's, and are read-only at the station unless the association says otherwise. Changes land in the one change history a profile already had, and the answers are cleared when a station leaves while the history stays.
+- **An association keeps its own gear and answers for it.** It sees every piece it owns and where each one is, and the steps of an exchange or a return that only it can confirm wait in a list of its own. An association that does not keep its gear here says so, and then its stations work exactly as they did before.
+- **An association can tell its stations something.** News it writes, appointments it makes and articles it files reach every member station, all with the association as the sender, and it writes them on the same screens a station writes its own with: folders, tags, versions and restrictions in the wiki, categories and registrations in the calendar, the page editor in both. Nothing is copied: the stations read what was written once, over the connection they already have.
+- **Signing in with a username instead of an email address.** Under Account → Profile anyone can pick a name to sign in with, and the address keeps working alongside it. A guardian can give one to a member or trial member in their care under Profile → Managed profiles, which is what lets a child with no address of their own sign in at all: everything Ember would write to that member, the invitation to set a password included, goes to their guardians.
+- **The directory groups stations by their association.** Stations that answer to the same association appear under its name instead of scattered through the list, and everything else keeps its own place below. An association has no page of its own; only its stations do.
+- **Ember can be installed like an app.** Where the browser supports it, Ember goes onto the home screen or into the dock and opens in a window of its own, offered with a single button among your first steps. Browsers that make no such offer keep the written instructions for a bookmark.
 
 ### Improvements
 
-- **Date and time fields open their picker.** Reaching such a field opens the browser's calendar or clock right away. You no longer have to hunt for the small icon at the field's edge.
-- **Guardians set a child's password directly.** Under Profile → Managed profiles the password now sits beside the username, so nobody waits for an invitation that lands in the guardian's own inbox anyway. Members with an address of their own keep setting it themselves.
-- **An association's wiki can go public.** A switch above the wiki puts it on the public web, with the same three states a station has and the public address right beside it. Until now an association had no way to publish anything at all.
-- **Choose which stations a wiki entry is for.** An association's entries still go to all its stations unless it names some, and a choice on a folder applies to everything inside. An entry within can narrow that further but never reach past it.
-- **Association wiki folders arrive as folders.** What an association sorted into folders used to reach its stations as a loose list of articles. The structure now survives the trip and opens where you expect it.
-- **Wiki visibility gets its own place.** Visibility is now its own point in the menu of every folder and article, right beside Edit, instead of sitting at the foot of the edit dialog. Editing keeps the name, the description and the tags.
-- **A wiki tile shows how far it reaches.** A green eye marks an entry on the public web, a blue one an entry every connected station reads, and a yellow one an entry shared more narrowly. No eye means it stays here, and hovering over an eye explains it.
-- **Share a wiki entry with some partners only.** Sharing used to be all or nothing, and holding back meant not sharing at all. Not passing an entry on is still the default and the normal case.
-- **Find your way out of a shared folder.** Opening a folder someone shared showed its contents with no trail back, so only the browser's back button helped. The path now names every shared folder up to the wiki itself.
-- **The visibility picker names the standard.** Where it used to offer just "standard", it now says what that means for this wiki. That is either public unless an entry says otherwise, or not public unless an entry says so.
-- **Roles on shared wiki entries mean yours.** An entry marked for the leadership now reaches the leadership of every station it is shared with. Before, the role meant nothing once the entry crossed to another station.
-- **The public wiki setting stays in sight.** When the wiki is not public, its setting no longer vanishes. It says the public wiki is off and where to switch it on.
-- **Ask each kind of member their date of birth.** Asking the team and asking the guardians are separate questions nobody answers twice, so both are now allowed. A date of birth asked of a group still blocks every other, since a member can belong to many groups.
-- **Reordering profile questions saves in one go.** Dragging a question in a list of twenty used to send twenty saves, slow enough to notice. Now the whole order is written at once.
-- **A reminder before event registration closes.** Three days and one day beforehand, everyone who has neither accepted nor declined hears about it, along with whoever answers for them. The notice names whose answer is missing, so a guardian can tell their children apart.
-- **The dashboard shows what still needs an answer.** Events closing soon that nobody in your household has answered get their own section, soonest first. You can decline them right there.
-- **Answer an event for the whole household.** If you answer for several people, say yourself and your children, you tick who the answer is for instead of repeating the same screen. Where the event asks questions, each person gets their own tile, because the answers are theirs.
-- **Change your answer until registration closes.** If you accepted and then can't come, you can now say so. After the deadline only the organiser can change it, and coming back after declining means signing up again.
-- **Questions under a system notice reach the instance.** Anyone may comment on a notice from the instance, and each station sees the comments written by its own people. The administrator sees all of them with each station named, so questions get answered.
-- **Every text editor can insert a picture.** Editors that only took a pasted address now open the media library to browse, search, upload and insert. News, board tickets, event descriptions, the wiki and the page editor all gain it at once.
-- **Cleaning up keeps what members uploaded.** A file nothing points at is still offered for removal, but one somebody uploaded themselves is kept. A picture can outlive the first place it was used.
-- **Gear held for the body above finds its owner.** When a station joins an association, gear already recorded as the municipality's or the association's keeps its place, size and holder, and the association sees it in its list. Nothing is moved or recreated, and a running exchange carries on.
-- **The demo instance now has an association.** The demo station answers to one, beside a station the association made itself, with people in each association role, gear in every state, two profile questions and its own news, article and appointment. A neighbouring station's request to join is waiting too, so the screen for answering it has something to show.
-- **An exchange opens as the chain it follows.** The history button now shows the whole run, every step with its party and the finished ones stamped with who acknowledged them and how. The current step shows either the one button you may press or who is being waited on.
-- **Members report their own gear missing.** Under Profile → My inventory you can say you cannot find something assigned to you, and a guardian can say it for the person they look after. A station can ask for a short note with the report under Inventory → Configuration, shown beside the item afterwards.
-- **Ask the association to replace lost gear.** Marking a piece missing stays the station's own business, and asking for a replacement is a separate step on the item's page, with the manager's note beside the member's. The association sends a replacement or refuses with a reason, and the piece stays recorded as missing either way.
-- **Associations take people on at their stations.** The member list across the stations now offers it, starting with which station the person joins. Someone who is not meant to sign in is recorded the same way a station records them.
-- **Associations order gear into their own store.** The Inventory → Procurement tab records orders without asking who they are for, because an association buys for its store and hands out later. Marking an order arrived puts the piece in the store, ready to go to a station.
-- **Association requirements count at the station.** A requirement the association writes now stands on the station's requirements page, named after the association and locked there, and the association's gear counts towards it. It can apply to some stations only, so what a water rescue station must hold does not become everyone's rule.
-- **Association figures grouped by kind of gear.** The Inventory → Statistics tab lists jackets, helmets and boots as blocks of their own, each with its sizes and what is still in store. Only what the association owns counts, and what a station bought itself stays the station's business.
-- **Associations read and add member documents.** The page an association opens on one of its stations' members now shows the documents filed about them and lets it add one. Labelling, linking further members and removing stay with the station, which keeps the document if it leaves.
-- **A station asks the association for gear.** Under Inventory → Overview it names what it needs and in which size, and the association sends a piece or refuses with a reason. An association opening Inventory → Configuration for the first time finds the usual chains ready, one per purpose.
-- **Associations send gear out in one consignment.** Under Inventory → Stock the association picks a station, then the pieces from its own store, and everything counts as on its way. The station confirms one arrival instead of one per piece.
-- **Associations decide what a loss report needs.** Under Inventory → Settings it asks for nothing, a note, or a note and a document, and a report short of that is refused before it is raised. Everything arrives in one place: both notes with their authors and the file beside them.
-- **Movements notify whoever's turn it is.** When a step is acknowledged, only the party of the next step hears about it, so the message itself says something is waiting. A refused movement tells both ends, with the reason where the member asked.
-- **Members hear about access their guardian grants.** Switching sign-in on or off now tells the member by mail, naming the station, and an account not yet set up gets the password invitation instead. The mail waits a few minutes, set by `auth.managedLoginNoticeMinutes`, so a switch flicked straight back reaches nobody.
-- **Ember runs on 64-bit ARM machines.** Ember is now built for ARM as well as x86, so a Raspberry Pi 4 or newer can serve an instance with no extra setup. It needs a 64-bit system, which on a Raspberry Pi means the 64-bit Raspberry Pi OS.
-- **Exported catalogs say where questions came from.** The file carries their language, source, author and terms of use. The station importing it keeps all four beside the catalog.
-- **Catalog files bring only the categories they use.** Importing one no longer drags across the exporting station's whole category list. A category you already have under the same name is reused instead of duplicated.
-- **Build a whole catalog from a spreadsheet.** The import on the catalog list now takes a table as well as a catalog file, asks for a name and creates the catalog. Adding to an existing catalog accepts both kinds of file too.
-- **Every import shows a preview first.** Questions from a catalog file now go through the same preview a table did, where each can be corrected or left out. Nothing is written until you confirm.
-- **Tables carry more about each question.** Beside question, answer, category, type and points, the import now reads a hint, an image address and wrong answers. It also reads the points per answer, and how many answers an enumeration asks for and in which order.
-- **Wrong answers turn a blank into a choice.** Naming wrong answers in their own column turns a fill-in-the-blank into a list to pick from instead of an empty box. In a multiple-choice question they are kept apart from the right ones.
-- **Invented wrong answers appear in the preview.** When the import thinks up wrong answers for a multiple-choice question, you now see them in the preview. You can correct or drop them before they land in the catalog.
-- **The import explains the file format.** A panel lists every table column and catalog field, what each one means and whether it is required, plus what each question type expects. The same reference is in the help centre.
-- **Example files to start from.** The import offers a table and a catalog file with one question of every type, both ready to import as they are. You build your own by editing an example instead of reading a description.
-- **Report a question while training.** You say in your own words what is wrong, such as an outdated answer, a question that reads two ways or two answers that both fit. The note lands on the question itself.
-- **Reported questions show their notes in the catalog.** Each note sits at its question, with who wrote it and when. Marking it done removes it, so what is left is only what is still open.
-- **Event templates can be copied.** Duplicating one takes its settings, questions, reminders and audience, and opens the copy right away. Your second variation of an evening starts from the first instead of an empty screen.
-- **Reorder an event template's questions.** Arrows on each question move it up or down. No more deleting everything below a misplaced question and typing it in again.
-- **Gear lists show what is really there.** A piece handed in for an exchange leaves the member's equipment right away, and one on its way to the association leaves the station's stock and figures. Both show up under running exchanges instead, by name, with the step they wait on.
-- **Members can withdraw their own exchange.** Asked for a bigger jacket and it fits after all? You can withdraw the request under Profile → My equipment while the piece is still with you, and once it is handed in, the station calls it off.
-- **Calling off an exchange keeps the record honest.** A piece already in the post stays where it got to instead of reappearing on the member. Everyone involved hears what happened and where it stayed.
-- **Gear in an exchange still counts as present.** The equipment check asks whether somebody is equipped, so a jacket in the post no longer shows as a gap for weeks. The line says how many pieces are away in an exchange.
-- **Every sortable list sorts the same way.** Each row has up and down arrows, plus a grip to drag with on a device with a mouse. Lists that could only be dragged now sort on a phone, and lists with only arrows can be dragged.
-- **Questions can take half or a third of a row.** Event templates and attendance sheets now offer the widths profile questions already had, with a drawing of the form's layout. A sheet of short questions no longer runs to one line each.
+- **Date and time fields open their picker by themselves.** Reaching such a field opens the calendar or the clock the browser provides, instead of leaving the small icon at the field's edge to be found first.
+- **A guardian sets the password of a child without an address of their own.** Under Profile → Managed profiles the password now stands beside the username, so there is no waiting for an invitation that lands in the guardian's own postbox either way. A member who does have an address of their own keeps setting it themselves.
+- **The wiki of an association can go on the public web.** A switch above the wiki puts it there, with the same three states a station has, and the address it answers at stands beside the switch. Until now an association had no way to publish anything at all: the setting existed but nothing could reach it.
+- **An association can say which of its stations a wiki entry is for.** Everything it writes still goes to all of them unless it says otherwise, and naming stations on a folder applies to everything inside; an entry within can narrow that further but not reach past it.
+- **Folders of an association's wiki arrive at its stations as folders.** What the association sorts into folders was flattened into a loose list of articles on the way; the structure now survives the trip and opens where the reader expects it.
+- **Who may see a wiki entry sits in its own place.** Visibility is its own point in the menu of every folder and article, beside Edit, rather than a section at the foot of the edit dialog. Editing keeps the name, the description and the tags.
+- **A wiki tile says how far its entry reaches.** A green eye marks an entry on the public web, a blue one an entry every connected station reads, and a yellow one an entry shared with only some of them or only some kinds of reader. No eye means it stays here. Hovering over an eye says what it means.
+- **A station can share a wiki entry with only some of the stations it is connected to.** Sharing was all or nothing before, and only reachable by not sharing at all. Not passing an entry on remains the default and the normal case.
+- **A folder shared by somebody else can be left again.** Opening one showed its contents with no trail back, so the way out was the browser's back button. The path now names the folders that were shared, up to the wiki itself.
+- **The visibility picker says what the standard actually is.** Where it only offered "standard" before, it now names which one that is for this wiki: public unless an entry says otherwise, or not public unless an entry says so.
+- **A role named on a shared wiki entry is the reader's own role.** An entry marked for the leadership reaches the leaderships of the stations it was shared with, rather than meaning nothing once it crosses to another station.
+- **The public setting of a wiki no longer disappears when the wiki is not public.** It stays visible and says that the public wiki is off and where it is switched on, instead of vanishing and leaving nobody able to find it.
+- **A date of birth can be asked of each kind of member separately.** Asking the team and asking the guardians are two questions no single person answers twice, so both are allowed. A date of birth asked of a group still blocks every other, because a member belongs to any number of groups as well as to a kind.
+- **Reordering profile questions is one save instead of one per question.** Dragging a question in a list of twenty sent twenty requests and was slow enough to notice. The whole order is written at once.
+- **A reminder before registration for an event closes.** Three days and one day beforehand, anyone who has neither accepted nor declined is told, along with whoever answers for them. The notice names whose answer is missing, so a guardian can tell their children apart.
+- **The dashboard says what is still waiting for an answer.** Events whose registration is closing and which nobody in the household has answered get a section of their own, with the soonest first, and can be declined straight from it.
+- **A household answers an event in one go.** Somebody who answers for more than one person, their own membership and their children, ticks who the answer is for instead of walking the same screen once per person. Where the event asks questions, each person gets their own tile, because the answers belong to the person and not to the household.
+- **An answer can be changed until registration closes.** Accepting and then finding you cannot come is now something you can say. After the deadline only whoever runs the event can change it, and coming back after declining means signing up again rather than getting the old place back.
+- **A question under a system notice reaches the instance.** Anyone may comment on a notice from the instance. A station sees the comments written in its own station, and the administrator sees all of them with the station each came from, so a question asked under a notice can be answered.
+- **Every text editor can insert a picture.** Where an editor only accepted a pasted address before, it now opens the media library to browse, search, upload and insert. News, board tickets, event descriptions, the wiki and the page editor all gain it at once.
+- **Clearing out unused files leaves what members brought in.** A file nothing points at is still offered for removal, but one somebody uploaded themselves is kept: a picture can outlive the first place it was used.
+- **Gear kept for the body above a station finds its owner when the station joins one.** Equipment already recorded as belonging to the municipality or the association keeps its place, its size and whoever has it, and the association it now names sees it in the list of what it owns. Nothing is moved or recreated, and an exchange already under way carries on.
+- **The demo instance has an association over it.** The demo station now answers to one, alongside a station the association made itself, and it comes with people holding each of the association's roles, gear resting in every state a piece can be in, two questions in its members' profiles, and news, an article and an appointment of its own. A neighbouring station's request to join is still waiting, so the screen that answers them has something on it.
+- **An exchange opens as the chain it is walking.** The history button now leads to the whole run rather than a list of status changes: every step with the party it belongs to, the ones behind it stamped with who acknowledged them and how, and on the current one either the single button you may press or the sentence naming who is being waited on.
+- **Members report their own gear missing.** Under Profile → My inventory anyone can say they cannot find something assigned to them, and a guardian can say it for the person they look after. A station can ask for a short note with the report, under Inventory → Configuration; the note is shown beside the item afterwards.
+- **A station asks the association to replace something that is gone.** Losing track of a piece is the station's own business and reaches nobody; asking for a replacement is a separate step on the item's page, carrying the manager's own note beside what the member wrote. The association answers it in its movements queue by sending a replacement or refusing with a reason, and the piece stays recorded as missing either way.
+- **An association takes people on at its stations.** The list of members across the stations now offers it, and the first question is which station they join, because a member belongs to one. Somebody who is not meant to sign in is recorded the same way a station records them.
+- **An association orders gear into its own store.** Its Inventory → Procurement tab records what has been ordered without asking which person it is for, because an association buys for its store and hands out afterwards. Marking an order arrived puts the piece in the association's store, ready to be sent to a station.
+- **What an association requires of its people is counted at the station.** A requirement the association writes now stands on the station's own requirements page, named after the association and not editable there, and gear the association owns counts towards it. It can be written for a group of stations rather than for all of them, so what a water rescue station has to hold does not become a rule at every other one.
+- **The association's figures are grouped by what the gear is.** Its Inventory → Statistics tab lists jackets, helmets and boots as blocks of their own, each with the sizes underneath it and how many are still in its store, instead of one total over everything. Only what the association owns is counted; what a station bought itself stays the station's business.
+- **An association reads and adds to a member's documents.** The page it opens on somebody at one of its stations now shows what is filed about them under the questions, and offers to put a document there. Labelling, binding it to further members and removing it stay with the station, because the document belongs to the station that holds the person and stays there if that station leaves.
+- **A station asks the association for something.** Under Inventory → Overview it names what it needs and in which size, and the association sends a piece or refuses with a reason; both ends follow it in their movements. An association opening its Inventory → Configuration for the first time finds the usual chains already written, one per purpose, rather than an empty screen.
+- **An association sends gear out to its stations.** Under Inventory → Stock it opens a screen that asks for a station, then for the pieces, and sends the lot as one consignment: the station confirms one arrival rather than one per piece, and everything in it counts as on its way until then. Only what is resting in the association's own store is offered.
+- **An association says what a loss report has to carry.** Under its Inventory → Settings it asks for nothing, for a note, or for a document as well, and a report short of that is refused before it is raised. What arrives is read in one place: both notes with the names behind them, and the file beside them.
+- **A movement tells whoever's turn it is, not always the station.** When a step is acknowledged, the message goes to the party the next step belongs to and to nobody else, so its arrival is itself the signal that something is waiting. A refused movement tells both ends, with the reason where the member asked.
+- **A member hears about the access their guardian hands out.** Switching signing in on or off now tells the member by mail, naming the station it was decided at, and an account nobody has set up yet is sent the invitation to set a password instead. The mail waits a few minutes, so a switch flicked by mistake and flicked straight back reaches nobody at all; `auth.managedLoginNoticeMinutes` sets how long it waits.
+- **Ember runs on 64-bit ARM machines.** It is now built for ARM as well as for x86, so a Raspberry Pi 4 or newer serves an instance with nothing extra to set up. The machine has to be running a 64-bit system, which on a Raspberry Pi means the 64-bit Raspberry Pi OS rather than the 32-bit one.
+- **An exported question catalog says where its questions came from.** The file carries the language they are written in, where they came from, who wrote them and the terms they may be used under, and the station importing it keeps all four beside the catalog.
+- **A question catalog file brings only the categories it uses.** Importing one no longer drags the exporting station's entire list of categories across, and a category the receiving station already has under that name is used rather than a second one created beside it.
+- **A sheet of questions can build a whole new catalog.** The import on the catalog list now takes a table as well as a catalog file, asks what the catalog should be called, and creates it. Adding questions to a catalog that already exists takes both kinds of file too, so neither format is tied to one place any more.
+- **Every import shows what would arrive before anything is created.** Questions from a catalog file now go through the same preview a table did: each one can be corrected or left out, and nothing is written until it is confirmed.
+- **A table can carry more about each question.** Alongside question, answer, category, type and points, the import now reads a hint, an image address, wrong answers, the points per answer, and how many answers an enumeration asks for and in which order.
+- **Wrong answers a table has no column for can be filled in as a list to pick from.** Naming the wrong answers in their own column turns a fill-in-the-blank into a choice rather than an empty box, and marks them apart from the right ones in a multiple-choice question.
+- **Invented wrong answers are shown before they are kept.** Where the import is asked to think up wrong answers for a multiple-choice question, they now appear in the preview and can be corrected or dropped, instead of landing in the catalog unseen.
+- **The import says what the file has to look like.** A panel in the import lists every column a table may carry and every field of a catalog file, each with what it means and whether it is required, plus what each question type expects. The same reference stands in the help centre.
+- **An example file to start from.** The import hands out a table and a catalog file carrying one question of every type, both ready to import unchanged, so a file can be built by editing an example rather than by reading a description of one.
+- **A question can be reported while training.** Whoever is training says in their own words what is wrong: an answer that is out of date, a question that reads two ways, two answers that both fit. The note lands on the question itself.
+- **Reported questions carry their notes in the catalog.** Each note stands at the question it is about, with who wrote it and when. Working it in and marking it done removes it, so what is left on a catalog is only what is still open.
+- **An event template can be copied.** Duplicating one takes its settings, its questions, its reminders and who it is for, and opens the copy straight away, so the second variation of an evening starts from the first rather than from an empty screen.
+- **The questions of an event template can be reordered.** Arrows on each question move it up or down, instead of deleting everything below the misplaced one and typing it in again.
+- **A list of gear shows what is actually there.** A piece handed in for an exchange leaves the member's equipment the moment they hand it over, and one on its way to the association leaves the station's stock and its figures. Both appear instead under the running exchanges, by name, with the step they wait on.
+- **A member takes their own exchange back.** Asking for a bigger jacket and finding the next morning that it fits after all no longer needs the station: the request can be withdrawn from Profile → My equipment for as long as the piece is still with the member. Once it has been handed in, calling it off is the station's to do.
+- **Calling off an exchange no longer pretends the gear came back.** A piece already in the post stays where it got to rather than reappearing on the member, and everyone involved is told what happened and where it stayed.
+- **A required piece counts as present while it is being exchanged.** The equipment check asks whether somebody is equipped, so a jacket in the post no longer reads as a gap for the weeks an exchange takes, and the line says how many of them are away in an exchange.
+- **Every list that can be reordered is reordered the same way.** Each row carries an up and a down arrow, and on a device with a mouse a grip beside them to drag it with. Lists that could only be dragged can now be sorted on a phone, and lists that only had arrows can be dragged.
+- **A question can take half or a third of a row.** Event templates and attendance sheets now offer the widths profile questions already had, with a drawing beside the list showing how the form will be laid out. A sheet of short questions no longer runs to one line each.
 
 ### Changes
 
-- **Files move out from under Pages.** What was Pages → Files is now Media in the sidebar, at `/station/media`. It is the same library with the same contents, now belonging to the station rather than its website.
-- **Station media moves to a new folder on disk.** On the first start after the upgrade, media moves one station at a time, and each station is read-only while its own move runs. An interrupted move picks up where it stopped on the next start, with nothing to redo by hand.
-- **Stations no longer edit gear they don't own.** A station cannot rename, delete or lend out gear it does not own, but handing out, shelving, checking and reporting it missing still work. What the gear is and who may borrow it stays with the owner.
-- **Stations in an association stay on their instance.** Moving such a station to another instance would leave the association holding a station that is gone. Leave the association first, and the transfer works as before.
-- **Every item says who owns it.** Each piece belongs either to the station or to the body above it, the municipality or the district association, replacing the old internal and external labels. Members are no longer offered as owners, since gear a member bought was never tracked here.
-- **Every item also says who has it.** A piece now records where it really is: in its owner's store, at the station, with a member, lent to a partner or missing. Its page shows owner and holder, and a station's lists follow what it has rather than what it owns.
-- **Exchanges become a chain of steps.** Gear moving between a station and the body above now walks a named chain instead of five fixed statuses, and every step is one somebody at the station actually saw. You can rename or reshape the chain under Inventory, and finished exchanges keep the wording they were walked under.
+- **Files move out from under Pages.** What was Pages → Files is now Media in the sidebar, at `/station/media`. It is the same library with the same contents; it simply belongs to the station rather than to its website.
+- **Station media moves to a new place on disk.** On the first start after the upgrade each station's media is moved into its new folder, one station at a time, and that station is read-only while its own move runs. An interrupted move picks up where it stopped on the next start, so nothing has to be repeated by hand.
+- **A station cannot rename, delete or lend on gear it does not own.** Handing it to a member, shelving it, checking it and reporting it missing all still work, because those say where the gear is. What it is, and who else may borrow it, stays with the owner.
+- **A station in an association cannot be moved to another instance.** Transferring it would leave the association holding a station that is no longer there. Leave the association first, and the transfer works as before.
+- **An item says who owns it.** Every piece of gear is recorded as belonging either to the station itself or to the body above it, the municipality or the district association, in place of the internal and external labels it carried before. Members are no longer offered as owners, because gear a member bought was never tracked here.
+- **An item also says who has it.** Alongside its owner, a piece of gear now records where it actually is: in its owner's store, at the station, with a member, lent to a partner or missing. An item's page shows both, and the lists of what a station holds follow what it has rather than what it owns.
+- **An exchange is a chain of steps a station works through.** Gear moving between a station and the body above it walks a named chain instead of five fixed statuses: announced, taken back, posted, replacement received, replacement handed over. Every step is one somebody at the station actually saw, and the chain can be renamed or reshaped under Inventory without losing the wording a finished exchange was walked under.
 
 ### Security
 
-- **News entries could be read from other stations.** The lists never offered them, but anyone signed in anywhere could open an entry and its comments by its address. An entry is now readable only in its own station, by the people it is addressed to.
-- **Mentions could reach into another station.** Mentioning a group, event or member used a number shared across the instance, so a comment in one station could notify people in another and show them its text. A mention now stays within its station, and the old form without a station notifies nobody.
-- **Waiting-list sign-ups could mail strangers.** Both public sign-up routes accepted unlimited registrations and mailed every address given, which could flood someone and use up the daily mail allowance, password resets included. Sign-ups are now limited per sender and per link, with `429 Too Many Requests` beyond that.
-- **Another station could collect your generated questions.** Anyone on the instance could fetch a running question generation by its address, and fetching it cleared the result, so the station that started it never saw its questions. A job now answers only to the station that started it.
-- **Probing for records no longer confirms they exist.** Asking for another station's record used to answer "not allowed" differently from "not there", which gave away that the record existed. Both now answer the same way: not found.
-- **Pages declare what they may load.** Every page now carries a content security policy, so only Ember's own scripts with the page's one-time marker may run. It only observes until an operator sets `NUXT_CSP_MODE` to `enforce`, so an upgrade cannot break an embedded map or video.
-- **Lending conversations were readable by other partners.** Any partner station could read the messages about a borrowing request by asking for them by address. A partner now only sees the requests it is part of.
-- **Partners could rewrite any board comment.** Editing or deleting a comment on a shared board checked the board but not the comment, so a partner could change or remove any board comment on the instance. A comment now has to belong to the ticket it is addressed on.
-- **Partners could read what was never shared.** Asking for a wiki article, quiz catalogue or test protocol by address returned anything the paired station held, catalogues with their correct answers included. A partner now gets only what the station actually shares.
-- **Board attachments were not tied to their ticket.** Downloading or deleting an attachment checked the board in the address but not the attachment, so a deletion could remove another station's attachment record. An attachment now has to belong to the ticket named.
-- **Requests could pull in another station's records.** Adding someone to an attendance list, linking a ticket or wiki article to a ticket, and swapping a test question each accepted a record from anywhere. All four now accept only records of your own station.
-- **Reviewing profile changes reached other stations.** A reviewer of member data could read and acknowledge changes of members in another station, which cleared them from that station's own review. Reviewing now covers only the reviewer's station.
-- **Event template reminders were open to other stations.** The reminder days of any template on the instance could be read and quietly changed from elsewhere. Reminders now belong to the template's own station.
-- **Found items, lending blocks and bookmarks were exposed.** Lost-and-found entries could be read and deleted from any station, lending blocks lifted by another station and bookmarked partner boards removed from someone else's list. Each now belongs to the station or member that made it.
-- **Member lists were readable from other stations.** Anyone allowed to manage groups or tags could fetch the members, group rights and a member's groups and tags from any station. These now answer only within your own station.
-- **Event discussions were open to every station.** Anyone signed in anywhere could read and write the comments under any event, author names included, and event managers could delete another station's comments. Comments now stay within the event's station.
-- **Test protocols could be changed from other stations.** Anyone with a test protocol right could open, rewrite or delete another station's protocols, runs and results by addressing them directly. Protocols now answer only for their own station, and a run holds only that station's members.
-- **A failed storage test said too much.** Testing a storage connection showed whatever the machine reported, which could be used to look around the server's network. The test now reports a plain failure, and the detail goes to the server log for operators.
-- **Server answers carry browser protections.** Every response tells the browser not to guess content types, refuses to be framed by other sites and keeps the full page address out of referrers, and over HTTPS it asks to stay on HTTPS. Guessing content types was how a download could be treated as a web page and run.
-- **Saved links could make the server fetch anything.** Saving a wiki link without a name made the server open that address, internal ones too, and store what it found where the member could read it. The lookup now goes to public addresses only, at every redirect step.
-- **Formatted text could carry a script.** Formatted text such as descriptions, wiki articles, page blocks or profile fields was shown as written, so a hidden script ran for every reader, public visitors included. Formatted text is now cleaned and keeps nothing but its formatting.
+- **A news entry could be read from another station.** The lists never offered it, but asking for an entry by its address answered in full, to anyone logged in anywhere, and the comments under it with it. An entry is now readable only by the station it belongs to, and only by the people it is addressed to.
+- **A mention could reach into another station.** Naming a group, an event or a single member in a comment addressed them by a number that counts across the whole instance, so a comment written in one station could notify people in another and hand them what it said. A mention now only reaches the station the comment was written in, and the older way of writing one, which carried no station at all, no longer notifies anyone.
+- **Waiting-list sign-ups could be used to send mail to strangers.** Both public sign-up routes, the invite link and the open list, accepted as many registrations as anyone cared to send and mailed the addresses written into each one, so they could be pointed at somebody who never asked for it and could use up the instance's daily mail allowance, taking password reset mails with it. Sign-ups are now limited per sender and per link, and answer `429 Too Many Requests` beyond that.
+- **A question-generation job could be collected by another station.** Asking for the result of a running generation by its address answered anyone on the instance, and collecting it cleared the result, so the station that started it never saw its own questions. A job now answers only to the station that started it.
+- **Asking for another station's record no longer confirms it exists.** The answer used to tell "not allowed" apart from "not there", which told anyone trying addresses that a record exists somewhere on the instance. Both now answer the same way: not found.
+- **Pages declare what they are allowed to load.** Every page now carries a content security policy: a script runs only when it comes from Ember itself and carries the one-time marker minted for that page, which an injected script cannot have. The policy is sent for observation and refuses nothing until an operator sets `NUXT_CSP_MODE` to `enforce`, so an upgrade cannot break an embedded map or video.
+- **Lending conversations were readable by the wrong partner.** The messages exchanged about borrowing equipment could be read by any partner station that asked for them by their address, not only by the two stations doing the borrowing. A partner is now answered only for the requests it is part of.
+- **A partner station could rewrite board comments anywhere on the instance.** Editing or deleting a comment on a shared board checked the board but never the comment, so a partner allowed to write on one board could change or remove any board comment the instance held, including those of stations it had never been paired with. A comment now has to belong to the ticket it is addressed on.
+- **A partner station could read what was never shared with it.** Asking for a wiki article, a quiz catalogue or a test protocol by its address answered for anything the paired station held, shared or not, and a catalogue is answered together with the correct answers to its questions. A partner is now served only what the station actually shares with it.
+- **A board attachment was not tied to the ticket it was asked for.** Downloading or deleting a ticket attachment checked the board in the address but never the attachment itself, so a deletion could remove the record of an attachment belonging to another station. An attachment now has to belong to the ticket named in the address.
+- **A request could pull in a record from another station.** Adding someone to an attendance list, linking a ticket or a wiki article to a board ticket, and swapping a question into a test each accepted a second record named in the request without asking where it belonged, so a name, a title or a question from another station could be drawn into the caller's own screen. All four now accept records of the caller's station only.
+- **Reviewing profile changes reached other stations.** Someone charged with reviewing changes to member data could read and acknowledge the changes of a member in another station, which cleared them from the review that station relies on to notice edits to its own records. Reviewing is now limited to the members of the reviewer's station.
+- **Event template reminders were open to other stations.** The days before an event on which a template sends its reminders could be read, and silently changed, for any template on the instance, so someone elsewhere could decide when another station's members hear about their own events. Reminders now belong to the station the template does.
+- **Found items, lending blocks and board bookmarks could be removed by strangers.** A lost-and-found entry could be read and deleted from any station, a lending block holding equipment back from a partner could be lifted by another station, which quietly reopened that equipment for borrowing, and a bookmarked partner board could be removed from someone else's list. Each of these now belongs to the station or the member it was made in.
+- **Member lists were readable from another station.** Whoever held the right to manage groups or tags in their own station could ask for the members of any group or tag on the instance and receive another station's member records, the rights that group grants, and the groups and tags a named member carries. All of these now answer only within the station of the person asking.
+- **Event discussions were open to every station.** Anyone logged in anywhere on the instance could read the comments under any event, including the names of the members who wrote them, write into that discussion, and, holding the event right in their own station, delete comments belonging to another station. Comments are now readable and writable only within the station the event belongs to.
+- **Test protocols could be read and changed from another station.** Anyone holding a test protocol right in their own station could open, rewrite or delete another station's protocols, along with their test runs and the results of everyone in them, by addressing them directly. A protocol, section, item or run is now answered only for the station it belongs to, and a run is filled only with members of that station.
+- **A failed storage test said too much about the network.** Testing a station's storage connection answered with whatever the machine reported, which told a refused connection apart from a silent one and made the button a way to look around the network the server sits in. The test now reports a plain failure, and the detail goes to the server log where an operator can still read it.
+- **Answers from the server carry browser protections.** Every response now tells the browser not to guess what kind of content it holds, refuses to be displayed inside a frame on another site, and keeps the full address of the page from travelling along as a referrer; over HTTPS it also asks the browser to stay on HTTPS. Guessing the kind of content was how a file meant to be downloaded could still be treated as a web page and run.
+- **A saved link could make the server fetch anything.** Saving a wiki link without a name or description had the server open that address to read what the page calls itself, including addresses reachable only from inside the network Ember runs in, and stored what it found where the member could read it. The lookup now goes to public addresses only, at every step of a redirect.
+- **Formatted text could carry a script.** Text written with formatting, such as an event or ticket description, a wiki article, a page block or a profile field, was shown to readers exactly as it was written, so instructions hidden inside it ran in the browser of everyone who opened the page, visitors to a station's public site included. Formatted text is now cleaned before it is shown and keeps nothing but its formatting.
 
 ### Fixes
 
-- **Importing a question catalog file works now.** Any file that actually held questions was turned away with a general error, so catalogs could not move between stations at all. Importing works, and a faulty file now names every problem and creates nothing until they are sorted out.
-- **The fairness ranking works for uncategorised events.** For an event in no category, the list of how often each member was registered, accepted and turned away could not load at all. It now covers everything the station has done, the only fair comparison when there is no category.
-- **Partnerships now follow a station that moves.** When a station moved to another instance, the step that points its partnerships at the new home failed outright. Partnerships now follow the station and keep working without anyone touching them.
-- **The demo instance shows its logo and files again.** The rule that blocks uploads on a demo also refused to hand back files already stored there, so the logo and file library looked empty. Reading works again, and uploading stays off.
-- **Group questions on event templates can name the group.** A template question asking for a member of a group had no way to pick the group, so it was saved without one and answered with nobody. The groups are now offered there as everywhere else.
-- **Attendance question kinds show their real names.** The list of questions on a sheet printed the raw wording behind each kind instead of its name. Each one now reads as it does in the form that sets it.
-- **No more login button once you are signed in.** A page rendered by the server cannot tell whether your browser has a session, so it offered the login until the session came back. It now waits until it knows, then shows the account menu as before.
-- **Signing out now clears the previous person's stations.** The list of stations and associations an account may act for outlived its session. The next person signing in on the same browser saw them until the page reloaded, and signing out now clears them.
-- **Shared articles are listed once.** An article reachable on its own and through a shared folder appeared once for each way in. It now shows once, however many shares reach it.
-- **Gear lent to a partner is held back.** Equipment lent to a partner station could be handed to a member or lent again while away, because only the assignment was checked. It now stays reserved until the partner gives it back.
-- **Exchanged gear goes back to its real owner.** In an inventory holding gear of both owners, a finished exchange put the returned item into the station's free stock even when the station never owned it. The exchange now follows the owner recorded on the item.
-- **The installer checks the machine first.** On a machine Ember is not built for, the installer set everything up and started containers that kept stopping with only a format error to go on. It now checks the machine before writing anything and says plainly what is wrong.
-- **Second-factor confirmations now survive a session renewal.** Your session renews itself in the background, and the renewal forgot both a fresh confirmation and any device you asked it to remember. It now carries them over.
-- **A refused security confirmation asks again.** When the confirmation was accepted but the action was still turned down, no new prompt appeared and only a general error showed. Now you are asked once more, and a message says plainly when the instance keeps refusing.
-- **Staying signed in now lasts longer.** Ticking the box on your own machine gave half an hour, while leaving it unticked gave a full hour. A device you vouch for now keeps its session for thirty days, and an instance that set `auth.sessionMinutes` keeps its own value.
-- **A missing station no longer signs you out.** In some cases the station your browser had selected was gone, and every request looked like your sign-in had ended, sending you back to the login screen. Whether a station can be found no longer decides whether you are signed in.
-- **The sidebar marks where you are.** On several pages the section you were in stayed unmarked, and elsewhere one section was marked on every page. Now exactly the section you are in is marked.
-- **The forced rainbow flag shows everywhere.** Switching it on only affected the pages after signing in, while the landing page, login page and public station pages kept the plain wordmark. It now appears everywhere.
-- **The forced pride flag matches June's.** Switching it on under Settings → General coloured the logo's letters instead of showing the flag behind them, unlike the flag that appears by itself in June and July. It now looks the same however it was switched on.
-- **The sitemap points search engines to the right address.** Its addresses were built from an internal host name that only exists inside the deployment, and that answer was kept for six hours. It now uses the instance's configured public address, so search engines can follow it.
-- **The help centre search finds things again.** An ordinary word returned no results on any page but one, so the only way through was clicking down the tree. Search covers the whole help centre again, the association's own pages included.
+- **Importing a question catalog from a file never worked.** Any file that actually held questions was turned away with a general error, so a catalog exported at one station could not be brought into another at all. Importing works, and a file that really is faulty now names every place something is wrong with it and creates nothing until they are sorted out.
+- **The fairness ranking stayed empty for an event in no category.** Deciding who gets a place shows how often each member was registered, accepted and turned away, and for an event that belongs to no category that list could not be fetched at all. It now covers everything the station has done, which is the only sensible comparison when the event names no category to compare within.
+- **Partnerships did not follow a station that moved.** When a station was transferred to another instance, the partnerships other stations kept with it were meant to point at its new home, and the step that does that failed outright. They now follow the station, so a partnership keeps working without anyone touching it.
+- **A demo instance showed no station logo and an empty file library.** The rule that stops uploads on a demo was also refusing to hand back what was already stored there. Reading works again, while uploading stays disabled.
+- **A question on an event template asking for a member of a group could not name the group.** The choice was missing from the template, so the question was saved without one and answered with nobody. The groups are offered there as they are everywhere else.
+- **The kind of an attendance question was shown untranslated.** The list of questions on a sheet printed the raw wording behind each kind instead of its name. Each one now reads as it does in the form that sets it.
+- **The login button appeared for people who were already signed in.** On a page rendered by the server there is no way to tell whether the browser is carrying a session, and it offered the login anyway until the session came back. It now shows neither until it knows, and the account menu takes its place as before.
+- **Signing out and back in on the same browser kept the previous person's stations.** The list of stations and associations an account may act for outlived the session that fetched them, so the next person to sign in was offered the ones before them until the page was loaded afresh. Signing out clears them.
+- **A shared article could be listed twice.** An article reachable both on its own and through a shared folder appeared once for each way in. It is listed once, however many shares reach it.
+- **Gear a partner had borrowed still looked free.** Equipment lent out to a federation partner could be handed to a member or offered in another lending request while it was away, because only the assignment was checked. It is now held back until the partner has given it back.
+- **Exchanged gear the station does not own.** In an inventory holding gear of both owners, completing an exchange put the returned item into the station's free stock even when the station had never owned it. The exchange now follows the owner recorded on the item.
+- **The installer set up an instance the machine could not run.** On a machine Ember is not built for it wrote everything out and started containers that stopped again at once, over and over, with only a format error to go on. It now checks the machine before it writes anything and says plainly what is wrong.
+- **A second-factor confirmation could stop counting shortly after it was given.** A session renews itself in the background while you work, and the renewal used to forget both the confirmation just made and any device you had asked it to remember; it now carries them over.
+- **A refused security confirmation left the action with nothing to answer.** Where the confirmation was accepted but the action turned down again, no new prompt appeared and only a general error showed; it is now offered once more, and a message says plainly when the instance keeps refusing.
+- **Staying signed in made the session shorter, not longer.** Ticking the box on your own machine gave half an hour where leaving it unticked gave a full hour; a device you vouch for now keeps its session for thirty days, and an instance that set `auth.sessionMinutes` itself keeps the value it chose.
+- **Being signed out when a station could not be found.** In some cases the station a browser had selected was no longer there, and rather than saying so, every request looked as though the sign-in had ended and put the reader back on the login screen. Whether a station can be found no longer decides whether somebody is signed in.
+- **The sidebar did not always mark where you were.** On a number of pages the section holding the page you had open stayed unmarked, and elsewhere a section was marked on every page whatever you were looking at. The section you are in is now the one that is marked, and it is the only one.
+- **Forcing the rainbow flag had no effect outside the application.** Switching it on showed it on the pages you see after signing in, and nowhere else: the landing page, the login page and the public station pages kept the plain wordmark whatever the setting said. It now appears everywhere.
+- **The forced pride flag did not look like the one June brings.** Switching it on under Settings → General coloured the letters of the logo with the flag rather than showing the flag behind them, so it read as a different thing from the one that appears on its own in June and July. It now looks the same however it was switched on.
+- **The sitemap pointed search engines at an address they could not reach.** Every address it listed was built from the host the request arrived on, which for a sitemap fetched through the web server is one that exists only inside the deployment, and the answer was then kept for six hours. It now uses the instance's configured public address, so a search engine can follow what it finds there.
+- **The help centre search found nothing.** Typing an ordinary word into it returned no results at all, on any page but one, so the only way through the help centre was clicking down the tree. It searches the whole help centre again, the association's own pages among them.
 
 ## v26.12.0
 
 ### New Features
 
-- **Every member gets a document store.** Each profile has a tab for the files about that member, and Members → Documents holds the whole store. A document can belong to several members or to none, and images, text files and PDFs open right in Ember with a preview on their tile.
-- **Search documents by what they say.** Search reads the title and the text inside the file, so you find a PDF by a word in it. Free-text labels help you sort the store, and you write them as you need them.
-- **Your data export includes your documents.** When somebody asks for their data, they now get the documents held about them as well. That includes the files themselves, withheld ones too.
-- **Keep a document beyond a membership.** A document marked to be kept stays when its members become former members, as a legally binding document must. You can also hide a document from its own members, so only those who may read other members see it.
-- **Arrange profile fields side by side.** Each field takes a full row, a half or a third, so short fields sit next to each other. A new heading field structures the form, and a preview under Members → Configuration shows how it will look.
+- **Members have a document store.** Every profile carries a tab for the files that concern that member, and Members → Documents holds the whole store, a page at a time. A document can belong to several members at once, or to none of them, and it is bound to further members while it is open. Images, text files and PDFs are shown in the application rather than only offered for download, and the tile shows a picture of the document, for a PDF its first page.
+- **Documents can be searched by what they say.** The search reads the title and, where a file can be read at all, the text inside it, so a PDF is found by a word in it. Free-text labels sort the store further and are written as they are needed rather than set up in advance.
+- **A data export carries the documents too.** What somebody receives when they ask for their data now lists the documents held about them and holds the files themselves, the withheld ones included.
+- **A document can be kept beyond a membership.** What is marked to be kept survives its members being marked former, which is what a legally binding document needs; everything else goes with them. A document can also be kept from the members it belongs to, so it is seen only by those who may read other members.
+- **Profile fields can be arranged rather than only listed.** Each field takes a whole row, a half or a third, so the short ones stand beside each other, and a new field type is a plain heading that asks for nothing and appears in no export. Under Members → Configuration a preview shows the arrangement as it will be filled in.
 
 ### Fixes
 
-- **Roles now hand out all their rights.** In some cases a member held only part of what their role allows, so some of their pages refused to open until a restart. A role now grants all of its rights every time.
-- **Field templates land in the chosen group.** Fields added from a template on the group tab belonged to no group and had to be assigned by hand. A template now goes straight into the group you are configuring.
+- **Rights stay whole.** In some cases it could happen that a member held only part of what their role allows, so pages they are entitled to refused to open until the instance was restarted. A role now hands out all of its rights or none, whenever it is asked.
+- **A field template on the group tab lands in the chosen group.** Fields added from a template belonged to no group at all and had to be assigned by hand afterwards. A template now takes the group that is being configured.
 
 ## v26.11.12
 
 ### New Features
 
-- **Install Ember with a single command.** `curl -fsSL https://ember-panel.de/install.sh | bash` asks a handful of questions, writes the compose file, starts everything and shows your new login. You choose a plain port or an existing Traefik, a bundled or existing PostgreSQL, and where your configuration, files and database live.
-- **Plan your installation in the browser.** Under `/install` you answer the same questions and get a six-character code back, short enough to read out to whoever runs the server. The code lasts two hours and never contains the database password.
-- **Waiting lists can work with ages.** A date field of the type date of birth lets the list refuse registrations below a minimum age and mark everyone still too young to join. You can hide those entries while you work through the list, and an existing date field keeps its answers when it becomes the date of birth.
+- **Ember installs itself in one command.** `curl -fsSL https://ember-panel.de/install.sh | bash` asks the handful of things that differ between installations, writes the compose file, starts everything and shows the login it created. It offers a port on the machine, which is what a VPN or a local instance wants, or an existing Traefik; PostgreSQL is brought along or joined where it already runs; and the directories for the configuration, the files and the database are chosen rather than assumed.
+- **An installation can be clicked together beforehand.** Under `/install` the same questions are answered in the browser, which gives back a six-character code. The command carries only that code, so what has to reach the server is short enough to read out. The code lasts two hours, and the database password is never part of it.
+- **A waiting list can work with ages.** A date field set to the type date of birth gives the list an age to go by: it can refuse a registration below a minimum age, and it marks everyone still under the age for joining so they are told apart from those merely waiting their turn. Those entries can be hidden while the list is worked through. An existing date field becomes the date of birth without losing the answers already given.
 
 ### Improvements
 
-- **Send stalled mail again with one click.** The overview now lists each message left behind by a stopped delivery instead of only counting them. You can queue them again one by one or all at once, and mail being sent right now stays untouched.
-- **Sort the waiting list by any column.** The date of birth has its own column, and every column heading sorts. The list still opens on the highest score.
+- **Mail left behind by a stopped delivery can be sent again.** The overview no longer only counts them: it lists each one and offers to put it back in the queue, singly or all at once. Mail that is being sent right now stays untouched.
+- **The waiting list shows the date of birth in its own column and sorts by any of them.** Every column heading sorts, the list still opens on the highest score, and a column picked afterwards starts at the top of its own order.
 
 ### Fixes
 
-- **Group profile fields stay in their group.** A profile field made for a group could lose its place. It now appears and is filled in under its group, and fields without a group are offered for assignment at the top of the group tab under Members → Configuration.
-- **Waiting list answers read as they were given.** Answers in the waiting list could show in a raw stored form. A date now appears as a date and a yes as a yes, in every column.
+- **A profile field made for a group stays with that group.** It appears under its group and can be filled in there. Fields that ended up without a group are offered for assignment at the top of the group tab under Members → Configuration.
+- **Answers in the waiting list read the way they were given.** A date appears as a date and a yes as a yes, in every column a list has been set to show.
 
 ## v26.11.11
 
 ### Improvements
 
-- **Filter the log by source and thread.** Both come as searchable lists with a count each, and threads from the same pool count as one. Each line now shows its severity in colour and tells you up front when it holds a stack trace.
+- **The log is narrowed by the class and the thread it came from.** Both are offered as lists with a count each, searchable so one that is too quiet to sit near the top can still be picked, and threads of the same pool count as one rather than as forty. A line's severity now carries its colour, and a line holding a stack trace says so before it is opened.
 
 ### Fixes
 
-- **Address change links open a real page.** Confirming a new email address led nowhere and could report the change as done too early. The page now says what happened and which of the two confirmations is still missing.
-- **Selection fields show their choices again.** The options of a waiting list selection field went missing. They now appear in the list, in the editor and in the dropdown on the public form and on each entry.
-- **The scoring formula suggests fields again.** Opening a bracket used to wait for you to guess a first letter. It now lists every waiting list field, the waiting-time values and the age function right away.
-- **Legal pages open from a typed address.** `/privacy`, `/terms` and `/imprint` could fail when opened directly instead of through a link. They now always load and say so plainly if the text cannot be fetched, and the shipped deployment files set `NUXT_BACKEND_URL`, which your own files must set too.
+- **The link for changing your address opens a page.** Confirming a new email address leads somewhere that says what happened, and it says which of the two confirmations is still outstanding rather than reporting the change as done after the first one.
+- **A selection field shows the choices it was given.** The options of a waiting list field appear in the list, come back when it is edited, and fill the dropdown on the public form and on an entry.
+- **The scoring formula suggests the fields again.** Opening a bracket lists every field of the waiting list, the waiting-time values and the age function, instead of waiting for a letter that has to be guessed first.
+- **The legal pages open when the address is entered directly.** `/privacy`, `/terms` and `/imprint` load whether they are reached through a link or opened fresh, and they say so plainly if the text cannot be fetched instead of failing outright. The shipped deployment files now set `NUXT_BACKEND_URL`, which an installation with its own files must set too.
 
 ## v26.11.10
 
 ### New Features
 
-- **Read the instance log right in Ember.** Under Monitoring you search the running instance's log by message or logger and filter by severity, no server access needed. It is stored in the database only if an operator switches that on under Settings, while the console and log file always keep everything.
-- **See where your mail stands.** A new page under Monitoring shows how much mail waits, what each provider accepted and what it reported back. Every provider also shows today's sends against its allowance.
-- **Refused providers are skipped per domain.** When a receiving domain turns away a sending server, Ember remembers it and stops spending allowance on certain refusals. The block lifts itself after a week, and the mail overview lets you lift it by hand sooner.
-- **Stay signed in on your own device.** The login screen offers to keep you signed in, and only then does your session run long. Without it a session ends after an hour, right for a shared machine, and the second factor stays a separate choice.
+- **The instance log can be read from the application.** Under Monitoring the log of the running instance is searched by message or by logger and narrowed to the severities you want, without reaching the server. It is kept in the database only when an operator switches that on under Settings, where the severity and how many days to keep are chosen; the console and the log file always hold everything regardless.
+- **A mail overview says where the post stands.** Under Monitoring there is now a page for what became of the email: how much waits, how much a provider accepted, what it reported back afterwards, and which provider each waiting message is standing at. Every provider shows what it has sent today against its allowance.
+- **A provider a domain refuses is not asked again.** When a receiving domain turns away the sending server rather than the message, that pairing is remembered and the provider is skipped for that domain instead of spending an allowance on a refusal that is certain. The block lapses on its own after a week, and the mail overview names every one that stands and lets you lift it by hand once the matter is settled.
+- **Stay signed in on your own device.** The login screen offers to keep you signed in, and only then does the session run for the long duration. Without it a session ends after an hour, which is what a shared or borrowed machine should get. It says nothing about the second factor: that stays a separate choice.
 
 ### Improvements
 
-- **Stuck messages say they are stuck.** The mail overview marks a waiting message that no provider can carry right now. You can tell a queue that will never move from one that is just busy.
-- **The log file stops growing forever.** It rolls at 100 MB, keeps two weeks or 2 GB of history and compresses old parts. Before, every start wrote one file that nothing ever removed.
-- **Sessions can last up to thirty days.** Under Settings → Security an operator sets how long sessions run on trusted devices and on all others. Signing out or changing a password still ends every session at once.
-- **More room to read the consent text.** The consent window on the login screen is wider now. It shows more of the document at once instead of a column as narrow as a password field.
-- **Platform statistics count more.** Outgoing mail, active delivery blocks, two-factor accounts, upcoming appointments and their registrations now each have a figure. Two new charts show registrations over the last thirty days and how attendance was answered.
+- **A stuck message says so instead of looking busy.** The mail overview marks a waiting message that no provider can currently carry, so a queue that will never move is told apart from one that is merely working through.
+- **The log file no longer grows without end.** It rolls at 100 MB, keeps two weeks or 2 GB of history, and compresses what it rolls, instead of writing a single file per start that nothing ever removed.
+- **Sessions may last up to thirty days.** An operator sets how long a session runs on a device somebody vouched for, and separately how long it runs otherwise, under Settings → Security. Signing in over and over frustrates more than it protects, and signing out or changing a password still ends every session at once.
+- **The consent text has room to be read.** The window asking to agree to data processing is wider on the login screen and shows more of the document at a time, rather than presenting it in a column the width of a password field.
+- **The platform statistics count more.** Mail on its way out, delivery blocks that stand, accounts secured with a second factor, upcoming appointments and their registrations all have a figure now, and two new charts show registrations across the last thirty days and how attendance was answered overall.
 
 ### Fixes
 
-- **Chart headings and legends stay clear.** A chart's heading, legend and axis label could crowd each other. Each now keeps its own place.
-- **Statistics panels are evenly spaced.** The first block under a heading sat at a different distance than the rest. Every block on the page is now spaced the same way.
+- **Chart headings and legends stay clear of the chart.** A heading, a legend and the label on the value axis each keep their own place wherever a chart shows them together.
+- **Panels keep an even distance on the statistics page.** Every block on the page is separated the same way, including the first one under each heading.
 
 ## v26.11.9
 
 ### New Features
 
-- **Mail providers form one ordered list.** An instance and a station each keep an ordered list of providers, worked from the top. Every entry is edited, moved, tested and given its delivery address the same way.
+- **Mail providers are one list, worked from the top.** An instance and a station each keep an ordered list of providers instead of one provider plus a set of stand-ins behind it. Every entry is edited, moved, tested and given its own delivery address the same way, and the first is simply the first.
 
 ### Improvements
 
-- **Each provider has its own daily allowance.** When a provider has sent its share for the day, the next one takes over instead of holding mail until tomorrow. This replaces a station's overall daily and monthly caps.
-- **Send a test mail to any address.** You can test any provider in the list, not only the active one, and send to any address you name. A misconfigured backup no longer surprises you when everything above it has run out.
-- **Each provider gets its own report address.** The address for delivery reports matches the format that provider sends. Two different providers in a list get two different addresses, for stations and for the instance.
-- **Privacy sections for each email provider.** The privacy policy ships a ready section for Brevo, Sweego, Twilio SendGrid and rapidmail, plus a blank one for any other server. All start switched off, so you enable only the one you actually use.
-- **A privacy section for Cloudflare.** An instance behind Cloudflare sends every visitor request through their servers. The privacy policy now ships a section saying what is processed there, on what legal basis and in which countries.
-- **Pick which shipped sections to load.** Under Settings → Legal each row shows its heading, tells you whether it replaces a section in the editor and lets you read it first. Selecting everything loads Ember's layout and leaves alternatives, like the email provider sections, for you to pick.
+- **Every provider carries its own daily allowance.** Free tiers are sold by the day, so an entry that has sent its share hands the post to the next one instead of holding it until tomorrow. A station's overall daily and monthly caps give way to this: the allowance now belongs to the provider that actually has one.
+- **A test mail goes to any address you name.** Any provider in the list can be sent a test mail, not only the one currently carrying the post, and to any address rather than only your own. A provider further down is no longer found to be misconfigured at the moment everything above it has run out.
+- **Every provider has its own address for delivery reports.** The address ends in the report format the provider sends, so a list holding two different providers is offered two different addresses, for a station as much as for the instance.
+- **A section for each email provider is ready to switch on.** The privacy policy ships one written out for Brevo, Sweego, Twilio SendGrid and rapidmail, naming the company behind it, its address and where it processes, plus a blank one for any other server. All ship switched off, and only the one naming the provider in use belongs in the document.
+- **A section for Cloudflare is ready to switch on.** An instance reached through Cloudflare passes every visitor request through their servers, so the privacy policy ships a section saying what is processed there, on what legal basis, and that the contracting company sits in the United Kingdom while processing also happens in the United States.
+- **You choose which shipped sections to load.** Under Settings → Legal each row leads with the heading it carries, says whether it would replace a section already in the editor, and offers its full text to read beforehand. Selecting everything takes the document as Ember lays it out and leaves the alternatives, such as the several email provider sections, to be picked by hand.
 
 ### Fixes
 
-- **Icons arrive with the page.** Icons on public pages, the login page and the help center could appear late or not at all without scripts. They now come with the page the server sends.
-- **Queued mail survives the daily limit.** Reaching the limit could leave the remaining messages behind. They now wait for the next attempt.
-- **Malformed requests explain what is wrong.** A request the server could not read got only a bare failure. The answer now names the reason and the field at fault.
+- **Icons arrive with the page itself.** The public pages, the login page and the help center carry their icons in the page the server sends, so they are there from the first moment and stay there when scripts are switched off.
+- **Queued mail is no longer stranded at the daily limit.** Reaching the limit leaves the remaining messages waiting for the next attempt instead of leaving them behind.
+- **A malformed request says what is wrong with it.** A request the server cannot read is answered with the reason and the field it stumbled on, rather than a bare failure.
 
 ## v26.11.8
 
 ### New Features
 
-- **Read and write permissions for the wiki.** A folder or file now says what its audience may do: read, read and edit, or full access including deleting and publishing. You can let a group read a folder without letting it change anything.
-- **Ask questions when people register.** An event can ask everyone signing up for details like shirt size, guests or what they bring. Answers can be text, number, yes/no, date, choice or member, each optionally required and with a default.
-- **Answers sit right beside the registration.** Chosen answers appear next to each name in the registration list, with totals above number questions. Event templates pass their questions on to every event made from them.
+- **Read and write permissions for the wiki.** A folder or file can now say what its audience may do with it, not only who sees it: read only, read and edit, or full access including deleting and publishing. A group can be given reading rights on a directory without being able to change anything in it.
+- **Ask questions when someone registers for an event.** An event can ask everyone signing up for extra details - shirt size, number of guests, what they are bringing - as text, number, yes/no, date, choice or member. Each question can be mandatory and can start from a default value.
+- **Answers stand next to the registration.** The answers marked for the list appear beside the member's name in the registration list, and number questions get their total above it. Event templates carry their questions into every event created from them.
 
-- **Placeholders for repeated legal details.** A name in double curly braces stands for a value like the operator's name, address or email address. You fill it in once under Settings → Legal, and Ember applies it across every document and language.
-- **The privacy notice lists your browser storage.** Privacy policy and consent text name every value Ember keeps in your browser, what it is for and how long it stays. The section is written from the application itself, so it stays correct as Ember changes.
+- **Placeholders for details that repeat across the legal documents.** A name in double curly braces stands in for a value - the operator's name, address or email address - and is filled in once under Settings → Legal. Ember finds every placeholder written into any document by itself and applies the same value across all document types and languages.
+- **The privacy notice lists what stays in your browser.** Privacy policy and consent text carry a section naming every value the application keeps in your browser, what it is for and how long it stays - grouped into what login needs, what a single feature needs and what only remembers a display preference. The section writes itself from the application, so it stays correct as the software changes.
 
 ### Improvements
 
-- **Attendance buttons say what they do.** The present, absent and excused buttons now carry a name. Screen readers announce it, and hovering shows it.
+- **The attendance buttons say what they do.** Marking someone present, absent or excused now carries a name, so a screen reader announces it and hovering shows it.
 
-- **Write steps straight into a procedure.** Adding a step now puts an empty row in the list. No dialog asks for its title first.
-- **Mark a profile field as date of birth.** The new field type works like a date field and can feed a calculated age. A station has one such field, so the type is offered again only once that field is gone or changed.
-- **Terms of service that match the product.** The shipped terms cover public pages, partner sharing, AI-assisted questions, feeds, exports, station obligations and how a station's use ends. They come in six parts you can reorder or switch off.
-- **An imprint you fill in, not rewrite.** The shipped imprint has placeholders for the operator's name, address, phone, email and the person responsible for content, and an empty one stays visible instead of leaving a blank line. New operator setting: `api.placeholderFile`.
-- **Take over a lawyer's document as it is.** Under Settings → Legal you import a file or paste text, and Ember splits it into sections and turns references like "§ 12" into links. Numbers that match no section stay untouched and are listed before you save.
-- **The terms number themselves.** Paragraph numbers are set when the document is shown, so moving or switching a section renumbers everything, references included. A reference to a removed section is marked instead of pointing nowhere.
-- **A privacy section for your email provider.** Privacy policy and terms ship a section about the service that sends your mail. It stays off until you fill in the provider, its address, its server location and how long it keeps logs.
-- **Start legal documents from the shipped templates.** Under Settings → Legal you load sections of Ember's own document into the editor, one at a time or all at once. A section with the same name is replaced, and nothing is written until you save.
-- **Choose what your browser keeps, group by group.** Besides the required values, you now allow or refuse two groups separately: what features remember and what your view settings remember. You choose with the consent and can change it under Account → Data & account, which deletes a refused group's values at once.
-- **Privacy policy and terms are never blank.** An instance without its own documents now serves the ones Ember ships instead of an error. The shipped set lands exactly where the instance reads its documents from.
-- **The browser storage section stays up to date.** It is generated, so you can only show, hide or move it. Privacy policy and consent text both use it, and a change asks for consent again.
-- **The wiki only offers what you may do.** Edit, delete and create appear only where your permission allows, and read-only entries are marked, naming the folder that decided it. Existing stations notice nothing until they set their first permission.
-- **Organisers see every registration answer.** Whoever may edit the event sees all answers with notes, plus totals: numbers added up, choices counted per option. A question can also be kept for organisers only, so members neither see nor answer it.
-- **A station's public calendar opens.** Visiting it shows the station's dates. The subscription link for your calendar app sits right beside them.
-- **Station public pages arrive complete.** The station name, menu, blog, wiki and calendar now come with the page the server sends. Search engines and link previews see all of it.
-- **Public pages arrive complete.** The station directory and the imprint, privacy and terms pages now carry their content from the server, so search engines and link previews see it. Visitors get the same pages a moment sooner.
-- **Open files your partners share.** A shared wiki file opens like your own, from the file list and from search, instead of only offering a copy. Text and Markdown files show their content and take comments, while other formats still need copying first.
-- **Open shared catalogues and test sheets.** A shared question catalogue shows its categories and question count, and a shared test sheet its sections and points. You can still copy both into your own station.
-- **Save wiki files as PDF.** Markdown and text files download as a PDF with your station's name and logo, from the file, the file list, a partner's shared file or the public wiki. Headings, lists, tables, quotes and code stay, and images are replaced by their description.
-- **Tile and list view offer the same actions.** You can remove a favourite in both wiki views. Every button on an entry now names what it does.
-- **Guardians manage sign-in for their members.** Under Profile → Managed profiles a guardian sets a member's email address and switches signing in on or off. Allowing it sends a password invitation, while refusing it or changing the address ends open sessions.
-- **Email falls back instead of getting stuck.** An instance can list further providers, each with a number of attempts before the next takes over. A message refused because of the relay itself, such as a blocked sending address, moves straight to the next provider.
-- **Ember learns whether your email arrived.** Providers now report back whether a message was delivered, bounced or blocked, and Ember records it. Under Settings → Mailing you find an address to paste into the provider, with a key Ember generates for you.
-- **One language for all system emails.** Under Settings an operator picks the language for emails to accounts outside any station, like self-registered users and the first administrator, who used to get English. Accounts created from a station keep that station's language.
+- **Steps are written straight into the procedure.** Adding a step puts an empty row in the list instead of asking for its title in a dialog first. Every field of a step was already editable in that list.
+- **A profile field can be marked as the date of birth.** The new field type behaves like a date field and can serve as the source of a calculated age. A station has one of them: once a field carries it, the type is offered again only after that field is deleted or changed to something else.
+- **Terms of service now cover what the product actually does.** The shipped terms describe public pages, sharing with partner stations, AI-assisted question generation, feeds and exports, the obligations of a station admitted to an instance, and how a station's use ends. They are laid out in six parts that can be reordered or switched off individually.
+- **The shipped imprint asks to be filled in rather than edited.** It carries placeholders for the operator's name, address, phone number, email address and the person responsible for content, so an instance is ready once those values are entered. A placeholder left empty stays visible in the text instead of leaving a blank line. New operator setting: `api.placeholderFile`.
+- **A document written by a lawyer can be taken over as it is.** Under Settings → Legal a document is imported as a file or pasted as text: Ember cuts it into sections, takes the numbering out of the headings and turns references like "§ 12" into links to the section they mean. Numbers that match no section stay untouched and are listed before anything is saved.
+- **The terms number themselves.** Paragraph numbers are assigned when the document is shown, so switching a section on, off or into another position renumbers the whole document and every reference in it. A reference whose section is gone is marked in the text instead of pointing nowhere.
+- **A section for the email provider is ready to switch on.** Privacy policy and terms of service ship a section describing the service that sends the email, switched off until an instance fills in the provider, its address, its server location and how long it keeps delivery logs.
+- **Legal documents can start from the shipped templates.** Under Settings → Legal, a section of the document Ember ships can be loaded into the editor - one at a time or all at once. A section of the same name is replaced, everything else stays as it is, and nothing is written until you save.
+- **You decide what stays in your browser, group by group.** Alongside the technically required values there are now two groups you allow or refuse separately: what individual features remember, and what your view settings remember. The choice is offered with the consent and can be changed later under Account → Data & account; taking a group back deletes its values at once.
+- **Privacy policy and terms are never blank.** If an instance has no documents of its own, the pages serve the ones Ember ships instead of an error, and the shipped set is laid down where the instance actually reads its documents from.
+- **The section on browser storage cannot fall out of date.** It is generated rather than written, so it can only be shown, hidden or moved. Both privacy policy and consent text pick it up, and a change to it prompts for consent again like any other change.
+- **The wiki only offers what you may actually do.** Editing, deleting and creating appear where your permission allows them, an entry you may only read is marked as read only, and a file you may only read names the folder that decided it. Existing stations notice nothing until they set their first permission.
+- **Answers to registration questions are complete for the organisers.** Whoever may edit the event sees every answer including the notes, plus totals per question: numbers are added up and choices counted per option. A question can also be marked as belonging to the organisers, in which case it is neither asked of members nor visible to them.
+- **The public calendar of a station opens.** Visiting it shows the station's dates, and the subscription link for a calendar application is offered beside them.
+- **A station's public pages arrive complete.** The station name, its menu and its blog, wiki and calendar come with the page the server sends, so search engines and link previews see them.
+- **Public pages arrive complete.** The station directory and the imprint, privacy and terms pages carry their content in the page the server sends, so search engines and link previews see it. Visitors reach the same pages as before, a moment sooner.
+- **Files shared by partner stations open.** A shared file in the wiki opens like one of your own, both from the file list and from a search result, instead of only offering a copy. Text and Markdown files show their content and take comments; other formats still have to be copied into your station first.
+- **Question catalogues and test sheets shared by partner stations open.** A shared question catalogue shows its categories and question count, a shared test sheet its sections and points. Both can still be copied into your own station from the page.
+- **Wiki files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo - from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.
+- **Tile and list view of the wiki offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
+- **Guardians hand out access to the members in their care.** Under Profile → Managed profiles a guardian sets the email address of a member they look after and switches signing in on or off. Allowing it sends the invitation to set a password; refusing it ends the sessions that are open, and a new address does the same.
+- **Email falls back to another provider instead of getting stuck.** An instance can list further providers after its first one, each with the number of attempts it gets before the next takes over. A message the receiving side refuses because of the relay itself - a sending address on somebody's block list, for instance - moves straight to the next provider rather than being tried against the same refusal.
+- **Ember learns whether an email actually arrived.** A mail provider only confirms that it took the message; what happens afterwards - delivered, bounced, blocked - is now reported back and recorded against the email. Under Settings → Mailing there is an address to paste into the provider (for Brevo under Settings → Transactional emails → Webhook), and Ember generates the key it contains itself.
+- **The language of system emails is set for the whole instance.** Under Settings, an operator picks the language emails are written in for accounts that belong to no station - self-registration and the administrator created at first start, which were written to in English whatever the instance wanted. Accounts created from a station keep that station's language.
 
 ### Security
 
-- **Guardians see only their own children's changes.** The change list, the pending overview and acknowledging a change are limited to the members a guardian manages. Reviewing the whole station stays with the permission meant for it.
+- **Guardians only see the profile changes of their own children.** The change list, the pending overview and the acknowledgement of a change are limited to the members a guardian manages; reviewing the whole station stays with the permission meant for it. Nothing changes for anyone holding that permission.
 
 ### Changes
 
-- **One menu for wiki entry actions.** Editing, downloading and deleting an entry now sit in one menu instead of a row of icons. An entry with only one action keeps it as a plain button.
-- **Quiz and exams are named by use.** The menu entry reads "Quiz & Exams" while both are on, and "Quiz" or "Exams" when only one is. With both in use, each gets its own section instead of one list of five.
-- **Shared wiki needs matching versions.** Partner stations on the previous version pause wiki sharing until both sides update. Every other shared feature keeps working meanwhile.
+- **One menu for the actions on a wiki entry.** Editing, downloading and deleting an entry sit in a single menu instead of a row of icons. An entry offering only one action keeps that action as a plain button.
+- **Quiz and examinations are named for what a station uses.** The shared menu entry reads "Quiz & Prüfungen" while both are switched on, and "Quiz" or "Prüfungen" when only one of them is. With both in use, the quiz pages and the examination pages sit in a section each instead of in one list of five.
+- **Shared wiki needs matching versions.** Partner stations still on the previous version pause wiki sharing until both sides have updated. Every other federated feature keeps working in the meantime.
 
 ### Fixes
 
-- **Members find the forms meant for them.** The forms page showed members nothing at all. It now lists every form the station has opened to them.
+- **Members find the forms they are meant to fill in.** The forms page lists what the station has opened to them instead of showing nothing at all.
 
-- **Editing a procedure saves again.** Changes to a procedure's name, description, due date or visibility were lost. They now stick.
-- **Choosing a station takes you there.** Picking a station could send you back to the station picker, even after a long break or from a station link. It now opens the page you asked for.
-- **Open tasks show after a long break.** Coming back to a station could skip the forms and tests still waiting for you. They now appear as they should.
-- **Admin pages stay shut without admin rights.** Without instance administration rights, an admin page showed a panel where nothing worked. You now land back in your station.
-- **The menu narrowing control stays on desktop.** The sidebar control showed up on phones, where there is nothing to narrow. It now appears on desktop only.
-- **Station applications can be decided again.** The list of applications waiting for a decision was broken. Each one now shows its state with buttons to accept or reject.
-- **New instances start with legal documents.** A fresh instance could start without its legal texts. Privacy policy, terms, consent text and imprint now arrive on first start in German and English, and existing documents stay untouched.
-- **Members see their station's events.** The events page showed events only to those who also record attendance. Now everyone sees them.
-- **Event registration lists load again.** Switching to an event's registrations failed to show who signed up. The list now loads.
-- **Shared question catalogues appear again.** The shared section of the catalogue list stayed empty. It now shows what partner stations share.
-- **Partner station filters work everywhere.** Picking a partner station in the wiki, catalogue or test sheet filters did not narrow the entries. It now shows only that station's entries.
-- **Switching off quiz or exams cleans up the menu.** A station that switched off one of the two still had its pages in the sidebar. They now disappear.
-- **The member import reports what it did.** Finishing an import showed an empty page. It now shows how many members and helpers were created, grouped and filled in, plus anything worth pointing out.
-- **Chosen files really upload.** Uploads like wiki files, folder icons, avatars and imports failed as if no file had been chosen. The file you pick is now sent and the upload completes.
+- **Editing a procedure saves.** Changing the name, description, due date or visibility of a procedure keeps the change.
+- **Choosing a station leads somewhere.** Picking a station opens the page that was asked for instead of returning to the station picker, also after a long break and when the link carries a station of its own.
+- **Outstanding tasks appear after a long break.** Coming back to a station shows the forms and tests still to be completed instead of passing them by.
+- **The administration area stays shut without the rights for it.** Opening an administration page without instance administration rights leads back to the station instead of showing a panel where nothing works.
+- **The sidebar control for narrowing the menu stays on desktop.** It no longer appears on phones, where there is nothing to narrow.
+- **Applications for a new station can be decided again.** The list shows the applications waiting for a decision, each with its accepting and rejecting buttons and its actual state.
+- **A new instance starts with legal documents in place.** Privacy policy, terms of service, consent text and imprint are laid down on first start in German and English. A language that already holds a document keeps exactly what is there.
+- **Members see the events of their station.** Opening the events page shows the station's events for everyone, not only for those who also record attendance.
+- **The registration list of an event loads.** Opening an event and switching to its registrations shows who has signed up.
+- **Question catalogues shared by partner stations appear again.** The catalogue list shows what partner stations share instead of leaving the shared section empty.
+- **Filtering by partner station works across search and lists.** Picking a partner station in the wiki, catalogue or test sheet filters matches the entries from that station.
+- **Switching off quiz or examinations clears the menu.** A station that switches off one of the two no longer keeps its pages in the sidebar.
+- **The member import reports what it did.** Finishing an import shows how many members and helpers were created, how many were linked to a group and how many profile fields were filled, plus anything the import had to point out - instead of an empty page.
+- **Chosen files are actually uploaded.** Picking a file - a wiki attachment or original, a folder icon, an avatar, a question or member import - sends the file itself, so the upload completes instead of failing as though no file had been chosen.
 
 ## v26.11.7
 
 ### New Features
 
-- **Sort and filter your item lists.** Item tables on the inventory pages can show custom fields as columns, sort by any column and filter by value. You can filter by source and by whether an item is assigned or in storage, and a column picker shows or hides extra columns.
-- **Fill in custom fields when adding items.** The add-item dialog now takes the inventory's custom fields directly. Number fields check their allowed range while you type.
-- **Help for every setup step.** Each step of the station setup assistant has its own help article. You reach it from the help center menu and the search box.
-- **A help article for every page.** Event templates, single news articles, inventory items, the answer generator, partner station views and reported problems now have their own guide. Every help center article is searchable from the menu.
-- **Separate help articles for procedures.** The procedure list, editor, detail page and templates each have their own article. They no longer share one general page.
+- **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values - including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
+- **Custom fields when adding items.** The add-item dialog fills in the inventory's custom fields directly, and number fields check their allowed range while typing.
+- **Help articles for the setup assistant.** Every step of the station setup assistant has its own help article, reachable from the help center menu and the search box.
+- **A help article for every page.** The pages that still had no guide - event templates, a single news article, an inventory item, the answer generator for choice questions, the partner-station views and the reported-problems page - now have one, and every article in the help center is searchable from the menu.
+- **Separate help articles for procedures.** The procedure list, the editor, the detail page and the templates each have their own article instead of sharing one general page.
 
 ### Changes
 
-- **Partner compatibility is checked per feature.** When two connected stations run different versions, only the features whose data exchange changed pause, not the whole partnership. The partner page shows what is paused, and it resumes on its own once both run the same version.
-- **No size label for unsized items.** Item lists and member inventory pages leave the size empty for items without sizes. Size changes in exchange and procurement views stay as they were.
-- **Item actions in one menu.** The buttons on each inventory item row now sit in one menu. Every entry has a clear label.
-- **Custom item fields are easier to set up.** Ember suggests the technical key and option values from the names you enter. You reorder fields by dragging, or with arrows on phones.
-- **One item edit dialog everywhere.** Editing an item from the edit page opens the same dialog as the detail page, with custom fields, storage container and ownership. Custom field values stay when you save.
-- **Confirmations use Ember's own dialog.** Deleting a file tag or folder, unassigning an item during a check and handing over someone else's item now ask in a proper dialog. The plain browser prompt is gone.
-- **Attendance number fields can have a default.** A number field in an attendance session now takes a default value like every other field type. You enter it as a number, not as text.
+- **Federation compatibility is checked per feature.** When two connected stations run different versions, only the features whose data exchange actually changed are paused instead of the whole partnership - everything else keeps federating. The partner page shows which features are paused, and they resume automatically once both stations run the same version.
+- **No size placeholder for unsized items.** Item lists and member inventory pages leave the size empty for items without sizes instead of showing a one-size label. Size transitions in exchange and procurement views are unchanged.
+- **Item actions in one menu.** The action buttons on each inventory item row are collected in a single menu with labelled entries.
+- **Custom item fields are easier to set up.** The technical key and the values of selection options are suggested automatically from the entered names, and fields can be reordered by dragging them (on phones, with up and down arrows).
+- **One item edit dialog everywhere.** Editing an inventory item from the edit page now opens the same dialog as the detail page, including custom fields, storage container, and ownership. Custom field values are kept when saving.
+- **Confirmations use the app's own dialog.** Deleting a file tag or folder, unassigning an item during a check, and handing over an item another member still holds all ask in a styled dialog instead of a plain browser prompt.
+- **Number fields in attendance can have a default.** A number field on an attendance session takes a default value like every other field type, entered as a number rather than as text.
 
 ### Security
 
-- **Boards you cannot see stay hidden.** Comments, checklists, links, labels and history on a board you cannot access are no longer readable. Such a board now answers exactly like a missing one, so nobody can probe whether it exists.
+- **Boards you cannot see stay hidden.** Ticket comments, checklists, links, labels and history on a board you have no access to are no longer readable, and such a board now answers exactly as a missing one so its existence cannot be probed. Being unable to edit a board you can see is still reported separately.
 
 ### Fixes
 
-- **Public blog article links work.** Opening a single article from a station's public blog failed. It now loads the article.
-- **Reorder tickets on a partner's board.** Dragging a ticket within a lane on a board shared by a partner station did not save. The new order now sticks.
-- **Creating custom item fields works.** Adding a custom field to an inventory failed for some field types. Every type now saves, selection fields with options included.
-- **Custom item field values are kept.** Values in an item's custom fields vanished after saving or after editing its name, identifier or size. They now stay put.
-- **Opening a station loads it fully.** Picking a station on the overview sometimes sent you back or showed an empty page. It now reliably opens the station, and links from emails and feeds land in the right one.
-- **A clear message when your session fails to load.** A failed session load left an empty page with a bare menu. You now see an error message with a retry button.
-- **Submit forms and polls on public pages.** A form or poll on a public page could not be sent. It now shows the consent checkbox and accepts the submission.
-- **Contact form submissions open.** The submissions view of a contact form on a page did not list anything. It now shows the responses received.
-- **Guardian names show on waiting list entries.** An applicant's guardians appeared as a dash. Their first and last names now show.
-- **Attendance fields save right away.** Yes/no, date, selection and member fields in an attendance session saved only after a short delay. They now save the moment they change.
-- **Edit responses after questions are added.** A submitted response hid questions added after it was sent. Opening it now shows every question.
-- **Public waiting list and blog switches stick.** Turning either one on or off under Station → Federation was not saved. The setting now stays.
-- **Replacing a presentation file works.** Uploading a new version of a wiki presentation did not replace the stored file. It now does.
-- **Saved member filters apply reliably.** A saved filter failed when it was made for a tab that no longer exists. It now applies anyway.
-- **Ordering questions keep all their items.** Moving an entry in a quiz training ordering question left a blank item behind. Every item now stays.
-- **The feed notification switch tells the truth.** The feed channel under Account → Notifications could show the wrong state. It now shows whether it is really enabled.
-- **Attendance help pages show the help menu.** The help pages for attendance and its settings opened without the help center navigation. They now show it.
-- **Public station pages show their title.** Pages in a station's public area had no name in the header bar. They now show it.
-- **The relocation notice highlights its menu entry.** The page announcing a station's move did not mark its menu entry. It now shows as active.
-- **Delete comments on partner wiki articles.** Removing your own comment on an article a partner station shares failed. It now goes through.
-- **Partner news notifications reach the right people.** Replies and mentions on a partner station's news article went astray. They now reach the members of the station that owns it.
-- **Wiki search accepts any input.** Searching for nothing but punctuation failed with an error. It now simply finds nothing.
-- **Link previews stay clean.** A link to an unreachable page picked up the title of an error page. It now keeps its address as the label.
-- **Uploads with unusual file names work.** Files with no name or a capitalised extension failed to upload. Ember now recognises them by type.
-- **Public forms and polls pages show their own titles.** Both pages showed the general forms title in the header. Each now shows its own name.
-- **Reorder checklist items and partner board tickets.** Dragging a checklist entry on a board ticket, or a ticket within a lane on a partner's board, did not save. Both now keep their new position.
+- **Public blog article links work.** Opening a single article from a station's public blog loads the article instead of failing.
+- **Reordering tickets on a partner's board works.** Dragging a ticket within a lane on a board shared by a federation partner saves the new order.
+- **Creating custom item fields works.** Adding a custom field to an inventory saves correctly for every field type, including selection fields with options.
+- **Custom item field values are kept.** Values entered for an item's custom fields show up again after saving, and editing an item's name, identifier, or size no longer clears them.
+- **Opening a station loads it completely.** Picking a station on the cross-station overview reliably shows that station's profile and menu instead of occasionally returning to the overview or showing an empty page. Links from emails and feeds that point into a specific station open in that station.
+- **A clear message when session data cannot be loaded.** If loading the session fails, an error message with a retry button appears instead of an empty page with a bare menu.
+- **Forms and polls on public pages can be submitted.** A form or poll placed on a public page shows the consent checkbox and accepts the submission.
+- **Contact form submissions open.** The submissions view for a contact form on a page lists the received responses.
+- **Guardian names appear on waiting list entries.** The guardians of a waiting list applicant show their first and last name instead of a dash.
+- **Attendance field entries save immediately.** Yes/no, date, selection and member fields in an attendance session are stored as soon as they change, rather than after a short delay.
+- **Editing a form response works after new questions are added.** Opening a submitted response shows every question, including ones added after the response was sent.
+- **The public waiting list and public blog switches are saved.** Turning either on or off under Station → Federation keeps the setting.
+- **Replacing a presentation file works.** Uploading a new version of a presentation in the wiki replaces the stored file.
+- **Saved member filters apply reliably.** Applying a saved filter on the member list works even when it was saved for a tab that is no longer available.
+- **Ordering questions in quiz training keep all their items.** Moving an entry in an ordering question no longer leaves a blank item behind.
+- **The feed notification switch shows its real state.** The feed channel under Account → Notifications reflects whether it is actually enabled.
+- **Attendance help pages open with the help center menu.** The attendance, attendance settings and attendance settings editing help pages show the help center navigation.
+- **Public station pages show their title in the header.** Pages under a station's public area display the page name in the header bar.
+- **The relocation notice highlights its menu entry.** Opening the page that announces a station's move marks the matching menu entry as active.
+- **Comments on a partner's wiki article can be deleted.** Removing your own comment on an article shared by a federation partner completes instead of failing.
+- **Notifications for comments on partner news reach the right members.** Replies and mentions on a news article shared by a federation partner are delivered to the members of the station that owns the article.
+- **Wiki search accepts any input.** Searching for text made only of punctuation returns no results instead of failing with an error.
+- **Link previews stay clean when a page cannot be reached.** A link added to a wiki article keeps its address as the label instead of picking up the title of an error page.
+- **Uploads with unusual file names are accepted.** Files whose name is missing or whose extension is written in capitals are recognised by type instead of failing.
+- **The public forms and polls pages show their own titles.** Both pages display their own name in the header instead of the general forms title.
+- **Reordering board checklist items and partner board tickets works.** Dragging a checklist entry into a new position on a board ticket is saved, and so is moving a ticket within a lane on a board shared by a federation partner.
 
 ## v26.11.6
 
 ### Changes
 
-- **Barcodes are recognised faster.** The scanner camera now records at a higher resolution and keeps focusing. QR codes and barcodes sharpen sooner and are read more quickly.
+- **Faster barcode recognition.** The scanner camera records at a higher resolution and keeps focusing continuously, so QR codes and barcodes sharpen and are recognised more quickly.
 
 ### Fixes
 
-- **The scan button only opens the scanner.** Tapping scan inside an add or edit dialog also saved the dialog, creating entries with an empty code. It now just starts the camera.
-- **Cancelling a scan turns the camera off.** Closing the scan dialog while the camera was starting left it running and disturbed the next scan. The camera is now released right away.
+- **The scan button only opens the scanner.** Tapping the scan button inside an add or edit dialog starts the camera without saving the dialog in the background, so no more entries are created with an empty code.
+- **The camera turns off when scanning is cancelled.** Closing the scan dialog while the camera is still starting releases the camera immediately instead of leaving it running in the background and disturbing the next scan.
 
 ## v26.11.5
 
 ### New Features
 
-- **Fill a storage container in one go.** The scan button on the storage container page becomes an add button. You scan barcodes or search by name or code, optionally only among unplaced items, and place several items at once.
+- **Add several items to a storage container at once.** The scan button on the storage container page becomes an add button that opens a dialog to scan barcodes or search items by name or code, optionally showing only items without a storage place. Multiple items can be selected and placed in the container together.
 
 ### Changes
 
-- **Filter the problem log by level.** The admin problem log now has error and warning filters. Acknowledging entries updates the list in place, no reload needed.
-- **See where member permissions come from.** When you edit a member, permissions from their member type or groups appear ticked, locked and labelled with their source. Choosing station administrator marks every other permission as granted.
+- **Filter the problem log by level.** The problem log in the admin area offers error and warning filter buttons, and acknowledging entries updates the list in place without a reload.
+- **Member permissions show where they come from.** When editing a member, permissions already granted by the member type or one of the member's groups appear pre-selected and locked, labelled with their source. Selecting the station administrator permission marks all other permissions as granted.
 
 ### Fixes
 
-- **Every listed permission can be granted.** The item hand-out, storage location, form submission, poll result and checklist permissions could not be switched on. The permission picker now enables them all.
-- **Opening a station stays in the station.** Picking a station on the overview sometimes bounced straight back. It now reliably lands on the station dashboard.
-- **Startup cleanups run every time.** Cleaning up orphaned accounts and stale transfers was sometimes skipped with a warning. Both now run on every server start.
+- **All listed permissions can be granted.** The item hand-out, storage location, form submission, poll result and checklist permissions can be enabled in the permission picker.
+- **Opening a station no longer bounces back to the overview.** Picking a station on the cross-station overview reliably lands on the station dashboard instead of occasionally returning to the overview right away.
+- **Startup cleanup sweeps run reliably.** The orphaned-account sweep and the stale-transfer cleanup run on every server start instead of logging a warning and being skipped.
 
 ## v26.11.4
 
 ### Security
 
-- **Visitors see only publicly listed stations.** Without signing in, the station directory at /discovery now shows only stations that chose public visibility. Instance-visible stations and stations with public content appear only to signed-in users.
+- **Visitors only see publicly listed stations.** The station directory at /discovery shows instance-visible stations and stations with public content only to signed-in users; without signing in, only stations that opted into public visibility appear.
 
 ### New Features
 
-- **Send a test email from mail settings.** Station and instance mail settings now have a "Send test mail" button. It sends a real message to your own address, so you can check delivery end to end.
+- **Send a test email from the mail settings.** The station mail settings and the instance mail settings offer a "Send test mail" button that delivers a real test message to your own address, so delivery can be verified end to end.
 
 ### Changes
 
-- **The start page leads to the demo.** When station registration is closed and a demo address is set, the start page's main button opens the demo. Without a demo address it still points to the self-hosting guide.
-- **Invited members get their account right away.** Invited people appear in the member list at once, ready for groups, events and attendance before they first sign in. The invite email asks them to set a password.
-- **Invites to existing accounts join the station.** Inviting an address that already has an account used to fail. That account now simply joins the station.
-- **Open invites become accounts on upgrade.** Invitations not yet accepted turn into member accounts, and the old acceptance page is gone. You can send these members a fresh password link with the resend button in the member list.
-- **See when a setup link expires.** For members who have not set a password yet, the pending marker shows how long their emailed link stays valid.
+- **Start page links to the demo when sign-up is closed.** On instances where station registration is disabled and a demo address is configured, the start page's main button opens the demo instead of the station application. Without a demo address it keeps pointing to the self-hosting guide.
+- **Inviting a member creates the account right away.** Invited people appear in the member list immediately and can be assigned to groups, events and attendance before their first sign-in; the invite email asks them to set a password.
+- **Invites to existing accounts join the station.** Inviting an email address that already belongs to an account adds that account as a member of the station instead of failing.
+- **Pending invites convert on upgrade.** Invitations that were not yet accepted become member accounts during the upgrade and the previous acceptance page is removed; such members can be sent a fresh password link via the resend button in the member list.
+- **Member list shows when a setup link expires.** For members who have not set their password yet, the pending marker shows until when the emailed setup link is valid.
 
 ### Fixes
 
-- **Applications confirm only once sent.** The application page at /apply could show "application received" too early. It now shows the form first and confirms only after you send it.
-- **Pages open in your theme.** Public pages briefly flashed the stock colours before switching to the instance theme. They now start in the right theme, also on installations that only set `NUXT_BACKEND_URL`.
-- **The location map shows its pin again.** Picking a station address on the map during setup or in the settings showed no pin. The draggable pin is back.
-- **Every permission has a readable name.** Some permissions showed raw technical keys in the picker. The checklist, item hand-out, storage location, form submission and poll result permissions now have proper names, descriptions and icons.
-- **Page titles follow navigation.** The browser tab title and page heading updated only after a full reload. They now change as you move between pages.
+- **Station applications confirm only after submitting.** The application page at /apply shows the form first and the "application received" confirmation only once an application has actually been sent.
+- **Pages open in the configured theme.** Public pages paint in the instance's configured theme from the first moment, without briefly flashing the stock colors. The server-side theme also respects the `NUXT_BACKEND_URL` variable, so it works on installations that only set that one.
+- **The location map shows its pin.** Picking a station address on the map during station setup or in the station settings shows the draggable pin again.
+- **Every permission has a readable name.** The permission picker shows proper German names and descriptions for the checklist, item hand-out, storage location, form submission and poll result permissions instead of raw technical keys, and the checklist group shows its own icon.
+- **Page titles follow navigation.** In the station and admin areas, the browser tab title and the page heading with its description update when moving between pages, not only after a full reload.
 
 ## v26.11.3
 
 ### New Features
 
-- **Step-by-step guides for mail providers.** The help center now has a page for each supported provider: Brevo, RapidMail, Sweego and Twilio SendGrid. Each walks you through creating the SMTP credentials and shows which fields to fill in.
+- **Step-by-step mail provider guides.** The help center has a dedicated page for each supported mail provider - Brevo, RapidMail, Sweego and Twilio SendGrid - that walks through creating the SMTP credentials and shows which fields to fill in. The mail settings help articles link to them.
 
 ### Changes
 
-- **The bundled database moves to PostgreSQL 18.** The compose files now mount the database volume at `/var/lib/postgresql`, as the new version requires. The old data format is not compatible, so existing installations must migrate their data, for example with a dump before and a restore after.
-- **Emails wait for mail setup.** Without a mail provider, sign-up, invite and password emails used to end up only in the server log. They now stay queued and go out once mail is configured.
-- **Mail settings adapt to your provider.** The mail forms show each provider's own fields with matching labels and guidance, for example an SMTP key for Brevo and just an API key for Twilio SendGrid. A failed connection test tells you which credentials the provider expects.
+- **Bundled database upgraded to PostgreSQL 18.** The compose files now mount the database volume at `/var/lib/postgresql` as the new version requires. Existing installations must migrate their data when upgrading, for example with a dump before and a restore after, because the old data directory format is not compatible.
+- **Emails wait for mail setup instead of being lost.** On an instance without a configured mail provider, sign-up, invite and password emails stay queued and are delivered automatically once the mail settings are configured. Before, such emails were only written to the server log.
+- **Mail settings adapt to the chosen provider.** The mail forms in the admin area, the station settings and the station setup show each provider's own fields with matching labels and guidance - Brevo asks for the account login email and an SMTP key, RapidMail and Sweego for their generated SMTP credentials, Twilio SendGrid only for an API key. Failed connection tests explain which credentials the provider expects.
 
 ### Fixes
 
-- **Admin help articles are back in the sidebar.** Articles like the mail settings help were missing from the help sidebar. The admin help area now mirrors the admin navigation, so they show up again.
-- **Admin help stays in the admin help area.** Help on security settings, two-factor and storage monitoring jumped to the station help center. It now opens with the admin help navigation.
-- **Demo forms keep their question settings.** Choice, date and Likert questions on demo instances lost their options and scales. They carry them again.
+- **Admin help articles are reachable from the help sidebar.** The admin help area mirrors the admin navigation with sections for settings including mail and security, two-factor, monitoring and developer tools, so articles like the mail settings help show up in the sidebar again.
+- **Admin help pages stay in the admin help area.** The help pages for security settings, two-factor and storage monitoring open with the admin help navigation instead of switching to the station help center.
+- **Seeded demo forms keep their question settings.** Choice, date and Likert questions on demo instances carry their answer options and scales again instead of falling back to empty settings.
 
 ## v26.11.2
 
 ### Security
 
-- **Visitor addresses cannot be forged behind a proxy.** Behind a reverse proxy or Cloudflare (`network.trustedProxies`, `network.cloudflare`), Ember now takes the visitor address from the nearest hop that is not a trusted proxy. Forwarded-address headers a visitor sends themselves are ignored for rate limiting and security logs.
+- **Visitor addresses can no longer be forged behind a proxy.** When the server runs behind a reverse proxy or Cloudflare (`network.trustedProxies`, `network.cloudflare`), the visitor address used for rate limiting and security logs is taken from the nearest hop that is not a trusted proxy, so forwarded-address headers sent by the visitor themselves are ignored.
 
 ### Fixes
 
-- **Problem monitoring shows times and stack traces.** Entries on the admin problems page showed an invalid date and empty details. They now show their first and last occurrence and the full stack trace.
-- **Set a manager for stations without one.** Entering a manager email for a station that had none did not work. It now invites the account if needed and grants it station administrator access.
-- **Everyone can edit their own name and email.** Changing your own name and email on your profile page needed the member edit permission. It now works for everyone, and an email change still waits for the confirmation link.
-- **The remote storage key creates itself.** A production install with a blank `storage.credentialEncryptionKey` needed manual setup. Ember now writes a fresh key on first start, so storage credentials can be encrypted right away.
+- **Problem monitoring shows timestamps and stacktraces.** Entries on the admin problems page show their first and last occurrence time and the full stacktrace of the recorded error again instead of an invalid date and empty details.
+- **Setting a station manager works for stations without one.** Entering a manager email when editing a station in the admin panel invites the account if it does not exist yet and grants it station administrator access, also when the station had no manager before.
+- **Everyone can edit their own name and email.** Changing your own first name, last name and email address on the account's profile page works for every signed-in user, without needing the member edit permission. Email changes still take effect only after confirming the link sent to the new address.
+- **Remote-storage credential key generates itself.** A production install with a blank `storage.credentialEncryptionKey` writes a fresh key to the config on first start, so station-supplied storage credentials can be encrypted without manual setup.
 
 ## v26.11.1
 
 ### Security
 
-- **Stricter isolation between stations.** Every station resource, from pages and forms to members, inventory, wiki and boards, is now checked against your own station before it is read or changed. This closes cases where another station's data could be reached by its id.
-- **Two-factor sign-in is rate limited.** Repeated two-factor attempts are throttled per account and per address, and a pending challenge ends after several wrong codes. A stolen password no longer comes with unlimited guesses.
-- **Authenticator codes work only once.** A code from your authenticator app can no longer be used twice. That holds even within its short validity window.
-- **Password resets forget remembered devices.** Resetting a password or removing a second factor now revokes every "remember this device" entry. A saved device can no longer skip the two-factor prompt afterwards.
-- **Setting up two-factor asks for your password.** Adding your first authenticator app or security key now needs your account password. A stolen browser session alone cannot add its own second factor.
-- **Shorter password reset links.** Self-service reset links now expire after one hour, configurable via `auth.resetTokenHours`. Invites and resets issued by an administrator keep their longer window.
+- **Stricter cross-station isolation.** Every station-scoped resource - pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, wiki documents and boards - is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
+- **Two-factor sign-in is rate limited.** Repeated two-factor and step-up attempts are throttled per account and per address, and a login's pending two-factor challenge is invalidated after several wrong codes, so a stolen password can no longer be paired with unlimited guesses.
+- **Authenticator codes are single-use.** A time-based authenticator code can no longer be used more than once within its short validity window.
+- **Password resets clear remembered devices.** Resetting a password, and removing a second factor, now revoke every "remember this device" entry so a saved device can no longer skip the two-factor prompt afterwards.
+- **Setting up two-factor asks for your password.** Enrolling the first authenticator app or security key now requires confirming the account password, so a stolen browser session alone cannot add its own second factor.
+- **Shorter password-reset links.** Self-service password-reset links now expire after one hour, configurable via `auth.resetTokenHours`; operator-issued invites and admin resets keep their longer window.
 
 ### Changes
 
-- **Station logos load lighter.** A station logo now accepts PNG, JPEG, WebP or GIF, and every place gets a copy at the right size instead of the full file. SVG uploads are no longer accepted.
+- **Station logos are raster images served at size.** A station logo upload accepts PNG, JPEG, WebP or GIF, and each place that shows the logo receives an appropriately sized copy instead of the full-resolution file, so pages load lighter. SVG uploads are no longer accepted.
 
 ### Fixes
 
-- **Event access rules keep their match mode.** Whether an event's user type, group and tag conditions must all match or just one was lost on save. Your choice now sticks.
-- **New members start with blank profile fields.** Custom profile fields without a default were not empty on the new member form. They now start blank.
+- **Event access restrictions keep their match mode.** Choosing whether an event's user-type, group and tag conditions must all match or any single one is enough now persists when the event is saved.
+- **Blank profile fields when adding a member.** Custom profile fields without a default value start empty on the new-member form.
 
 ## v26.11.0
 
 ### New Features
 
-- **An admin overview of what needs attention.** Administrators now land on a panel at Admin → Dashboard → Overview with tiles for failed mail, pending applications, unverified accounts, open problem reports and more. A tile turns green at zero and takes you straight to the right admin page.
-- **Admin statistics with charts.** The statistics dashboard now shows daily sign-in activity for the last 30 days and the ten largest stations by members. Pie charts for email verification and station setup progress sit beside the existing tiles.
-- **Forms shown as tiles.** Each form is a tile with its status, response count, title, description, creation date and last activity, and you sort the list as you like. A click opens the editor for drafts or the analytics otherwise, and all other actions sit in the tile's corner menu.
-- **See who still owes a required form.** A required form's analytics page lists the members who have not answered yet. Chasing the missing ones takes a single glance.
-- **Checklists for member follow-up.** You build a list of yes/no steps, pick members by type, group, tag or by hand, and tick each one off with optional notes and full history. The matrix works on phones, can be searched and rearranged, and exports to CSV or a printable PDF, with separate permissions to view or manage.
+- **Admin overview page.** Administrators land on a real "needs attention" panel at Admin → Dashboard → Übersicht with tiles for failed and stuck emails, pending station applications, stations still in setup, unverified accounts, open federation requests, unreachable discovery peers and open problem reports, plus short lists of the most recent applications and problem reports. Tiles turn green when the count is zero and jump straight to the relevant admin page on click.
+- **Admin statistics with charts.** The statistics dashboard now shows daily new-session activity for the last 30 days, a top-ten-stations-by-member bar chart, and pies for email verification and station setup progress alongside the existing tiles.
+- **Form list redesigned as tiles.** The station's form list now shows each form as a tile with its status, response count, title and description. Each tile also shows when the form was created and when it last saw activity (either an edit or a new response), and the list can be sorted by last activity, creation date, or title, in either direction. Clicking a tile opens the form - the editor for drafts, analytics for everything else. Publish, close, edit, analytics and delete actions live in a context menu in the tile's upper-right corner.
+- **Outstanding members on required-form analytics.** When a form is marked as required, its analytics page lists the eligible members who have not submitted a response yet, so chasing the missing ones is a glance away.
+- **Checklists for member follow-up.** Managers can build a list of yes/no questions, pick a member set by user type, group, tag or by hand, and tick each member off as they finish each step. The list overview shows one tile per checklist; on a phone the detail view switches from the wide matrix to a per-member card so every column is readable without horizontal scrolling. Member rows are listed alphabetically by name, and the search bar at the top of the matrix jumps straight to a member as you type. The add-members picker is also sorted alphabetically. Each cell takes an optional note with full history of every change, and the note text shows directly in the matrix next to its toggle. The list's name and description stay editable after creation, columns can be reordered by drag-and-drop or with up/down arrows in the edit dialog (the arrows also work on touch), and a new column lands at the position the manager picks. The list can be refreshed later to pull in newly-matching members, individual members can be added or removed by hand at any time, and the matrix exports to CSV for spreadsheet work or to a printable PDF that carries the station logo and name in a compact running header, uses drawn checkboxes instead of emoji, and follows the station language. Access splits into a read-only permission for staff who only need to look, and a manage permission for the rest.
 
 ### Changes
 
-- **One consistent page header everywhere.** Every page now shows its title in the top header bar exactly once. Doubled titles and pages without a header title are both gone.
+- **Consistent page headers across the app.** Every page now shows its title in the top header bar exactly once - duplicated in-page titles and pages missing a header title are both gone. Applies to the whole admin panel, station manage, station federate, requirements, checklists, quiz, procedures, boards, pages, protocols, lost-and-found and every other station and helpcenter view.
 
 ### Fixes
 
-- **Signed-out visitors stay on the home page.** Arriving with an expired session sent you to the login form. Ember now quietly clears the old session and keeps you on the public home page.
-- **Form questions with their own settings save again.** Rating, choice, ranking and Likert questions with their own configuration were rejected on save. They now save normally.
+- **Landing page no longer kicks signed-out visitors to the login form.** Arriving at the home page with a stale or expired session in the browser silently clears the dead session and stays on the public landing page instead of redirecting to login.
+- **Saving form questions with type-specific settings works again.** Rating, choice, ranking, and Likert questions that carry their own configuration now save without the request being rejected.
 
 ## v26.10.2
 
 ### New Features
 
-- **Members can put themselves into event slots.** You can mark a member field on an event so any eligible member signs up for the slot themselves, no editing rights needed. A single slot belongs to whoever claims it first until they free it, list fields take anyone who wants in, and you can also limit them by user type or tag.
+- **Self-registration for member fields on an event.** Member fields on an event can be marked so any eligible station member can put themselves into the slot without the event-edit permission. Single-value fields stay with whoever claims the slot first and only that person can free it again; list fields let members add or remove themselves. Member fields can also be restricted by user type or tag in addition to groups.
 
 ### Fixes
 
-- **Removing a station no longer floods the log.** After a station was removed, its leftover traffic figures made the server log the same error at every save, forever. Those figures now count toward the instance as a whole, and the log stays quiet.
+- **Traffic recorder no longer log-floods after a station is removed.** Per-station traffic deltas whose station id no longer exists in the database are folded into the instance-global bucket on the next flush and the id is remembered for the rest of the process so subsequent hits skip the failing insert directly. The traffic worker previously logged the same foreign-key violation every flush interval forever.
 
 ### Changes
 
-- **Batch events start from an event template.** Pick a template in the batch creator and every event in the batch gets its title, description, category, registration settings and fields. This replaces the separate "field layout" feature, which is gone.
-- **The member list shows who has not signed in yet.** Members who have never signed in carry an hourglass next to their name. Managers get a paper-plane button right there to send the password-setup mail again.
-- **Mail keeps trying when the relay is down.** When the relay is unreachable, slow or briefly unhappy, mails stay queued and Ember retries every ten seconds until they go through. Permanent failures, such as a rejected recipient or bad credentials, are still marked failed so an operator notices.
-- **System mails speak the station's language.** Accounts created through a station, by invite, application, waiting list or import, get their account mails in that station's language. Accounts that signed up on their own still get English.
-- **Mail settings are tested before they are saved.** Saving the instance or station mail settings first tests the connection, and a failed test shows you the server's own error. A new clear action resets either setting to empty.
+- **Batch event creation loads from an event template.** Picking an event template in the batch creator copies the template's title, description, category, registration toggles, and field set into the form so every event in the batch starts from the same preset. The separate "field layout" feature it replaces has been removed.
+- **Member list flags accounts pending setup.** Members whose account has not yet been signed into for the first time show an hourglass icon next to their name in the member list, and managers see a paper-plane button to resend the password-setup email without having to step through the user themselves.
+- **Mail relay failures retry indefinitely.** Emails that fail because the relay was unreachable, timed out, or returned a transient error are no longer marked failed on the first attempt - they stay queued and the email worker keeps retrying every ten seconds until the relay accepts them again. Permanent failures (rejected recipient, bad credentials) still mark the row failed so an operator notices.
+- **System mails follow the station's language.** Accounts that were created from a station - through an invite, application acceptance, waiting-list registration, member import, or cross-instance import - receive verification, password-setup, password-reset, two-factor-reset, and email-change notifications in the language configured for that station. Accounts from self-signup still default to English.
+- **Mail settings validated and clearable.** Saving the instance-wide or per-station mail configuration now runs a live connection test against the configured provider before persisting; the save is rejected with the actual server error if the test fails. A new clear action wipes either configuration back to the unset state.
 
 ## v26.10.1
 
@@ -1689,24 +1689,24 @@ Stations, associations and the instance now follow the same rules for profile qu
 
 #### Station setup walkthrough
 
-- **A guided setup at /station/setup.** A new station's administrators walk through address and map pin, modules, permissions, groups, mail relay, branding and visibility. It ends with a first event, a first wiki page and invites, and the sidebar ticks off each finished step.
-- **A setup checklist on the dashboard.** While a step is still open, the dashboard pins a checklist with links straight into the setup. It goes away once an administrator marks setup as finished.
-- **Invite members by email.** Administrators send invites from the setup or the members screen, each with a single-use link to /invite. The recipient sets a password and joins, with name, member type and optional group and guardians already in place, and you can revoke invites still pending.
-- **Import your roster right from the invite step.** The invite step opens the member import with its full column mapping and preview. When the import is done, you land back in the setup.
+- **Setup wizard at /station/setup.** Administrators of a freshly-created station land on a guided walkthrough that covers the address and pin on the map, module selection, member-type permissions, optional member groups, the station's own outbound mail relay, branding, federation visibility (public by default), a first event, an initial wiki page, and member invites. The standard sidebar shows the steps with check marks for what is already done.
+- **Pinned setup checklist on the dashboard.** While any step is still open, the dashboard shows a checklist with direct links into the wizard. It disappears once an administrator clicks the finish page to mark setup complete.
+- **Member invites by email.** Administrators can invite people by email from the wizard or from the regular members screen. Each recipient gets a single-use link, lands on /invite/<token>, sets a password, and joins the station without the administrator having to create an account first. Invites carry the recipient's name, member type, optional group, and optional guardians; pending invites can be revoked.
+- **Roster CSV import in the invite step.** The invite step hands off to the existing member-import screen with full column-mapping (name, email, groups, guardians, profile fields) and preview, then lands back in the wizard once the import is done.
 
 ### Changes
 
-- **Waiting-list mails use the instance mail relay.** All mails for the public waiting list now go out through the instance mailbox, like account mails do. Stations no longer need their own relay for them, and their sending limits no longer apply.
-- **Moving a station sends far less data.** A transfer now carries only the original of each page image, and the destination builds the smaller sizes itself. Stations full of images move in a fraction of the time.
-- **New page images take about half the space.** Ember keeps the original plus one WebP version per configured width and skips the redundant extra sizes. Existing images keep their old files until you upload them again.
-- **Transfer progress shows the real total.** The file count per category shows the full number from the start. It no longer climbs as the transfer finds more work.
-- **The page files browser uploads two at a time.** Dropping a batch of files now uploads two in parallel. A typical batch is done in about half the time.
-- **The daily storage check clears out orphaned files.** Files left behind by deleted pages, wiki files, lost-and-found items, quiz questions and folder icons are now removed from disk. Inline knowledge-base images and board attachments are left alone for now.
-- **Deleting a station also removes its lone accounts.** Accounts that belonged only to that station, and are not instance administrators, go with it. A transfer that fails halfway cleans up the same way, so no half-imported accounts linger.
+- **Waitlist emails go through the instance mail relay.** Verification, registration confirmation, confirm-reminder, and removal-warning emails for the public waiting list now route over the instance-wide mailbox just like account verification and password-reset emails. Stations no longer need their own mail relay set up for these to arrive, and the per-station daily and monthly send caps no longer apply to them.
+- **Cross-instance transfer ships less data.** Transferring a station no longer copies the smaller resized renders of every page image. Only the uploaded original travels and the destination rebuilds the resized set locally, so image-heavy stations move in a fraction of the previous bandwidth.
+- **Page image storage roughly halved for new uploads.** Each page image now keeps the uploaded original plus a WebP rendition at each configured width. The redundant original-format resizes are no longer generated; existing stations keep their old files until those images are re-uploaded.
+- **Transfer progress shows a stable file total.** The per-category file count on the transfer progress page now reflects the full number of files up front instead of climbing as new pages of work are discovered.
+- **Two uploads at a time in the page files browser.** Dropping a batch of files into the page files browser uploads two in parallel instead of strictly one after the other, roughly halving the wall-clock time for typical batches.
+- **Storage reconciliation also removes orphan files.** The daily reconciliation now deletes files on disk whose owning record is gone (page files, wiki files, lost-and-found, quiz question, and wiki folder icons), so deleted content no longer keeps consuming disk space until the station is rebuilt. Knowledge-base inline images and board attachments are intentionally left alone for now.
+- **Deleting a station also removes accounts that have nothing else to belong to.** When a station is deleted, accounts that were only connected to that station and are not instance administrators are removed alongside it. The same cleanup runs when a cross-instance transfer fails part-way, so half-imported accounts are no longer left as ghost rows.
 
 ### Fixes
 
-- **Moving a station now brings members without email.** Members too young for an email address, such as youth signed up by a guardian on the waiting list, were dropped during a transfer along with their trial entry. They now arrive on the new station together with their trial and waiting-list entries.
+- **Cross-instance transfer carries members without email.** Applicants too young to have an email address (for example youth registered by a guardian through the waiting list) now arrive on the destination station along with the trial-membership and waiting-list entries that pointed at them. Previously every member without an email was silently dropped together with the trial entry that referenced them.
 
 ## v26.10.0
 
@@ -1714,69 +1714,69 @@ Stations, associations and the instance now follow the same rules for profile qu
 
 #### Inventory Storage and Custom Fields
 
-- **Storage containers for your equipment.** Every room, shelf, drawer and box is a container, and containers nest as deep as you like. You find them under Station → Inventory → Storage, can search or scan them, and every item shows its container path as clickable links.
-- **Each inventory gets its own fields.** Add extra fields of five kinds: date, dropdown, text, number with an optional unit, or yes/no. You arrange them in the inventory editor, and they show up on the item form.
-- **Check a container scan by scan.** Station → Inventory → Check → Container check walks you through what should be in a container, confirming, missing or lost item by item. Anything you find there unexpectedly is collected separately, and a switch includes every container inside it.
-- **A page just for handing out and taking back.** Under Station → Inventory → Assign, someone with the new "Assign inventory" permission picks a recipient and scans item after item. Each scan hands the item out, or takes it back if it is already with that person, and the station owner grants the permission explicitly.
-- **An item is with a member or in storage.** Handing an item to a member takes it out of its container, and putting it in a container ends the handover. It can never be in both places, or halfway in between.
+- **Storage containers.** Every room, shelf, drawer and box is a container that can hold items and other containers, nested as deeply as the operator needs. Containers are reached from a new Station → Inventar → Lager entry, can be searched and resolved by scan, and each item carries its container path as a clickable breadcrumb on the item detail page.
+- **Custom fields per inventory.** Each inventory now defines its own extra fields with one of five types - date, dropdown, text, number with optional unit, or yes/no. Managers add and reorder them in the inventory editor; the inputs then show up on the item form and the values are persisted alongside the item.
+- **Container check workflow.** A new Station → Inventar → Prüfung → Behälter-Prüfung flow walks the items expected in a chosen container, scan by scan. Items are confirmed, marked missing, or flagged lost; items the operator finds but the system did not expect for the container are collected separately. A toggle extends the walk to every nested container.
+- **Dedicated assign-and-return page.** A new Station → Inventar → Zuweisen page lets a station member with the new "Inventar zuweisen" permission pick a recipient and then scan items in sequence - each scan assigns the item, scanning an already-assigned item with the same recipient selected returns it. The permission is off by default for every role; the station owner grants it explicitly to whoever runs equipment handover.
+- **An item is either with a member or in storage, never both.** Assigning an item to a member clears any container it was placed in; placing an item in a container ends the open assignment. The database enforces the same invariant so no path can leave an item in a halfway state.
 
 #### Pluggable Storage Backends
 
-- **Choose where your uploaded files live.** Files can stay on local disk, as before, or go to an SMB share, an SFTP server or any S3-compatible store, such as AWS S3, MinIO, Backblaze B2, Wasabi, Hetzner Object Storage or Cloudflare R2. Operators pick the default under Admin → Monitoring → Storage → Backend, with no mounts or extra container privileges needed.
-- **Each station can bring its own storage.** A station manager can point the station at a private S3 bucket, SMB share or SFTP host under Station → Manage → Storage → Backend. Credentials are stored encrypted, and a "test connection" button checks them before anything changes.
-- **Switching storage moves everything in one go.** Ember tests the new storage, copies every file over and only then switches. A failed move leaves everything on the old storage, so nothing is ever half moved.
-- **Own storage means no instance limits.** A station on its own storage is no longer bound by the instance's storage limits. Its dashboard shows a badge for its own storage instead of the limit bars.
-- **A log of every storage change.** Every change, connection test, refusal and move is recorded with who did it, the station and the outcome. You find it per station under Station → Manage → Storage → Backend → Audit, and for the instance under Admin → Monitoring → Storage → Audit.
-- **Move a station to another instance.** A station can now be exported from one instance and imported on another in a single flow. During the move the station is read-only with a banner naming the destination, answers changes with `503 Service Unavailable`, and opens up again if the operator aborts.
-- **Help articles for the new storage options.** The help center explains switching the instance storage, choosing a station's own storage and reading the audit log.
-- **New config key for storage credentials.** `storage.credentialEncryptionKey` (env `STORAGE_CREDENTIAL_ENCRYPTION_KEY`) is the AES-256 key that encrypts the storage credentials stations enter. It is needed once a station uses its own storage, and a fresh install generates it on first start.
+- **Choose where uploaded files live.** A new backend layer lets the instance keep stored files on local disk (the default) or push them to an SMB share, an SFTP server, or any S3-compatible object store (AWS S3, MinIO, Backblaze B2, Wasabi, Hetzner Object Storage, Cloudflare R2). Operators pick the instance-wide default from Admin → Monitoring → Storage → Backend; remote backends talk their protocol directly, with no kernel mount, FUSE, or container privileges required.
+- **Per-station backend overrides.** A station manager can point their own station at a private S3 bucket, SMB share, or SFTP host from Station → Manage → Storage → Backend without instance-admin involvement; credentials are entered in the form, stored encrypted at rest, and a "test connection" button probes them before any change is applied.
+- **One-shot migration when the backend changes.** Applying a new backend probes the target, copies every existing file over, and only then flips the active backend in one step - there is no half-migrated state where the configuration points at one backend and the bytes still live on another. A failed migration leaves the previous backend authoritative.
+- **Stations on their own backend skip instance quotas.** Once a station is using its own remote backend, the instance-side total, per-page, per-image and per-file caps no longer apply and the quota bars on the storage dashboard hide behind a badge marking the station as using its own backend.
+- **Backend audit log.** Every backend create, update, delete, probe, rejection, and migration event is recorded with the actor (account or system), station, and outcome. Visible per station under Station → Manage → Storage → Backend → Audit and instance-wide under Admin → Monitoring → Storage → Audit.
+- **Cross-instance station transfer.** A station can be exported from one instance and imported on another in a single flow. The source flags the station read-only for the duration with a banner naming the destination, refuses writes with `503 Service Unavailable`, streams the database rows, stored files, and account avatars over a signed channel to the destination, and clears the flag when the operator aborts.
+- **Help articles for the new flows.** Help center entries cover the instance-wide backend swap, the per-station backend picker, and how to read the audit log.
+- **New operator config** - `storage.credentialEncryptionKey` (env `STORAGE_CREDENTIAL_ENCRYPTION_KEY`), the AES-256 key used to encrypt station-supplied remote-backend credentials before they hit the database. Required once any station opts into self-service remote storage; auto-generated on first boot in a fresh install.
 
 ### Changes
 
-- **The inventory sidebar is tidier.** The Inventory label opens the overview, and Storage sits right next to it. Check splits into Member check and Container check, and the other entries move into a new Management subgroup so the list stays short.
-- **The help center sidebar always stays open.** It no longer copies the collapsed state from the dashboard. On desktop it stays full width, so every article is reachable by its title.
-- **Menus pop out of the collapsed sidebar.** With the sidebar collapsed to icons, hovering or focusing a group icon opens a small menu with all its entries. Subgroups open further menus, and badges stay visible on the icons.
-- **Tests can be required, like forms.** Test managers can now mark a quiz as a required test. It shows up on the requirements page after login until the member has taken it, and "Start" takes them straight into the test.
+- **Inventar sidebar reorganised.** The Inventar group label itself now opens the inventory overview, Lager is a new top-level entry alongside it, Prüfung splits into Mitglieder-Prüfung and Behälter-Prüfung, and the existing Tausch, Beschaffung, Benötigt, Ausleihe and Inventare entries fold into a new Verwaltung subgroup so the group does not run long.
+- **Help center sidebar always expanded.** The help center sidebar no longer inherits a collapse preference from the dashboard. It stays full-width on desktop so articles remain reachable by title.
+- **Flyout menus on the collapsed sidebar.** With the desktop sidebar collapsed to its icon rail, hovering or keyboard-focusing a group icon now opens a floating menu showing the group's label and every nested entry, so all destinations stay reachable without first expanding the rail. Nested subgroups chain into further flyouts and badges stay visible on the rail when the menu is closed.
+- **Pflichttest toggle in the test builder.** Test managers can now flag a quiz as Pflichttest the same way forms have always offered Pflichtformular. A required test surfaces on the post-login requirements page until the member has submitted an attempt, and the "Starten" button drops them straight into the test runner.
 
 ### Fixes
 
-- **Required forms keep their setting.** Marking a form as required and saving it failed. The setting now saves.
-- **The required test button starts the test.** The button next to a required test opened the test's read-only page. It now starts the test right away.
-- **Links survive signing in with several stations.** A link to a station page lost its destination when your account belonged to several stations. You now pick a station and land where the link pointed, and links from notifications and feeds take you to the right station directly.
-- **The first-login tour leaves your links alone.** Following a notification on your first login sent you to the dashboard halfway through. The tour now waits until you open the dashboard yourself.
+- **Saving a Pflichtformular sticks.** Toggling Pflichtformular in the form builder and saving now persists the flag instead of failing the request.
+- **Required test button starts the test.** The button next to a required test on the requirements page opens the test runner directly; it previously dropped you on the test's read-only detail page.
+- **Deep links survive multi-station login.** A notification or shared link to a station-scoped page now routes through the cross-station picker when the account belongs to several stations: the original destination is preserved and the picker continues to it after a station is chosen. Notification and feed links also carry the owning station so a single-click sign-in lands directly on the right station.
+- **First-login onboarding leaves deep links alone.** Following a notification on first login no longer redirects to the dashboard halfway through; the onboarding tour waits for the next direct dashboard visit.
 
 ## v26.9.1
 
 ### Changes
 
-- **Legal documents now share one folder.** The privacy policy, terms of service, consent text and imprint now default to `data/documents/` with one subfolder each, instead of four separate folders. When you upgrade, move your existing files there, or point `privacyPolicyDir`, `tosDir`, `consentDir` and `imprintDir` in `conf.yml` at the old paths.
+- **Legal documents grouped under one directory.** The default paths for the privacy policy, terms of service, consent text and imprint now live under `data/documents/<type>/` instead of four separate top-level directories. Operators upgrading must move existing content into the new layout, or set `privacyPolicyDir`, `tosDir`, `consentDir` and `imprintDir` in `conf.yml` to the existing paths.
 
 ### New Features
 
-- **Scan barcodes and QR codes for inventory.** A scan button next to every internal ID field opens the camera and reads Code 128, Code 39, QR, Data Matrix, EAN and UPC labels. It works when you create, edit, search, lend and check items, and in quick check mode it stays open so you can sweep through a whole pile of returns.
+- **Barcode and QR scanning for inventory.** A scan button next to every internal-id field opens the camera (rear camera on phones, webcam on laptops) and resolves printed Code 128, Code 39, QR, Data Matrix, EAN and UPC labels to the item's internal id. Available when creating or editing an item, on the inventory search bar, when assigning items to a lending request, and in the rapid inventory-check mode - where the modal stays open in continuous mode so you can sweep a pile of returning items. Decoded values are normalised (uppercased, trimmed) and the same normalisation is applied to hand-typed ids so they always match.
 
 ### Changes
 
-- **You can sign in without a station.** Any account with a verified email can now sign in. Administrators land in the admin panel, and users without a station land in their Account area.
-- **The admin panel is always one click away.** Administrators see the shield button on the station overview, in the Account area and on the station dashboard. It hides only while you are already in the admin panel.
-- **One header everywhere.** The station overview, account pages and station panel share the same avatar menu and station button. The station button only shows when you have a station to switch to.
-- **Signing in brings you back where you started.** When signing in needs a second factor, Ember remembers where you were going. After the check you land on the page you first tried to open.
-- **Member types are listed by responsibility.** The member type list now runs from *Manager* to *Team*, *Guardian*, *Member* and *Trial*. It is no longer sorted alphabetically.
-- **The data export button says what it does.** Under Account → GDPR it reads "Download the full data export as a ZIP", and the button for a member in your care names them. The page explains that the archive covers every station of your account.
-- **Trusted devices are now translated.** The trusted devices section on the security page shows its title, description, empty state and column names in your language.
-- **Demo login lists accounts without a station on top.** In demo and dev mode, accounts without a station, such as the demo administrator, now sit at the top of the login picker. They no longer get a tab of their own.
+- **Login without station membership.** Any account with a verified e-mail can now sign in. Administrators land on the admin panel, non-admin users without any station membership land on the Account area; the station overview still gates per-station features behind a station selection.
+- **Admin panel button always reachable.** The shield button that opens the admin panel now shows on the cross-station overview, the Account area and the station dashboard whenever the signed-in user is an administrator and isn't already inside the admin panel.
+- **Header unified across views.** The cross-station overview, account pages and station panel use the same avatar menu and station-panel button. The station-panel button is only shown when the user actually has a station to switch to.
+- **Login returns you where you started.** A login that requires two-factor verification now carries the original destination through the verification step, so you land back on the page you originally tried to open.
+- **Member type list ordered by role power.** The member-type dropdown now lists *Manager* first, then *Team*, *Guardian*, *Member*, *Trial* - top-down by responsibility instead of alphabetically.
+- **Data export button labels what it does.** The Account → GDPR download button now reads "Download the full data export as a ZIP" and the per-managed-member variant names the person. The page text spells out that the archive covers every station the account belongs to.
+- **Trusted devices section translated.** The trusted-devices block on the security page now shows a localised title, description, empty state and column labels.
+- **Demo login shows station-less accounts above the tabs.** In demo and dev mode, accounts that don't belong to any station (the demo administrator) appear at the top of the login picker instead of in their own tab.
 
 ### Security
 
-- **Only members and trial members get guardians.** Team members, managers and guardians can no longer be given a guardian. Both the relations tab and the server refuse it.
-- **You can no longer lock yourself out.** Nobody can remove their own permissions in the member editor. The station owner always keeps the Station Administrator permission.
+- **Guardians can only be attached to members and trial members.** Adult member types (Team, Manager, Guardian) no longer accept a guardian assignment, on the relations tab and on the server.
+- **Self-lockout protection on permissions.** A user can't remove their own permissions through the member editor, and the station owner can't have the Station Administrator permission revoked.
 
 ### Fixes
 
-- **Permissions now match the account you sign in with.** Switching accounts, or signing in again after an old session, could apply permissions from the previous account's station. Now single-station accounts go straight to their station and everyone else goes through the station picker.
-- **The station button opens the right station.** The button in the overview header could open the station panel with the wrong station. It now asks you to pick when it has to, and picks for you when you have only one station.
-- **The dashboard no longer breaks with an old station.** Opening the dashboard with a station your account does not belong to made parts of it fail. The dashboard now sends you back to the station picker.
-- **Station Administrator is back in the permission list.** The entry was missing when the member's user type already granted it. It shows again and can still be switched.
+- **Wrong permissions after login.** Switching accounts or logging back in after a stale session no longer resolves permissions against the previous account's station. Single-station accounts go straight to the station, multi-station accounts to the picker, and the picker is the only way to enter a station context with full permissions.
+- **Station button in the cross-station header.** The button no longer opens the station panel with the wrong station selected; it routes through the picker when no usable station is stored, and selects the only station automatically when there is exactly one.
+- **Dashboard crashes with a stale station.** Hitting the dashboard with a station that the current account isn't a member of no longer crashes feed-status, notifications or exchange list calls; the dashboard sends you back to the picker instead.
+- **Station Administrator back in the permission picker.** The Station Administrator entry reappears in the per-member permission list when the member's user type already grants it, so it can still be toggled.
 
 ## v26.9.0
 
@@ -1784,114 +1784,114 @@ Stations, associations and the instance now follow the same rules for profile qu
 
 #### Account Settings Hub
 
-- **A new Account area just for you.** Your picture, name, email, password, two-factor, theme, sessions, data export and account deletion now live on pages of their own. They belong to you as a person, not to one station membership.
-- **An avatar menu in the header.** A button with your picture and name replaces the lone logout icon. It opens a menu on desktop or a drawer on phones, with Account settings and Logout.
-- **One profile picture across all stations.** Your picture now follows you to every station you belong to. Existing pictures are not carried over, so upload yours once more after the update.
-- **The station profile keeps only station fields.** It now holds just the station's own fields and the reminder about missing ones. Everything personal moved to the Account area, and a link in the old spot takes you there.
+- **New Account area.** Profile picture, name, e-mail, password, two-factor, theme, active sessions and GDPR / account deletion are collected on a dedicated set of pages that apply to the user, not to a single station membership.
+- **Avatar menu in the header.** An avatar + name button replaces the standalone logout icon. Clicking it opens a dropdown on desktop or a slide-in drawer on mobile, with entries for Account settings and Logout.
+- **One profile picture per account.** A user's avatar now follows them across every station they belong to. Existing avatars are not migrated - re-upload once after the update.
+- **Station profile slimmed down.** The station-side profile page keeps only the station-specific fields and the incomplete-fields nudge; name, e-mail, password, two-factor, theme and sessions are managed from the new Account area, with a link left in their old spot.
 
 #### Instance Security Configuration
 
-- **Security settings in three clear parts.** Settings → Security now leads to *Tokens & Sessions*, *HIBP* for the breach check and *Two-Factor*. Every field explains itself right next to it.
-- **Two-factor management gets its own entry.** Resetting an account's two-factor and reading the audit log have their own place in the sidebar. They are kept apart from the configuration page.
-- **Secrets are generated for you.** A missing `tokenPepper` or two-factor encryption key is generated on first start and written to `config.yaml`. A fresh production install starts without any manual secret setup.
+- **Security settings split.** Settings → Security is now a hub linking to three subpages: *Tokens & Sessions* (session and token lengths, token pepper), *HIBP* (breach-check), and *Two-Factor* (toggle, encryption key, TOTP / backup-codes / WebAuthn parameters, per-user-type policies). Every field has an inline description.
+- **Two-Factor Management section.** Operational tools (per-account reset, audit log) live under a dedicated sidebar entry, separate from the configuration subpage.
+- **Auto-generated secrets.** Missing `tokenPepper` and 2FA encryption key are generated on first boot and written to `config.yaml`, so a fresh production install boots without manual secret setup.
 
 #### Two-Factor Authentication
 
-- **Authenticator apps and security keys.** You can add a TOTP authenticator app by scanning a QR code, and register one or more named FIDO2 or WebAuthn security keys. You set them up, rename and remove them under Account → Security.
-- **Backup codes for emergencies.** When you add your first second factor, you get ten one-time recovery codes, shown once. You can make a fresh set whenever you like.
-- **Signing in with a second factor.** With a second factor set up, Ember asks for the code or security key on its own page after your password. "Remember this device" skips the question in that browser for up to 30 days, and operators can change that limit.
-- **Sensitive actions ask you to confirm again.** Changing your password or second factors, signing out other sessions, changing permissions, federation settings or instance config all need a recent second-factor check. A dialog asks for it and then carries on with what you were doing.
-- **See and manage your trusted devices.** A panel lists every trusted device with when it was last seen and when it expires. You can revoke one or all of them.
-- **Every two-factor event is recorded.** Adding, removing, verifying, confirming, using a backup code, trusting a device and admin resets all land in the account's log. Nothing happens unnoticed.
-- **Two-factor controls for administrators.** Station admins find Security under Manage to require two-factor per user type, see who set it up and reset it for a member. Instance admins get the same under Settings → Security → Two-Factor, plus Two-Factor Management for resets and the full log.
-- **No security keys in demo mode.** Demo deployments hide the security key setup. Demo accounts cannot sensibly be paired with a physical key.
-- **Two-factor is on from the start.** It is enabled out of the box, and the encryption secret is generated on first start if missing. Existing sessions stay valid, but instance admins and station managers are asked to set it up at their next sign-in.
+- **Authenticator apps and security keys.** Users can enrol a TOTP authenticator app (Google Authenticator, Authy, …) by scanning a QR code, and register one or more FIDO2 / WebAuthn security keys (Yubikey, platform authenticators, …) with a name of their choosing. Setup, rename, and removal all live under the new Account → Security page.
+- **Backup codes.** Ten one-shot recovery codes are issued the first time a user enrols a second factor and shown once. The user can regenerate the set at any time.
+- **Login flow.** When an account has a second factor configured, password login asks for the code or security key on a dedicated verification page before the session is created. A "Remember this device" option skips the prompt on the same browser for up to 30 days (configurable).
+- **Sensitive actions ask for a fresh confirmation.** Password change, removing or adding 2FA factors, regenerating backup codes, logging out all other sessions, role / permission changes, federation pairing or sharing edits, and instance-config changes now require a recent second-factor confirmation. The user is shown an in-page modal that resumes the original action on success.
+- **Trusted devices panel.** Lists every device the user has marked as trusted with last-seen and expiry, and offers per-device revoke and revoke-all.
+- **Audit trail.** Every enrolment, removal, login verification, step-up confirmation, backup-code use, trusted-device add or revoke, and admin reset is recorded per account.
+- **Admin panels.** Station admins get a Security entry under Manage to require 2FA per user type, see who has set it up, and reset a member's 2FA. Instance admins get the same controls instance-wide under Settings → Security → Two-Factor plus a dedicated Two-Factor Management entry for account reset and the full audit log.
+- **Demo mode.** Security-key setup is hidden in demo deployments, since demo accounts can't realistically be re-paired with a physical key.
+- **On by default.** 2FA is enabled out of the box; the encryption secret is generated automatically on first boot if not configured. Existing sessions stay valid, but mandated user types (instance admins, station managers) are prompted to enrol on next login.
 
 #### Public Form Submission
 
-- **Visitors can fill in forms without an account.** Every form now has a purpose, such as contact or poll. You can publish it as a public page or embed it in a station page.
-- **Spam protection for public forms.** Repeated submissions from the same visitor are filtered out without storing their IP. A rate limit stops floods from any single source.
-- **See your form results at a glance.** A poll view sums up the answers per question, and contact messages arrive in their own inbox. A help article explains both.
+- **Forms can be posted by visitors without an account.** Every form now has a purpose (contact, poll, …) and can be published as a public page or embedded inside a station page.
+- **Spam protection.** Repeated submissions from the same client are de-duplicated without storing the visitor's IP, and a rate limiter caps abuse from any single source.
+- **Form analytics.** Per-question aggregates power a poll-analytics view and the contact-submissions inbox, with a matching help-center article.
 
 #### Per-Station Page File Browser
 
-- **Files, folders and tags for your pages.** Every station has its own file browser with folders and tags. The page editor picks files from the same place, so you reuse uploads instead of uploading again.
+- **Files, folders, and tags.** Every station has a dedicated file browser with folders and tag metadata. The page editor's "browse files" picker walks the same tree, so existing uploads can be reused across pages instead of re-uploaded.
 
 #### Page Editor Cell Types
 
-- **A big batch of new cell types.** Callouts, quotes, accordions, PDFs, downloads, countdowns, galleries, maps, hero banners, polls, member lists and many more join the page editor. Cells can also be split or wrapped in nested rows right where they are.
-- **Cut, copy and paste between cells.** The empty cell chooser even offers a paste-here shortcut.
+- **Many new cell types** - callout, quote, divider, spacer, accordion, PDF, file download, countdown, partner stations, stats counter, tabs, achievements, image gallery, wiki article, news teaser, page link, map, address card, member spotlight, hero banner, external link card, blog signup, audio embed, poll embed, forms CTA, code block, member list, and a nested-rows layout primitive that lets cells be split or wrapped in place.
+- **Cut, copy, paste between cells**, with a paste-here shortcut in the empty-cell chooser.
 
 #### Public Quiz Teaser
 
-- **Public quizzes get a public list.** Every quiz catalog marked as public now shows up in a read-only list anyone can browse.
+- A public read-only listing of every quiz catalog marked as public.
 
 #### Collapsible Desktop Sidebar
 
-- **Collapse the sidebar on desktop.** A toggle slides the sidebar down to a slim rail of icons, keeping the logo and station name on top. On phones the drawer works as before.
+- A desktop-only toggle animates the sidebar from full width to an icon-only rail. The header row (logo + station name) stays; only the top-level icons remain in the nav. Mobile drawer behaviour is unchanged.
 
 #### Trusted-Proxy and Cloudflare-Aware Client IP
 
-- **The real visitor IP behind proxies.** Operators can name trusted proxies and turn on Cloudflare support in the network config. Ember then sees the real visitor IP behind Traefik, Cloudflare or both.
-- **Cloudflare's address list stays current.** Ember refreshes the list of Cloudflare addresses on every start. When that fails, it falls back to the copy it ships with.
+- Operators can declare trusted proxies and a Cloudflare flag in the network config, so the real visitor IP is resolved correctly behind direct, Traefik, Cloudflare or Cloudflare → Traefik deployments.
+- The bundled Cloudflare IP range list is refreshed automatically on every boot, with the bundled snapshot as a fallback when upstream is unreachable.
 
 #### Shared Search Pickers
 
-- **The same search pickers everywhere.** Picking events, forms, members, news, pages, partner stations or wiki articles now looks and works the same. That holds in the page editor and in many other places.
+- Consistent search pickers for events, forms, members, news, pages, partner stations and wiki articles are reused across the page editor and several other views.
 
 #### Consent Gating for Public Submissions
 
-- **Public submissions record consent.** Anonymous forms, polls and waiting-list sign-ups now ask visitors to accept the current privacy policy and terms of service. Ember records that consent the moment they submit.
-- **Only part of the IP is kept.** The IP stored with the consent is shortened first. IPv4 keeps the first three parts and IPv6 the /48 prefix.
+- **Acceptance recorded with every public submission.** Anonymous form, poll, and waiting-list submissions require a checkbox accepting the current privacy policy and terms of service; the proof is captured at the moment of submission.
+- **GDPR-friendly IP recording.** The client IP captured with the proof is truncated before storage - IPv4 keeps only the first three octets, IPv6 keeps only the /48 prefix.
 
 #### Landing Page Rebuild
 
-- **A completely new home page.** It is redesigned from top to bottom. The demo, register and hosting buttons show the right settings from the very first moment.
-- **Fonts come with Ember.** Bitter and JetBrains Mono ship with Ember. The home page no longer loads fonts from Google.
+- **Completely redesigned home page.** The demo / register / hosting calls-to-action render with live config values on the very first paint.
+- **Self-hosted fonts.** Bitter and JetBrains Mono ship with the application, so the landing page no longer fetches fonts from Google at runtime.
 
 #### Theme Improvements
 
-- **No more flashing colours on load.** The instance theme, and a station's theme on its public pages, is in place before the page appears. You no longer see the colours switch after loading.
-- **Visitors see the instance's default theme.** A theme saved for a signed-in user no longer carries over after logout or into a fresh tab.
-- **Station themes stay on their pages.** A station's theme no longer follows you to the start page after you leave.
+- **No more post-hydration flash.** The instance theme - and the station theme on public station pages - is resolved server-side and applied before any client JavaScript runs.
+- **Anonymous visitors get the instance default.** A cached per-user theme no longer leaks into a logged-out session or a fresh tab.
+- **Public station themes stay scoped.** A station's theme no longer bleeds into the start page after navigating away.
 
 #### Per-Station Traffic Monitoring
 
-- **See traffic for every station.** Admin → Monitoring → Traffic and Station → Manage → Traffic show data in and out plus requests per hour, split by signed-in, anonymous and federation traffic. You can switch the time window, measure and traffic kind, and the admin view adds a station ranking.
-- **Smaller responses thanks to compression.** Text content such as JSON, HTML, CSS, feeds, SVG and calendar feeds is now compressed with gzip by default. Binary files stay as they are.
-- **New config keys for traffic and compression.** `metrics.trafficEnabled`, `metrics.trafficRetentionDays` and `metrics.trafficFlushIntervalSeconds` control the traffic figures. `api.httpGzipEnabled`, `api.httpGzipLevel` and `api.httpGzipMinSizeBytes` tune compression.
+- **Traffic dashboards** at Admin → Monitoring → Traffic and Station → Manage → Traffic show hourly ingress and egress bytes plus request counts per station, split into authenticated, unauthenticated and federation traffic. Time window (24h / 3d / 7d / 30d), metric (egress / ingress / requests) and bucket filter are switchable; the admin view adds a per-station leaderboard.
+- **HTTP responses are gzipped by default** for text-shaped content (JSON, HTML, CSS, XML / RSS / Atom, SVG, plain text, ICS feeds). Binary uploads stay untouched.
+- **New operator config** - `metrics.trafficEnabled`, `metrics.trafficRetentionDays`, `metrics.trafficFlushIntervalSeconds`, and `api.httpGzipEnabled` / `api.httpGzipLevel` / `api.httpGzipMinSizeBytes` for the gzip tuning.
 
 ### Security
 
-- **Sign-in tokens are stored only as hashes.** Sessions and the codes for password reset, email verification and station deletion are now stored hashed with a server secret. A leaked database alone no longer hands anyone a working token.
-- **Breaking on upgrade: everyone signs in again.** The upgrade removes the stored plain tokens, which ends every session and every pending recovery link. Users sign in once more. Pending password-reset, email-verification and station-delete mails have to be requested again.
-- **New required production secret `auth.tokenPepper`.** It is generated on first start if you have not set one. Demo and dev runs use a fixed placeholder.
-- **Text is cleaned before it is shown.** Wiki articles, station pages and legal documents pass through a strict filter that strips scripts, unsafe links, foreign frames and unknown images. Legal documents allow no images or frames at all.
-- **Uploaded files are served safely.** Uploads keep their own type only if they are PNG, JPEG, WebP, GIF or PDF, and everything else is served as `application/octet-stream`. File names are cleaned, so a crafted name cannot slip extra headers into a download.
-- **Federation signatures cannot be reused.** A signature now only fits the exact request, partner and method it was made for. Every request carries a one-time value, and repeats are refused.
-- **Breaking on upgrade for federation.** The federation protocol version moves up on its own with this release. Partners still on an older version fail the signature check until both sides upgrade. Plan the upgrade together with each partner.
-- **Sign-in and account actions are rate limited.** Signing in, registering, password and email actions are limited per IP and, where known, per email or account. Too many tries get `429 Too Many Requests` with a `Retry-After` header.
-- **Nobody can probe which emails have accounts.** Registering with a known address always looks successful, and the owner gets a heads-up by mail. Failed sign-ins all get the same message and take the same time, whatever the reason.
-- **A stronger password policy.** New passwords need at least 12 characters, and long passphrases are now fully used instead of only their first 72 bytes. Existing passwords keep working and move to the new scheme at your next sign-in.
-- **Breached passwords are caught.** New passwords are checked against Have I Been Pwned, and again in the background after each sign-in, and a match asks for a new one next time. Operators tune or switch this off with `auth.hibp`, and an outage there never blocks sign-in.
-- **A new password ends your other sessions.** Changing your own password keeps only your current browser signed in, while an admin reset signs out everywhere. Every change also sends a notice to the account's email.
-- **Changing your email takes two confirmations.** Both the old and the new address have to confirm before the change happens. The old address is told someone tried to move the account and is advised to reset the password.
-- **File paths cannot escape their folder.** Image, logo and legal document requests that point outside their folder are refused. Member IDs in addresses must be valid IDs.
-- **Avatars no longer show across stations.** A member's picture can no longer be fetched just by knowing their ID. You have to share a station, be an instance admin or be an active federation partner of their station.
-- **Federation cannot be pointed at internal hosts.** Federation and webhook addresses must use HTTPS and may not lead to local, private or reserved addresses. The new `federation.allowPrivateHosts` switch, off by default, lifts this for development.
-- **Uploaded images are checked for real.** Ember looks at the actual file content for PNG, JPEG, WebP or GIF. Anything that does not match is refused before it is stored.
-- **Detailed logs hide credentials.** The most detailed request logs now mask tokens, federation signatures and station identifiers.
-- **Stronger cache checks.** Cache checks now use a SHA-256 fingerprint instead of a short hash. A forged "not modified" answer is no longer possible.
-- **The backend no longer serves static files.** It answers only `/api/v1` and `/docs`, and the web server handles every page. A misconfigured folder can no longer end up public.
-- **Error messages give less away.** Unexpected input errors now just say "Invalid input". The full details still reach operators in the admin problem feed.
+- **Bearer tokens hashed at rest.** Session cookies, password-reset codes, email-verification codes and station-delete codes are now stored hashed with a server-side pepper. A database-only leak no longer yields usable tokens - the attacker also needs the server secret.
+- **Breaking on upgrade.** The migration removes the plaintext token columns. Every active session and pending recovery link is invalidated; users sign in again once, and pending password-reset / email-verification / station-delete emails have to be re-requested.
+- **New required production secret: `auth.tokenPepper`.** Generated automatically on first boot if not already configured. Demo / dev runs fall back to a fixed placeholder.
+- **Markdown is sanitised before display.** wiki articles, station pages and legal documents pass through a strict HTML allow-list. Scripts, inline event handlers, `javascript:` URLs, cross-origin iframes and off-allow-list images are stripped; legal documents additionally forbid images and iframes.
+- **Uploaded files served with a safe content type.** User uploads (wiki files, wiki presentations, board ticket attachments, public page files) are only served with their declared content type if it's PNG, JPEG, WebP, GIF or PDF; everything else falls back to `application/octet-stream`. Download filenames are sanitised so a crafted upload name cannot inject extra response headers.
+- **Federation signatures bind method, path and recipient.** A captured signature can no longer be replayed against a different endpoint, peer or HTTP method. Senders include a per-request nonce; receivers reject duplicates inside the timestamp window.
+- **Breaking on upgrade for federation.** The federation protocol revision bumps automatically; unfixed peers will fail signature verification until both sides are upgraded. Coordinate the upgrade with each partner.
+- **Auth endpoints rate-limited.** Login, forgot-password, resend-verification, register, verify-email, set-password, change-password, confirm-email-change and refresh all have leaky-bucket limits per IP and (when the request carries an identity) per email or account. Exhausting a bucket returns `429 Too Many Requests` with a `Retry-After` header.
+- **Email enumeration on auth endpoints removed.** Registering with an already-used address always reports success and notifies the existing owner out of band. Login responds with a single generic message for wrong account, wrong password and missing permissions; the password check runs in constant time so timing cannot distinguish the cases.
+- **Stronger password policy.** New passwords must be at least 12 characters. The hash algorithm now SHA-256-pre-hashes the plaintext before BCrypt, so passphrases longer than 72 bytes no longer collide on their first 72 bytes. Existing hashes still verify and migrate to the new algorithm on the next successful login.
+- **HIBP breach checking.** New passwords are checked against Have I Been Pwned before being accepted, and the password is re-checked in the background after every successful login - a match forces a rotation on the next login. Operators can tune or disable the lookup via the new `auth.hibp` config block. Both paths fail-open on an HIBP outage.
+- **Password rotation invalidates other sessions and recovery tokens.** Self-service password change keeps the user's current browser signed in; admin reset and token-based set-password log out every session. Each rotation sends an out-of-band notice to the account email.
+- **Two-step email change.** Both the old and the new address must click their respective confirmation link before the change commits. The release mail tells the previous owner that someone tried to move their account away and recommends a password reset.
+- **Path-traversal hardening.** Image, public logo and admin legal-document routes reject any path segment that would resolve outside the configured directory. Member UUIDs in path segments must be valid UUIDs.
+- **Cross-station avatar disclosure closed.** A member's avatar can no longer be fetched by member UUID alone. The caller must share a station membership, be an instance admin, or have an active federation partnership with the target's station.
+- **SSRF protection on federation outbound URLs.** Federation and webhook URLs are rejected when the scheme is not HTTPS or the host resolves to a loopback, link-local, private, multicast or otherwise reserved IP. A new `federation.allowPrivateHosts` flag (default off; on in tests and local-dev) bypasses the check during development.
+- **Magic-byte sniff for uploaded images.** Image uploads are validated against the PNG / JPEG / WebP / GIF signatures and refused before being written if they don't match.
+- **TRACE logs redact credentials.** Bearer tokens, federation signatures and station identifiers are masked in TRACE-level request and response logs.
+- **Stronger ETag.** Conditional responses now use a SHA-256-based ETag instead of a 32-bit string hash, eliminating the risk of a forged "not modified" response.
+- **Static-file serving removed from the API backend.** The Java process only serves `/api/v1/...` and `/docs` now; the Nuxt server owns every browser-facing route. Misconfiguring the old static-files directory can no longer publish a sensitive folder to the public internet.
+- **Generic 400 responses scrubbed.** Unexpected validation errors return a generic "Invalid input" body to the client while the full details still reach the admin problem feed for operators.
 
 ### Changes
 
-- **The admin sidebar is reorganised.** Every monitoring page now sits under "Monitoring", and the data inspector for development sits under "Dev Tools". Please update bookmarks to the old pages.
-- **The waiting-list status page is rewritten.** It shows the reminder email, the date you joined, the next confirmation deadline and a rough queue position from your score. Guardians are shown by full name, or by email if there is none.
-- **The join date moves to the Profile tab.** In the member editor it now sits next to first name, last name and email. It used to live in the General tab.
-- **A tidier waiting-list entry page.** The detail labels line up neatly. On narrow screens they wrap cleanly.
-- **A fresh log file on every start.** The server writes a new log file to the `logs` folder each time it starts. The console output stays as it was.
+- **Admin sidebar reorganised.** Every monitoring entry lives under "Monitoring" (problems, problem reports, storage, API status, feed metrics, traffic, discovery, maps) and the dev-only data-tracking inspector lives under "Dev Tools". Update any bookmarks to the old top-level paths.
+- **Waiting-list status page rewritten.** The page now shows the e-mail used for reminders under the name, the date the entry joined the list, the next confirmation deadline, and a queue position derived from the waiting-list score (highest score first, oldest entry as tiebreaker) - labelled as a rough indicator rather than the literal admission order. Guardian rows render their full name with e-mail as a fallback.
+- **Member editor.** The join-date control moves from the General tab to the Profile tab, next to first name, last name and e-mail.
+- **Waiting-list entry detail page.** Metadata chips align consistently and wrap cleanly on narrow widths.
+- **Per-run log file.** The server writes a fresh log file at `logs/ember-<timestamp>.log` on every startup, alongside the existing console output.
 
 ## v26.8.0
 
@@ -1899,27 +1899,27 @@ Stations, associations and the instance now follow the same rules for profile qu
 
 #### Discovery Chain (Cross-instance Catalog)
 
-Ember instances can now find each other. Each instance gradually builds a list of other Ember instances and shows their public stations on one discovery page, even stations it has never federated with.
+A new two-layer protocol lets every Ember instance build an organic, asynchronously-refreshed catalog of *other Ember instances* and surface their `PUBLIC`-scoped stations on a single discovery page - including stations the local instance has never federated with. See `.concept/discovery.md` for the full design.
 
-- **Every instance signs what it shares.** Each instance creates its own long-lived Ed25519 key on first start, stored under `data/discovery/`. A short fingerprint of it identifies the instance in logs and the admin pages, separate from the federation keys.
-- **Instances answer each other later, not right away.** A ping is acknowledged at once with `204`, and the list of known instances follows later by callback. Nobody holds a connection open, slow instances cannot pile up, and replayed or badly timed messages are refused.
-- **A public list of stations.** Each instance offers its public stations with a rough member count, such as "10-50", so small stations do not reveal their exact size. Stations that are not public never leave the database.
-- **A public card for each instance.** Anyone can ask an instance for its address, ID, public key, version and whether discovery is on. Admins use it to add instances by hand and to test connections.
-- **Your federation partners come first.** On start, Ember asks its federation partners about themselves and adds them as the first known instances. There is no global seed list, so you decide where discovery begins.
-- **Admins can add an instance by hand.** Enter its address, and Ember fetches its public key. You can pin the key you expect, so a mismatch is caught right when you add it.
-- **Unreliable instances are pinged less.** Failed signatures, timeouts, bad announcements and admin downvotes lower an instance's score, and a low score pauses pings for a day. Good answers raise it again, and negative scores slowly recover, so a short outage is forgiven.
-- **A blocklist that always wins.** Admins can block addresses or public keys outright, whatever their score. Blocked instances are refused in both directions.
-- **Settings for each instance.** Admins can switch discovery off and choose how far pings spread, from 0 to 10 with 2 as the default. They also set the ping interval, which is at least 60 minutes.
-- **Regular background rounds.** Ember pings hourly, refreshes station lists every six hours and tidies up after itself. Start-up is staggered so federation partners are known before the first round.
-- **A discovery page at /admin/discovery.** It shows your own instance, the settings, the blocklist and every known instance with its actions. "Discover now" refreshes everything at once, and "Seed from federation" reads the federation partners again.
+- **Ed25519-signed gossip** - every instance owns a long-lived Ed25519 keypair generated on first boot under `data/discovery/`. The fingerprint `sha256(publicKey)[:16]` is the stable instance id used in logs and the admin UI. Distinct from the per-partner RSA keys used by federation, so discovery and federation key rotations stay independent.
+- **Async-first ping/callback** - pinging another instance returns `204` immediately; the actual peer list comes back via a delayed `POST` to the originator's callback URL. No long-lived HTTP connections on either side, and slow peers can't pile up against the requester. Replay-protected per-nonce, drift-checked ±5 min.
+- **Public station catalog endpoint** - `GET /public/discovery/stations` returns every `PUBLIC`-scoped station with bucketed member count (`<10 / 10-50 / 50-200 / 200+`) so small stations don't leak exact size. `INSTANCE` and `NONE` scopes are filtered at the SQL level, never trusted to the application layer alone. Cacheable for 5 min.
+- **Instance info probe** - unauthenticated `GET /public/discovery/info` returns `{baseUrl, instanceId, publicKey, softwareVersion, discoveryEnabled}`. Drives manual peer addition, admin "test connectivity" checks, and any future external aggregator.
+- **Bootstrap via federation** - on boot the instance walks its active federation partners, probes their info endpoint, and seeds the peer registry as `BOOTSTRAP` source. No global seed list - operators stay in control of who they federate with first.
+- **Manual admin add** - admins can register a known instance by base URL; the discovery public key is fetched from the peer's info endpoint and may optionally be pinned to an admin-supplied value so URL/key drift is caught at add time.
+- **Reputation + back-off** - signature failures (−20), timeouts (−1), invalid announcements (−2), and admin downvotes (−50) accumulate per peer; reputations below −50 trigger a 24h ping back-off. Successful callbacks and station fetches each add +1; a daily decay pulls negative scores toward zero by 5/day so transient outages don't permanently degrade a peer.
+- **Hard blocklist** - admin-managed list of base URLs or public keys that are refused on both sides of the protocol regardless of reputation. Outbound pings, inbound pings, callbacks, and station fetches all consult the list.
+- **Per-instance admin settings** - `discovery_enabled` (kill switch for outbound pings and the public stations endpoint), `discovery_max_depth` (0..10, default 2 - fan-out hint attached to pings), `discovery_ping_interval_minutes` (default 60, minimum 60).
+- **Schedulers** - ping cycle (60 min), station-listing refresh (6 h), nonce GC (5 min), reputation decay (24 h). All initial delays staggered so federation seeding fills the registry before the first ping cycle.
+- **Admin UI** under `/admin/discovery` - identity card (showing our own instanceId, publicKey, baseUrl), settings panel, peer registry with per-row actions (upvote / downvote / block / unblock / ping now / delete), manual add with probe, blocklist editor, "Discover now" trigger that pings every usable peer and refreshes the station cache in one shot, and "Seed from federation" trigger that rescans the federation partner list.
 
 ### Changes
 
 #### Calendar Multi-day Events
 
-- **Multi-day events span the calendar.** On the upcoming events calendar, an event over several days now shows as one bar across the week, not a chip per day. Bars carry the category colour and stack neatly when they overlap.
-- **Repeating multi-day events span every time.** A repeating event over several days now spans correctly on every date. Before, only the first one did.
-- **Upcoming list shows sensible date ranges.** Repeating events could show odd ranges that ended before they began. They now skip the range, and one-day events show a single date.
+- **Google-calendar-style spanning bars** on `/station/events/upcoming` - multi-day events render as a single continuous bar across the week grid instead of one chip per day. Bars carry the event's category colour, round only on the start/end sides, and pack into lanes so multiple overlapping multi-day events stay readable.
+- **Recurring multi-day events** - the same spanning logic now enumerates per occurrence of recurring events (weekly, monthly-first, quarterly, yearly), so a multi-day recurring meeting spans correctly on every occurrence and not just the first.
+- **Fix `multiDayEndDate` in the upcoming list view** - recurring events no longer display absurd ranges like `Samstag, 2026-07-04 – Sonntag, 2026-06-14`; recurring entries skip the range entirely and one-time events whose end falls on the start day collapse to a single date.
 
 ## v26.7.1
 
@@ -1927,576 +1927,576 @@ Ember instances can now find each other. Each instance gradually builds a list o
 
 #### Personal Feed Overhaul (iCal, Atom, RSS)
 
-Your personal calendar and notification feeds got a rewrite from top to bottom. Feed readers like Thunderbird, Apple Calendar, NetNewsWire, Feedly and Reeder now show you the same context as the web app.
+Every member's personal calendar and notification feed got a top-to-bottom rewrite so feed readers like Thunderbird, Apple Calendar, NetNewsWire, Feedly, and Reeder surface the same context that the web UI does.
 
-- **Guardians keep seeing their children's events.** The calendar feed hides an event only when every registration that matters to you is declined. Events whose deadline passed without any active registration drop out, so your calendar stays tidy.
-- **Calendar entries tell the whole story.** Each event carries its category, repeat rule, registration details, custom fields and registrations per member in your care, in the station's time zone. A link opens it in Ember, and cancelled events are marked "[Cancelled]".
-- **Events get a location field.** It fills the standard calendar location. Your phone and calendar app turn it into a map link you can tap.
-- **Notification feed entries look their best.** Each entry shows status badges and a clear action button, with a plain-text version for readers that strip formatting. The person behind the notification is the author, and categories and images come along too.
-- **Event notifications carry the event's details.** New events, reminders, cancellations and registration updates show start and end times. They also list every filled-in custom field, such as the location, meeting point or notes.
-- **Feed titles say what happened.** Instead of a bare category, a title reads like "News: Q3 schedule published" or "Registration Accepted: Open Training". Long titles are cut at a word boundary.
-- **Same-day events show one time range.** An event that starts and ends on the same day reads as one line, such as "When: 15 Sep 17:00 to 19:00".
-- **Feed entries show the latest details.** Lost-and-found dates, lending periods, who owns an inventory item, board ticket details, procedure progress and storage warnings are read fresh. What you see is what Ember knows right now.
-- **Lost-and-found images appear in feeds.** Your feed reader can load item pictures through your feed link. Nothing else in Ember becomes reachable that way.
-- **Atom is the recommended format.** The feed settings page puts it first and explains why. RSS moves into a fallback section, and the calendar feed gets its own card.
-- **Choose how much each feed shows.** Pick Rich, Compact or Minimal on the feed settings page, and the link you copy follows your choice. Rich is the default, and your browser remembers what you picked.
-- **Your feed link stays private.** It never leaks to other sites you click through to, and search engines will not pick it up. Renewing or revoking the link asks first, because every subscribed reader stops working at once.
-- **Feeds are easier for everyone to read.** Entries handle any writing direction, keep their links underlined and have large tap targets. Status symbols keep their meaning without colour, for monochrome screens and colour-blind readers alike.
+- **Guardian-aware visibility** - the iCal feed only hides events when *every* relevant registration is declined/denied, so a guardian whose child is going still sees the event. Events whose registration deadline has passed without any active registrations drop out to keep the calendar clean.
+- **Rich iCal event entries** - every event now carries category, recurrence label, registration deadline/limit/status, custom field values, per-managed-member registration breakdown, station-timezone-aware timestamps, and a tap-to-open web link. Cancelled events get a localised `[Cancelled]` prefix so clients strike through or hide them.
+- **New `LOCATION` event field** - feeds the standard iCal `LOCATION` property so phones and calendar apps turn it into a tap-to-navigate map link.
+- **Rich notification feed entries** - RSS/Atom entries carry a semantic HTML body (status badges with Unicode markers, prominent action button), a plain-text fallback for readers that strip HTML, the notification's actor as the entry author, both localised and stable filterable categories, and embedded images with meaningful alt text.
+- **Event context in notifications** - new-event, reminder, cancellation, and registration-status entries surface the event's start/end timestamps and every non-empty custom field value (location, meeting point, notes, …) so feed readers carry the same info as the event-detail page.
+- **Rich entry titles** - feed titles now read `News: Q3 schedule published`, `Procurement requested: Hose 25m`, `Registration ✓ Accepted: Open Training`, etc. instead of a bare category. Long fragments are truncated on a word boundary.
+- **Same-day event range merge** - events whose start and end fall on the same day collapse into one `When: 15 Sep 17:00 – 19:00` row.
+- **Live context lookups** - feed entries pull fresh details at render time: lost-and-found find/claim dates, lending date ranges, inventory ownership (organisation-owned / member-owned / mixed), board ticket title/assignee/priority, procedure progress, and storage-warning category breakdowns.
+- **Embedded lost-and-found images** - feed readers can fetch item images via a token-scoped endpoint without exposing the rest of the API.
+- **Atom is the recommended format** - featured prominently on the feed settings page with an explainer. RSS collapses into an "emergency fallback" section. iCal gets its own card explaining the calendar-subscription use case.
+- **Verbosity presets** - three radio buttons on feed settings (Rich / Compact / Minimal) rewrite the copied URL accordingly. Persists locally; Rich is the default.
+- **Privacy hardening** - the feed token never leaks via `Referer` and leaked URLs can't be picked up by search engines. The Regenerate-token / Revoke-token buttons show a confirmation modal warning that the action breaks every subscribed reader immediately.
+- **Accessibility** - semantic HTML, `dir="auto"`, persistent link underlines, 44px tap targets, Unicode status symbols so meaning survives monochrome rendering and colour-blindness.
 
 #### Notifications
 
-- **Many new events, one notification.** When lots of events are created at once, you get a single notification for all of them instead of one each.
-- **Every notification speaks English and German.** Each notification type now has a translated category and message in both languages.
-- **Singular and plural read correctly.** Notifications about new events, reminders and expired registration deadlines get the count right, and so does the email digest subject.
+- **Aggregated batch event notifications** - bulk-created events produce one batched notification per recipient instead of one per row.
+- **Complete EN/DE coverage** - every notification type now has a localised category label and message.
+- **Correct singular/plural handling** for `newEventsBatch`, `eventReminder`, `registrationDeadlineExpired`, and the email digest subject.
 
 #### Recurring Events
 
-Reminders for recurring events used to open a generic event page, and comments ran together across every date. Both now know which date you mean.
+Reminders for recurring events used to deep-link to a generic event page and comments merged across every occurrence. Both are now occurrence-aware end-to-end.
 
-- **Reminders open the right date.** A weekly reminder takes you straight to the date it is about.
-- **The event page shows one date.** It takes the date from the link, or the next one coming up. The extra "Next date" box is gone, and the date appears directly as start and end.
-- **Switch between list and calendar.** The upcoming events page offers a new month view. Your browser remembers which one you prefer.
-- **The calendar fits small phones better.** On a narrow phone screen it gains about 60 pixels of width, so each day cell is roughly a fifth wider.
-- **Comments stay with their date.** A comment on one date of a recurring event belongs to that date only.
+- **Date-aware deep links** - weekly reminders land on the right occurrence.
+- **Detail view bound to a single date** - derived from the URL or the next occurrence. The redundant "Next date" container is gone; the date is shown directly as the `Start` / `End` rows.
+- **List ↔ calendar toggle on `/station/events/upcoming`** - new month-grid view; the user's choice persists in `localStorage`.
+- **Mobile-tight calendar layout** - reclaims roughly 60 px of horizontal space on a 360 px viewport (~21 % wider cells).
+- **Per-occurrence comment threads** - comments on a specific occurrence of a recurring event stay scoped to that occurrence.
 
 #### Feed Telemetry (Admin)
 
-A new admin page under "Monitoring → Feed Telemetry" charts how feeds are used and how fast they are.
+A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and performance.
 
-- **A clear overview of feed traffic.** Four summary cards show total requests, full renders, cache hits and the average render time. Charts break down requests by type, response times and daily volume, next to a status code table and a ranking of feed readers.
-- **No feed link is tied to a person.** This is on purpose. Even an admin with database access cannot tell which member uses which reader.
-- **You decide how long figures are kept.** Request statistics stay for 3 days and feed figures for 90 days by default, and both can be changed.
-- **A help article explains every chart.** It covers the colours of the response time chart, the HTTP status codes that matter and how the reader ranking protects privacy.
+- Four summary cards (total requests, fully rendered, 304 cache hits, average render duration), three ECharts diagrams (requests-by-type, latency histogram, daily volume), a status-code breakdown table, and a global reader leaderboard.
+- **No per-token attribution by design** - a station admin with DB access cannot derive which member uses which reader.
+- Configurable retention windows; default 3 days for request stats, 90 days for feed metrics.
+- Help center article explaining every chart, the histogram colour code, the relevant HTTP status codes, and the privacy posture of the reader leaderboard.
 
 #### News View Tracking
 
-- **Ember notices which news you have seen.** An entry counts as seen once it has been fully visible for a moment. This is separate from pressing "I've read this".
-- **Editors see who has read the news.** An eye icon on each entry opens a list of who has seen it and who has not.
+- News entries are silently recorded as "seen" when fully visible for 800 ms (distinct from the explicit "I've read this" acknowledgement).
+- News editors see a new eye icon on each entry; clicking opens a modal listing who has seen the entry and who hasn't.
 
 #### Backend-driven Search
 
-- **Upcoming events search everything.** The search bar now looks through all upcoming events, not just the page already loaded. It ignores upper and lower case.
-- **One search bar across Ember.** Eleven pages now share the same clear search field with a magnifying glass and a clear button. That includes events, the help center, board tickets, procedures, protocols, the wiki, lending offers and quiz catalogs.
+- The upcoming-events search bar now hits the backend (debounced 250 ms, case-insensitive) instead of filtering the already-loaded page.
+- A new prominent `SearchInput` component (primary-color border, magnifying-glass prefix, clear button) replaces 11 page-level search bars (events, help center, board tickets, procedures, protocols, wiki, lending offers, quiz catalogs, …).
 
 #### Other Improvements
 
-- **Multi-day events fill the calendar.** A one-time event that spans several days now shows on every day from start to end.
-- **Guardians see the inventory page.** It opens for you as soon as a member in your care owns an item.
-- **Exchange type shows only where it applies.** The exchange type column appears only for those allowed to handle inventory exchanges.
-- **Jump to your notification settings.** The notifications panel on the dashboard now has a shortcut to them.
-- **Exchange requests show up at once.** Once you send an exchange request, the inventory card switches to "exchange pending" right away.
-- **Everyone can open the quiz tests page.** The page itself decides what you may see there.
-- **Event managers can use event notes freely.** They no longer need the permission for member notes.
-- **Quiz reviewers see catalog names.** Permission to read test results is now enough to list them.
-- **"Exchanged" is now called "Done".** The new name says more clearly that nothing is left to do.
-- **The and/or choice is easier to read.** When restricting who sees something, "and" and "or" now sit side by side as two buttons, both always visible.
-- **Active editor buttons are readable.** An active button in the text editor now glows in the primary colour instead of turning black on colour.
-- **Comments keep their line breaks.** Line breaks you type in Chrome or Edge now survive sending.
-- **Help for new events opens the right article.** The help link on the page for creating an event now leads to its own article instead of a broken redirect.
-- **The settings tour step opens the right page.** The intro tour now takes you to the page it actually describes.
-- **Absences line up on the profile.** The date of an absence stays centred with the name.
+- **Calendar view multi-day events** - one-time events with multi-day duration now render on every day from start to end.
+- **Guardian sees own inventory page** when at least one of their managed members owns an item.
+- **Exchange type column** gated by `INVENTORY_EXCHANGE`.
+- **Notification settings shortcut** from the dashboard notifications panel.
+- **Reactive item state** - submitting an exchange request flips the inventory card into its "exchange pending" state immediately.
+- **`/station/quiz/tests` accessible to anyone** - the page handles permission gating internally.
+- **Event notes** no longer require member-notes permission for event managers.
+- **Quiz reviewers** can list catalog names with `TEST_RESULT_READ` alone.
+- **`Exchanged` status renamed to `Done`** (German `Erledigt`) for clarity.
+- **`RestrictionPicker` AND/OR toggle** is clearer (two side-by-side buttons with both words always visible).
+- **Rich text editor active icon** is finally readable (primary color glow instead of black-on-primary).
+- **Comment line breaks preserved** when submitting (Chrome/Edge wrap each line in a `<div>`).
+- **Help link for `/station/events/new`** now resolves to a dedicated article instead of a broken redirect.
+- **Settings intro tour step** navigates to the page it actually describes.
+- **Profile absences row** alignment fixed (date stays centered with the name).
 
 #### Bug Fixes
 
-- **Notifications open the right page.** Lost-and-found, board ticket and news notifications used to land on the dashboard. They now take you to the item itself.
-- **You can edit your own comments again.** Editing a comment you wrote failed in some places. It now works in news, the wiki and events.
-- **The wiki tag filter filters.** It did nothing for search results and was missing when browsing. It now works in both.
-- **Skipping a quick check no longer hangs.** Skipping one could leave the procedure stuck on an empty screen. It now carries on.
-- **Attendance settings pages are back.** They had gone missing from the project by mistake, so demo installations showed "not found". They are there again.
-- **Page permissions can be granted.** The permissions to edit and manage pages could not actually be given to anyone. Now they can.
+- Lost-and-found, board ticket, and news notifications now deep-link to the correct page (previously fell back to the dashboard).
+- Self-edit on comments now works correctly across news, wiki, and events.
+- Wiki tag filter actually filters (was a no-op for search results and missing entirely for browse mode).
+- Quick-check skipping no longer leaves the process hung with nothing rendered.
+- Attendance config pages reappear (a `.gitignore` overmatch had been silently dropping them from VCS, so demo deploys 404'd).
+- `PAGE_EDIT` / `PAGE_MANAGER` permissions are now actually grantable.
 
 ### Technical
 
-- **Feeds go easy on your server.** Readers that are up to date get a short "not modified" answer, and each feed link has a fair request limit. Feeds hold the last 100 notifications or about a year of events, and one broken entry no longer spoils the rest.
-- **Feed summaries and contents sit in the right place.** Atom entries had their summary and full text swapped. They are now the right way round, and categories with the same name are kept apart.
-- **New building blocks for limits and help hints.** A shared rate limiter and a reusable help hint now back several features.
-- **Every notification knows where it leads.** Bulk-created events are gathered into one notification. A notification without a link to open is now refused outright.
-- **Recurring events get date links and dated comments.** Each date of a recurring event has its own address, and comments remember their date. Partner stations that do not send a date keep working.
-- **Dates in comments and reminders are real dates.** They are now handled as calendar dates rather than plain text.
-- **Permission names were tidied up.** What used to be called roles is now called permissions throughout, including the help pages and translations.
-- **Ember recognises you reliably as the author.** Ownership checks on comments now compare only the member's identity. This is what makes editing your own comments in news, events and the wiki work again, including at partner stations.
-- **Station numbers read back correctly.** Some station numbers sent back to Ember could not be read and caused errors. They now round-trip cleanly, including for partner stations.
-- **Guardian calendar feeds load faster.** Registrations for all members in your care are now fetched in one go instead of one by one.
-- **Database updates for this release.** The upgrade adds what feed figures, news views and dated comments need. It also renames "Exchanged" to "Done" and makes the page permissions available.
-- **The build checks conventions every time.** The convention checks for icons, help articles and translations now always run before the app is built, and two mistakes in them were fixed.
-- **Admin help has its own layout.** The admin help center no longer shares its sidebar with the regular help center.
-- **The wiki was split into smaller pieces.** Its larger screens were broken into smaller parts to keep them maintainable.
-- **Feeds can carry pictures.** A new library lets feed entries include images.
-- **Demo data behaves like real use.** The demo now creates its content the way you would, so notifications appear naturally and link to the right place. It also adds lost-and-found items and one example of every notification for the demo admin.
-- **More tests guard the feeds.** New tests cover feeds, rate limits, calendar and notification output and feed figures. Plural handling and the rule that every notification needs a link are tested too.
+- **Feed plumbing** - Conditional GET (ETag + If-Modified-Since) on every endpoint; per-token leaky-bucket rate limiting (10 burst, 5/min refill); body size caps (RSS/Atom: last 100 notifications, iCal: `[now − 7 days, now + 1 year]`); per-entry failure isolation; `Referrer-Policy` and `X-Robots-Tag` on every response.
+- **Atom `<summary>` / `<content>` swap** - ROME maps `setDescription` → `<summary>` and `setContents` → `<content>`; previously reversed. Duplicate-`term` categories disambiguated via `scheme="urn:ember:notification-type"`.
+- **New shared utility `dev.chojo.ember.util.LeakyBucket`** and `HelpCenterHint` Vue component.
+- **Notification pipeline** - new `EventsBatchCreated` domain event aggregates bulk notifications; `NotificationService.notify*` now enforces a `NotificationLink` (fails fast otherwise).
+- **Recurring events** - new `event-detail-date` route (`/station/events/{id}/{date}`); nullable `event_comment.event_date`; `RemoteCommentRequest` federation payload carries `eventDate` (backwards compatible with peers that omit it).
+- **Typed date fields** - `LocalDate` instead of `String` on comment / reminder payloads (Jackson ISO `yyyy-MM-dd`).
+- **Permission model cleanup** - `api.roles` → `api.auth` package rename (~160 import sites). `RoleValidation` → `PermissionValidation`, `RolesTest` → `PermissionsTest`. Frontend: `RoleSelector.vue` deleted, `RoleStep.vue` → `UserTypeStep.vue`, `RolesHelp.vue` → `PermissionsHelp.vue`; matching i18n key sweep.
+- **`MemberIdentity.sameMember(other)` helper** - UID-only equality for ownership checks; adopted in news / event / wiki comment routes and their federation variants. Fixes self-edit when DB-loaded vs. session-enriched identities are compared.
+- **`StationIdModule` deserializer added** - previously serializer-only, so round-tripped UUID strings on `int` fields blew up with `InvalidFormatException`. `partnerStationId` added to the field-name set.
+- **Bulk-friendly registration lookup** - `EventRepository.findRegistrationsByMembers(Collection<Integer>)` collapses N queries into 1 for guardian iCal feeds.
+- **Schema migrations** - patch_11 (`station_event.updated_at`), patch_12 (`feed_metric_daily`, `feed_user_agent_stat`, `event_comment.event_date`, `EXCHANGED` → `DONE` rewrite, `news_view` table, `PAGE_EDIT` / `PAGE_MANAGER` backfill). `data_tracking.json` refreshed and verified.
+- **`npm run build` now runs the four convention linters** (`lint-icons`, `lint-conventions`, `lint-helpcenter`, `lint-locales`) before `nuxi build`, matching `build:spa`. Two argument-order bugs in `lint-conventions.mjs` fixed.
+- **`helpcenter-admin` layout** split from the generic `helpcenter` layout so the two sidebars are decoupled.
+- **Component extractions** to satisfy the 500-line view-size lint: `useKbTagFilter`, `KbDeleteModals`, `KbFiltersBar`, `KbFileContent`.
+- **rome-modules dependency** added for MediaRSS support.
+- **Demo seeders** refactored to call real services (`NewsService`, `EventService`, `ExchangeService`, …) so notifications fire organically with correct link metadata. New `DemoLostAndFoundSeeder`; one showcase notification of every type seeded for the demo admin.
+- **Test infrastructure** - new `UserFeedRoutesIntegrationTest`, `LeakyBucketTest`, `FeedFingerprintTest`, `FeedRateLimiterTest`, `IcalEventRendererTest`, `NotificationFeedRendererTest`, `FeedMetricsRepositoryTest`. `NotificationServiceTest` expanded with pluralisation coverage and a `notifyRejectsDataWithoutLink` regression. `jacocoCoverageCheck` and `testTracking` green.
 
 ## v26.7.0
 
 ### New Features
 
 #### Storage Monitoring & Quota System
-- **See how much storage each station uses.** Ember tracks files in five categories. They are wiki files, board attachments, page images, avatars and other images.
-- **Storage limits keep usage in check.** You can set a limit per category and in total. An upload that would go over it is refused with `413 Payload Too Large`.
-- **Reusable storage presets.** Named profiles such as Small, Standard or Premium can be applied to many stations at once.
-- **Stations can have their own limits.** A station either gets custom limits or uses the defaults from the configuration.
-- **A warning before storage runs full.** Station managers are notified when usage crosses a threshold. It sits at 80% by default and can be changed.
-- **Storage figures correct themselves.** Ember recounts the real usage on startup and at a regular interval you can set.
-- **Presentations take less space.** PowerPoint and OpenDocument presentations above a set size are packed more tightly, without any loss. That saves 10 to 30 percent.
-- **A storage dashboard for admins.** It shows summary figures, a bar chart per station and a pie chart per category. A sortable station table shows each station's status and lets you assign presets.
-- **Stations see their own storage.** Station managers get a read-only view with a bar chart and a breakdown by category.
-- **Manage presets with ease.** Create, edit and delete presets, with sizes entered as a number plus MiB, GiB or TiB. Apply one to several stations at once, and deleting asks first.
-- **Storage defaults live in the configuration.** The new `storage` section in config.yaml holds the defaults for limits, compression, the warning threshold and the recount interval.
-- **Help articles for storage.** Both the admin view and the station view have their own article.
+- **Per-station storage tracking** - tracks file storage usage across 5 categories: wiki files, board attachments, page images, avatars, and other images
+- **Quota enforcement** - configurable per-category and total storage limits with rejection on exceed (HTTP 413)
+- **Quota presets** - reusable named profiles (e.g. Small, Standard, Premium) that can be applied to stations in bulk
+- **Per-station overrides** - stations can have custom quotas or use instance defaults from config
+- **Warning notifications** - domain event notifies station managers when usage crosses the configurable threshold (default 80%)
+- **Automatic reconciliation** - background job recalculates actual usage from DB and filesystem on startup and at configurable intervals
+- **Presentation compression** - lossless ZIP recompression of PPTX/ODP files, saving 10-30% for files above the threshold
+- **Admin dashboard** - storage overview with summary stats, stacked bar charts per station, category pie chart, sortable station table with status badges and preset assignment
+- **Station storage view** - read-only usage view for station managers with bar chart and per-category breakdown
+- **Preset management** - CRUD UI with size inputs (number + MiB/GiB/TiB dropdown), apply to multiple stations, delete with confirmation
+- **Config** - `storage` section in config.yaml with defaults for all quotas, compression, warning threshold, and reconciliation interval
+- **Help center** - help articles for both admin and station storage views
 
 #### Federation Version Broadcasting
-- **Partners learn each other's version on startup.** When Ember starts, it greets every partner station and they swap version information.
-- **Partners can ask for the version.** The new `/remote/federation/ping` address answers with the current federation version.
-- **Older partners get a version.** Partners added before versions were tracked are updated on startup.
-- **New partners start with the right version.** They are created with the current federation version instead of a placeholder.
-- **The version covers more of what partners exchange.** It now also reflects the data shared for lending and boards.
+- **Startup broadcast** - on boot, pings all remote federation partners to exchange version information
+- **Version ping endpoint** - new `/remote/federation/ping` returns the current federation version hash
+- **Version backfill** - partners created before version tracking get updated on startup
+- **Version at creation** - new partners are created with the current federation version instead of placeholder '0'
+- **DTO tracking** - federation version hash now includes inner record DTOs from FederationRemoteRoutes, FederationRoutes, LendingRoutes, and BoardRoutes
 
 #### Public Pages (Layout Editor)
-- **Build your own public pages.** Stations can now create public pages with a light layout editor. It works much like the page builders you may know from WordPress.
-- **Lay out pages in rows.** Each row holds one to four columns, and you choose their widths freely.
-- **Text, images and videos.** A cell can hold formatted text, an uploaded image you can size and fit, or a video. Videos come from YouTube or a direct link.
-- **Pages look good on phones.** On a small screen, columns stack on top of each other.
-- **Nest pages up to three levels.** Their addresses follow the nesting, such as `/page/about/team`.
-- **Pick a landing page.** One page can be your station's landing page. It appears first in the sidebar.
-- **Stations get a readable address.** Each station gets a short, readable name in its address. It is made from the station name, and you can change it.
-- **Pages are ready for search engines.** Each page has its own description and preview image. Ember fills them in from the content when you leave them empty.
-- **Public pages are rendered on the server.** Formatted text arrives as finished pages, ready to read.
-- **Public pages wear your station's look.** They show the colours and feel you chose for your station.
-- **Images are tidied up for you.** You can upload images up to 5 MB per page. Images no longer used are cleaned up when you save.
-- **Copy, cut and paste rows and cells.** Paste buttons appear between rows, right where you want the content to go.
-- **Shape columns by hand.** Split a column with one click, swap two columns, and drag to resize them.
-- **Move rows up and down.** Buttons on each row change its position.
-- **Preview before you publish.** The editor switches between editing and a preview.
-- **Duplicate a page.** The copy includes every row and cell.
-- **Publish when you are ready.** Publishing needs the page manager permission. When a parent page is unpublished, its child pages are hidden too.
-- **A help article for pages.** It explains how to manage your pages.
-- **Demo pages to explore.** The demo comes with nested sample pages such as Welcome, About us, Our team, Equipment and Join us.
+- **Page builder** - stations can create public pages using a lightweight layout editor inspired by WordPress/Elementor
+- **Row-based layout** - pages are built from horizontal rows, each containing 1-4 columns with free-form percentage widths
+- **Content types** - cells support rich markdown (WYSIWYG TipTap editor), images (upload with fit/sizing), and videos (YouTube embeds or direct URLs)
+- **Responsive design** - horizontal rows automatically stack vertically on mobile
+- **Page hierarchy** - pages support up to 3 levels of nesting with nested URL paths (e.g., `/page/about/team`)
+- **Landing page** - one page can be designated as the station landing page, shown first in the sidebar
+- **Station slug** - stations get a human-readable URL slug (auto-generated from name, editable) as alternative to UUID
+- **SEO metadata** - per-page meta description and OG image, with auto-generation from content
+- **Markdown rendering** - server-side commonmark rendering for public pages
+- **Station theming** - public pages display the station's configured theme (colors, feel)
+- **Image management** - per-page image upload (max 5 MB), orphaned images auto-cleaned on save
+- **Copy/cut/paste** - clipboard for rows and cells with paste buttons between rows
+- **Column controls** - visual column split buttons, swap button between columns, free-form resize handles
+- **Move up/down** - row reordering via buttons
+- **Preview mode** - toggle between edit and preview in the editor
+- **Page duplication** - duplicate pages with full row/cell tree
+- **Publish/unpublish** - PAGE_MANAGER permission for publishing, unpublished parents hide children
+- **Help center** - article explaining page management
+- **Demo data** - 4 sample pages (Willkommen, Über uns, Unser Team, Ausrüstung, Mitmachen) with hierarchy
 
 #### Station Public URL
-- **Give your station a public address.** Each station has a readable address you can change, such as `/public/station/jugendfeuerwehr-musterstadt`.
-- **Addresses are made for you.** A new station gets one from its name, and Ember makes sure no two are alike.
-- **Old links still work.** Links that use a station's internal number now forward to its readable address.
-- **Station discovery uses readable links.** Links from station discovery now use the station's readable address.
-- **Change your address in the settings.** You edit it in the federation settings, and Ember warns you when it is already taken.
+- **Public slug** - stations have a customizable URL slug (e.g., `/public/station/jugendfeuerwehr-musterstadt`)
+- **Auto-generated** - slugs created from station name on creation, with dedup
+- **UUID redirect** - UUID-based URLs automatically redirect to the slug version
+- **Discovery links** - station discovery uses slugs for cleaner URLs
+- **Settings UI** - editable slug in federation settings with duplicate detection
 
 #### Public Waitlist Registration
-- **Waiting lists open to the public.** Each waiting list can be made public. People can then sign up without an account.
-- **Choose which fields the public sees.** Each waiting list field can be shown on the public form or kept hidden.
-- **Sign-ups confirm their email.** Everyone who signs up gets a confirmation email. The link in it is valid for 24 hours.
-- **You approve each public sign-up.** A confirmed sign-up waits as pending. Someone allowed to edit waiting lists has to approve it.
-- **Approve or reject with all details at hand.** Pending entries on the waiting list page open up to show the full sign-up. You approve or reject them right there.
-- **Know when someone signs up.** Members who may edit waiting lists are notified about each new public sign-up.
-- **Switch public waiting lists on per station.** A station setting decides whether public waiting lists are offered at all.
-- **A friendly public sign-up page.** Visitors pick a list and fill in its public fields and their guardians' details. Then they confirm their email.
-- **A page to confirm the email.** The link in the email opens a page of its own that confirms the address.
-- **Waiting lists appear in the public sidebar.** When enabled, your public station sidebar links to them.
-- **Guardians have first and last names.** Their names are now two fields. That lets Ember turn them into accounts directly.
+- **Public waitlists** - per-waitlist `isPublic` toggle allows external registration without login
+- **Per-field visibility** - each waitlist field can be marked as public or hidden from the registration form
+- **Email verification** - registrants receive a verification email; token expires after 24 hours
+- **Pending approval** - verified registrations get `PENDING` status, requiring WAITLIST_EDIT approval
+- **Approve/reject** - expandable pending entries in the waitlist detail view with approve/reject actions showing full registration details
+- **Notifications** - WAITLIST_EDIT users are notified when a new public registration arrives
+- **Station toggle** - `publicWaitlistEnabled` station setting controls whether public waitlists are available
+- **Public registration page** - list selection, form with public fields, guardian inputs, and email verification flow
+- **Verification page** - standalone page at `/public/waitlist/verify/{token}` confirming email
+- **Public sidebar** - waitlist link in the public station sidebar when enabled
+- **Guardian name split** - guardians now have separate firstname + lastname fields for direct account conversion
 
 #### Public Blog
-- **Turn news into blog posts.** A switch in the news editor marks an entry as a blog post.
-- **Blog posts are easy to spot.** In the internal news list they carry a "Blog" badge.
-- **A public blog for your station.** The blog lists each post with title, excerpt, author and date. Opening one shows the full post.
-- **The blog can be your landing page.** When you have not chosen a page, the blog greets your visitors.
-- **Switch the blog on per station.** A station setting decides whether the blog is available.
-- **The blog has its place in the sidebar.** Its link sits after the landing page and before the calendar.
+- **Blog entries** - news articles can be flagged as blog posts via a toggle in the editor
+- **Blog badge** - blog entries show a "Blog" badge in the internal news list
+- **Public blog page** - blog list with title, excerpt, author, and date; detail view with full HTML content
+- **Landing fallback** - blog becomes the default landing page when no custom page is set
+- **Station toggle** - `publicBlogEnabled` setting controls whether the blog is available
+- **Public sidebar** - blog link appears after landing page, before calendar
 
 #### Station Settings UX
-- **Settings save as you go.** Federation settings now save shortly after each change. There is no save button to forget.
-- **You see when it is saved.** A spinner says "Saving…", and a checkmark says "Saved".
+- **Reactive save** - federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
+- **Save indicator** - shows "Speichern…" spinner and "Gespeichert" checkmark
 
 #### Wiki: Presentation Support
-- **Upload presentations to the wiki.** PowerPoint (.pptx, .ppt) and OpenDocument (.odp) files are welcome.
-- **Presentations open in your browser.** Ember turns them into PDFs on the server, so anyone can view them without extra software.
-- **No waiting after an upload.** The upload finishes at once, and the conversion runs in the background. You can see whether it is pending, done or failed.
-- **Present slide by slide.** A full-screen mode shows PDFs and presentations one slide at a time, with a slide counter. Move on with the keyboard, a click or a swipe.
-- **Controls step out of the way.** In presentation mode, the header and buttons fade out when you stop moving. Only your slides remain.
-- **Download the original file.** The file page offers the original presentation for download.
-- **Replace a presentation.** Upload a new version, and Ember converts it again.
+- **Presentation uploads** - upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the wiki
+- **Automatic PDF conversion** - presentations are converted to PDF server-side via LibreOffice headless for in-browser viewing
+- **Async conversion** - upload returns immediately, conversion runs in the background with status tracking (pending/success/failed)
+- **Presentation mode** - full-screen slide-by-slide viewer for PDFs and presentations using pdf.js, with keyboard/click/swipe navigation and slide counter
+- **Auto-hiding controls** - presentation mode header and navigation buttons fade out after inactivity for a clean viewing experience
+- **Original file download** - download the original presentation file from the file detail view
+- **Re-upload** - replace the original presentation and trigger reconversion
 
 #### Procedures (Abläufe)
-- **Procedures guide people step by step.** The new Procedures module gives each person a checklist for a structured process. Think onboarding or handing out equipment.
-- **Templates for recurring procedures.** Reusable templates hold the items and the order they depend on. Procedure managers look after them.
-- **Start a procedure your way.** Create one from scratch or from a template. You can still change its items before you submit it.
-- **Assign procedures to people.** Pick one or more members to work on a procedure.
-- **Items can wait on other items.** An item can depend on others. Blocked items show a lock icon.
-- **Keep some steps private.** Procedures and single items can be private. Then only members allowed to edit procedures see them.
-- **Let assignees tick off items.** Some items can be checked by the assigned members themselves. All others need the permission to edit procedures.
-- **Resolve and reopen.** You can resolve a procedure at any time and reopen it when needed.
-- **Stay informed about procedures.** You are notified about assignments, resolutions, reopenings and finished items.
-- **Open procedures in the sidebar.** A badge counts your open procedures. Everyone with an assigned procedure sees it.
-- **Demo procedures to try.** The demo includes two templates, onboarding and equipment handout, and four sample procedures in different states.
-- **A help article for procedures.** It gives an overview of the whole module.
+- **New module: Procedures** - per-user checklists for structured processes (onboarding, equipment handout, etc.)
+- **Templates** - reusable procedure blueprints with items and dependency chains, managed by PROCEDURE_MANAGER
+- **Procedure instances** - created ad-hoc or from templates, with editable items before submission
+- **Assignees** - assign procedures to one or more members with member picker
+- **Item dependencies** - items can depend on other items (DAG), blocked items shown with lock icon
+- **Public/private visibility** - procedures and individual items can be marked private (only visible to PROCEDURE_EDIT users)
+- **User-assigned items** - items can be flagged as checkable by assignees; other items require PROCEDURE_EDIT permission
+- **Resolve/reopen** - procedures can be resolved at any time and reopened if needed
+- **Notifications** - domain events for assignment, resolution, reopening, and item completion
+- **Sidebar integration** - badge shows open procedures; visible to all users with assigned procedures
+- **Demo data** - 2 templates (onboarding, equipment handout) and 4 sample procedures with mixed states
+- **Help center** - overview article for the procedures module
 
 #### Server-Side Rendering
-- **Public pages load faster.** Public pages are now rendered on the server, and the help center is prepared ahead of time. The signed-in station and admin pages keep working as an app in your browser.
-- **Backend and frontend ship separately.** They now come as two Docker images. Operators can scale and deploy each one on its own.
+- **Nuxt 3 SSR migration** - frontend migrated from Vue SPA to Nuxt 3 with hybrid rendering: SSR for public pages, ISR for help center, SPA for authenticated station/admin views
+- **Two-container deployment** - separate backend (Java) and frontend (Nuxt) Docker images for independent scaling and deployment
 
 #### SEO
-- **A sitemap for search engines.** `/sitemap.xml` lists the static pages and every station that can be discovered.
-- **Search engines know where to look.** `robots.txt` welcomes them to `/discovery`, `/public/` and `/helpcenter/`. It keeps them out of `/station/`, `/admin/` and `/api/`.
-- **Each public page names its true address.** Public pages tell search engines which address is the original, so duplicates do not compete.
-- **Shared links look good.** Public pages carry the details social networks need for a link preview. That means title, description, image and language.
-- **Search results can show more.** The home page, station pages, the public calendar and wiki navigation describe themselves to search engines. Events can then appear as rich results.
-- **Search the site from the results page.** Search engines can offer a search box for the discovery page.
-- **Bigger previews in search results.** Search engines may show large images, full snippets and video previews.
-- **Verify your site with Google.** The optional `NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION` setting connects your instance to Google Search Console.
-- **Help pages are easy to find.** All 142 help pages describe themselves for search engines and link previews, based on their title and subtitle.
+- **Dynamic sitemap** - `@nuxtjs/sitemap` generates `/sitemap.xml` with static pages and dynamic station URLs fetched from the discovery API
+- **robots.txt** - crawl rules allowing public pages (`/discovery`, `/public/`, `/helpcenter/`) and blocking private routes (`/station/`, `/admin/`, `/api/`)
+- **Canonical URLs** - `useCanonical` composable adds `<link rel="canonical">` and `og:url` to all public pages
+- **Open Graph & Twitter cards** - all public pages include OG tags (title, description, type, image, locale, site_name) and Twitter card meta
+- **Structured data (JSON-LD)** - `SoftwareApplication` on homepage, `Organization` on station pages, `Event` on public calendar (enables rich results), `BreadcrumbList` on wiki navigation
+- **SearchAction schema** - sitelinks search box on discovery page
+- **Google optimizations** - `max-image-preview:large`, `max-snippet:-1`, `max-video-preview:-1` for richer search result previews
+- **Google Search Console** - optional `NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION` env var for site verification
+- **Help center SEO** - `HelpArticle` component auto-generates meta description and OG tags from article title/subtitle for all 142 help pages
 
 #### Data Tracking System
-- **One record of all the data Ember keeps.** A single description now covers every kind of data that moves with a station, goes into a privacy export or is erased on request. Each item records whether it has been checked, and editing its description keeps that check intact.
-- **Station moves follow that record.** Exporting and importing a station is now driven by the record instead of hand-written steps for each kind of data.
-- **Data moves in the right order.** Ember works out by itself which data has to come first, based on how it connects. Nobody has to keep a list by hand.
-- **Data linked from elsewhere moves too.** Data that belongs to a station only through another link, such as member accounts, is now included in a station move.
-- **Linked details travel along.** An export carries details such as a member's email address. The import uses them to reconnect everything on the other side.
-- **Each kind of data has the right shape.** Station-wide settings travel as a single entry, simple lists as plain lists. Everything is labelled by what it is.
-- **Accounts move with the station.** Members' accounts and sign-in details come along. An account that already exists with the same email is linked, and new accounts must set a new password at first sign-in.
-- **Partnerships survive a station move.** Partner stations and everything shared with them move along. That covers boards, inventory, the wiki, protocols, quizzes, events and news, so partners still recognise the station afterwards.
-- **Privacy exports follow the record.** The export of a person's data now comes from the same record. It finds everything tied to their account or membership and groups it clearly.
-- **Erasure follows the record too.** For every kind of data, the record says whether it is deleted, emptied, anonymised or kept, and anonymised names read "Deleted". Ember applies these rules in a safe order and logs what it keeps.
-- **A data overview for development.** A page at `/admin/data-tracking` shows the record, but only on development instances. You can search, filter, mark entries as checked and edit erasure rules, and warnings point out missing links or rules that would not actually delete anything.
-- **Partner members can attach files to board tickets.** Board attachments now remember the uploader the same way the rest of the board does. So members from partner stations can attach files too.
+- **`data_tracking.json`** - single source of truth for every DB table tracked in station transfer, GDPR export, and GDPR deletion. Stores per-column verification flags, FK metadata, lookups, output shape, custom scope paths, and PG `COMMENT ON TABLE`/`COMMENT ON COLUMN` text (descriptions excluded from the hash so editing comments doesn't invalidate verification)
+- **Metadata-driven station export/import** - `GenericTableExporter` and `GenericTableImporter` generate SELECT/INSERT queries dynamically from the tracking metadata. `StationExportService` and `StationImportService` are now thin orchestrators with no per-table SQL
+- **Topological table order** - `TableOrder` derives the export/import order from FK dependencies (skipping `SET NULL` FKs to break cycles); no hand-coded `TABLE_ORDER` list
+- **Custom scope support** - tables reached via an incoming FK (e.g. `account` through `station_member.account_id`) declare a `customScope` in tracking and the engine emits an `IN (SELECT … FROM viaTable WHERE …)` filter
+- **FK-flattened lookups** - `lookups` array on `TableEntry` adds joined fields like `account_email` to exported rows; the importer resolves them back to local FK ids
+- **Output shape per table** - `SINGLE` for one-row-per-station tables (`station`), `FLAT` for enum-only tables (`station_disabled_module`); the wire format is keyed by DB table name
+- **Account migration** - accounts/credentials transfer via `customScope` through `station_member`; existing target accounts (matched by email) are linked as-is, new accounts are created with `force_password_change=TRUE`
+- **Federation state transfer** - every federation table (`federation_partner`, capability, share configs across boards/inventory/wiki/protocol/quiz, event/news federation) now transfers with the station; the private key column transfers too so partners keep recognising the station post-migration
+- **Metadata-driven GDPR export** - `GenericGdprExporter` builds queries from `gdprExport.identityColumns` matching the requested identity type (`ACCOUNT_ID`/`MEMBER_ID`/`MEMBER_UID`). `GdprExportService` shrank from ~470 hand-coded lines to a thin orchestrator; output keyed by DB table name (`accountTables`, `memberTables`, `memberUidTables`)
+- **Metadata-driven GDPR deletion** - `GenericGdprDeleter` honours each `gdprDeletion` strategy (`DELETE_EXPLICIT`, `NULL`, `ANONYMIZE` with type-derived sentinels - zero-UUID, `"Gelöscht"`, NULL for nullable int - and `CASCADE`/`RETAIN`/`RETAIN_UNLINKED`/`NOT_APPLICABLE` no-ops with audit logs). UPDATEs run before DELETEs across all tables; DELETEs in reverse-topological order
+- **Dev-mode admin panel** - `/admin/data-tracking` view available only when `Demo.dev()` is true (frontend tree-shakes via `import.meta.env.DEV`). Color-coded status badges, summary dashboard, search by table name / column name / description, batch status changes, per-column verified toggles, multi-select dropdowns for `ignoredColumns`, fully editable GDPR deletion strategies, foreign-key chips with key icons, dangling-reference audit banner that flags MEMBER_ID identity columns without an FK to `station_member`, CASCADE chip warnings when the FK parent's effective strategy isn't actually a deletion
+- **Federated uploader for board attachments** - `board_ticket_attachment.uploaded_by INT REFERENCES station_member` replaced with `uploader_station_uid UUID` + `uploader_member_uid UUID`; matches the federated identity pattern already used on `board_ticket.creator_*`, `board_ticket_comment.author_*`, `board_ticket_transition.actor_*`, `board_ticket_watcher.watcher_*`. Federated members from partner stations can now attach files
 
 #### Documentation
-- **Every setting explained for hosts.** The hosting help page now lists all environment variables by topic, from database and mail to theming and Docker. Each one comes with its default and a plain explanation.
+- **Environment variable reference** - hosting help page now documents all env vars organized by category: Database, API, Mailing, Auth, Theming, Tools, Frontend, Demo, and Docker/Compose - each with default value and beginner-friendly description
 
 ### Improvements
-- **Sturdier answers from the server.** About 50 server answers now follow a fixed shape. Mistakes in them are caught before a release instead of after.
-- **Automated tests retry on hiccups.** A failed test run is tried once more, and publishing images is retried up to three times. Short outages no longer break a release.
-- **Coverage checks no longer run tests twice.** The coverage step reuses the results of the earlier test run.
-- **One file picker for the wiki.** Every file upload in the wiki now uses the same styled picker.
-- **The frontend image builds much faster.** It now starts from a slim Node.js base.
-- **Inventory items tell you their status.** An item now shows "Assigned" or "Available" instead of a vague "Active".
-- **Avatars in the inventory editor.** Member names there now show their avatars.
-- **The members badge counts more.** The Members entry in the sidebar now counts waiting list entries as well as pending changes.
-- **The inventory badge counts exchange requests.** The Inventory entry in the sidebar shows how many exchange requests are waiting.
+- **Type-safe API responses** - replaced ~50 `Map.of()` API responses across routes, services, and export classes with typed Java records for compile-time safety
+- **CI retry** - test jobs (repository, service, other) retry once on failure; Docker push steps retry up to 3 times for transient registry errors
+- **CI coverage job** - no longer re-runs all tests; skips the default `test` task since coverage data is downloaded from artifacts
+- **FileInput component** - new reusable styled file picker component replacing raw `<input type="file">` elements across the wiki
+- **Frontend Docker image** - replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
+- **Inventory item status** - item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
+- **Inventory member avatars** - member names in inventory edit view now display with avatars via MemberName component
+- **Members sidebar badge** - now includes both pending changes and waiting list entry counts
+- **Inventory sidebar badge** - shows pending exchange request count on the inventory section
 
 ### Bug Fixes
-- **The waiting list help tile leads somewhere.** The waiting list tile on the help center home page linked to a page that does not exist. It now opens the waiting list article.
-- **Inventory items show who has them.** The item page did not show the member an item is assigned to. It now reads the assignment directly and shows it.
-- **Permission choices are no longer lost.** Unticking a parent permission, such as managing lost and found, threw away the sub-permissions you had picked. Ticking it again now brings them back.
-- **My Inventory appears only when it has something.** The tab showed even when nothing was assigned to you. It now appears only when you have items.
-- **Removed members no longer leave quiz traces.** Deleting a member could leave quiz attempts pointing at nobody. Their attempts are now removed with them, and grades they gave simply lose the grader's name.
+- **Help center waiting list link** - home page feature tile linked to non-existent route `/helpcenter/station/members/waitinglist` instead of `/helpcenter/station/members/waiting-lists`
+- **Inventory item assigned user** - assigned user was not shown on the item detail page; lookup relied on history entries instead of the direct assignment
+- **Permission picker rollback** - unchecking a parent permission (e.g. LOST_AND_FOUND_MANAGE) discarded previously selected child permissions (e.g. LOST_AND_FOUND_CREATE) instead of restoring them
+- **My Inventory tab visibility** - sidebar tab was always visible even when the user had no assigned inventory items
+- **Orphaned quiz attempt rows** - `quiz_test_attempt.member_id` and `graded_by` were bare INT columns without FKs, so deleting a member left dangling references. Both now FK to `station_member.id` with `CASCADE` and `SET NULL` respectively
 
 ### Technical Changes
 
 #### Data Tracking Backend
-- **The data record has a clear structure.** Each kind of data is described the same way. That covers its fields, links, privacy role and how it is erased.
-- **Ember reads its own database layout.** It collects the tables, fields, links and their descriptions straight from the database.
-- **Changes to the layout are noticed.** A fingerprint of each table's fields and links shows when something changed and needs checking again. Descriptions are left out of it on purpose.
-- **The record stays in step with the database.** Refreshing it picks up the current layout and descriptions. Checks already made are kept.
-- **Ember finds how data belongs to a station.** It follows the links from any kind of data back to its station on its own.
-- **A reliable order for moving data.** The order is worked out from the links between data. Loops are broken safely, and the result is the same every time.
-- **Four flows share one engine.** Station export, station import, privacy export and erasure all run on the same rules.
-- **The data overview has a backend of its own.** It runs only on development instances, and tests can point it at their own copy of the record.
-- **The data overview stays out of production.** Its addresses exist only on development instances.
-- **Much less hand-written database code.** Station moves lost about 2400 lines of it, the privacy export about 470 and erasure about 100. Everything works the same from the outside.
-- **Database updates for this release.** Board attachments now remember their uploader in the way partner stations understand. Quiz attempts are tied to their members, and leftovers from deleted members are cleaned up.
-- **The data record was corrected.** Some entries named fields that do not exist, and some described data that is gone. Both are fixed.
-- **Old helper tools were retired.** The command line tools for reviewing the record are gone, since the data overview does their job. The refresh tool stays, because only it can read the live database.
+- **`DataTracking` records** - `TableEntry`, `ColumnEntry`, `ForeignKey`, `Lookup`, `CustomScope`, `TransferContext`, `GdprExportContext`, `GdprDeletionContext`, `DeletionStrategy`, `IdentityColumn` with `Status`/`Strategy`/`IdentityType`/`OutputShape`/`Scope` enums
+- **`SchemaReader`** - reads PG `information_schema` plus `obj_description` / `col_description` for table+column comments; emits `RawTable` / `RawColumn` / `RawForeignKey`
+- **`HashComputer`** - deterministic SHA-256 over columns + FKs; descriptions intentionally excluded
+- **`DataTrackingRefresher`** - merges live schema into `data_tracking.json`, refreshing descriptions on every run and preserving verification flags
+- **`StationScopeResolver`** - BFS over the FK graph to find the join chain from any table to a `station_id` column; handles the `station` table itself via `id`, skips `SET NULL` FKs
+- **`TableOrder.topological`** - Kahn's algorithm over `dependsOn`, breaks cycles via `SET NULL` skipping, leftover nodes appended alphabetically for stable output
+- **`GenericTableExporter`** + **`GenericTableImporter`** + **`GenericGdprExporter`** + **`GenericGdprDeleter`** - engine classes driving the four major flows
+- **`DataTrackingAdminService`** - dev-mode only service backing the admin panel, file-path-configurable for tests
+- **`DataTrackingRoutes`** - handlers registered only when `Demo.dev()` is true
+- **Engine wiring** - `StationExportService`/`StationImportService` dropped ~2400 lines of hand-coded SQL; `GdprExportService` dropped ~470 lines; `GdprDeletionService` dropped ~100 lines. Public API preserved on each
+- **DB migration** - `board_ticket_attachment` `uploaded_by` → `uploader_station_uid` + `uploader_member_uid` UUID pair with data backfill; missing FKs on `quiz_test_attempt.member_id` (CASCADE) and `graded_by` (SET NULL) added with defensive orphan cleanup
+- **Metadata drift fixes** - `entity_note`, `entity_note_version`, `inventory_item`, `profile_field_change_acknowledgement` identity-column names corrected to match real schema; stale entries removed on `form_answer`, `waiting_list_entry_guardian`, `waiting_list_entry_value`, `waiting_list_invite`, `kb_file`
+- **CLI cleanup** - removed `DataTrackingReviewer`/`Prompter`/`ReviewCli`/`BackfillCli`/`TransferMetadataBackfillCli` and their gradle tasks; the dev admin panel covers their use cases. Kept `refreshDataTracking` since the frontend can't read live PG schema
 
 #### Storage Monitoring Backend
-- **Five storage categories.** Wiki files, board attachments, page images, avatars and other images are counted separately.
-- **Storage usage is kept up to date.** Usage changes with every upload and deletion and can be read per station and category.
-- **Presets are stored and applied.** Presets can be created, changed, applied to stations and reset.
-- **Limits are checked on every upload.** Ember checks the station's limits and the size of single files and images. It also notices when the warning threshold is crossed.
-- **Usage is recounted regularly.** A recount of files and database runs a minute after startup and then at the interval you set.
-- **Presentations are packed tighter.** They are recompressed at the highest setting without losing anything.
-- **Storage has its own server addresses.** They cover station usage, the admin overview, presets and recounts.
-- **Station managers hear about full storage.** Crossing the warning threshold notifies them.
-- **Sizes read like people write them.** Values such as "5G" or "50M" are understood and shown the same way.
-- **Storage settings can come from the environment.** Every storage setting can be overridden with a `STORAGE_*` environment variable.
-- **Database updates for storage.** New storage for usage figures and presets, plus limits and a preset on each station.
+- **`StorageCategory` enum** - `wiki_FILES`, `BOARD_ATTACHMENTS`, `PAGE_IMAGES`, `AVATARS`, `IMAGES`
+- **`StorageUsageRepository`** - delta updates, absolute sets, per-station/category queries
+- **`StorageQuotaPresetRepository`** - preset CRUD, apply-to-station, reset quotas, station preset name lookup
+- **`StorageQuotaService`** - quota checking, per-file/image size limits, delta tracking, warning threshold detection
+- **`StorageReconciliationService`** - filesystem walk + DB recalculation, runs on startup (1min delay) and at configured interval
+- **`PresentationCompressor`** - lossless ZIP recompression with `Deflater.BEST_COMPRESSION`
+- **`StorageRoutes`** - station usage, admin overview, preset CRUD, apply/reset, reconciliation triggers
+- **`StorageWarningEvent`** + handler - domain event notifying STATION_MANAGER role
+- **`SizeParser` utility** - parses "5G", "50M" etc. into bytes and formats back
+- **`Storage` config** - Ocular config element with env var overrides (`STORAGE_*`)
+- **DB migration** - `station_storage_usage`, `storage_quota_preset` tables; station quota columns + `storage_preset_id` FK
 
 #### Federation Version
-- **Partners are greeted after startup.** Two minutes after Ember starts, it contacts every partner station.
-- **The version answer has a fixed shape.** `/remote/federation/ping` always answers in the same, well-defined form.
-- **The version covers lending and boards.** What partners exchange for lending and boards now counts towards the version.
-- **Partners without a version are updated.** On startup, every partner still on the placeholder version gets the current one.
-- **New partners start current.** A partner gets the current federation version as soon as it is created.
+- **`FederationVersionBroadcaster`** - eager singleton, pings all remote partners 2min after startup
+- **`/remote/federation/ping`** - returns `VersionPingResponse` (typed record, not Map)
+- **`FederationVersionComputer`** - now tracks DTOs from `FederationRemoteRoutes`, `FederationRoutes`, `LendingRoutes`, `BoardRoutes`
+- **`FederationRepository.backfillPartnerVersions`** - updates all partners with version '0' on startup
+- **`FederationRepository.createPartner`** - sets `federation_version` to current version at creation time
 
 #### Sitemap
-- **The sitemap is built properly.** It is now generated from structured data instead of pieced together as text.
-- **The sitemap says what changed when.** Wiki files and pages carry the date of their last change, and overview pages take the newest date of what they contain.
-- **The sitemap answers quickly.** It is kept in memory for six hours.
+- **Jackson XML serialization** - replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
+- **`lastmod` dates** - wiki files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
+- **Caffeine caching** - sitemap responses cached in-memory for 6 hours
 
 #### Station Applications
-- **Application states are fixed values.** An application's state can only be one of the known states.
-- **Existing applications were tidied up.** Their states were brought into one consistent spelling.
+- **Enum status** - `StationApplication.status` changed from raw string to `ApplicationStatus` enum
+- **DB migration** - existing lowercase status values normalized to uppercase
 
 #### Public Waitlist Backend
-- **A pending state for sign-ups.** Waiting list entries can now wait for approval.
-- **Confirmation links expire.** Each email confirmation link is stored and runs out after 24 hours.
-- **Editors hear about public sign-ups.** A new public sign-up notifies the members who may edit waiting lists.
-- **A confirmation email in two languages.** It is available in German and English.
+- **PENDING status** - new `WaitingListEntryStatus.PENDING` for entries awaiting approval
+- **Verification tokens** - `waitlist_verification_token` table with 24h expiry
+- **Domain event** - `WaitlistPublicRegistration` event + handler for WAITLIST_EDIT notifications
+- **Email template** - verification email in DE/EN
 
 #### Guardian Schema
-- **Guardian names have two parts.** First and last name are stored separately, so an account can be created straight away.
-- **Guardian details have one shape.** The app now uses a single, named description for guardian details.
+- **Name split** - `waiting_list_entry_guardian.name` replaced with `firstname` + `lastname` for direct account creation
+- **`GuardianInput` type** - extracted from inline object types in frontend for type safety
 
 #### Badge Convention
-- **Badges look the same everywhere.** A build check rejects hand-made badges and asks for the shared badge styles.
-- **54 badges were brought in line.** Each one now uses one of the shared badge styles.
-- **A nudge towards named types.** A build check warns when a piece of state is described inline instead of by name.
+- **Lint rule** - error-level rule flags `<span>` with `rounded-full` + padding; must use Badge components
+- **Refactored** - 54 violations converted to PrimaryBadge, SecondaryBadge, SuccessBadge, etc.
+- **Inline type rule** - warning-level rule flags `ref<{ ... }>` patterns that should use named types
 
 #### Bug Fixes
-- **Email confirmation is saved again.** Confirming an email address was not stored correctly. It now is.
-- **Deleting an event comment works.** Deleting a comment did not mark it as deleted. It now does.
-- **Waiting list field settings save.** The settings of a waiting list field could not be read when saved. They now arrive in the form the app sends.
+- **AccountRepository.setEmailVerified** - missing `= TRUE` in SET clause
+- **EventCommentRepository.delete** - missing `= TRUE` in soft-delete SET clause
+- **WaitingListFieldConfig deserialization** - `FieldRequest.config` changed to `String` to match frontend JSON contract
 
 #### Federation Routes
-- **Federation has a new address.** Federation management moved to `/station/federate`. Its old address clashed with other entries in the sidebar.
+- **Route restructure** - federation management moved from `/station/manage/federation` to `/station/federate` to fix sidebar prefix overlap
 
 #### Help Center
-- **The roles page uses the right words.** It now speaks of "User types & permissions".
-- **The federation page is complete.** Texts that were missing from it have been added.
-- **Form labels look the same everywhere.** A shared label style replaces many copies of the same pattern.
-- **The page editor has a help page.** It now has a help center page of its own.
+- **Roles page** - rewritten to use correct "Benutzertypen & Berechtigungen" terminology
+- **Federation page** - added missing i18n keys (shared5-7, dummy content keys)
+- **FormLabel component** - extracted repeated label pattern into reusable component
+- **Page editor help** - dedicated help center page for page editor route
 
 #### Demo Service Refactoring
-- **The demo setup is split into parts.** Its main part shrank from 2180 to 679 lines, and four parts now stand on their own:
-  - Members: groups, profile fields, users and tags.
-  - Events: categories, events, attendance and templates.
-  - News: news articles with their comments.
-  - Pages: public pages with their hierarchy.
-- **Demo data loads faster.** Members are created first, then all other parts load at the same time.
+- **DemoService split** - reduced from 2180 to 679 lines by extracting 4 new seeders:
+  - `DemoMemberSeeder` (643 lines) - groups, profile fields, users, tags
+  - `DemoEventSeeder` (684 lines) - categories, events, attendance, templates
+  - `DemoNewsSeeder` (214 lines) - news articles with comments
+  - `DemoPageSeeder` (174 lines) - public pages with hierarchy
+- **Parallel seeding** - member seeding runs first, all other seeders run in parallel
 
 #### Frontend Architecture
-- **One way to set a page's true address.** Public pages share a single helper for it, based on `NUXT_PUBLIC_SITE_URL`.
-- **The sitemap finds all stations.** A small server step fetches every discoverable station for the sitemap.
-- **The frontend build no longer hangs.** A wrapper waits for the build to finish and then stops the build tool, which could otherwise hang forever.
+- **`useCanonical` composable** - reusable canonical URL + `og:url` injection from `NUXT_PUBLIC_SITE_URL`
+- **`__sitemap` server route** - Nitro server route fetching discoverable stations for dynamic sitemap entries
+- **`build.mjs` wrapper** - polls for build output completion, then SIGKILL's the detached nuxi process group to work around esbuild hang
 
 #### CI/CD
-- **Image builds no longer wait on themselves.** The Docker build no longer waits for its own check, which could block it forever.
+- **`ignore-checks`** - Docker Build workflow excludes `Verify Docker Build` from `wait-on-check-action` to prevent deadlock
 
 ## v26.6.1
 
 ### New Features
 
 #### Mention System
-- **Mention whole groups at once.** In a comment you can now mention an entire group in one go. The same works for everyone on an event, everyone registered, or everyone who declined.
-- **Mentions show faces and colors.** The mention list shows each member's avatar, name color and tags. You find the right person at a glance.
-- **Guardians hear about event mentions too.** When a group is mentioned on an event, the guardians of those members are notified as well.
-- **Mentions respect who may see things.** On content kept to certain groups, the mention list only offers members who can actually see it.
+- **Bulk mentions** - mention entire groups, all event participants, registered members, or declined members in comments
+- **Mention UI with avatars** - mention dropdown shows user avatars, name colors, and display tags
+- **Guardian notifications** - event-related bulk mentions also notify guardians of mentioned members
+- **Restricted mention lists** - when content is restricted to certain groups, only eligible members appear in the mention picker
 
 #### Notifications
-- **Mentions get their own notification.** Being mentioned now has a notification of its own. It no longer looks like a reply to a comment.
-- **Mentions in news comments notify.** When you mention someone in a news comment, they now get a notification.
-- **News notifications name the author.** A notification about a new news post now tells you who wrote it.
+- **Mention notifications** - dedicated notification for mentions, separate from comment reply notifications
+- **News mention notifications** - mentioning users in news comments now triggers notifications
+- **News author in notifications** - new news notifications now show the author name
 
 #### Event Detail
-- **Event pages are split into tabs.** An event's page now has an Info tab and a Registrations tab.
-- **Simple cards for pending registrations.** If you cannot confirm registrations, you see pending ones as simple cards.
+- **Tab layout** - event detail page split into Info and Registrations tabs
+- **Non-manager registration display** - pending registrations show as simple cards for users without confirmation permissions
 
 ### Bug Fixes
-- **Registering uses the event's own date.** Signing up for or declining an event could be recorded for today instead of the event's day. It now uses the right date.
-- **Recurring events show today correctly.** A recurring event that had not ended yet could skip today as its next date. Today now shows as the next date while the event is still running.
-- **Event notifications open the right event.** Comment and mention notifications for events led to the list of events. They now open the event itself.
-- **No more empty requirements page.** With nothing left to complete, the requirements page showed an empty screen. It now takes you to the dashboard instead.
-- **Avatars stop reloading in the mention list.** Avatars in the mention list loaded again every time you hovered over them. They now load once.
+- **Event registration date** - registration and decline actions now use the correct event date instead of defaulting to today
+- **Recurring event next occurrence** - correctly shows today as next occurrence when the event hasn't ended yet
+- **Notification links** - comment and mention notifications for events now link to the specific event detail page instead of the events list
+- **Requirements redirect** - requirements page redirects to the dashboard when there are no pending requirements instead of showing an empty page
+- **Avatar loading** - user avatars no longer re-fetch on every hover in the mention dropdown
 
 ### Improvements
-- **Home page tiles fit every screen.** The tiles show one at a time on a phone, two on a tablet and three on a desktop. The arrows are always visible, and you can swipe on touch screens.
-- **The logo takes you home.** Clicking the Ember logo or name in the sidebar opens the home page.
+- **Mobile-friendly tile reel** - home page tiles are responsive (1 on mobile, 2 on tablet, 3 on desktop) with always-visible navigation arrows and touch swipe support
+- **Sidebar home link** - clicking the Ember logo/name in the sidebar navigates to the home page
 
 ### Technical Changes
 
 #### Database
-- **Full names are stored ready to use.** The database now keeps each account's full name ready. Lists and searches no longer piece it together each time.
+- **Generated `full_name` column** - `account.full_name` stored generated column replaces repeated `TRIM(first_name || ' ' || last_name)` in SQL queries (patch_7)
 
 #### Backend Architecture
-- **Group mentions have fixed kinds.** Mentioning a group, an event, the registered or the declined now uses a fixed set of kinds. Typos in these can no longer slip through.
-- **Group mentions become personal notifications.** A mention of a whole group is turned into one notification for each member behind it.
-- **Mentions are no longer comment replies.** The mention notification is its own type with its own text, separate from news comment notifications.
-- **Wiki comment notifications moved behind the scenes.** Notifications about wiki comments are now raised in one central place. You will not notice a difference.
-- **News finds its author's name itself.** Ember now looks up the author's name of a news post on its own. Nobody has to hand it over anymore.
-- **Event dates are checked on the server.** A one-time event takes its date from its start time. For a recurring event, Ember checks that the date falls on the right weekday.
-- **Member suggestions follow visibility.** The member suggestions can now be limited to the members who may see a given entry.
+- **`MentionType` enum** - replaces raw strings for bulk mention types (`GROUP`, `EVENT`, `REGISTERED`, `DECLINED`)
+- **`BulkMentionedInComment` domain event** - new event type resolved by `BulkMentionedInCommentHandler` to individual member notifications
+- **`COMMENT_MENTION` notification type** - separate from `NEWS_COMMENT`, with `CommentMention` params and own locale key
+- **Wiki comment events moved to service** - domain event publishing for wiki comments moved from `KnowledgeBaseRoutes` to `KnowledgeBaseService`
+- **`NewsService` resolves author name** - derives author name from `MemberIdentity` via account lookup instead of requiring callers to pass it
+- **Event date validation** - backend derives event date for one-time events from `startTime` and validates day-of-week for recurring events
+- **Restriction-filtered completions** - `/station-members/completions` accepts optional `restrictionType` and `entityId` params to filter by entity visibility
 
 #### Frontend Architecture
-- **Registrations live in their own tab.** The registration part of the event page moved into its own piece. The event page shrank from 506 to 319 lines.
-- **One list for every kind of mention.** The mention box now suggests members, groups and special mentions in a single list.
-- **Avatars react only to real changes.** An avatar now reloads only when the member it shows actually changes.
+- **`EventRegistrationsTab` component** - extracted registration logic from `EventDetailView` (319 lines, down from 506)
+- **`MentionInput` unified suggestions** - refactored to support members, groups, and special mentions in a single dropdown
+- **`UserAvatar` watcher fix** - watches derived `stationUid/memberUid` string instead of deep-watching the identity object
 
 ## v26.6.0
 
 ### New Features
 
 #### Boards (Planer)
-- **Boards for planning your work.** Every station can now plan on its own kanban boards. You shape the lanes yourself and drag tickets between them.
-- **Tickets with everything they need.** A ticket carries a title, a formatted description, one of five priorities, an assignee and a due date. Custom fields hold whatever else your station tracks.
-- **Checklists inside tickets.** Add a checklist to a ticket, reorder it by dragging and watch the progress bar fill up. Finished items can be cleared in one go.
-- **Tickets can point at each other.** Link tickets as related, blocking, blocked by, causing or caused by. The links show neatly on the ticket.
-- **Web links on tickets.** You can attach links to outside websites to a ticket.
-- **Files on tickets, with previews.** Upload files to a ticket and see them as tiles. Images, PDFs and CSV tables open full screen, and the arrow keys take you through them.
-- **Colored labels for sorting.** Each board has its own colored labels, which you can create right where you pick them. Filter the board and the archive by label.
-- **Wiki pages on tickets.** Link a wiki page to a ticket by searching for its title. The ticket shows the folder it lives in.
-- **Talk it through in comments.** Tickets have threaded comments with mentions. You can reply, edit and delete.
-- **Watch a ticket you care about.** Follow a ticket and get a notification whenever it changes.
-- **The whole story of a ticket.** One timeline shows comments, lane moves and every change to priority, labels, text, due date and fields. Lane colors, priority icons and label badges make it easy to scan.
-- **Give your lanes a color.** The color tops the lane's column and tints the ticket's status button.
-- **Lanes that assign people.** A custom field can name a member who takes over a ticket as soon as it reaches a certain lane.
-- **A backlog out of sight.** Switch on a backlog for a board, and its tickets wait in a hidden lane. They have their own table view.
-- **An archive for finished tickets.** Done tickets disappear from the board after a set number of days. You find them in the archive, filterable by label.
-- **Only the boards you can open.** The board overview lists just the boards you have access to.
-- **Managers keep boards in order.** A management page lets managers create, edit and delete boards. Each card has its own settings button.
-- **Board settings in one place.** Edit lanes and their colors, add custom fields of several kinds and switch the backlog on or off. You also decide here who may view and who may edit.
-- **Reminders for overdue tickets.** Once a day, the assignee hears about overdue tickets that have not reached the last lane.
-- **Search across all tickets.** Search finds tickets by title and description, with the best matches first.
-- **Look without touching.** If you may only view a board, you see everything without any edit controls.
-- **Drag and drop throughout.** Drag tickets between lanes and see where they will land. Checklist items have handles to drag them by.
+- **Kanban boards** - per-station scrum/kanban boards with customizable lanes, drag-and-drop ticket reordering between lanes, and position indicators
+- **Ticket management** - create, edit, delete tickets with title, rich markdown description (tiptap editor), priority (5 levels with icons), assignee, due date, and custom fields
+- **Checklists** - add checklists to tickets with drag-and-drop reordering, progress bar, and bulk delete
+- **Ticket links** - link tickets with typed relationships (Relates to, Blocks, Blocked by, Causes, Caused by) with confluence-style display
+- **Weblinks** - add external URLs to tickets
+- **File attachments** - upload files to tickets with tile-based preview grid; image thumbnails, PDF viewer, and CSV table preview in a fullscreen overlay with keyboard navigation (arrow keys)
+- **Labels** - color-coded labels per board with multi-select dropdown, inline creation, and label filter on the board and archived views
+- **Wiki links** - link wiki pages to tickets with title search and folder path display
+- **Comments** - threaded comments using CommentThread component with @mentions, reply, edit, delete
+- **Watch/unwatch** - subscribe to ticket changes and receive notifications
+- **Activity feed** - interleaved timeline of comments, lane transitions, and history entries (priority changes, label assignments, title/description/due date changes, field changes) with rich formatting (lane color pills, priority icons, label badges)
+- **Lane colors** - assign colors to lanes; used for lane column top borders and the ticket status button
+- **Lane assignee** - custom field type `lane_assignee` that auto-assigns a member when a ticket moves to the referenced lane
+- **Backlog** - board-level toggle that creates a hidden backlog lane; dedicated table view at `/station/boards/:boardId/backlog`
+- **Archived view** - dedicated table view for tickets past the hide-done-after-days threshold at `/station/boards/:boardId/archived` with label filtering
+- **Board overview** - `/station/boards` shows only boards accessible to the user
+- **Board management** - `/station/boards/manage` for managers to create, edit, delete boards with settings icon per card
+- **Board settings** - lane editor with color picker, field editor (string, number, boolean, enum, date, lane_assignee), backlog toggle, view/edit access restrictions
+- **Due date reminders** - daily notification to assignee for overdue tickets not in the last lane
+- **Full-text search** - PostgreSQL tsvector/tsquery on ticket title and description with relevance ranking
+- **Read-only access** - users with view-only access see all content but cannot edit; all edit controls hidden
+- **Drag-and-drop** - tickets between lanes with visual drop indicator; checklist items with grip handles
 
 #### Board Access & Permissions
-- **Managers reach team boards.** A board kept to the team was closed to managers. Managers can now open it, as their role always implied.
-- **Ember knows who may edit a board.** The board now checks with the server whether you may edit it.
-- **Decide who sees and edits each board.** Limit viewing and editing per board by role, group or tag.
+- **Role hierarchy in board access** - MANAGER role now correctly grants access to TEAM-restricted boards via transitive role expansion
+- **Dedicated can-edit endpoint** - `GET /boards/{id}/can-edit` for frontend to check edit permission
+- **View/edit access restrictions** - per-board role, group, and tag based access control
 
 #### Permission System
-- **Permissions that fit each task.** The old handful of roles gives way to a tree of permissions. Each area, such as events, members, inventory or boards, has its own rights to read, edit and manage.
-- **Permissions for whole member types.** A new page lets you grant extra permissions to every trial member, member, guardian or team member of the station at once.
-- **A clearer way to pick permissions.** Permissions now come in collapsible groups with icons and short descriptions. This replaces the old role checkboxes on members and groups.
-- **The sidebar shows what you may use.** Each sidebar link now appears according to your actual permissions. It no longer depends on being a manager or not.
-- **Read without edit controls.** If you may read but not edit, for example the waiting list or a board, you see the content without the edit buttons.
-- **Finer rights for tests.** The single quiz manager role is split up. Viewing and editing catalogs, setting up tests, reading results and reviewing each have their own permission now, and managing tests and protocols sits with station administration.
-- **Separate rights for protocols.** Setting up protocols, starting runs and grading members are now three separate permissions.
-- **One right covers all news editing.** Creating, editing and deleting news posts now fall under one news editing permission. Sharing news with partners has a permission of its own.
-- **Separate rights for forms.** Seeing a form's results and creating or editing forms are now separate permissions. Forms can also be kept to chosen members.
-- **Finer rights for station settings.** General settings, look and feel, mail, modules and import and export each have their own permission now. In the sidebar, managing and partner stations are now groups of their own.
-- **Finer rights for members.** Importing, deleting and setting permissions or member types now need the right to edit members. Managing tags and reading member details have permissions of their own.
-- **Finer rights for inventory.** Changing and deleting items needs the right to edit inventory. Reading what a member holds needs the right to read members.
+- **Granular permissions** - replaced the flat role system with a hierarchical permission tree; each feature area (events, members, inventory, boards, etc.) has its own read/edit/manage permissions
+- **User type permissions** - assign extra permissions to entire user types (Trial, Member, Guardian, Team) station-wide via a new management page
+- **Permission picker** - new hierarchical permission selector with collapsible groups, icons, and descriptions; replaces the old flat role checkboxes in member edit and group management
+- **Sidebar permission gating** - sidebar links are now shown or hidden based on the user's actual permissions rather than all-or-nothing manager checks
+- **Read-only views** - users with read permission but not edit permission see content without edit controls (e.g. waiting list, boards)
+- **Granular test permissions** - decomissioned QUIZ_MANAGER; replaced with TEST_CATALOG_VIEW, TEST_CATALOG_EDIT, TEST_CONFIGURE, TEST_RESULT_READ, TEST_REVIEW, and standalone TEST_MANAGER/PROTOCOL_MANAGER under STATION_ADMINISTRATOR
+- **Protocol permissions** - PROTOCOL_CONFIGURE for definitions, PROTOCOL_CREATE for runs, PROTOCOL_TESTER for grading
+- **NEWS_CREATE renamed to NEWS_EDIT** - covers creating, editing, and deleting news posts; NEWS_FEDERATE gates federation sharing
+- **Form permissions** - POLL_VIEW_RESULTS for viewing analytics, POLL_CREATE for creating/editing forms; member restrictions in restriction picker
+- **Station management permissions** - granular route permissions (STATION_GENERAL, STATION_LOOK_AND_FEEL, STATION_MAIL, STATION_MODULES, STATION_IMPORT_EXPORT) replace STATION_ADMINISTRATOR; sidebar restructured with manage and federation as separate top-level groups
+- **Member permissions** - MEMBER_EDIT replaces MEMBER_MANAGER on import/delete/permissions/user-type routes; MEMBER_MANAGE_TAGS for tag CRUD; MEMBER_READ for GET endpoints
+- **Inventory permissions** - INVENTORY_EDIT for update/delete items; MEMBER_READ for member inventory items
 
 #### Member Identity & Display
-- **Groups give names their color.** Give each group a color. A member's name then shows in the color of their highest-ranking group, everywhere in Ember.
-- **Tags as colored badges.** Mark a tag as visible, give it a color and a place. It then shows as a small colored badge next to member names.
-- **One way to name a member.** A member is now identified the same way everywhere, from storage all the way to the screen.
-- **Names come straight from the member.** Every displayed member name is now taken from that one shared identity.
+- **Group colors** - assign a display color to groups; the highest-priority group's color is used as the member's name color everywhere
+- **Tag badges** - tags can be marked visible with a color and position; they appear as inline colored pill badges next to member names
+- **Unified member identity** - a single identity model (station UUID + member UUID + display name) is used everywhere from database through API to frontend
+- **MemberName driven by identity** - the `MemberName` component derives its display name solely from the identity object
 
 #### Waitlist Guardians
-- **Several guardians per waitlist entry.** An entry on the waiting list can now hold several guardians, each with name, email and phone number. This replaces the single parent name and email.
-- **Guardians get their accounts automatically.** When you accept an entry from the waiting list, Ember creates accounts for its guardians. They can sign in right away and are linked to their child.
-- **New entries start as trial members.** An entry on the waiting list counts as a trial member until you accept it. Then it becomes a full member.
-- **Guardian details at a click.** Click an entry on the waiting list to see its guardians' contact details.
-- **Room to add an entry.** Adding someone to the waiting list now opens a full page instead of a small dialog.
-- **Adding to the waitlist has its own right.** A new permission lets people add entries to the waiting list without being able to edit it.
+- **Multiple guardians per waitlist entry** - each entry can have multiple guardians with name, email, and phone number, replacing the single parent name/email fields
+- **Guardian auto-onboarding** - when a waitlist entry is accepted, guardian accounts are automatically created with GUARDIAN user type, LOGIN and MEMBER_GUARDIAN permissions, and linked to the child member
+- **Trial member type** - waitlist entries are created as TRIAL type until accepted, then converted to MEMBER
+- **Expandable guardian details** - clicking a waitlist entry expands to show guardian contact details
+- **Dedicated entry creation view** - adding waitlist entries uses a full page view instead of a modal
+- **Waitlist permission split** - new WAITLIST_ADD permission for adding entries without full edit access
 
 #### Member Detail & Edit
-- **A member's page in tabs.** A member's page is now split into Profile, Permissions, Guardians, Absences, Inventory and Notes.
-- **Link guardians and members.** A new Relations tab lets you assign guardians to members, and members to guardians.
-- **Absences on the member's page.** If you may edit members, you can add, view and delete absences right from a member's page.
-- **See what a member may do.** The Permissions tab shows a member's type, their permissions in plain words, their groups and their tags.
+- **Member detail tabs** - split into tabs: Profile, Permissions, Guardians, Absences, Inventory, Notes
+- **Relations tab** - new tab on member edit for assigning guardians to members and members to guardians
+- **Absences tab** - users with MEMBER_EDIT can create, view, and delete absences from the member detail view
+- **Permissions tab** - shows user type, permissions with human-friendly names, groups, and tags
 
 #### Event Reminders
-- **Reminders before an event.** Events and event templates can carry several reminders, each a chosen number of days before.
-- **Reminders go out on their own.** Ember sends the reminders in the background to everyone they concern.
-- **Reminders reach the right people.** For a public event, everyone who did not decline is reminded. For an event with registration, only those registered or waiting for confirmation.
-- **Templates pass on their reminders.** An event created from a template takes over the template's reminders.
+- **Configurable reminders** - events and event templates support multiple reminders defined in days before the event
+- **Reminder scheduler** - background checker sends EVENT_REMINDER notifications to eligible members
+- **Smart targeting** - public events notify all non-declined members; registration-required events notify only accepted/pending registrants
+- **Template carry-over** - reminders from templates are applied when creating events from templates
 
 #### Federated Comments
-- **Comment on partner events.** You can comment on events your partner stations share with you. Each comment shows the station its author belongs to.
-- **Comment on partner news.** News posts shared by partners can be commented on too, with full threads.
-- **Comments on wiki files.** Wiki files have threaded comments, shared with partners as well. Deleted comments are hidden rather than wiped.
+- **Event comments** - comment on events shared by federation partners; comments show the author's station badge
+- **News comments** - comment on news posts shared by partners with full threading support
+- **Wiki comments** - threaded comments on wiki files with federation support and soft-delete
 
 #### News Federation
-- **Share news post by post.** Choose for each news post whether it goes to all partners or only to some.
-- **Decide who reads shared news.** Set the minimum role a partner station's member needs to see your shared news.
-- **Partner news in your feed.** Posts from partners show up right in your news list, marked with a badge.
+- **Per-post sharing** - choose which news posts to share with partners: all partners or specific ones
+- **Visibility role** - set a minimum role for shared news visibility at partner stations
+- **Federated news in feed** - partner news posts appear inline in the news list, marked with a federation badge
 
 #### Event Cancellation
-- **Cancel an event with a reason.** Managers can now cancel an event and say why.
-- **Events cancel themselves when too empty.** An event that has too few registrations by a set date is cancelled automatically.
-- **Everyone hears about a cancellation.** All registered members get a notification when an event is cancelled.
+- **Manual cancellation** - managers can cancel events with a reason
+- **Auto-cancellation** - events that don't reach the minimum registration count by a threshold date are automatically cancelled
+- **Cancellation notifications** - all registered members receive an EVENT_CANCELLED notification
 
 #### Quiz & Test Improvements
-- **Four new kinds of questions.** Tests now offer list questions, ordering, matching and fill in the gap.
-- **Read catalogs without editing them.** If you may view catalogs, you see their questions and answers without edit controls.
-- **All attempts on a Results tab.** A test's page now has a Results tab that lists every attempt.
-- **An attempt opens in one go.** Opening an attempt now loads the attempt, its questions and the member together.
-- **Faster grading.** Shortcuts let you mark a question as reviewed and go on, or mark it and finish. The buttons are smaller, and the navigation on phones is tidier.
+- **New question types** - enumeration, ordering, matching, and fill-in-the-gap questions
+- **Readonly catalog view** - users with TEST_CATALOG_VIEW see catalogs and questions with answers without edit controls
+- **Test results tab** - test detail view has a Results tab showing all attempts
+- **Enriched attempt detail** - single API call returns attempt, full question details, and member identity
+- **Grading UX** - "Geprüft & Weiter" / "Geprüft & Beenden" shortcuts; compact icon buttons; reorganized mobile navigation
 
 #### Other
-- **See what you still need to do.** A new page shows the requirements you still have open at your station. A badge in the sidebar keeps count.
-- **Boards are easier to get around.** Board addresses are readable, partner tickets can be linked and the activity tab runs in order. You can also move around with the keyboard.
-- **Sidebar counts load at once.** All the badges in the sidebar now arrive together in a single request.
-- **Clearer error files in development.** Error files written during development are named by time, source and a short code. Errors caught in the browser are reported there too.
-- **The end date fills itself in.** When you set a start date and the end date is empty, Ember fills it in for you.
-- **Two more modules to switch.** Test protocols and boards can now be switched on and off on the modules page.
+- **Station requirements view** - shows outstanding requirements for the current member with sidebar badge
+- **Board improvements** - human-readable URLs, federated ticket links, chronological activity tab, keyboard navigation
+- **Sidebar counts** - all sidebar badges load in a single API call
+- **Dev error handler** - filename format `HH-mm-ss - source - hash.txt`; `reportCaughtError()` for frontend catch blocks
+- **Start/end date sync** - setting a start date auto-fills the end date if empty
+- **Modules toggle** - added TEST_PROTOCOL and BOARDS to the modules management page
 
 ### Improvements
 
-- **Fields without borders.** Input fields can drop their border for clean editing right in place.
-- **Click a title to edit it.** A ticket's title reads like a heading. Click it, and you can edit it in place.
-- **Member picker opens ready.** The member picker opens its list right away, with the cursor in the search.
-- **Priority picker opens ready.** The priority picker opens its list right away.
-- **Editors close when you click away.** The editors for lane, priority, assignee and due date close when you click outside them.
-- **A proper color picker.** Lane colors in the board settings are now chosen with a dedicated color field.
-- **Drop-down lists keep their size.** Drop-down lists no longer grow too wide or shrink too far in tight layouts.
-- **The checklist progress bar shows up.** The checklist's progress bar was invisible. It now shows in the station's main color.
-- **Overdue tickets stand out.** A due date that has passed shows in red on the ticket's tile.
-- **See attachments at a glance.** A paperclip with a count on each ticket tile shows how many files it carries.
-- **A real Save button for descriptions.** Saving a ticket's description now uses a proper Save button instead of a checkmark.
-- **Comments are sent with Submit.** The comment button now reads Submit, the same as on news comments.
-- **Your boards in the sidebar.** The sidebar lists only the boards you can view. Managers see all of them on the management page.
+- **Borderless input fields** - new `borderless` prop on BaseInput/TextInput for clean inline editing
+- **Click-to-edit title** - ticket title renders as heading, switches to borderless input on click
+- **MemberSelectInput auto-open** - opens dropdown and focuses search immediately on mount
+- **IconSelectInput auto-open** - priority selector opens dropdown immediately
+- **Click-outside handling** - all sidebar editors (lane, priority, assignee, due date) close when clicking outside the right column
+- **Color input component** - new ColorInput.vue for lane color selection in settings
+- **SelectInput min-w-0** - global fix for dropdown width issues in flex containers
+- **Checklist progress bar** - fixed invisible bar (was using undefined `--accent`, now uses `bg-primary`)
+- **Overdue due dates** - highlighted in red on ticket tiles
+- **Attachment count on tiles** - paperclip icon with count in ticket tile bottom row
+- **Description save button** - replaced checkmark icon with proper "Speichern" PrimaryButton
+- **Comment submit button** - changed to "Absenden" matching news comment pattern
+- **Sidebar boards** - only shows boards the user can view (managers see all in manage view)
 
 ### Bug Fixes
 
-- **Board access settings show what was saved.** The view and edit settings of a board came back empty. They now show the groups and roles you saved.
-- **Board management has its buttons back.** The management page did not show the controls to create and edit boards. They are back.
-- **Board managers see only their boards.** Board managers saw every board in the sidebar. They now see only the boards they may open.
-- **Managers reach boards kept to the team.** A board kept to the team stayed closed to managers. Managers can now open it.
-- **Downloading files works.** Downloading a file from a ticket failed with an access error. It now downloads.
-- **Creating tickets works again.** Creating a ticket could fail with an error. It now goes through.
-- **Wiki links show clean folder paths.** A wiki file at the top level showed its folder with a doubled slash. The path now reads correctly.
-- **Wiki links appear right away.** A ticket's wiki links did not show on its first opening. They now load straight away.
-- **The checklist progress bar was invisible.** It used a color that did not exist. It now shows.
-- **Lane tops had no color.** The colored border on top of each lane used a color that did not exist. It now shows the lane's color.
+- Fixed getViewAccess/getEditAccess returning empty lists instead of actual stored restriction IDs
+- Fixed manage view not showing create/edit controls
+- Fixed board managers seeing all boards in sidebar instead of only accessible ones
+- Fixed role hierarchy not applied in board access checks (MANAGER not matching TEAM restrictions)
+- Fixed file download throwing unauthorized (switched from direct URL to authenticated blob download)
+- Fixed `createTicket` CTE missing `attachment_count` column causing runtime error
+- Fixed wiki link `folderPath` showing double `/` for root-level files
+- Fixed wiki links not loading on initial ticket detail page load
+- Fixed checklist progress bar invisible (undefined CSS variable)
+- Fixed lane top border using undefined `--accent` variable
 
 ---
 
 ### Technical Changes
 
 #### Database
-- **A home for everything on boards.** The database gains storage for boards and all their parts. That covers lanes, fields, tickets, links, checklists, comments, watchers, files, history, labels and wiki links.
-- **Tickets are ready for search.** Ticket text is indexed as it is saved, so search stays fast as boards grow.
-- **Each board remembers its backlog.** A board keeps track of which lane is its backlog.
+- **Patch 6** - 15 new tables: `board`, `board_lane` (with color), `board_field`, `board_view_access`, `board_edit_access`, `board_ticket` (with full-text search vector), `board_ticket_field_value`, `board_ticket_link`, `board_ticket_checklist_item`, `board_ticket_transition`, `board_ticket_comment`, `board_ticket_watcher`, `board_ticket_weblink`, `board_ticket_attachment`, `board_ticket_history`, `board_label`, `board_ticket_label`, `board_ticket_kb_link`
+- Generated tsvector column with GIN index for full-text search
+- Board-level `backlog_lane_id` FK for backlog support
 
 #### Backend Architecture
-- **Boards are built from solid parts.** Boards, lanes, fields, tickets and everything attached to them each have a clear shape on the server. Priorities are one of them.
-- **Boards are stored and loaded together.** One place on the server saves and loads boards with their lanes, fields, labels, access rules and backlog.
-- **Tickets are stored and loaded together.** One place saves and loads tickets with all they carry. The activity timeline comes from a single combined lookup.
-- **Board access follows the role ranking.** Access to a board takes the order of roles into account. Labels and the backlog are managed in the same place.
-- **Tickets keep track of their life.** Moving a ticket assigns the lane's member, and mentions in comments are picked up. Watchers are notified, and every change lands in the history.
-- **Over fifty ways in for the app.** Boards and tickets come with more than fifty server endpoints behind the screens.
-- **A daily check for due dates.** A background job sends the daily reminders about due dates.
-- **One notification for any ticket change.** Watchers get the same kind of notification, whatever changed on the ticket.
-- **Mentions work on tickets.** Mentioning someone in a ticket comment notifies them with a link to the ticket.
-- **Small helpers got their own place.** A few small pieces of board data moved into their own files during formatting. You will not notice a difference.
+- **18 new entity records** with RowMapping: Board, BoardLane, BoardField, BoardFieldConfig, BoardTicket, BoardTicketLink, LinkType, BoardTicketTransition, BoardChecklistItem, BoardComment, BoardWeblink, BoardTicketAttachment, BoardTicketFieldValue, BoardTicketWatcher, BoardTicketHistory, BoardLabel, BoardTicketKbLink, TicketPriority
+- **BoardRepository** - CRUD for boards, lanes, fields, labels, access restrictions, backlog management
+- **BoardTicketRepository** - CRUD for tickets, links, checklist, comments, weblinks, attachments, field values, watchers, history, wiki links, activity feed (UNION ALL query)
+- **BoardService** - access control with role hierarchy expansion via `Roles.expand()`, label management, backlog toggle
+- **BoardTicketService** - ticket lifecycle, lane_assignee auto-assignment on move, @mention parsing in comments, watcher notifications, history logging for all changes
+- **BoardRoutes / BoardTicketRoutes** - 50+ REST endpoints
+- **DueDateReminderChecker** - scheduled executor for daily due date notifications
+- **BoardTicketChanged** domain event - consolidated watcher notification for all ticket changes
+- **MentionedInComment** extended - `BOARD_TICKET` ethentity type with ticket-detail link
+- **LaneData, AccessData, TicketLabelMapping** - extracted to top-level records by spotless
 
 #### Frontend Architecture
-- **New pages for boards.** Boards come with their own pages for the overview, a single board, a ticket, the settings, the backlog and the archive. Five new help pages explain them.
-- **New building blocks for boards.** Ticket tiles, checklists, the activity timeline, ticket links, a label picker and a color field are new. The existing drag list is reused.
-- **The app talks to boards in one place.** More than forty calls cover boards, tickets, labels, files, wiki links and history.
-- **Files open only for you.** Ticket files are downloaded and previewed with your sign-in. Bare file addresses are no longer used.
+- **15 new views**: BoardOverviewView, BoardListView, BoardView, TicketDetailView, BoardSettingsView, BacklogView, ArchivedView + 5 help center pages
+- **7 new components**: TicketTile, TicketChecklist, TicketActivity, TicketLinksSection, LabelSelectInput, ColorInput, DragList (reused)
+- **boards.ts API** - 40+ functions for all board, ticket, label, attachment, wiki link, and history operations
+- **Authenticated file handling** - blob download/preview via axios instead of direct URLs
 
 #### Permission Architecture
-- **Permissions and member types are well defined.** Station and instance permissions and member types each have a fixed set. Loose role names are gone.
-- **Member type permissions are stored.** Permissions given to whole member types are saved, and the app can read and change them.
-- **The permission picker explains itself.** It shows permissions as a tree and hides those already implied. It also says where a granted permission comes from.
-- **Every page checks the right permission.** Each server action now checks the specific permission it needs. Reading often needs only a read permission where it used to need a manager.
+- Four new enums: `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` replacing flat role strings
+- `station_user_type_permission` DB table with CRUD API endpoints
+- `PermissionPicker.vue` component with hierarchical display, implicit grant hiding, and "granted by" attribution
+- Permission granularity across all route handlers; read-only routes accept `_READ` where previously they required manager grants
 
 #### Member Identity
-- **Every member has a lasting identity.** Each member now carries a lasting identifier together with their station. Members of your own and of partner stations are handled the same way.
-- **Names are looked up once.** Member names are resolved in one place and kept at hand for speed.
-- **Mentions name station and member.** Mentions now point to both the station and the member. Older mentions keep working.
+- `uid UUID` column added to `station_member`; `MemberIdentity(stationUid, memberUid)` record replaces dual local/federated representation
+- `MemberIdentityFactory` service with `MemberNameResolver` Caffeine caching
+- Mention format migrated to `@[stationUid/memberUid:Name]` with legacy support
 
 #### Waitlist & Guardians
-- **Guardians of waitlist entries are stored.** Each entry's guardians are saved and leave with the entry. The parent name and email of older entries were carried over.
-- **Reminders are stored and tracked.** Ember saves the reminders of events and templates and remembers which ones it has sent.
-- **Reminders are checked every half hour.** A background job looks for due reminders every 30 minutes.
-- **Questions of an attempt load together.** All questions of a test attempt are fetched in one go.
+- `waiting_list_entry_guardian` table with cascade delete; migration backfills from legacy `parent_name`/`email`
+- `event_reminder`, `event_template_reminder`, `event_reminder_sent` tables for reminder tracking
+- `EventReminderChecker` scheduled executor (every 30 minutes)
+- `QuizCatalogRepository.findQuestionsByIds()` batch query for enriched attempt detail
 
 #### Test Coverage
-- **Board storage is well tested.** More than 20 tests cover how tickets, lanes, labels, files, fields, links, search, history, backlog and wiki links are stored.
-- **Board logic is well tested.** More than 25 tests cover editing, access by role, labels, backlog, fields, files, comments, watchers and moving or linking tickets.
-- **Background jobs stay out of the coverage count.** The two reminder jobs run in the background and are left out of the test coverage figures.
-- **Every coverage goal is met.** Tests cover 95% of storage code, 90% of the logic and 80% of the request handling.
+- **Board repository tests** - 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, wiki links
+- **Board service tests** - 25+ tests covering CRUD, access control with role hierarchy, labels, backlog, field values, attachments, comments, watchers, move/reorder/link operations
+- **JaCoCo exclusion** - DueDateReminderChecker, EventReminderChecker excluded (daemon pattern)
+- All coverage thresholds met: 95% repositories, 90% services, 80% handlers
 
 ---
 
@@ -2505,122 +2505,122 @@ A new admin page under "Monitoring → Feed Telemetry" charts how feeds are used
 ### New Features
 
 #### Comments & @Mentions
-- **Talk about events in comments.** Events now have threaded comments, just like news.
-- **Mention people with an @.** Type `@` in any comment to find a member and tag them. They get a notification.
-- **Replies reach the author.** When someone replies to your comment, you hear about it.
-- **Deleted comments keep their replies.** Deleting a comment that has replies no longer wipes the thread. The comment reads "This comment was deleted" instead.
+- **Event comments** - threaded comments on events, just like news comments
+- **@Mentions** - type `@` in any comment to search and tag members; they get a notification
+- **Reply notifications** - replying to a comment notifies the original author
+- **Soft-delete** - deleting a comment with replies shows "Dieser Kommentar wurde gelöscht" instead of removing the whole thread
 
 #### Notes
-- **Notes on items, members and events.** Managers can keep internal notes on inventory items, member profiles and events. Every note keeps its version history.
-- **Member notes stay with managers.** Notes on a member's profile are visible to managers only.
+- **Notes on inventory items, member profiles, and events** - managers can keep internal notes with version history
+- Member profile notes are only visible to managers
 
 #### Feeds (iCal, RSS, Atom)
-- **Your events in your calendar.** Subscribe to your events in Thunderbird, Outlook, Google Calendar or any other calendar app.
-- **Notifications in your feed reader.** Follow your notifications as an RSS or Atom feed.
-- **You control your feeds.** Create, renew or revoke your feed's secret link. Choose which kinds of notifications appear in it.
-- **A nudge to set up feeds.** The dashboard reminds you when your feeds are not set up or not in use.
+- **iCal feed** - subscribe to your events in Thunderbird, Outlook, Google Calendar, or any calendar app
+- **RSS and Atom feeds** - follow your notifications in any feed reader
+- **Feed management** - generate, regenerate, or revoke your feed token; toggle which notification types appear in feeds
+- Dashboard shows a reminder when feeds are not set up or inactive
 
 #### Event Templates
-- **Templates for recurring events.** Save an event as a template with all its fields, attendance settings and registration limits. Load it the next time.
-- **Quick fields for the essentials.** The field editor offers buttons to add Location, Meeting point and Topic in one click.
+- **Reusable templates** - save and load event templates with all fields, attendance settings, and registration limits
+- **Quick fields** - Ort, Treffpunkt, and Thema quick-add buttons in the field editor
 
 #### Federated Events
-- **Share events with partners.** Events can now be shared with your partner stations.
-- **Sign up at partner stations.** You can register for events your partner stations run.
-- **Partner events in your list.** Events from partner stations show up on the upcoming events page.
+- **Cross-station event sharing** - share events with federation partners
+- **Remote registration** - register for events at partner stations
+- Partner station events shown on the upcoming events page
 
 #### Federated Wiki
-- **Browse your partners' wiki.** Look through the files and folders your partner stations share.
-- **Search across partners.** Search asks all your partner stations at the same time.
-- **Focus on one partner.** A filter shows only what a single partner shares.
+- **Shared wiki browsing** - browse files and folders from partner stations
+- **Federated search** - search queries partner stations in parallel
+- **Partner filter** - show only content from a specific partner
 
 #### Public Calendar & Station View
-- **A calendar for the public.** Show your events to visitors who have no account.
-- **A public page for your station.** Visitors see your calendar and your wiki on one page, in tabs.
-- **Choose what the public sees.** Each event field can be marked as public or internal.
+- **Public calendar** - expose an event calendar for visitors without an account
+- **Public station page** - unified public view with calendar and wiki tabs
+- Event fields can be marked as public or internal
 
 #### Event Categories
-- **Sort events into categories.** Create, edit, reorder and delete event categories.
-- **Decide how much each category shows.** Set how many events each category shows on the overview.
-- **Public categories for the calendar.** Mark a category as public to show its events on the public calendar.
+- Create, edit, reorder, and delete event categories
+- Configure how many events each category shows on the overview
+- Mark categories as public for the public calendar
 
 #### Registrations
-- **Registrations grouped by event.** Registrations are grouped per event, with the nearest deadline first.
-- **A table for fair decisions.** See how often each member was accepted or turned down. It helps you decide fairly.
-- **Limit the number of places.** Cap how many registrations an event accepts.
-- **Managers hear about missed deadlines.** When a deadline passes with registrations still open, managers get a notification.
+- **Grouped view** - registrations grouped by event, sorted by deadline
+- **Fairness table** - acceptance/denial ratio per member for fair decision-making
+- **Registration limit** - cap the number of accepted registrations per event
+- **Deadline notifications** - managers are notified when a deadline expires with pending registrations
 
 #### Inventory
-- **A page for every item.** Each inventory item has its own page with its details, who holds it, its full history and the managers' notes.
+- **Item detail page** - view item metadata, current assignment, full history, and manager notes
 
 #### Theming
-- **More themes to choose from.** New themes for color blindness join a fiery new theme.
-- **Rounded or square corners.** Pick the feel you like: rounded or square.
-- **Themes at every level.** The instance, the station and each user pick a theme. Each level can lock its choice for the level below.
+- **New themes** - color blind accessible themes and fire theme
+- **Feel setting** - choose between rounded or cornered UI style
+- **Hierarchical settings** - instance, station, and user each pick their theme; each level can lock for the level below
 
 #### Problem Reports
-- **Report a problem in one click.** A bug icon floats on every station page. Your report brings along the page, your roles and your recent requests.
-- **Admins look after reports.** Admins can view, acknowledge and delete problem reports.
+- **Report a problem** - floating bug icon on all station pages; automatically captures page, roles, and recent requests
+- **Admin review** - view, acknowledge, and delete problem reports
 
 #### Admin Settings
-- **Legal texts in your hands.** Edit the privacy policy, the terms of service, the consent text and the imprint.
-- **Mail settings in the admin area.** Set up the outgoing mail server right in the admin area.
+- **Legal documents** - edit privacy policy, terms of service, consent text, and imprint
+- **Mailing settings** - configure SMTP in the admin UI
 
 ### Improvements
 
-- **Lots of new help pages.** New help covers theming, sessions, notifications, modules, import, partner stations, comments, templates, notes, categories, legal texts and mail.
-- **Guides for setting up feeds.** Step by step guides show how to add the calendar and news feeds in Thunderbird, Outlook, Android and iOS.
-- **Each news post has its own page.** A news post opens on its own page, with the comments always in view.
-- **Notifications take you there.** Clicking a notification opens the right page and marks it as read.
-- **Fold away sidebar sections.** Sidebar headings can be clicked to collapse and expand their section.
-- **Item names lead to the item.** In inventory tables, an item's name opens its page.
-- **Settings in smaller pieces.** Admin and station settings are split into focused pages.
-- **A nicer landing page.** The landing page got a fresh look.
-- **Form answers are checked.** Answers are checked against each question's rules when they are sent. That covers options, selection limits, rating scales, rankings and agreement scales.
-- **Absences for both kinds of managers.** Both event managers and attendance managers can see absences.
+- New help pages for theming, sessions, notifications, modules, import, federation, comments, templates, notes, categories, legal, and mailing
+- iCal and RSS/Atom setup guides for Thunderbird, Outlook, Android, and iOS
+- News has a dedicated detail page with always-visible comments
+- Clicking a notification links directly to the relevant page and auto-acknowledges
+- Sidebar headers are now clickable and collapsible
+- Item names in inventory tables link to the detail page
+- Admin and station settings split into focused sub-views
+- Improved landing page
+- **Form answer validation** - submitted answers are now validated against question rules (option range, multi-select limits, rating scale, ranking order, likert bounds)
+- Absences visible to both event and attendance managers
 
 ### Bug Fixes
 
-- **Mentions are recognized again.** Some mentions were not picked up after sending. They are now recognized reliably.
-- **Deleting a comment kept its replies.** Deleting a comment took all its replies with it. Now only the comment itself is hidden.
-- **News authors hear only about replies.** The author of a news post was notified about every comment. Now only replies reach them.
-- **Wiki share links point to the right place.** Shared wiki links led to the wrong address. They now open the right file.
-- **Partner wiki files open properly.** A file from a partner's wiki tried to open a local file that did not exist. It now opens the partner's file.
-- **Absences stay with managers.** The absences on an event's page were visible to everyone. Only managers see them now.
-- **Past events leave the dashboard.** Registrations for past events still showed on the dashboard. They are gone now.
-- **Dialogs no longer cause warnings.** Dialogs produced warnings in the browser. They are clean now.
+- Fixed @mentions not matching between frontend and backend
+- Fixed deleting a comment removing all replies - now soft-deletes
+- Fixed news author being notified on every comment instead of only on replies
+- Fixed wiki share links pointing to the wrong URL
+- Fixed federated wiki files navigating to a non-existent local file
+- Fixed absences section visible to non-managers on event detail
+- Fixed past event registrations appearing on the dashboard
+- Fixed modal component warnings
 
 ---
 
 ### Technical Changes
 
 #### Architecture
-- **Events behind the scenes.** Changes in Ember now announce themselves inside the server. Nineteen separate handlers turn them into notifications.
-- **Notifications follow real changes.** A notification is created only after a change has actually been saved.
-- **Requests no longer send notifications.** Handling a request and notifying people are now kept apart.
+- **Domain event system** - `DomainEventBus` with Guice multibinding; 19 event handlers decouple notification logic from routes
+- Services publish events after state changes; handlers create notifications
+- Notifications no longer created in route handlers
 
 #### Code Quality
-- **Settings have a proper shape.** The settings of profile, event, attendance, form and waiting list fields are now well defined. Loose text is gone.
-- **Kinds of things are fixed sets.** Field types, note and comment targets, table filters and content kinds now come from fixed lists instead of free text.
-- **Questions are created from proper settings.** Creating a quiz question now takes well defined settings instead of raw data.
-- **Each question checks its answers.** Every form question checks a submitted answer according to its type.
-- **Selection limits are a fixed set.** A multiple choice limit is now none, at most, at least or exactly.
-- **One list of question types.** A duplicate list of question types is gone.
-- **An unused notification trigger is gone.** An old trigger for news comments was removed. The general comment trigger already covers it.
+- All `String config` fields replaced with typed records (`ProfileFieldConfig`, `EventFieldConfig`, `AttendanceFieldConfig`, `FormQuestionConfig`, `WaitingListFieldConfig`) with `parse()`/`toJson()`
+- All `String *Type` fields replaced with proper enums (`ProfileFieldType`, `EventFieldType`, `AttendanceFieldType`, `NoteEntityType`, `CommentEntityType`, `FilterTableType`, `ContentType`, `ChangeType`)
+- `QuizService.createQuestion()` accepts `QuestionConfig` instead of raw JSON
+- `FormQuestionConfig.validate(FormAnswerValue)` validates answers per question type on submission
+- `MultiLimitType` enum replaces raw `String multiLimitType` (NONE, AT_MOST, AT_LEAST, EXACTLY)
+- Unified `QuestionType` enum - removed duplicate inner `FormQuestion.QuestionType`
+- Removed dead `NewsCommented` event (superseded by `CommentCreated`)
 
 #### Frontend Components
-- **New building blocks.** New pieces cover the scrolling tiles, the public event list, the change comparison, the theme picker and the note editor.
-- **Links can point at a comment.** A link can highlight a single comment on the page.
-- **Fast suggestions for mentions.** A lightweight server lookup feeds the member suggestions when you type `@`.
+- `InfiniteReel`, `PublicEventList`, `DiffView`, `ThemeSelector`, `NoteEditor` components
+- Comment highlight via `?comment=123` query param
+- Lightweight `GET /station-members/completions` endpoint for @mention autocomplete
 
 #### Infrastructure
-- **Coverage goals are enforced.** The build checks that tests cover 95% of storage code, 90% of the logic and 80% of the request handling.
-- **Every notification handler is tested.** All nineteen handlers have their own tests.
-- **Tests run side by side.** The automated tests run in three parallel jobs.
-- **Coverage counts across all jobs.** The coverage check adds up the results of the parallel jobs.
-- **Documentation is checked.** The build checks the code documentation.
-- **A broad set of new tests.** New tests cover attendance, sign-in, batch events, comments, consent, partner stations, fields, templates, feeds, forms, wiki, notes, profiles, quizzes, registrations, applications, protocols and settings.
-- **Public flags in the database.** A database update adds what is needed to mark stations, categories, events, fields, boards, problem reports and feeds as public or tracked.
+- JaCoCo coverage enforcement: 95% repositories, 90% services, 80% handlers
+- Unit tests for all 19 domain event handlers
+- Parallel CI test jobs (`testRepositories`, `testServices`, `testOther`)
+- Coverage verification across parallel CI jobs
+- Javadoc verification in CI
+- Comprehensive service test suite (attendance, auth, batch events, comments, consent, federation, fields, templates, feeds, forms, wiki, notes, profiles, quiz, registrations, applications, protocols, settings)
+- Database patch 5: public columns for stations, categories, events, fields, boards, problem reports, feed tracking
 
 ---
 
@@ -2629,149 +2629,149 @@ A new admin page under "Monitoring → Feed Telemetry" charts how feeds are used
 ### New Features
 
 #### Event Batch Import/Creation
-- **Create many events at once.** A wizard walks you through planning, editing and confirming a whole series of events in one go.
-- **Dates fill themselves in.** Tell Ember how many, how often and what kind of event, and it generates the dates for you.
-- **Edit the series like a spreadsheet.** Before the events are created, you adjust them in a table, row by row.
-- **Layouts for consistent events.** Save a set of fields as a layout and reuse it, for a series or for a single event.
-- **A page for your layouts.** Create and edit event layouts and their fields on a page of their own.
-- **Filter upcoming events.** A filter bar narrows upcoming events by category and more.
-- **Events sorted by category.** The events overview groups events by their category.
-- **Fair decisions on registrations.** A panel shows how often each member was accepted or turned down. It helps you share places fairly.
+- **Batch event creation** - create multiple events at once with a multi-step wizard (schedule, edit, confirm)
+- **Date generation** - auto-generate recurring date ranges by count, interval, and event type
+- **Batch edit table** - spreadsheet-style editing of generated events before creation
+- **Event layouts** - reusable field templates for consistent event configuration across batch and single creation
+- **Layout management view** - dedicated view for creating/editing event layouts with field configuration
+- **Event filter bar** - filter upcoming events by category and other criteria
+- **Events by category** - categorized display in the event index view
+- **Registration stats panel** - fairness statistics for event registration acceptance/denial decisions (accepted/denied ratio per member)
 
 #### Federation System
-- **Connect with other stations.** Partner up with other stations and share your wiki, quiz catalogs and test protocols.
-- **Partnerships on your terms.** Start, pause, resume or end a partnership whenever you like.
-- **Choose what goes each way.** For each partner, decide which kinds of content you send and which you receive.
-- **Partners on other Ember servers.** Stations on separate Ember instances can partner too. Every message between them is signed.
-- **Browse what partners share.** Look through the wiki files, quiz catalogs and protocols your partners share with you.
-- **Copy shared content in one click.** Take a copy of a partner's content into your own station.
-- **Browse even when a partner is offline.** Ember remembers what partners share, so you can still look around while their server is away.
-- **Partners hear about changes right away.** Instances tell each other straight away when shared content changes.
-- **Changes are picked up regularly.** Ember also checks partners for updates on a schedule, so nothing slips through.
+- **Multi-station federation** - connect with other stations to share content (Wiki, Quiz catalogs, Test Protocols)
+- **Partnership management** - create, suspend, resume, or end federation partnerships
+- **Capability configuration** - control which content types can be shared per direction (import/export) per partner
+- **Cross-instance federation** - RSA-signed HTTP communication between separate Ember instances
+- **Shared content browsing** - browse wiki files, quiz catalogs, and protocols shared by partners
+- **One-click content copy** - copy federated content to your own station
+- **Metadata caching** - browse federated content even when remote instance is temporarily unavailable
+- **Webhook notifications** - real-time change notification between federated instances
+- **Sync polling** - change log based sync for detecting content updates
 
 #### Inventory Lending
-- **Borrow from partner stations.** Ask a partner station to lend you inventory items for a chosen period.
-- **Every loan has clear steps.** A request moves from requested to approved, lent, returned and finally closed.
-- **Pick the exact items.** Assign specific items to an approved request.
-- **Chat about a loan.** Both stations talk in a built-in chat, with system messages marking each step.
-- **Keep items at home when needed.** Block whole inventories or single items for a period so they cannot be lent.
-- **See what partners can lend.** Browse what partners have available, filtered by dates and searchable.
-- **Know what is out.** Each inventory shows which items are currently lent out.
-- **Block several things at once.** One block can cover several inventories and items, set up with simple tiles.
+- **Lending requests** - request inventory items from federated partner stations with date ranges
+- **Request lifecycle** - REQUESTED → APPROVED → LENT → RETURNED → CLOSED workflow
+- **Item assignment** - assign specific items to approved lending requests
+- **Built-in messaging** - chat between requesting and owning stations with system messages
+- **Inventory blocking** - block inventories or items during date ranges to prevent lending
+- **Available browsing** - browse available inventory from partners with date filtering and search
+- **Lent-out tracking** - view currently lent out items per inventory
+- **Lending blocks** - tile-based creation UI supporting multiple inventories and items per block
 
 #### Federation Discovery
-- **Let others find your station.** Choose whether your station can be found by nobody, by stations on your instance or by everyone.
-- **A public list of stations.** The page `/discovery` lists findable stations to anyone, without signing in.
-- **Pairing codes to get connected.** A short code carries everything another station needs to request a partnership.
-- **Invite codes that just work.** A code created by a manager starts the partnership right away. Consent was already given.
-- **Partnership requests to answer.** A pairing code from discovery creates a request. The other station accepts or declines it.
-- **All requests in one place.** View incoming partnership requests and accept or decline them.
+- **Discovery registry** - stations can opt into being discoverable (none/instance/public visibility)
+- **Public discovery page** (`/discovery`) - browse discoverable stations without login
+- **Pairing codes** - stateless codes (`ember-BASE64(uid)-BASE64(host)`) for requesting federation
+- **Station invite codes** - manager-generated codes that auto-activate (consent already given)
+- **Pair requests** - discovery codes create pending requests that target station must accept/decline
+- **Pair request management** - view and accept/decline incoming federation requests
 
 #### Public Wiki
-- **Open your wiki to the public.** Each station picks a mode: off, everything public or nothing public.
-- **Exceptions for single files and folders.** Any file or folder can differ from the station's mode.
-- **Read the public wiki without an account.** Visitors can browse, read and search public wiki content without signing in.
-- **Public files look right.** Formatted text is rendered, PDFs can be downloaded, images show and YouTube videos play.
-- **Search the public wiki.** Search covers public content and shows a snippet of each match.
+- **Public wiki mode** - OFF, ALLOW_ALL, or DENY_ALL per station
+- **Per-file/folder visibility override** - override the global mode for individual items
+- **Public browsing** - unauthenticated access to browse, read, and search public wiki content
+- **Public file viewer** - rendered markdown, PDF download, image display, YouTube embeds
+- **Full-text search** - PostgreSQL tsvector search on public content with snippets
 
 #### Unified Restrictions System
-- **One system for restrictions.** Who may see what is now handled the same way everywhere.
-- **Combine restrictions freely.** Mix roles, groups, tags and members, and choose whether all or any must match.
-- **Higher roles include lower ones.** A manager has everything the team has, and the team everything a signed in member has.
-- **Managers see everything in their area.** Management roles are not held back by restrictions in their own area.
-- **Restrictions are checked quickly.** The database checks restrictions directly, which keeps lists fast.
+- **Consolidated architecture** - single restriction table per entity type replacing scattered tables
+- **Flexible modes** - AND/OR logic for combining role, group, tag, and member restrictions
+- **Role hierarchy** - transitive permission inheritance in PostgreSQL (MANAGER → TEAM → LOGIN)
+- **Manager bypass** - management roles automatically bypass restrictions in their domain
+- **Database functions** - efficient PL/pgSQL restriction checking with member identity resolution
 
 #### Quiz AI Generation
-- **Let AI write quiz questions.** Generate questions and wrong answers with the help of an AI provider.
-- **Many questions at once.** Generate several questions per category, with an eye on what is already there.
-- **Your own instructions.** Replace the default instructions for each batch you generate.
-- **Generation runs in the background.** Long generations keep going while you wait, and the results appear when they are ready.
+- **AI-powered question generation** - generate quiz questions and wrong answers via AI providers
+- **Batch generation** - generate multiple questions per category with context awareness
+- **Custom prompts** - override default prompts per generation batch
+- **Async job processing** - long-running generation with polling for results
 
 #### Quiz CSV Import
-- **Import questions from CSV.** Bring questions from a CSV file into a quiz catalog.
-- **Map the columns your way.** Decide which column fills which part of a question.
-- **Choose your separators.** Set the separators for columns and for questions with several answers.
+- **CSV file import** - import questions from CSV into quiz catalogs
+- **Column mapping** - flexible mapping of CSV columns to question fields
+- **Custom separators** - configure separators for columns and multi-answer fields
 
 #### API Monitoring (Admin)
-- **Every request is logged.** Each request is recorded with its kind, address, status code and duration.
-- **See how fast Ember is.** A dashboard shows the slowest and fastest requests, hourly figures and status codes.
-- **Look closely at one endpoint.** Open a single endpoint to see its response time chart and request history.
-- **A log of problems.** Problems across the application are logged. You can filter and acknowledge them.
+- **Request logging** - all API requests logged with method, path, status code, and duration
+- **Performance dashboard** - slowest/fastest endpoints, hourly stats, status code breakdown
+- **Endpoint detail view** - drill into individual endpoints for response time charts and request history
+- **Problem log** - application-wide problem logging with acknowledge/filter functionality
 
 #### GDPR Export Improvements
-- **Your data as a ZIP file.** The data export now downloads as a ZIP file instead of plain data.
-- **A readable PDF summary.** The export includes a PDF with your account, your memberships and your inventory.
-- **Your own files included.** Wiki files you created are part of the ZIP.
+- **ZIP format** - data export downloads as ZIP instead of plain JSON
+- **PDF summary** - human-readable Typst-generated PDF with account info, memberships, inventory
+- **User files included** - wiki files created by the user bundled in the ZIP
 
 #### Station Export/Import
-- **A moved station keeps its identity.** A station keeps its identifier when transferred, so partnership codes still work.
-- **The wiki moves along.** A station transfer includes wiki folders, files, content and version history.
-- **The logo moves along.** The station logo is part of the transfer.
+- **UUID preservation** - station UUID preserved during transfer (federation codes survive)
+- **Wiki export** - wiki folders, files, content, and version history in station transfer
+- **Logo export** - station logo transferred as base64
 
 ### Improvements
 
 #### Frontend Architecture
-- **Over thirty new building blocks.** More than thirty new shared components cover tables, text, display, inputs and discovery.
-- **Automatic checks for clean pages.** The build checks for raw markup, too many style classes, repeated patterns and oversized files.
-- **Every page has help.** The build checks that each page has a help article.
-- **Every icon is in place.** The build checks that all icons in use are registered.
-- **Big pages in smaller pieces.** Large pages for attendance, inventory, members, quizzes and the wiki are split into focused parts.
-- **An updated style guide.** The `/style` page shows all the shared components.
+- **Component library expansion** - 30+ new base components (Table, Typography, Display, Input, Discovery)
+- **Convention linting** - automated checks for raw HTML elements, CSS class count, repeated patterns, file size
+- **Help center linting** - validates every route has a corresponding help article
+- **Icon linting** - verifies all FontAwesome icons are properly registered
+- **View decomposition** - large views split into focused sub-components (Attendance, Inventory, Members, Quiz, Wiki)
+- **Style guide** - updated `/style` page showcasing all base components
 
 #### Wiki
-- **Better editing of files and folders.** The edit dialogs now handle restrictions, tags and public visibility.
+- **Edit modals** - improved file/folder editing with restrictions, tags, and public visibility
 
 #### Attendance
-- **A tidier attendance session.** The session page is split into a toolbar, a header, the member list, check mode, a summary and fields.
-- **Rapid check mode.** Checking members in and out is now much faster.
+- **Session view refactoring** - decomposed into toolbar, header, member list, check mode, summary, and fields panels
+- **Rapid check mode** - fast check-in/out workflow
 
 #### Events
-- **Export events your way.** A dialog lets you choose what event data to export.
+- **Export modal** - configurable event data export
 
 #### Waiting List
-- **The waiting list in sections.** The waiting list is split into overview, waiting, invited, testing and finished.
+- **Detail sub-views** - separated into overview, waiting, invites, testing, and finished sections
 
 #### Theme & UI
-- **The right theme from the start.** Dark and light mode now apply correctly on your first visit.
-- **Readable charts in dark mode.** Chart labels were hard to read in dark mode. They now have the right colors.
-- **Easier station switching.** Switching stations in the footer is easier.
+- **Theme initialization fix** - dark/light mode applies correctly on first visit
+- **Dark mode chart colors** - fixed ECharts label colors in dark mode
+- **Station switcher** - improved station selection UI in footer
 
 #### Quiz
-- **Fairer quiz scoring.** The points for quiz questions are calculated in a better way.
-- **Tidier quiz editors.** The quiz settings editors and catalog pages were cleaned up.
+- **Question point calculation rework** - improved scoring logic for quiz questions
+- **Code cleanup** - refactored quiz configuration editors and catalog views
 
 #### Federation
-- **More reliable change messages.** Messages between partners about changes are more reliable.
-- **Cleaner handling of shared content.** Shared content and its changes are handled in a cleaner way.
-- **Better errors between partners.** Problems talking to a partner are handled better.
+- **Webhook service cleanup** - improved reliability and code quality
+- **Federation service refactoring** - cleaner entity handling with proper enums for ChangeType and ContentType
+- **HTTP client improvements** - better error handling in federation communication
 
 #### Admin
-- **More in station management.** Station management now includes partnerships, discovery and modules.
-- **Clear image tags.** Releases are published as `latest`, and every change on `main` as `dev`.
+- **Station management** - enhanced with federation, discovery, and module settings
+- **Docker workflow** - releases tag as `latest`, pushes to `main` tag as `dev`
 
 ### Security & Technical
 
-- **Stations stay strictly apart.** Every read and write now checks that you belong to the station in question. Even with a valid session, you cannot reach another station's data.
-- **Every lookup stays in its station.** Events, news, members, forms, inventory, wiki, attendance, groups, tags, the waiting list and partnerships are always read for one station only.
-- **Partner messages are signed.** Every request between partners carries an RSA-2048 signature.
-- **Station addresses cannot be guessed.** Stations are known to the outside by random identifiers, so nobody can count through them.
-- **Role ranking is enforced in the database.** The database itself makes sure higher roles include lower ones.
-- **Every station gets its own key.** A private key is created for each new station.
+- **Station-scoped access enforcement** - all entity read/write operations now validate that the authenticated user belongs to the correct station, preventing cross-station data access even with a valid session
+- **Repository hardening** - queries now consistently filter by station ID to prevent unauthorized cross-station reads (Events, News, Members, Forms, Inventory, Wiki, Attendance, Groups, Tags, Waiting List, Federation)
+- **RSA-2048 signing** - federation requests cryptographically signed
+- **Station UUIDs** - external identifiers prevent enumeration
+- **Role hierarchy enforcement** - database-level transitive permission checking
+- **Private key per station** - generated at station creation
 
 ### Privacy Policy
 
-- **The privacy policy describes the new export.** It now explains that your data comes as a ZIP with a PDF and your files, under Art. 15 and Art. 20 GDPR.
+- Updated data export description to reflect ZIP+PDF+files format (Art. 15 and Art. 20 GDPR)
 
 ### Infrastructure
 
-- **Dependencies stay up to date.** Updates arrive automatically after 14 days of settling in. Minor updates and patches are merged on their own.
-- **Database updates for the new features.** Database updates add partnerships, unified restrictions, the role ranking, request logging and discovery settings.
+- **Renovate** - automated dependency updates with 14-day stabilization, auto-merge for minor/patch
+- **Database patches 4-6** - federation tables, unified restrictions, role hierarchy, API logging, discovery settings
 
 ### Bug Fixes
 
-- **Long problem messages are shortened.** The admin problems page showed error messages in full. They are now cut to a readable length.
-- **New field types work in events.** The event field editor and its inputs struggled with the new field types. They now handle them.
-- **Batch events work with attendance.** Events created in a batch did not fit together with attendance. They now do.
+- Fixed admin problems view not truncating error messages
+- Fixed event field editor and value input handling for new field types
+- Fixed attendance service integration with event batch creation
 
 ---
 
@@ -2781,21 +2781,21 @@ A new admin page under "Monitoring → Feed Telemetry" charts how feeds are used
 
 #### Test Protocols (Prüfungsprotokolle)
 
-- **Test protocols for practical exams.** Grade practical exams such as the Jugendflamme with protocols of your own. A protocol has sections, subsections and checkboxes worth half a point or a full point.
-- **Build your own protocols.** Create and edit protocols with their sections, subsections and items. Give each a name, a description and the score needed to pass.
-- **Test runs for your members.** Start a run from a protocol and choose who takes it by group, role or name. A run stays open until you close it.
-- **Grading made for tablets.** Grade step by step or jump to any section, with large checkboxes for your fingers. Every tick is saved at once, and the tabs show the score as it grows.
-- **One tester per member at a time.** While someone grades a member, nobody else can. The same tester can come back, and the lock lifts when they leave.
-- **See which sections are done.** Mark a section as tested and it gets a checkmark. Each member's progress shows at a glance, such as "5/7 sections".
-- **An evaluation table at a glance.** Sections run down, members run across, with an average column and soft colors from green to red. The first three columns stay put while you scroll, and a filter shows who is not finished.
-- **Protocols as PDF files.** Download the results ready to print or file away.
-  - Each member gets a landscape PDF with your logo and station name, the checkboxes, the testers per section and the points neatly aligned.
-  - The evaluation table comes as a landscape PDF too, in soft colors, with subsection rows, bold totals and your station's branding.
-  - One ZIP file bundles all member PDFs together with the evaluation table.
-- **Example data to try it out.** A Jugendflamme level 1 protocol comes ready with all seven sections, from emergency call to underground hydrant. It includes an open run for this year and a finished one from last year.
-- **Two new roles for protocols.** One role manages protocols and runs, the other grades members. Managers have both.
-- **Protocols as a module.** Each station can switch test protocols on or off.
-- **Help for test protocols.** A help page explains how protocols are built, how grading works and how locking keeps testers apart.
+- **Full test protocol system** for practical exams (e.g. Jugendflamme) - create protocol templates with hierarchical sections, subsections, and individual checkboxes with 0.5 or 1 point values
+- **Protocol builder**: create and edit protocols with sections, subsections, and items. Edit protocol name, description, and pass threshold. Add descriptions to sections and items
+- **Test runs**: create a test run from a protocol template, select members to test by group/role/individual. Runs have OPEN/CLOSED lifecycle
+- **Touch-optimized grading wizard**: step-by-step or section-selectable grading view with large touch-friendly checkboxes. Auto-saves on every check. Section selector tabs with live score progress
+- **Member locking**: while a tester grades a member, others are locked out. Re-entry allowed for the same tester. Auto-unlock on exit
+- **Section completion tracking**: mark sections as "tested" with checkmark indicators. Track progress per member (e.g. "5/7 Abschnitte")
+- **Evaluation table**: color-coded matrix view (like the Jugendflamme CSV) with sections as rows, members as columns. Average column. Pastel color coding (green ≥90%, yellow ≥60%, orange ≥30%, red <30%). Sticky first 3 columns for horizontal scrolling. Filter for incomplete members
+- **PDF exports**:
+  - Per-member protocol PDF (landscape, two-column): logo + station name header, checkboxes, per-section tester names, section headers as 3-column table (Name | Prüfer | Score), right-aligned points, horizontal separator lines
+  - Evaluation table PDF (landscape): full matrix with pastel cell coloring, subsection detail rows, bold sum rows with separators, station branding
+  - ZIP download: all member PDFs + evaluation table in a single ZIP file
+- **Demo data**: Jugendflamme Stufe 1 protocol seeded with all 7 sections (Notruf, Knoten, Schläuche, Verteiler, Strahlrohr, Erste Hilfe, Unterflurhydrant). Open run for current year + completed run from last year with randomized scores
+- **Roles**: `PROTOCOL_MANAGEMENT` (create/manage protocols and runs) and `PROTOCOL_TESTER` (grade members), both included in MANAGER
+- **Module**: `TEST_PROTOCOL` (toggleable per station)
+- **Help center**: dedicated help page with structure explanation, grading demo, and locking description
 
 ## v1.1.0
 
@@ -2803,107 +2803,107 @@ A new admin page under "Monitoring → Feed Telemetry" charts how feeds are used
 
 #### Wiki (Lernsammlung)
 
-- **A real editor for the wiki.** Write with everything you would expect: bold, italic, underline, strikethrough and headings from H1 to H3. Lists, quotes, code blocks, tables, dividers, colored and highlighted text are all there.
-- **The editor got tidier inside.** The editor's toolbar, dialogs and menus were split into small parts of their own. It works the same, and it is easier to keep in shape.
-- **Images in your articles.** Upload an image or add one from a web address. Set its width right below the image.
-- **Videos in your articles.** Paste a YouTube, Vimeo, PeerTube or Dailymotion link. Ember recognizes the site and embeds the video.
-- **A friendly link dialog.** A floating panel lets you search wiki files by title and see their folder. You can edit the link text right there.
-- **Link details on hover.** Hover over a link to see where it goes. Edit it, open it in a new tab or remove it from there.
-- **Easy table editing.** A toolbar for adding and removing rows and columns appears when you work in a table. It stays in view in long documents.
-- **Switch to plain text.** Flip between the formatted view and the plain Markdown text at any time.
-- **Format right where you select.** Select text and a formatting toolbar appears next to it. You can close it without losing your selection.
-- **Import Word documents.** Upload `.docx`, `.odt`, `.rtf` or `.html` files. They are turned into wiki articles automatically.
-- **Search inside PDFs.** The text of uploaded PDFs is now included in search.
-- **Smarter search.** Search finds words from their beginning, so "Notr" finds "Notruf". Matches are highlighted in yellow, in clean text snippets.
-- **Point to related files.** Add "further reading" links between wiki files, right on the file's page.
-- **More on a file's page.** See who last edited a file and when. The description is editable, and saving takes you out of edit mode.
-- **Tags that suggest themselves.** Tags on files and folders are suggested as you type, whatever the capitalization.
-- **Icons for your folders.** Upload your own icon for a folder. It shows in the grid and the list, and it now stays after saving.
-- **See what changed between versions.** The version history marks additions in green and removals in red. It also shows who wrote each version.
-- **A compact list view.** The file list is tighter, with simple dividing lines instead of cards.
-- **Files are kept on disk.** PDFs, images and other files are stored in the data folder instead of the database.
-- **Link entries open in a new tab.** A link entry in the wiki opens in a new tab instead of inside the page.
-- **YouTube videos are searchable.** Ember picks up a video's title and author, so search can find it.
-- **A showcase of formatting.** A demo file at the top of the wiki shows everything the editor can do.
+- **Rich text editor** (Tiptap-based) with full WYSIWYG formatting: bold, italic, underline, strikethrough, headings (H1–H3), bullet/ordered lists, blockquotes, code blocks, tables, horizontal rules, colored text, highlighted text
+- **Editor refactored** into self-contained sub-components: `EditorToolbar`, `EditorTableBar`, `EditorLinkDialog`, `EditorImageDialog`, `EditorVideoDialog`, `EditorBubbleMenu`, `ImageNodeView`
+- **Image support**: upload images or insert from URL, with resizable width controls directly below each image in the editor
+- **Video embedding**: YouTube, Vimeo, PeerTube, Dailymotion - auto-detects provider and generates correct embed URL
+- **Link dialog**: Confluence-style floating panel with wiki file search by title, folder path display, and inline text editing. Replaces native `prompt()` dialogs
+- **Link tooltip**: hovering on a link shows URL, edit button, open-in-new-tab button, and unlink button
+- **Table editing**: contextual toolbar for adding/removing rows and columns, sticky below the app header for long documents
+- **Raw markdown toggle**: switch between rich text and raw markdown view
+- **Bubble menu**: formatting toolbar on text selection; link tooltip on link hover; dismiss button to close without losing selection
+- **Word document import**: upload `.docx`, `.odt`, `.rtf`, `.html` files - automatically converted to markdown via pandoc
+- **PDF text extraction**: uploaded PDFs are indexed for full-text search using Apache PDFBox
+- **Search improvements**: prefix matching (e.g. "Notr" matches "Notruf"), highlighted snippets with yellow `<mark>` tags, markdown/HTML stripped from snippet text
+- **Related files**: "further reading" links between wiki files with add/remove UI on file detail page
+- **File detail view**: shows last edit time and editor name, editable description, leaves edit mode after saving
+- **Tags**: case-insensitive tag autocomplete on files and folders
+- **Folder icons**: upload custom icons for folders, displayed in grid and list views. Icon updates now persist correctly in the database
+- **Version history**: colored diff view with proper green/red backgrounds using `color-mix()`, version author names displayed
+- **Condensed list view**: compact file browser with divider-separated rows instead of card containers
+- **Binary file storage on disk**: PDFs, images, and other binary files stored in `data/kb-files/` instead of the database. Dropped `content BYTEA` column from `kb_file_content`
+- **Link entries**: open in new tab instead of iframe embed
+- **YouTube metadata**: fetches video title/author via oEmbed API for search indexing
+- **Formatting showcase**: demo file in wiki root showing all supported editor formatting
 
 #### Quiz System
 
-- **Quizzes for your station.** Build catalogs and categories, manage questions, create tests and grade them.
-- **Many kinds of questions.** Choose from multiple choice, fill in the blank, free answer, matching, image with text, true or false, ordering and lists.
-- **AI helps write questions.** Generate questions with OpenAI, Anthropic Claude or Google Gemini. The AI remembers the conversation, so it does not repeat itself.
-- **Import questions from CSV.** Upload a file, map its columns and check the result before importing. Answers are split per question, and the AI can suggest wrong answers.
-- **Print a quiz as PDF.** The PDF has checkboxes, gaps to fill, word banks, section summaries and images. You decide where pages break.
-- **Tests go from draft to closed.** A test is a draft, then active, then closed. Its questions are fixed when it goes live, and each student's attempts are counted.
-- **Most answers grade themselves.** Multiple choice, true or false, matching, ordering and fill in the blank are graded on submit. Free answers and image questions are graded by hand.
-- **Question settings are stored cleanly.** The settings of each question are kept in a structured form instead of loose text.
+- **Full quiz feature**: catalogs, categories, question management, test creation, grading
+- **Question types**: Multiple Choice, Fill-in-the-Blank, Free Answer, Connect, Image+Text, True/False, Ordering, Enumeration
+- **AI question generation**: supports OpenAI, Anthropic Claude, Google Gemini. Session-based multi-turn conversations to avoid duplicate questions. Polling endpoint for streaming results
+- **CSV import**: dedicated view with 3-step flow (upload → column mapping → preview/edit). Backend CSV parsing with Apache Commons CSV. Per-question answer splitting, type-specific configuration, AI wrong answer generation
+- **PDF export**: Typst-based with checkboxes, fill-in-the-blank gaps, word banks, section summaries, image embedding, page break control
+- **Test lifecycle**: DRAFT → ACTIVE → CLOSED with frozen questions generated at activation. Attempt counting per student
+- **Auto-grading**: MC, T/F, connect, ordering, fill-blank auto-graded on submit. Free answer/image text require manual grading
+- **Config as JsonNode**: question config stored as typed JSON objects instead of raw strings
 
 #### Waiting List
 
-- **A waiting list for newcomers.** Collect sign-ups with your own form fields, invite codes and scoring formulas.
-- **Every step is recorded.** An entry goes from waiting to invited, testing and finally joined or withdrawn. Ember notes when each step happened.
-- **Invited means a member.** An invitation creates the member and puts them in the testing group.
-- **Attendance for newcomers.** Members on trial join attendance sessions through their testing group. Their attendance is counted.
-- **Families can help themselves.** A public page lets people sign up, confirm their interest and withdraw on their own with a personal link.
-- **Interest is confirmed automatically.** Ember checks for overdue confirmations and sends reminders. After a grace period, the entry is withdrawn.
-- **Change the sign-up date.** Managers can change when an entry joined the waiting list.
-- **Emails for each step.** Templates in German and English confirm a sign-up, remind people to confirm and warn before removal.
-- **Example data to try it out.** Example entries cover every step, attendance included.
+- **Full waiting list feature**: registration forms with custom fields, invite codes, scoring formulas
+- **Status lifecycle**: WAITING → INVITED → TESTING → JOINED/WITHDRAWN with timestamp recording for each transition
+- **Member creation**: on invite, creates station member with testing group assignment
+- **Attendance tracking**: testing members added to attendance sessions via their testing group, attendance count tracked
+- **Self-service**: public registration page, interest confirmation, self-withdrawal via token
+- **Auto-confirmation**: scheduled daemon checks for expired confirmations, sends reminders, auto-withdraws after grace period
+- **Editable registration date**: managers can edit when an entry was added to the waitlist
+- **Email notifications**: registration confirmation, confirm reminder, removal warning templates (DE + EN)
+- **Demo data**: seeded entries across all statuses with attendance records
 
 #### Admin Settings
 
-- **Platform settings in one place.** Switch station sign-up on or off and set sign-in and session options. Configure outgoing mail and edit the legal texts with their versions.
-- **Release notes inside Ember.** Click the version in the footer to read the latest release notes, nicely formatted.
+- **Platform settings view**: station registration toggle, auth config (token sizes, session duration), mailing config (SMTP), legal document editing with versioning
+- **Patch notes view**: pulls releases from GitHub API, renders release notes with markdown formatting, accessible via clickable version in footer
 
 ### UI & Component Improvements
 
-- **One kind of toggle for choices.** Picking roles, groups and tags now uses the same toggle buttons on every page.
-- **One kind of menu entry.** Menu entries look and behave the same everywhere, starting with the wiki.
-- **Formatted text looks right.** Formatted text had no styling at all. Headings, lists, quotes, tables, code, images, embeds and dividers now look as they should.
-- **Borders are visible again.** Borders were invisible throughout the app. They now show in both light and dark mode.
-- **Search matches stand out.** Matching words in search results are highlighted in yellow.
-- **The Ember logo, everywhere.** The logo with its little blink appears on the landing page, in the sidebar, in the help center and on error pages.
-- **Pick your theme colors.** A new picker lets you choose theme colors.
-- **Friendly not found pages.** Pages that do not exist show a proper, branded page.
-- **Write scoring formulas easily.** A formula field helps you write the scoring for the waiting list.
-- **The style guide grows.** The `/style` page shows the new toggle buttons and menu entries.
-- **More help.** New help pages cover the wiki editor and the admin settings. The existing pages were updated.
+- **SelectionToggleButton**: shared component for role/group/tag toggle selections (replaces raw buttons in 6+ views: EventEditView, IndexView, EventModal, NewsEditView, AbsenceView)
+- **DropdownMenuItem**: shared component for dropdown menu items (used in KnowledgeBaseView)
+- **Markdown content CSS**: comprehensive `.markdown-content` class replacing non-functional `prose` classes (Tailwind Typography plugin was not installed). Covers headings, lists, quotes, tables, code blocks, images, iframes, horizontal rules, alternating table row backgrounds
+- **`--border` CSS variable**: properly defined for light (`#c0c0c0`) and dark (`#3a3a3a`) modes - fixes invisible borders throughout the app
+- **Search snippet highlighting**: matched terms shown with yellow `<mark>` background
+- **EmberLogo component**: reusable logo display with blink animation, used across landing page, sidebar, help center, 404 pages
+- **ThemePicker component**: theme color selection
+- **NotFoundContent/NotFoundView**: 404 pages with branding
+- **FormulaInput component**: formula editor for waiting list scoring
+- **Style guide updated**: SelectionToggleButton and DropdownMenuItem added to `/style`
+- **Help center**: added pages for Wiki editor, admin settings; updated existing pages
 
 ### Infrastructure
 
-- **Legal texts are there from the start.** Ember brings templates for its legal texts. On first start, it copies any missing ones into the data folder.
-- **Leaner container images.** Data, build leftovers and editor files are kept out of the container image.
-- **WebP images work.** Ember now reads WebP images. Formats it cannot read are handled gracefully.
-- **Pandoc converts documents.** Set `PANDOC_BIN` to point at Pandoc for document conversion. It defaults to `pandoc`.
-- **Strikethrough in formatted text.** Struck through text is now shown as such.
-- **Sensitive requests stay out of the logs.** Sign-in, AI and configuration requests are left out of request logging.
-- **Shared tools behind the scenes.** CSV reading, document conversion, text comparison and PDF creation each live in one shared place.
-- **New tests.** Tests now cover formatted text, the quiz PDF, the waiting list and the score calculation.
+- **Data directory initialization**: legal document templates bundled in JAR, copied to `data/` on first startup if files are missing
+- **`.dockerignore`**: excludes `data/`, build artifacts, and IDE files from Docker builds
+- **WebP image support**: TwelveMonkeys ImageIO library for native WebP reading; graceful fallback for unsupported formats
+- **Pandoc integration**: `PANDOC_BIN` env variable for document conversion (defaults to `pandoc`)
+- **Strikethrough in CommonMark**: added GFM strikethrough extension to the markdown renderer
+- **Request body redaction**: auth, AI, and config endpoints excluded from request/response logging
+- **Shared utilities**: `CsvParser` (Apache Commons CSV), `PandocConverter`, `TextDiff` (unified diff patches), `TypstCompiler` (PDF generation)
+- **Unit tests**: markdown rendering, quiz PDF export, waiting list service, score evaluator
 
 ### Bug Fixes
 
-- **Version colors show correctly.** The colors in the version comparison did not work. They show properly now.
-- **Formatted text had no styling.** The styling meant for formatted text did nothing. Ember now brings its own.
-- **Switching to plain text crashed.** Toggling the plain text view could crash the editor. It now switches smoothly.
-- **Links opened inside the editor.** Clicking a link while editing opened it in the editor. That no longer happens.
-- **Dividers were invisible.** Horizontal dividers did not show. They now appear as a soft line.
-- **Heading buttons did nothing.** In lists and quotes, the heading buttons had no effect. They now work everywhere.
-- **The paragraph button did nothing.** Pressing it had no effect. It now turns text back into a plain paragraph.
-- **Images went missing in the editor.** Some images did not show while editing. They now appear.
-- **WebP images could not be uploaded.** Uploading a WebP image failed. Formats that cannot be read are now handled gracefully.
-- **Folder icons did not stick.** A newly uploaded folder icon did not show. It is now saved and shown.
-- **The table toolbar did not appear.** Working in a table did not bring up its toolbar. It appears now.
-- **Formatting menus got in each other's way.** Two menus competed for the same spot. They are now one menu.
-- **Search snippets showed odd fragments.** Snippets showed word stems instead of real text. They now show the actual text.
-- **Demo mode allowed new stations.** In demo mode, anyone could register a station. That is now switched off.
+- Fixed diff view colors using `color-mix()` instead of broken Tailwind CSS variable opacity
+- Fixed `prose` classes doing nothing - replaced with custom `.markdown-content` CSS
+- Fixed markdown toggle crash (`el is null`) by using `v-show` instead of `v-if` for editor content
+- Fixed link clicks opening URLs in the editor - intercepted via `editorProps.handleClick`
+- Fixed horizontal rule invisible - changed border color to `color-mix(in srgb, var(--text) 25%, transparent)`
+- Fixed heading buttons not working - added `clearNodes()` before `setHeading()` to exit lists/blockquotes
+- Fixed P button no effect - changed to `clearNodes().setParagraph()`
+- Fixed images not showing in editor - lift `<img>` out of `<p>` tags before setting editor content
+- Fixed image upload for WebP - added fallback for formats ImageIO can't read
+- Fixed folder icon not showing after upload - now updates `folder.iconUrl` in database
+- Fixed table controls bar not appearing - moved reactive refs before `useEditor()` call
+- Fixed BubbleMenu conflicts - merged two BubbleMenus into one with `shouldShow` callback
+- Fixed search snippets showing tsvector tokens - now uses `ts_headline` on actual `text_content`
+- Fixed demo mode station registration - disabled via `station_registration_enabled` setting
 
 ### Dependencies Added
 
-- **A new editor foundation.** The wiki editor is built on a new editor toolkit with tables, highlights, YouTube, images, colors, underline, links and placeholders.
-- **Web pages to Markdown.** A new helper turns web content into Markdown.
-- **Markdown to web pages.** A new helper turns Markdown into web content.
-- **Text comparison in the browser.** A new helper compares texts for the version history.
-- **Reading text from PDFs.** A new helper reads the text inside PDF files.
-- **Reading CSV files.** A new helper reads CSV files.
-- **Reading WebP images.** A new helper lets Ember read WebP images.
-- **Talking to AI providers.** New connections reach OpenAI, Anthropic and Google for generating questions.
-- **Text comparison on the server.** A new helper creates the change sets between versions.
+- `@tiptap/*` (vue-3, starter-kit, extensions for table, highlight, youtube, image, color, text-style, underline, link, placeholder)
+- `turndown` (HTML → Markdown conversion)
+- `marked` (Markdown → HTML parsing)
+- `diff` (text diffing for version history)
+- Apache PDFBox 3.0.5 (PDF text extraction)
+- Apache Commons CSV 1.14.0 (CSV parsing)
+- TwelveMonkeys ImageIO WebP 3.13.0 (WebP image support)
+- OpenAI Java SDK, Anthropic Java SDK, Google GenAI SDK (AI question generation)
+- java-diff-utils 4.15 (unified diff patches)
