@@ -16,7 +16,7 @@ import java.util.Optional;
  * transfer carries that key too, so instances of either age understand each other. A stored key
  * that names no vendor of this instance is read as no vendor at all, never as a failure.
  *
- * <p>A vendor that speaks the OpenAI chat API under an address of its own, such as DeepSeek, is
+ * <p>A vendor that speaks the OpenAI chat API under an address of its own, such as DeepSeek or Mistral, is
  * reached through the OpenAI client and code paths with its {@link #baseUrl()}, so adding one is a
  * constant here and nothing else.
  */
@@ -24,7 +24,8 @@ public enum AiVendor {
     OPENAI("openai", "gpt-4o-mini", Protocol.OPENAI),
     GEMINI("gemini", "gemini-2.0-flash", Protocol.GEMINI),
     CLAUDE("claude", "claude-sonnet-4-20250514", Protocol.ANTHROPIC),
-    DEEPSEEK("deepseek", "deepseek-chat", "https://api.deepseek.com");
+    DEEPSEEK("deepseek", "deepseek-chat", "https://api.deepseek.com"),
+    MISTRAL("mistral", "mistral-small-latest", "https://api.mistral.ai/v1");
 
     private final String key;
     private final String defaultModel;

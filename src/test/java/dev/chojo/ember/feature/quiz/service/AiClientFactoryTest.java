@@ -41,6 +41,13 @@ class AiClientFactoryTest {
     }
 
     @Test
+    void pointsTheOpenAiClientAtMistralsVersionedAddress() {
+        var client = factory.openAi(AiVendor.MISTRAL, KEY);
+        assertEquals("https://api.mistral.ai/v1", baseUrlOf(client));
+        client.close();
+    }
+
+    @Test
     void buildsAnAnthropicClientForTheKey() {
         var client = factory.anthropic(KEY);
         assertNotNull(client);

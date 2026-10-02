@@ -66,7 +66,9 @@ public class AiService {
      * under names of its own, so there only what is clearly not one is left out.
      */
     private static boolean isChatModel(AiVendor vendor, String id) {
-        if (id.contains("embedding")
+        if (id.contains("embed")
+                || id.contains("ocr")
+                || id.contains("transcribe")
                 || id.contains("whisper")
                 || id.contains("tts")
                 || id.contains("dall-e")

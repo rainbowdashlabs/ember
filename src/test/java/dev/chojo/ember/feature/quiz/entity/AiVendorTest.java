@@ -35,6 +35,14 @@ class AiVendorTest {
         assertEquals(Optional.of(AiVendor.GEMINI), AiVendor.fromKey("gemini"));
         assertEquals(Optional.of(AiVendor.CLAUDE), AiVendor.fromKey("claude"));
         assertEquals(Optional.of(AiVendor.DEEPSEEK), AiVendor.fromKey("deepseek"));
+        assertEquals(Optional.of(AiVendor.MISTRAL), AiVendor.fromKey("mistral"));
+    }
+
+    @Test
+    void mistralIsSpokenToThroughTheOpenAiApiAtItsOwnAddress() {
+        assertEquals(AiVendor.Protocol.OPENAI, AiVendor.MISTRAL.protocol());
+        assertEquals(Optional.of("https://api.mistral.ai/v1"), AiVendor.MISTRAL.baseUrl());
+        assertEquals("mistral-small-latest", AiVendor.MISTRAL.defaultModel());
     }
 
     @Test

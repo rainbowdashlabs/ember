@@ -41221,7 +41221,7 @@
       },
       "AiVendor" : {
         "type" : "string",
-        "enum" : [ "OPENAI", "GEMINI", "CLAUDE", "DEEPSEEK" ]
+        "enum" : [ "OPENAI", "GEMINI", "CLAUDE", "DEEPSEEK", "MISTRAL" ]
       },
       "AnswerBody" : {
         "type" : "object",

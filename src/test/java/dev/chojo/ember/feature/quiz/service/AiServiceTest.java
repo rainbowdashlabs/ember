@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.service.AiService.ModelInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
@@ -153,40 +155,37 @@ class AiServiceTest {
         verify(client).close();
     }
 
-    @Test
-    void deepSeekAnswersThroughTheOpenAiPathWithItsDefaultModel() {
+    @ParameterizedTest
+    @EnumSource(
+            value = AiVendor.class,
+            names = {"DEEPSEEK", "MISTRAL"})
+    void anOpenAiCompatibleVendorAnswersThroughTheOpenAiPathWithItsDefaultModel(AiVendor vendor) {
         OpenAIClient client = answering("first\nsecond\nthird");
-        when(credentials.keyFor(1, AiVendor.DEEPSEEK)).thenReturn(Optional.of("ds-key"));
-        when(clients.openAi(AiVendor.DEEPSEEK, "ds-key")).thenReturn(client);
+        when(credentials.keyFor(1, vendor)).thenReturn(Optional.of("v-key"));
+        when(clients.openAi(vendor, "v-key")).thenReturn(client);
 
-        assertEquals(List.of("first", "second"), service.generate(1, 1, AiVendor.DEEPSEEK, null, "Q", "A", 2));
+        assertEquals(List.of("first", "second"), service.generate(1, 1, vendor, null, "Q", "A", 2));
 
         var sent = ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
         verify(client.chat().completions()).create(sent.capture());
-        assertEquals("deepseek-chat", sent.getValue().model().asString());
+        assertEquals(vendor.defaultModel(), sent.getValue().model().asString());
         assertOnlyWhatEveryOpenAiCompatibleVendorTakes(sent.getValue());
         verify(client).close();
     }
 
-    @Test
-    void aDeepSeekSessionWritesQuestionsTurnByTurn() {
+    @ParameterizedTest
+    @EnumSource(
+            value = AiVendor.class,
+            names = {"DEEPSEEK", "MISTRAL"})
+    void anOpenAiCompatibleSessionWritesQuestionsTurnByTurn(AiVendor vendor) {
         OpenAIClient client = answering("""
                 ```json
                 [{"title":"Wasser löscht Fettbrände","config":{"correctAnswer":false}}]
                 ```""");
-        when(credentials.stationKey(1, AiVendor.DEEPSEEK)).thenReturn(Optional.of("ds-key"));
-        when(clients.openAi(AiVendor.DEEPSEEK, "ds-key")).thenReturn(client);
+        when(credentials.stationKey(1, vendor)).thenReturn(Optional.of("v-key"));
+        when(clients.openAi(vendor, "v-key")).thenReturn(client);
         var session = service.createQuestionSession(
-                1,
-                1,
-                AiVendor.DEEPSEEK,
-                "deepseek-reasoner",
-                QuizQuestionType.TRUE_FALSE,
-                "Brandschutz",
-                "de",
-                null,
-                null,
-                List.of());
+                1, 1, vendor, "chosen-model", QuizQuestionType.TRUE_FALSE, "Brandschutz", "de", null, null, List.of());
 
         var first = service.generateNextQuestion(session, QuizQuestionType.TRUE_FALSE);
         service.generateNextQuestion(session, QuizQuestionType.TRUE_FALSE);
@@ -194,7 +193,7 @@ class AiServiceTest {
         assertEquals("Wasser löscht Fettbrände", first.getFirst().title());
         var sent = ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
         verify(client.chat().completions(), times(2)).create(sent.capture());
-        assertEquals("deepseek-reasoner", sent.getValue().model().asString());
+        assertEquals("chosen-model", sent.getValue().model().asString());
         assertEquals(4, sent.getValue().messages().size(), "system, first ask, the answer, the next ask");
         assertOnlyWhatEveryOpenAiCompatibleVendorTakes(sent.getValue());
         verify(client, times(2)).close();
@@ -212,6 +211,26 @@ class AiServiceTest {
                         new ModelInfo("deepseek-chat", "deepseek-chat"),
                         new ModelInfo("deepseek-reasoner", "deepseek-reasoner")),
                 service.fetchModels(1, 1, AiVendor.DEEPSEEK, "ds-key"));
+        verify(client).close();
+    }
+
+    @Test
+    void mistralListsItsChatModelsWithoutEmbeddingsModerationOrOcr() {
+        OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
+        when(clients.openAi(AiVendor.MISTRAL, "m-key")).thenReturn(client);
+        var listed = List.of(
+                model("mistral-small-latest"),
+                model("mistral-embed"),
+                model("mistral-moderation-latest"),
+                model("mistral-ocr-latest"),
+                model("pixtral-large-latest"));
+        when(client.models().list().data()).thenReturn(listed);
+
+        assertEquals(
+                List.of(
+                        new ModelInfo("mistral-small-latest", "mistral-small-latest"),
+                        new ModelInfo("pixtral-large-latest", "pixtral-large-latest")),
+                service.fetchModels(1, 1, AiVendor.MISTRAL, "m-key"));
         verify(client).close();
     }
 

@@ -44,7 +44,7 @@
 - **Refused storage changes are written down.** When a storage change is refused, the history of the station, the association or the instance now says so and gives the reason you were shown.
 - **Clear out the paperwork of people who left.** A new switch on the documents page shows only documents about people who have all left, archived or deleted. Tick a few, or every one the filter finds, and delete them in one go after a single question.
 - **The association sees documents like the station.** On a person's page in the association, documents are tiles you open and preview, just like at the station. A document you file there names you as the one who filed it.
-- **DeepSeek writes quiz questions too.** You can now pick DeepSeek as the AI provider for generating questions and wrong answers. Your own key and the station's key work just like with the other providers.
+- **DeepSeek and Mistral write quiz questions too.** You can now pick DeepSeek or Mistral as the AI provider for generating questions and wrong answers. Your own key and the station's key work just like with the other providers.
 
 ### Security
 

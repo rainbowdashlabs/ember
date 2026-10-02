@@ -83,6 +83,20 @@ class AiRoutesTest {
     }
 
     @Test
+    void mistralIsSavedForTheStation() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(STATION, StationPermission.TEST_CATALOG_EDIT));
+            assertEquals(
+                    200,
+                    client.put(PREFIX + "/ai/providers/MISTRAL", body("""
+                            {"apiKey":"m-key"}"""), editor)
+                            .code());
+        });
+
+        verify(ai).saveProvider(STATION, AiVendor.MISTRAL, "m-key", null);
+    }
+
+    @Test
     void aProviderThisInstanceCannotCallIsRefused() {
         harness.run((server, client) -> {
             var editor = harness.as(TestSessions.member(STATION, StationPermission.TEST_CATALOG_EDIT));

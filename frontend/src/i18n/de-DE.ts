@@ -9008,6 +9008,7 @@ export default {
                 GEMINI: 'Google Gemini',
                 CLAUDE: 'Anthropic Claude',
                 DEEPSEEK: 'DeepSeek',
+                MISTRAL: 'Mistral',
             },
         },
         csv: {
