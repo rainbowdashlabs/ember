@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import GroupsScreen from '@/components/groups/GroupsScreen.vue'
 import {clusterMembers, data} from '@/api'
@@ -18,8 +18,11 @@ import type {GroupsCapabilities, GroupsPort} from '@/composables/useGroupsConfig
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
 
-/** Every write on this screen is the association administrator's, so only they are offered one. */
-const editable = hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR)
+/**
+ * Every write on this screen is the association administrator's, so only they are offered one. Followed
+ * rather than read once, because the session may still be on its way when the screen opens.
+ */
+const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR))
 
 /**
  * The association's permissions in the shape the shared picker speaks.
@@ -77,14 +80,14 @@ const port: GroupsPort = {
   },
 }
 
-const capabilities: GroupsCapabilities = {
+const capabilities: GroupsCapabilities = reactive({
   hasColour: false,
   canConvertToTag: false,
   hasPermissions: true,
-  permissionScope: 'cluster',
-  holds: 'members',
+  permissionScope: 'cluster' as const,
+  holds: 'members' as const,
   canEdit: editable,
-}
+})
 </script>
 
 <template>
