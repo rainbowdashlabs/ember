@@ -2,11 +2,12 @@
 
 ## v26.20.1
 
-Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz.
+Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt.
 
 ### Fehlerbehebungen
 
 - **Wachen anderer Instanzen hatten kein Logo.** Auf der Discovery-Seite erschienen Wachen anderer Instanzen ohne ihr Logo. Ihre Logos werden jetzt auf dieser Instanz aufbewahrt und von hier gezeigt, auch wenn die andere Instanz gerade nicht erreichbar ist.
+- **Links zu öffentlichen Seiten, die es nicht gab.** Wachen auf den Discovery-Seiten anderer Instanzen konnten auf eine öffentliche Seite verlinken, die es nicht gab. Der Link wird jetzt nur gesendet, wenn die Wache eine öffentliche Seite hat.
 
 ## v26.20.0
 

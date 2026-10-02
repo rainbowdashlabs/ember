@@ -56583,12 +56583,12 @@ export interface components {
         DiscoveredStationResponse: {
             addressLine: string | null;
             city: string | null;
-            contactUrl: string;
+            contactUrl: string | null;
             country: string | null;
             fetchedAt: components["schemas"]["Instant"];
             instancePublicKey: string;
             latitude: number | null;
-            logoUrl: string;
+            logoUrl: string | null;
             longitude: number | null;
             memberCount: string;
             name: string;
@@ -56673,10 +56673,10 @@ export interface components {
             city: string | null;
             clusterName: string | null;
             clusterUid: string | null;
-            contactUrl: string;
+            contactUrl: string | null;
             country: string | null;
             latitude: number | null;
-            logoUrl: string;
+            logoUrl: string | null;
             longitude: number | null;
             memberCount: string;
             name: string;

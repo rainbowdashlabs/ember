@@ -76,6 +76,12 @@ describe('DiscoveryGrid', () => {
         expect(link.find('.sr-only').text()).toBe('Wache Dort auf feuer.example')
     })
 
+    it('links a remote station whose instance names no public page nowhere', () => {
+        const card = grid([{...remote, publicPageUrl: null}])
+
+        expect(card.find('a').exists()).toBe(false)
+    })
+
     it('offers a remote station neither a federation request nor an invite code', () => {
         const card = grid([remote])
 

@@ -2,11 +2,12 @@
 
 ## v26.20.1
 
-Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance.
+Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist.
 
 ### Fixes
 
 - **Stations of other instances showed no logo.** On the discovery page, stations of other instances appeared without their logo. Their logos are now kept on this instance and shown from there, even while the other instance is down.
+- **Links to public pages that did not exist.** Stations listed on the discovery pages of other instances could link to a public page that did not exist. The link is now only sent when the station has a public page.
 
 ## v26.20.0
 

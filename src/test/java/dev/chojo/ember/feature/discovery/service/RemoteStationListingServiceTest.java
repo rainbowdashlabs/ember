@@ -110,6 +110,33 @@ class RemoteStationListingServiceTest {
     }
 
     @Test
+    void aStationWhoseCardNamesNoPublicPageIsNotLinked() {
+        var withoutPage = new DiscoveryStationCard(
+                STATION.toString(),
+                "Wache Nord",
+                null,
+                null,
+                "DE",
+                null,
+                "Nordstadt",
+                null,
+                List.of(),
+                "<10",
+                Instant.now(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                "wache-nord");
+
+        var listed = listing(published("https://feuer.example", withoutPage));
+
+        assertEquals(1, listed.size());
+        assertNull(listed.getFirst().publicPageUrl());
+    }
+
+    @Test
     void aKeptLogoIsAddressedOnThisInstanceAndNeverOnTheOther() {
         var listed = listing(
                 new PublishedRemoteStation("k", "https://feuer.example", card(STATION.toString(), null), true),

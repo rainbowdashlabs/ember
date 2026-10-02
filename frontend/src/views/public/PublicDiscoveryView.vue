@@ -19,6 +19,7 @@ import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
 import DiscoveryToolbar from '@/views/public/publicdiscoveryview/DiscoveryToolbar.vue'
 import {initialSearchTerm, searchDiscovery} from '@/views/public/publicdiscoveryview/discoverySearch'
 import {discovery} from '@/api'
+import {isRemoteEntry} from '@/api/discovery'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
@@ -64,7 +65,7 @@ const mapStations = computed<MapStation[]>(() => shown.value
 )
 
 function mapLink(station: DiscoveryEntry): string | null {
-  if (station.publicPageUrl) return station.publicPageUrl
+  if (isRemoteEntry(station)) return station.publicPageUrl
   return station.publicSlug ? `/public/station/${station.publicSlug}` : null
 }
 

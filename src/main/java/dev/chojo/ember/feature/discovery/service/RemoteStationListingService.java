@@ -63,12 +63,21 @@ public class RemoteStationListingService {
         var uid = parseUid(card.stationUid());
         var instance = webAddress(published.instanceBaseUrl());
         if (uid.isEmpty() || instance.isEmpty()) return Optional.empty();
-        var base = stripTrailingSlash(published.instanceBaseUrl());
         String logoUrl = published.logoStored()
                 ? RemoteStationLogoService.publicAddress(published.instancePublicKey(), uid.get())
                 : null;
-        return Optional.of(new RemoteStation(
-                uid.get(), card, instance.get().getHost(), base + PUBLIC_STATION_PATH + pathSegment(card), logoUrl));
+        return Optional.of(
+                new RemoteStation(uid.get(), card, instance.get().getHost(), publicPageUrl(published), logoUrl));
+    }
+
+    /**
+     * The station's public page on its instance, where the card says it has one. The address is built
+     * from the instance as it is known here and never taken from the card itself.
+     */
+    private static @Nullable String publicPageUrl(PublishedRemoteStation published) {
+        var named = published.card().contactUrl();
+        if (named == null || named.isBlank()) return null;
+        return stripTrailingSlash(published.instanceBaseUrl()) + PUBLIC_STATION_PATH + pathSegment(published.card());
     }
 
     private static Optional<UUID> parseUid(String uid) {
@@ -106,7 +115,8 @@ public class RemoteStationListingService {
      * @param stationUid     the station's identifier
      * @param card           what the instance publishes about it
      * @param instanceHost   the host name of the instance it belongs to
-     * @param publicPageUrl  the station's public page on that instance
+     * @param publicPageUrl  the station's public page on that instance, or {@code null} where it has
+     *                       none to show
      * @param logoUrl        where this instance serves its copy of the station's logo, or {@code null}
      *                       where it keeps none
      */
@@ -114,6 +124,6 @@ public class RemoteStationListingService {
             UUID stationUid,
             DiscoveryStationCard card,
             String instanceHost,
-            String publicPageUrl,
+            @Nullable String publicPageUrl,
             @Nullable String logoUrl) {}
 }

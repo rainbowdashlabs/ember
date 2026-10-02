@@ -47562,7 +47562,7 @@
             "type" : [ "string", "null" ]
           },
           "logoUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "country" : {
             "type" : [ "string", "null" ]
@@ -47574,7 +47574,7 @@
             "type" : [ "string", "null" ]
           },
           "contactUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "tags" : {
             "type" : "array",
@@ -47795,7 +47795,7 @@
             "type" : [ "string", "null" ]
           },
           "logoUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "country" : {
             "type" : [ "string", "null" ]
@@ -47807,7 +47807,7 @@
             "type" : [ "string", "null" ]
           },
           "contactUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "tags" : {
             "type" : "array",

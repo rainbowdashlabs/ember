@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.PublicStationInfoService;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -38,13 +40,21 @@ public class DiscoveryStationProjectionService {
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
     private final Conf conf;
+    private final StationLogoService logoService;
+    private final PublicStationInfoService publicStationInfo;
 
     @Inject
     public DiscoveryStationProjectionService(
-            StationRepository stationRepository, ClusterRepository clusterRepository, Conf conf) {
+            StationRepository stationRepository,
+            ClusterRepository clusterRepository,
+            Conf conf,
+            StationLogoService logoService,
+            PublicStationInfoService publicStationInfo) {
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
         this.conf = conf;
+        this.logoService = logoService;
+        this.publicStationInfo = publicStationInfo;
     }
 
     private static String stripTrailingSlash(String url) {
@@ -67,7 +77,9 @@ public class DiscoveryStationProjectionService {
 
     /**
      * One station's card. Its cluster is carried so a reader can group the cards; a station outside
-     * any cluster sends none, which means the same as a peer too old to know about clusters.
+     * any cluster sends none, which means the same as a peer too old to know about clusters. The logo
+     * address goes out only for a station that has a logo, and the public page only for one whose page
+     * shows something, so no reader is sent to an address that leads nowhere.
      */
     private DiscoveryStationCard toCard(Station station, String baseUrl) {
         int memberCount = countMembers(station.id());
@@ -76,11 +88,16 @@ public class DiscoveryStationProjectionService {
                 station.uid().toString(),
                 station.name(),
                 station.discoveryDescription(),
-                baseUrl + "/api/v1/public/stations/" + station.uid() + "/logo",
+                logoService.exists(station.id())
+                        ? baseUrl + "/api/v1/public/stations/" + station.uid() + "/logo"
+                        : null,
                 station.country(),
                 null,
                 station.city(),
-                baseUrl + "/public/station/" + (station.publicSlug() != null ? station.publicSlug() : station.uid()),
+                publicStationInfo.hasPublicPage(station)
+                        ? baseUrl + "/public/station/"
+                                + (station.publicSlug() != null ? station.publicSlug() : station.uid())
+                        : null,
                 List.of(),
                 DiscoveryStationCard.bucketMemberCount(memberCount),
                 Instant.now(),

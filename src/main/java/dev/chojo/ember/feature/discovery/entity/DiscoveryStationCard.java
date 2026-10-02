@@ -21,16 +21,20 @@ import java.util.List;
  *
  * <p>{@code publicSlug} is the readable address of the station's public page. A peer that predates it
  * sends nothing, and a reader then addresses the page by {@code stationUid}, which the page accepts too.
+ *
+ * <p>{@code logoUrl} is sent only for a station that has a logo, and {@code contactUrl} only for one
+ * whose public page shows something. A reader takes a missing one as "nothing there"; peers that
+ * predate this send both for every station.
  */
 public record DiscoveryStationCard(
         String stationUid,
         String name,
         @Nullable String slogan,
-        String logoUrl,
+        @Nullable String logoUrl,
         @Nullable String country,
         @Nullable String region,
         @Nullable String city,
-        String contactUrl,
+        @Nullable String contactUrl,
         List<String> tags,
         String memberCount,
         Instant publishedAt,

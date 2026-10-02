@@ -61,23 +61,40 @@ public class PublicStationInfoService {
      */
     public PublicStationInfo info(String address) {
         var station = stations.findByAddress(address).orElseThrow(StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW::raise);
-        boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
-        if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            if (!hasPublicKb) throw StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
-            return publicInfo(station, new Offer(true, false, false, false, false), null);
-        }
-        var offer = new Offer(
-                hasPublicKb,
-                station.publicCalendarEnabled(),
-                station.publicPagesEnabled() && pageService.hasListedPages(station.id()),
-                station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id()),
-                station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id()));
-        if (offer.isEmpty() && !formService.hasOpenlyAddressedForms(station.id())) {
+        var offer = offer(station);
+        boolean reachableByForms =
+                station.stationKind() != StationKind.CLUSTER_HOME && formService.hasOpenlyAddressedForms(station.id());
+        if (offer.isEmpty() && !reachableByForms) {
             throw StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
         }
         String landingPageSlug =
                 offer.pages() ? pageService.getLandingPageSlug(station.id()).orElse(null) : null;
         return publicInfo(station, offer, landingPageSlug);
+    }
+
+    /**
+     * Whether the station's public page has anything to open: its wiki, its calendar, a listed page,
+     * a waiting list or its blog. A form reached only by its link does not count, since the page
+     * itself would show nothing to go to.
+     *
+     * @param station the station
+     * @return whether a link to its public page leads somewhere
+     */
+    public boolean hasPublicPage(Station station) {
+        return !offer(station).isEmpty();
+    }
+
+    private Offer offer(Station station) {
+        boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
+        if (station.stationKind() == StationKind.CLUSTER_HOME) {
+            return new Offer(hasPublicKb, false, false, false, false);
+        }
+        return new Offer(
+                hasPublicKb,
+                station.publicCalendarEnabled(),
+                station.publicPagesEnabled() && pageService.hasListedPages(station.id()),
+                station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id()),
+                station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id()));
     }
 
     private PublicStationInfo publicInfo(Station station, Offer offer, @Nullable String landingPageSlug) {
