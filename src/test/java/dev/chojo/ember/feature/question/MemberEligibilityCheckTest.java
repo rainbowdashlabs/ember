@@ -72,7 +72,8 @@ class MemberEligibilityCheckTest {
         assertTrue(QuestionCheck.answer(question, "1", STATION).isEmpty());
         var refused = QuestionCheck.answer(question, "3", STATION).orElseThrow();
         assertEquals(QuestionProblem.Code.NOT_ELIGIBLE, refused.code());
-        assertEquals("Field 'Fahrer' only takes members with its tag", refused.message());
+        assertEquals("Fahrer", refused.question());
+        assertEquals("with its tag", refused.detail());
     }
 
     /** A field whose group is gone refuses everybody rather than taking anybody. */
@@ -84,10 +85,11 @@ class MemberEligibilityCheckTest {
                     .orElseThrow();
             assertEquals(QuestionProblem.Code.MISSING_REFERENCE, refused.code(), type.name());
         }
-        var group = QuestionCheck.answer(question(FieldType.MEMBER_OF_GROUP, QuestionSettings.none()), "1", STATION);
-        assertEquals(
-                "Field 'Fahrer' is missing its group reference",
-                group.orElseThrow().message());
+        var group = QuestionCheck.answer(question(FieldType.MEMBER_OF_GROUP, QuestionSettings.none()), "1", STATION)
+                .orElseThrow();
+        assertEquals(QuestionProblem.Code.MISSING_REFERENCE, group.code());
+        assertEquals("Fahrer", group.question());
+        assertEquals("group", group.detail());
     }
 
     @Test

@@ -46,21 +46,4 @@ public record QuestionProblem(
         /** The field is narrowed to a group, user type or tag it no longer names. */
         MISSING_REFERENCE
     }
-
-    /** What to say to whoever gave the answer. */
-    public String message() {
-        return switch (code) {
-            case REQUIRED -> "Field '" + question + "' is required";
-            case NOT_AN_OPTION -> "Field '" + question + "' does not allow the value '" + detail + "'";
-            case NOT_A_NUMBER -> "Field '" + question + "' expects a number";
-            case OUT_OF_RANGE -> "Field '" + question + "' expects a number " + detail;
-            case NOT_A_DATE -> "Field '" + question + "' expects a date";
-            case NOT_A_TIME -> "Field '" + question + "' expects a time";
-            case NOT_A_BOOLEAN -> "Field '" + question + "' expects yes or no";
-            case NOT_A_URL -> "Field '" + question + "' expects a web address";
-            case NOT_A_MEMBER -> "Field '" + question + "' expects a member";
-            case NOT_ELIGIBLE -> "Field '" + question + "' only takes members " + detail;
-            case MISSING_REFERENCE -> "Field '" + question + "' is missing its " + detail + " reference";
-        };
-    }
 }
