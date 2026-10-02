@@ -70,6 +70,19 @@ class AiRoutesTest {
     }
 
     @Test
+    void deepSeekModelsAreListedWithTheTypedKey() {
+        when(ai.fetchModels(STATION, TestSessions.ACCOUNT_ID, AiVendor.DEEPSEEK, "ds-key"))
+                .thenReturn(List.of(new AiService.ModelInfo("deepseek-chat", "deepseek-chat")));
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(STATION, StationPermission.TEST_CATALOG_EDIT));
+            var models = json(client.post(PREFIX + "/ai/providers/DEEPSEEK/models", body("""
+                    {"apiKey":"ds-key"}"""), editor));
+            assertEquals("deepseek-chat", models.get(0).get("id").asString());
+        });
+    }
+
+    @Test
     void aProviderThisInstanceCannotCallIsRefused() {
         harness.run((server, client) -> {
             var editor = harness.as(TestSessions.member(STATION, StationPermission.TEST_CATALOG_EDIT));

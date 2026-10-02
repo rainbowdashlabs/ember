@@ -54268,7 +54268,7 @@ export interface components {
             success: boolean;
         };
         /** @enum {string} */
-        AiVendor: "OPENAI" | "GEMINI" | "CLAUDE";
+        AiVendor: "OPENAI" | "GEMINI" | "CLAUDE" | "DEEPSEEK";
         AnswerBody: {
             answer?: components["schemas"]["SelfCheckAnswer"] | null;
             /** Format: int32 */

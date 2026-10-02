@@ -5,8 +5,13 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import com.openai.client.OpenAIClient;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class AiClientFactoryTest {
@@ -14,10 +19,24 @@ class AiClientFactoryTest {
 
     private final AiClientFactory factory = new AiClientFactory();
 
+    /** The address a built client sends its requests to, read from the options it was built with. */
+    private static String baseUrlOf(OpenAIClient client) {
+        var seen = new AtomicReference<String>();
+        client.withOptions(options -> seen.set(options.build().baseUrl()));
+        return seen.get();
+    }
+
     @Test
     void buildsAnOpenAiClientForTheKey() {
-        var client = factory.openAi(KEY);
-        assertNotNull(client);
+        var client = factory.openAi(AiVendor.OPENAI, KEY);
+        assertEquals("https://api.openai.com/v1", baseUrlOf(client));
+        client.close();
+    }
+
+    @Test
+    void pointsTheOpenAiClientAtDeepSeek() {
+        var client = factory.openAi(AiVendor.DEEPSEEK, KEY);
+        assertEquals("https://api.deepseek.com", baseUrlOf(client));
         client.close();
     }
 

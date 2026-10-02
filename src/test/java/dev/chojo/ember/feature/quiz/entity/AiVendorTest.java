@@ -34,6 +34,24 @@ class AiVendorTest {
         assertEquals(Optional.of(AiVendor.OPENAI), AiVendor.fromKey("openai"));
         assertEquals(Optional.of(AiVendor.GEMINI), AiVendor.fromKey("gemini"));
         assertEquals(Optional.of(AiVendor.CLAUDE), AiVendor.fromKey("claude"));
+        assertEquals(Optional.of(AiVendor.DEEPSEEK), AiVendor.fromKey("deepseek"));
+    }
+
+    @Test
+    void deepSeekIsSpokenToThroughTheOpenAiApiAtItsOwnAddress() {
+        assertEquals(AiVendor.Protocol.OPENAI, AiVendor.DEEPSEEK.protocol());
+        assertEquals(Optional.of("https://api.deepseek.com"), AiVendor.DEEPSEEK.baseUrl());
+        assertEquals("deepseek-chat", AiVendor.DEEPSEEK.defaultModel());
+    }
+
+    @Test
+    void theOriginalVendorsKeepTheirClientsOwnAddress() {
+        assertEquals(AiVendor.Protocol.OPENAI, AiVendor.OPENAI.protocol());
+        assertEquals(AiVendor.Protocol.GEMINI, AiVendor.GEMINI.protocol());
+        assertEquals(AiVendor.Protocol.ANTHROPIC, AiVendor.CLAUDE.protocol());
+        assertTrue(AiVendor.OPENAI.baseUrl().isEmpty());
+        assertTrue(AiVendor.GEMINI.baseUrl().isEmpty());
+        assertTrue(AiVendor.CLAUDE.baseUrl().isEmpty());
     }
 
     @Test

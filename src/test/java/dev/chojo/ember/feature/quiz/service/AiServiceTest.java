@@ -10,12 +10,16 @@ import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.openai.client.OpenAIClient;
+import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import com.openai.models.models.Model;
 import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
+import dev.chojo.ember.feature.quiz.service.AiService.ModelInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -95,7 +100,7 @@ class AiServiceTest {
     void anOpenAiClientIsClosedWhenTheCallFails() {
         OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
         when(credentials.keyFor(1, AiVendor.OPENAI)).thenReturn(Optional.of("key"));
-        when(clients.openAi("key")).thenReturn(client);
+        when(clients.openAi(AiVendor.OPENAI, "key")).thenReturn(client);
         when(client.chat().completions().create(any(ChatCompletionCreateParams.class)))
                 .thenThrow(new IllegalStateException("offline"));
 
@@ -136,7 +141,7 @@ class AiServiceTest {
     void aSessionTurnClosesItsClient() {
         OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
         when(credentials.stationKey(1, AiVendor.OPENAI)).thenReturn(Optional.of("key"));
-        when(clients.openAi("key")).thenReturn(client);
+        when(clients.openAi(AiVendor.OPENAI, "key")).thenReturn(client);
         when(client.chat().completions().create(any(ChatCompletionCreateParams.class)))
                 .thenThrow(new IllegalStateException("offline"));
         var session = service.createQuestionSession(
@@ -146,5 +151,107 @@ class AiServiceTest {
                 .isEmpty());
 
         verify(client).close();
+    }
+
+    @Test
+    void deepSeekAnswersThroughTheOpenAiPathWithItsDefaultModel() {
+        OpenAIClient client = answering("first\nsecond\nthird");
+        when(credentials.keyFor(1, AiVendor.DEEPSEEK)).thenReturn(Optional.of("ds-key"));
+        when(clients.openAi(AiVendor.DEEPSEEK, "ds-key")).thenReturn(client);
+
+        assertEquals(List.of("first", "second"), service.generate(1, 1, AiVendor.DEEPSEEK, null, "Q", "A", 2));
+
+        var sent = ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
+        verify(client.chat().completions()).create(sent.capture());
+        assertEquals("deepseek-chat", sent.getValue().model().asString());
+        assertOnlyWhatEveryOpenAiCompatibleVendorTakes(sent.getValue());
+        verify(client).close();
+    }
+
+    @Test
+    void aDeepSeekSessionWritesQuestionsTurnByTurn() {
+        OpenAIClient client = answering("""
+                ```json
+                [{"title":"Wasser löscht Fettbrände","config":{"correctAnswer":false}}]
+                ```""");
+        when(credentials.stationKey(1, AiVendor.DEEPSEEK)).thenReturn(Optional.of("ds-key"));
+        when(clients.openAi(AiVendor.DEEPSEEK, "ds-key")).thenReturn(client);
+        var session = service.createQuestionSession(
+                1,
+                1,
+                AiVendor.DEEPSEEK,
+                "deepseek-reasoner",
+                QuizQuestionType.TRUE_FALSE,
+                "Brandschutz",
+                "de",
+                null,
+                null,
+                List.of());
+
+        var first = service.generateNextQuestion(session, QuizQuestionType.TRUE_FALSE);
+        service.generateNextQuestion(session, QuizQuestionType.TRUE_FALSE);
+
+        assertEquals("Wasser löscht Fettbrände", first.getFirst().title());
+        var sent = ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
+        verify(client.chat().completions(), times(2)).create(sent.capture());
+        assertEquals("deepseek-reasoner", sent.getValue().model().asString());
+        assertEquals(4, sent.getValue().messages().size(), "system, first ask, the answer, the next ask");
+        assertOnlyWhatEveryOpenAiCompatibleVendorTakes(sent.getValue());
+        verify(client, times(2)).close();
+    }
+
+    @Test
+    void deepSeekListsItsOwnChatModels() {
+        OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
+        when(clients.openAi(AiVendor.DEEPSEEK, "ds-key")).thenReturn(client);
+        var listed = List.of(model("deepseek-reasoner"), model("deepseek-chat"), model("text-embedding-x"));
+        when(client.models().list().data()).thenReturn(listed);
+
+        assertEquals(
+                List.of(
+                        new ModelInfo("deepseek-chat", "deepseek-chat"),
+                        new ModelInfo("deepseek-reasoner", "deepseek-reasoner")),
+                service.fetchModels(1, 1, AiVendor.DEEPSEEK, "ds-key"));
+        verify(client).close();
+    }
+
+    @Test
+    void openAiStillOffersOnlyItsChatFamilies() {
+        OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
+        when(clients.openAi(AiVendor.OPENAI, "key")).thenReturn(client);
+        var listed = List.of(model("gpt-4o-mini"), model("deepseek-chat"));
+        when(client.models().list().data()).thenReturn(listed);
+
+        assertEquals(
+                List.of(new ModelInfo("gpt-4o-mini", "gpt-4o-mini")),
+                service.fetchModels(1, 1, AiVendor.OPENAI, "key"));
+    }
+
+    /**
+     * Structured output, tool use and a token limit are what OpenAI-compatible vendors disagree on,
+     * so the OpenAI path sends none of them and asks for the JSON in the prompt instead.
+     */
+    private static void assertOnlyWhatEveryOpenAiCompatibleVendorTakes(ChatCompletionCreateParams params) {
+        assertTrue(params.responseFormat().isEmpty());
+        assertTrue(params.tools().isEmpty());
+        assertTrue(params.maxTokens().isEmpty());
+        assertTrue(params.maxCompletionTokens().isEmpty());
+    }
+
+    private static OpenAIClient answering(String text) {
+        OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
+        ChatCompletion completion = mock(ChatCompletion.class);
+        ChatCompletion.Choice choice = mock(ChatCompletion.Choice.class, RETURNS_DEEP_STUBS);
+        when(choice.message().content()).thenReturn(Optional.of(text));
+        when(completion.choices()).thenReturn(List.of(choice));
+        when(client.chat().completions().create(any(ChatCompletionCreateParams.class)))
+                .thenReturn(completion);
+        return client;
+    }
+
+    private static Model model(String id) {
+        Model model = mock(Model.class);
+        when(model.id()).thenReturn(id);
+        return model;
     }
 }

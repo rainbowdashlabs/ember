@@ -30,6 +30,7 @@ export const AiVendor = {
     OPENAI: 'OPENAI',
     GEMINI: 'GEMINI',
     CLAUDE: 'CLAUDE',
+    DEEPSEEK: 'DEEPSEEK',
 } as const satisfies Record<AiVendorName, AiVendorName>
 
 /**

@@ -9007,6 +9007,7 @@ export default {
                 OPENAI: 'OpenAI',
                 GEMINI: 'Google Gemini',
                 CLAUDE: 'Anthropic Claude',
+                DEEPSEEK: 'DeepSeek',
             },
         },
         csv: {

@@ -60,7 +60,12 @@ public class AiService {
         this.credentials = credentials;
     }
 
-    private static boolean isChatModel(String id) {
+    /**
+     * Whether a model the vendor lists can hold a chat. OpenAI lists everything it serves, so only
+     * its known chat families are offered; another vendor speaking its API lists its chat models
+     * under names of its own, so there only what is clearly not one is left out.
+     */
+    private static boolean isChatModel(AiVendor vendor, String id) {
         if (id.contains("embedding")
                 || id.contains("whisper")
                 || id.contains("tts")
@@ -76,6 +81,7 @@ public class AiService {
                 || id.contains(":ft-")) {
             return false;
         }
+        if (vendor != AiVendor.OPENAI) return true;
         return id.startsWith("gpt-4")
                 || id.startsWith("gpt-3.5")
                 || id.startsWith("o1")
@@ -229,10 +235,10 @@ public class AiService {
         String apiKey = typedKey != null && !typedKey.isBlank() ? typedKey : storedKey(stationId, accountId, vendor);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         try {
-            return switch (vendor) {
-                case OPENAI -> fetchOpenAiModels(apiKey);
+            return switch (vendor.protocol()) {
+                case OPENAI -> fetchOpenAiModels(vendor, apiKey);
                 case GEMINI -> fetchGeminiModels(apiKey);
-                case CLAUDE -> fetchClaudeModels(apiKey);
+                case ANTHROPIC -> fetchClaudeModels(apiKey);
             };
         } catch (Exception e) {
             log.error("Failed to fetch models for provider {}", vendor, e);
@@ -277,23 +283,23 @@ public class AiService {
     }
 
     private String chat(AiVendor vendor, String apiKey, String model, String systemPrompt, String userMessage) {
-        return switch (vendor) {
-            case OPENAI -> chatOpenAi(apiKey, model, systemPrompt, userMessage);
+        return switch (vendor.protocol()) {
+            case OPENAI -> chatOpenAi(vendor, apiKey, model, systemPrompt, userMessage);
             case GEMINI -> chatGemini(apiKey, model, systemPrompt, userMessage);
-            case CLAUDE -> chatClaude(apiKey, model, systemPrompt, userMessage);
+            case ANTHROPIC -> chatClaude(apiKey, model, systemPrompt, userMessage);
         };
     }
 
     private String chatWithSession(ChatSession session) {
-        return switch (session.vendor()) {
+        return switch (session.vendor().protocol()) {
             case OPENAI -> chatOpenAiSession(session);
             case GEMINI -> chatGeminiSession(session);
-            case CLAUDE -> chatClaudeSession(session);
+            case ANTHROPIC -> chatClaudeSession(session);
         };
     }
 
     private String chatOpenAiSession(ChatSession session) {
-        OpenAIClient client = clients.openAi(session.apiKey());
+        OpenAIClient client = clients.openAi(session.vendor(), session.apiKey());
         try {
             var builder = ChatCompletionCreateParams.builder()
                     .model(session.model())
@@ -440,8 +446,8 @@ public class AiService {
         return text != null && !text.isBlank();
     }
 
-    private String chatOpenAi(String apiKey, String model, String systemPrompt, String userMessage) {
-        OpenAIClient client = clients.openAi(apiKey);
+    private String chatOpenAi(AiVendor vendor, String apiKey, String model, String systemPrompt, String userMessage) {
+        OpenAIClient client = clients.openAi(vendor, apiKey);
         try {
             var params = ChatCompletionCreateParams.builder()
                     .model(model)
@@ -456,12 +462,12 @@ public class AiService {
         }
     }
 
-    private List<ModelInfo> fetchOpenAiModels(String apiKey) {
-        OpenAIClient client = clients.openAi(apiKey);
+    private List<ModelInfo> fetchOpenAiModels(AiVendor vendor, String apiKey) {
+        OpenAIClient client = clients.openAi(vendor, apiKey);
         try {
             var result = new ArrayList<ModelInfo>();
             for (var m : client.models().list().data()) {
-                if (isChatModel(m.id())) {
+                if (isChatModel(vendor, m.id())) {
                     result.add(new ModelInfo(m.id(), m.id()));
                 }
             }
