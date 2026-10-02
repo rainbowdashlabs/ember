@@ -200,6 +200,7 @@
 - **Association groups offered buttons that did nothing.** If you may only look at the association's member groups, you were still offered creating, deleting and changing members, and the server then refused. Only the association's administrators see those controls now.
 - **Duplicate group names ended in a general error.** A station's group names kept stray spaces, and a second group with a name already in use failed without saying why. Names are now trimmed, and a name that is taken is refused with a clear message, however it is capitalised.
 - **The storage history keeps up with you.** A storage change that failed, or a test of your saved storage, was missing from the history on the storage screen until you reloaded the page. Both now appear right away, and what you typed stays in the form.
+- **Association member pages showed no name.** When you opened a person in the association, the page title read only "Member" instead of who it was about. It now shows the person's name.
 
 ## v26.19.5
 

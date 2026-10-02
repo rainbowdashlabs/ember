@@ -182,7 +182,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         var profile = managementService.getMemberProfile(cluster.id(), pathInt(ctx, "memberId"));
         ctx.json(new MemberProfileResponse(
                 profile.member().id(),
-                profile.member().displayName(),
+                profile.name(),
                 profile.fields().stream()
                         .map(field -> new MemberProfileFieldResponse(
                                 field.id(),

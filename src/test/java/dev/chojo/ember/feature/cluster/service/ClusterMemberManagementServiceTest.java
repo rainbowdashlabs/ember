@@ -79,7 +79,8 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                         attendanceRepo,
                         profileFieldCore,
                         documentService(),
-                        selfCheckService));
+                        selfCheckService),
+                memberNameResolver);
     }
 
     /** A document store backed by a local folder, which is all these stories need of one. */
@@ -301,6 +302,20 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.setUserType(
                         clusterId, elsewhere.member().id(), StationUserType.MANAGER, strangerAccountId));
+    }
+
+    /**
+     * A current member's profile names them from their account. The stored name is only kept once
+     * somebody leaves, so reading it named nobody still at the station.
+     */
+    @Test
+    void aProfileNamesACurrentMemberFromTheirAccount() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+
+        var profile = service.getMemberProfile(clusterId, peopled.member().id());
+
+        assertEquals(peopled.account().firstName() + " " + peopled.account().lastName(), profile.name());
     }
 
     @Test

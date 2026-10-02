@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
@@ -72,6 +73,7 @@ public class ClusterMemberManagementService {
     private final DocumentService documentService;
     private final DocumentCatalogService documentCatalog;
     private final FormerMemberService formerMembers;
+    private final MemberNameResolver names;
 
     @Inject
     public ClusterMemberManagementService(
@@ -83,8 +85,10 @@ public class ClusterMemberManagementService {
             DocumentRepository documentRepository,
             DocumentService documentService,
             DocumentCatalogService documentCatalog,
-            FormerMemberService formerMembers) {
+            FormerMemberService formerMembers,
+            MemberNameResolver names) {
         this.formerMembers = formerMembers;
+        this.names = names;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.profileFieldService = profileFieldService;
@@ -211,12 +215,15 @@ public class ClusterMemberManagementService {
      *
      * @param clusterId the cluster acting
      * @param memberId  the member
-     * @return the member, the questions and the answers
+     * @return the member by name, the questions and the answers
      */
     public MemberProfile getMemberProfile(int clusterId, int memberId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
         return new MemberProfile(
-                member, profileFieldService.findApplicableFields(memberId), profileFieldService.findValues(memberId));
+                member,
+                names.identified(memberId),
+                profileFieldService.findApplicableFields(memberId),
+                profileFieldService.findValues(memberId));
     }
 
     /**
@@ -246,11 +253,13 @@ public class ClusterMemberManagementService {
 
     /**
      * @param member the person
+     * @param name   who they are, from their account while they are a member and as kept once they left
      * @param fields what is asked of them, from their station and from the cluster together
      * @param values what they have answered
      */
     public record MemberProfile(
             StationMember member,
+            String name,
             List<ProfileFieldService.MergedField> fields,
             List<ProfileFieldService.MergedValue> values) {}
 

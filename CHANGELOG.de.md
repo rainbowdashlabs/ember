@@ -200,6 +200,7 @@
 - **Verbandsgruppen boten Knöpfe, die nichts taten.** Wenn du die Mitgliedergruppen des Verbands nur ansehen darfst, wurden dir trotzdem Anlegen, Löschen und das Ändern der Mitglieder angeboten, und der Server lehnte dann ab. Diese Knöpfe sehen jetzt nur noch die Verwalter des Verbands.
 - **Doppelte Gruppennamen endeten in einem allgemeinen Fehler.** Gruppennamen einer Wache behielten Leerzeichen am Rand, und eine zweite Gruppe mit einem vergebenen Namen scheiterte, ohne zu sagen warum. Jetzt werden Namen bereinigt, und ein vergebener Name wird klar abgelehnt, egal wie er geschrieben ist.
 - **Der Speicherverlauf ist sofort aktuell.** Eine gescheiterte Änderung am Speicher oder ein Test deines gespeicherten Speichers fehlte im Verlauf der Speicherseite, bis du die Seite neu geladen hast. Beides erscheint jetzt sofort, und deine Eingaben bleiben im Formular.
+- **Mitgliederseiten im Verband zeigten keinen Namen.** Wenn du im Verband eine Person geöffnet hast, stand oben nur „Mitglied“ statt ihres Namens. Jetzt siehst du dort, um wen es geht.
 
 ## v26.19.5
 
