@@ -31,16 +31,17 @@ function waiting(id: number, route: string): NotificationResponse {
     }
 }
 
-async function inboxWith(entries: NotificationResponse[]) {
+async function inboxWith(entries: NotificationResponse[], acknowledged: () => Promise<void> = async () => {}) {
     const api: NotificationInboxApi = {
         listUnread: async () => entries,
         count: async () => entries.length,
-        acknowledge: vi.fn(async () => {}),
+        acknowledge: vi.fn(acknowledged),
         acknowledgeAll: vi.fn(async () => {}),
     }
-    const view = mount(NotificationInbox, {props: {api}, global: {plugins: [router]}})
+    const onChanged = vi.fn()
+    const view = mount(NotificationInbox, {props: {api, onChanged}, global: {plugins: [router]}})
     await flushPromises()
-    return {view, api}
+    return {view, api, onChanged}
 }
 
 /**
@@ -65,13 +66,27 @@ describe('NotificationInbox', () => {
     })
 
     it('tells whoever counts when something was marked read', async () => {
-        const {view, api} = await inboxWith([waiting(1, 'cluster-applications')])
+        const {view, api, onChanged} = await inboxWith([waiting(1, 'cluster-applications')])
 
         await view.find('[data-testid="notification-entry"]').trigger('click')
         await flushPromises()
 
         expect(api.acknowledge).toHaveBeenCalledWith(1)
-        expect(view.emitted('changed')).toHaveLength(1)
+        expect(onChanged).toHaveBeenCalledTimes(1)
         expect(view.findAll('[data-testid="notification-entry"]')).toHaveLength(0)
+    })
+
+    it('still tells whoever counts when the server answers after the notice led away from the inbox', async () => {
+        let answer = () => {}
+        const {view, onChanged} = await inboxWith(
+            [waiting(1, 'cluster-applications')],
+            () => new Promise<void>(resolve => { answer = resolve }))
+
+        await view.find('[data-testid="notification-entry"]').trigger('click')
+        view.unmount()
+        answer()
+        await flushPromises()
+
+        expect(onChanged).toHaveBeenCalledTimes(1)
     })
 })
