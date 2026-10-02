@@ -45,8 +45,7 @@ const tabs = computed(() => [
       v-if="activeTab === 'profile'"
       :member="member"
       :member-id="memberId"
-      :fields="data.fields"
-      :initial-values="data.values"
+      :answers="data.answers"
   />
 
   <GeneralTab

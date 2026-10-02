@@ -58,27 +58,6 @@ export function setFieldValue(values: Ref<Map<number, string>>, fieldId: number,
 export type ProfileFieldValueEntry = Pick<MergedValue, 'fieldId'> & {value?: string | null}
 
 /**
- * Decodes a list of profile-field value entries into a {@link Map} keyed by
- * field id.
- *
- * Values arrive JSON-encoded; decoding falls back to the raw string when
- * parsing fails so legacy or hand-edited rows still load.
- */
-export function decodeProfileValues(entries: ReadonlyArray<ProfileFieldValueEntry>): Map<number, string> {
-    const map = new Map<number, string>()
-    for (const entry of entries) {
-        let val: unknown = entry.value ?? ''
-        try {
-            val = JSON.parse(val as string)
-        } catch {
-            void 0
-        }
-        map.set(entry.fieldId, typeof val === 'string' ? val : String(val))
-    }
-    return map
-}
-
-/**
  * The question as one audience meets it: the definition, with whatever their assignment says instead.
  *
  * <p>Width and whether an answer is expected are the definition's until an audience overrides them, so
@@ -108,10 +87,11 @@ export function profileKey(fieldId: number, origin: FieldOriginName): string {
 }
 
 /**
- * Decodes profile answers of both origins into a map keyed by {@link profileKey}.
+ * Decodes profile answers of both origins into a map keyed by {@link profileKey}, since two questions on
+ * one profile can carry the same number.
  *
- * The plain {@link decodeProfileValues} keys by id alone, which is right for every list of fields that
- * has one origin and wrong for the profile, where two questions can carry the same number.
+ * Values arrive JSON-encoded; decoding falls back to the raw string when parsing fails so legacy or
+ * hand-edited rows still load.
  */
 export function decodeMergedValues(
     entries: ReadonlyArray<ProfileFieldValueEntry & {origin?: FieldOriginName}>,

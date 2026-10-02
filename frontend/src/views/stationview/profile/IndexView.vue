@@ -10,18 +10,17 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import { managedMembers as managedMembersApi, profileFields } from '@/api'
-import type { ManagedMember, MergedField } from '@/api/generated/schema'
-import {decodeMergedValues, profileKey} from '@/util/profileFields'
-import type {FieldOriginName} from '@/api/profileFields'
+import { managedMembers as managedMembersApi } from '@/api'
+import type { ManagedMember } from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
+import { useProfileAnswers } from '@/composables/useProfileAnswers'
+import { ownProfileAnswers } from '@/composables/profileAnswerPorts'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import AccountCard from './indexview/AccountCard.vue'
 import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
 import ProfileFieldsForm from './indexview/ProfileFieldsForm.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
-import {valueFields} from '@/components/profilefields/fieldLayout'
 import {usePermissions} from '@/composables/usePermissions'
 import {StationPermission} from '@/api/types'
 
@@ -29,8 +28,8 @@ const { t } = useI18n()
 const { sessionInfo } = useSession()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
-const fields = ref<MergedField[]>([])
-const values = ref<Map<string, string>>(new Map())
+const answers = useProfileAnswers(ownProfileAnswers)
+const {fields, valueOf: getValue, update: setValue} = answers
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
@@ -78,44 +77,16 @@ const incompleteFields = computed(() => {
   })
 })
 
-/** A question is named by where it comes from as well as its number: station and association count apart. */
-interface FieldRef {
-  id: number
-  origin?: FieldOriginName | null
-}
-
-function keyOf(field: FieldRef): string {
-  return profileKey(field.id, field.origin ?? 'STATION')
-}
-
-function getValue(field: FieldRef): string {
-  return values.value.get(keyOf(field)) ?? ''
-}
-
-function setValue(field: FieldRef, val: string) {
-  const next = new Map(values.value)
-  next.set(keyOf(field), val)
-  values.value = next
-}
-
 const { loading, failure, reload } = useAsyncLoader(async () => {
   if (!memberId.value) return
-  const [allFields, profileValues] = await Promise.all([
-    profileFields.getMemberFields(memberId.value),
-    profileFields.getValues(memberId.value),
-  ])
-  fields.value = allFields
-  values.value = decodeMergedValues(profileValues)
+  await answers.load(memberId.value)
 })
 
 async function saveProfile() {
   if (!memberId.value) return
   failure.value = null
   try {
-    const entries = valueFields(editableFields.value)
-      .filter(f => !f.readonly)
-      .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f)), origin: f.origin }))
-    await profileFields.setValues(memberId.value, { values: entries })
+    await answers.save(memberId.value)
     refreshSidebarCounts()
   } catch (e) {
     failure.value = describeFailure(e, t)

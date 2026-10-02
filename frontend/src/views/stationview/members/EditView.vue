@@ -21,15 +21,15 @@ import type {
   MemberGroup,
   MemberGroupSet,
   MemberWithName,
-  MergedField,
   MyInventoryItem,
   Permission,
   UserTag,
 } from '@/api/generated/schema'
 import {profileFields, stationMembers, memberGroups, groupSets, userTags, inventory} from '@/api'
-import {decodeMergedValues} from '@/util/profileFields'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useProfileAnswers} from '@/composables/useProfileAnswers'
+import {stationManagerAnswers} from '@/composables/profileAnswerPorts'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -39,12 +39,11 @@ const router = useRouter()
 const memberId = computed(() => Number(route.params.id))
 
 const member = ref<MemberWithName | null>(null)
-const fields = ref<MergedField[]>([])
+const answers = useProfileAnswers(stationManagerAnswers)
 const allRoles = ref<Permission[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allSets = ref<MemberGroupSet[]>([])
 const allTags = ref<UserTag[]>([])
-const editValues = ref<Map<string, string>>(new Map())
 const editRoleIds = ref<Set<number>>(new Set())
 const editGroupIds = ref<Set<number>>(new Set())
 const editTagIds = ref<Set<number>>(new Set())
@@ -57,8 +56,7 @@ const memberInventory = ref<MyInventoryItem[]>([])
 const allMembers = ref<MemberWithName[]>([])
 
 const editData = computed<MemberEditData>(() => ({
-  fields: fields.value,
-  values: editValues.value,
+  answers,
   allRoles: allRoles.value,
   allGroups: allGroups.value,
   allSets: allSets.value,
@@ -114,7 +112,7 @@ async function onGroupsChanged(groupIds: Set<number>) {
 async function onUserTypeChanged(userType: string) {
   editUserType.value = userType
   await loadTypePermissions(userType)
-  fields.value = await profileFields.getMemberFields(memberId.value)
+  answers.reask(await profileFields.getMemberFields(memberId.value))
 }
 
 /**
@@ -143,7 +141,6 @@ const {loading, failure} = useAsyncLoader(async () => {
         : Promise.resolve([] as MyInventoryItem[]),
   ])
   memberInventory.value = items
-  fields.value = allFields
   allMembers.value = allMembers_
   allRoles.value = roles
   allGroups.value = groups
@@ -156,7 +153,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   editRoleIds.value = new Set(memberPermissions.map(r => r.id))
   await Promise.all([loadTypePermissions(editUserType.value), loadGroupPermissions(editGroupIds.value)])
 
-  editValues.value = decodeMergedValues(profileValues)
+  answers.apply({fields: allFields, values: profileValues})
 })
 
 function goBack() {

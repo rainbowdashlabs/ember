@@ -10,7 +10,6 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import type {MergedField} from '@/api/generated/schema'
 
 /**
  * The questions of a member's own profile. They come from the station and from its association, whose
@@ -18,7 +17,7 @@ import type {MergedField} from '@/api/generated/schema'
  * field rather than by its number.
  */
 defineProps<{
-  editableFields: MergedField[]
+  editableFields: LaidOutField[]
   getValue: (field: LaidOutField) => string
   saveAction: () => Promise<void>
 }>()
