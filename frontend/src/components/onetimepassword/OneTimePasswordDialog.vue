@@ -8,14 +8,13 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
-import DetailLabel from '@/components/typography/DetailLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {IssuedOneTimePassword} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 import {printSheet, type Sheet} from '@/util/printSheet'
+import OneTimePasswordSheet from './OneTimePasswordSheet.vue'
 
 /**
  * The one moment a one-time password is ever shown: the name to sign in with, the password and the
@@ -53,14 +52,7 @@ async function copy() {
   <Modal v-model="open">
     <div class="space-y-4" data-testid="one-time-password-dialog">
       <SubHeader>{{ sheet.title }}</SubHeader>
-      <MutedText tag="p" size="sm">{{ t('oneTimePassword.dialog.hint') }}</MutedText>
-      <dl class="space-y-3">
-        <div v-for="line in sheet.lines" :key="line.label">
-          <dt><DetailLabel>{{ line.label }}</DetailLabel></dt>
-          <dd class="font-mono text-lg break-all">{{ line.value }}</dd>
-        </div>
-      </dl>
-      <MutedText tag="p" size="sm">{{ sheet.note }}</MutedText>
+      <OneTimePasswordSheet :sheet="sheet"/>
       <ButtonRow align="end">
         <SecondaryButton :icon="['fas', 'copy']" @click="copy">
           {{ copied ? t('oneTimePassword.dialog.copied') : t('oneTimePassword.dialog.copy') }}

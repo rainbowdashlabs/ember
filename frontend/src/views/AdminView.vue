@@ -107,6 +107,10 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.accounts')"
+                    to="/admin/accounts" name="admin-accounts"
+                    @navigate="close"/>
+
       <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
                     to="/admin/2fa" name="admin-two-factor"
                     @navigate="close"/>

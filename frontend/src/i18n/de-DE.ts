@@ -705,6 +705,7 @@ export default {
         securityHibp: 'HIBP',
         securityTwoFactor: 'Zwei-Faktor',
         twoFactor: 'Zwei-Faktor verwalten',
+        accounts: 'Konten',
         accountAvatar: 'Profil',
         accountTheming: 'Erscheinungsbild',
         accountSessions: 'Sitzungen',
@@ -1238,8 +1239,12 @@ export default {
             subtitle: 'Zwei-Faktor-Anforderungen konfigurieren',
         },
         'admin-two-factor': {
-            title: 'Zwei-Faktor-Reset',
-            subtitle: 'Zwei-Faktor-Authentifizierung für Konten zurücksetzen',
+            title: 'Zwei-Faktor-Protokoll',
+            subtitle: 'Was an den Anmeldungen der Konten geschah',
+        },
+        'admin-accounts': {
+            title: 'Konten',
+            subtitle: 'Jedes Konto dieser Instanz, mit seinen Wachen, Verbänden und Anmeldewegen',
         },
         'admin-problems': {
             title: 'System-Log',
@@ -2144,6 +2149,46 @@ export default {
         oneTimePassword: 'Einmalpasswort erstellen',
         oneTimePasswordHint: 'Nach dem Anlegen zeigt Ember dir ein Einmalpasswort, das du der Person selbst '
             + 'übergibst. Beim ersten Anmelden wählt sie ein eigenes Passwort.',
+    },
+    adminAccounts: {
+        searchPlaceholder: 'Nach Name, Adresse oder Benutzername suchen…',
+        empty: 'Keine Konten gefunden.',
+        pager: 'Seite {page} von {pages}, {total} Konten',
+        previous: 'Zurück',
+        next: 'Weiter',
+        none: 'Keine',
+        neverSignedIn: 'Noch nie angemeldet',
+        oneTimeUntil: 'Einmalpasswort, gültig bis {date}',
+        actionsTitle: 'Aktionen',
+        col: {
+            name: 'Name',
+            loginName: 'Benutzername / Adresse',
+            stations: 'Wachen',
+            associations: 'Verbände',
+            role: 'Rolle auf der Instanz',
+            lastSignIn: 'Letzte Anmeldung',
+            password: 'Passwort',
+            passkeys: 'Passkeys',
+            twoFactor: 'Zweiter Faktor',
+        },
+        roles: {
+            USER: 'Benutzer',
+            ADMINISTRATOR: 'Administration',
+        },
+        password: {
+            NONE: 'Keines',
+            ON: 'Eingerichtet',
+            OFF: 'Abgeschaltet',
+            ONE_TIME: 'Einmalpasswort',
+        },
+        retire: {
+            action: 'Passwort stilllegen',
+            hint: 'Schaltet die Anmeldung mit Passwort ab. Das geht nur, wenn sich das Konto schon einmal '
+                + 'mit einem Passkey angemeldet hat.',
+            confirmTitle: 'Passwort stilllegen?',
+            confirmText: '{name} meldet sich danach nur noch mit einem Passkey an.',
+            success: 'Das Passwort von {name} ist stillgelegt.',
+        },
     },
     oneTimePassword: {
         action: 'Einmalpasswort erstellen',
@@ -4849,9 +4894,8 @@ export default {
                 actions: 'Aktionen',
             },
             reset: '2FA zurücksetzen',
-            resetTitle: 'Konto-2FA zurücksetzen',
             resetHint: 'Setzt alle 2FA-Faktoren, Wiederherstellungscodes, vertrauten Geräte und aktiven Sitzungen eines Kontos zurück. Das Konto wird beim nächsten Login zur erneuten Einrichtung aufgefordert.',
-            resetAccountLabel: 'Konto',
+            resetMoved: 'Die zweiten Faktoren eines Kontos setzt du jetzt in der Kontenliste zurück:',
             accountSearchPlaceholder: 'Nach Name oder E-Mail suchen…',
             resetSuccess: '2FA für {name} zurückgesetzt.',
             resetConfirmTitle: 'Wirklich zurücksetzen?',
@@ -4864,7 +4908,6 @@ export default {
                 MANAGER: 'Manager',
                 TRIAL: 'Probe',
             },
-            instanceHint: 'Diese Einstellungen gelten in jeder Wache der Instanz.',
             audit: {
                 title: 'Audit-Protokoll',
                 empty: 'Noch keine Einträge.',

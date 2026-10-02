@@ -46,6 +46,11 @@ const {t} = useI18n()
         <SubHeader>{{ t('adminSecurity.hub.operationsTitle') }}</SubHeader>
         <ul class="text-sm">
           <li>
+            <RouterLink :to="{ name: 'admin-accounts' }" class="underline">
+              {{ t('sidebar.accounts') }}
+            </RouterLink>
+          </li>
+          <li>
             <RouterLink :to="{ name: 'admin-two-factor' }" class="underline">
               {{ t('sidebar.twoFactor') }}
             </RouterLink>

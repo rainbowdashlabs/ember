@@ -135,6 +135,7 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'admin', to: '/admin/settings/security/hibp', labelKey: 'sidebar.securityHibp', icon: 'user-shield'},
     {scope: 'admin', to: '/admin/settings/security/two-factor', labelKey: 'sidebar.securityTwoFactor', icon: 'mobile-screen'},
     {scope: 'admin', to: '/admin/settings/legal', labelKey: 'sidebar.legal', icon: 'scale-balanced'},
+    {scope: 'admin', to: '/admin/accounts', labelKey: 'sidebar.accounts', icon: 'users'},
     {scope: 'admin', to: '/admin/2fa', labelKey: 'sidebar.twoFactor', icon: 'mobile-screen'},
     {scope: 'admin', to: '/admin/monitoring/storage', labelKey: 'sidebar.storageDashboard', icon: 'hard-drive'},
     {scope: 'admin', to: '/admin/monitoring/storage/backend', labelKey: 'sidebar.storageBackend', icon: 'hard-drive'},
