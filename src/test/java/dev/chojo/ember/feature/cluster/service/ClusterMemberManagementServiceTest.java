@@ -74,7 +74,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                         memberGroupRepo,
                         userTagRepo,
                         attendanceRepo,
-                        profileFieldRepo,
+                        profileFieldCore,
                         documentService(),
                         selfCheckService));
     }

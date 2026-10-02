@@ -13617,68 +13617,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cluster/fields/member/{memberId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** What one member answered */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    memberId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FieldValuesRequest"];
-                    };
-                };
-            };
-        };
-        /** Fill in answers for one member */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    memberId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["FieldValuesRequest"];
-                };
-            };
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/cluster/fields/order": {
         parameters: {
             query?: never;
@@ -55281,7 +55219,7 @@ export interface components {
         ClusterBackendReach: "NONE" | "OWN_FILES" | "EVERY_STATION";
         ClusterFieldOrderRequest: {
             fieldIds?: number[];
-            scope?: string;
+            role?: components["schemas"]["ProfileFieldScope"] | null;
         };
         ClusterFieldRequest: {
             config?: components["schemas"]["ProfileFieldConfig"];
@@ -57204,11 +57142,6 @@ export interface components {
             fieldId?: number;
             origin?: components["schemas"]["FieldOrigin"];
             value?: string;
-        };
-        FieldValuesRequest: {
-            values: {
-                [key: string]: string;
-            };
         };
         FileContentResponse: {
             content: string;
@@ -60794,7 +60727,7 @@ export interface components {
             acknowledgements: components["schemas"]["ProfileFieldChangeAcknowledgement"][];
             changedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            changedBy: number;
+            changedBy: number | null;
             changedByName: string;
             /** Format: int32 */
             clusterFieldId: number | null;
@@ -64961,7 +64894,6 @@ export type FieldType = components['schemas']['FieldType'];
 export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
 export type FieldValue = components['schemas']['FieldValue'];
 export type FieldValueEntry = components['schemas']['FieldValueEntry'];
-export type FieldValuesRequest = components['schemas']['FieldValuesRequest'];
 export type FileContentResponse = components['schemas']['FileContentResponse'];
 export type FileDownloadConfig = components['schemas']['FileDownloadConfig'];
 export type FileListing = components['schemas']['FileListing'];

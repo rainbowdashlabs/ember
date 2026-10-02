@@ -7,9 +7,13 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.ClusterFieldValueChanged;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -29,7 +33,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,6 +61,7 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
     private OwnerScene scene;
     private StationMember member;
     private Notifier notifier;
+    private List<ClusterFieldValueChanged> told;
     private ProfileFieldService answers;
 
     @BeforeEach
@@ -61,15 +69,19 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
         scene = OwnerScene.association("Antwortwege");
         member = scene.member();
         notifier = mock(Notifier.class);
-        answers = new ProfileFieldService(
-                profileFieldRepo,
-                profileFieldChangeRepo,
-                notifier,
-                stationMemberRepo,
-                accountRepo,
-                clusterProfileFieldRepo,
-                memberGroupRepo,
-                memberPermissionResolver);
+        told = new ArrayList<>();
+        var memberHears = new DomainEventHandler<ClusterFieldValueChanged>() {
+            @Override
+            public Class<ClusterFieldValueChanged> eventType() {
+                return ClusterFieldValueChanged.class;
+            }
+
+            @Override
+            public void handle(ClusterFieldValueChanged event) {
+                told.add(event);
+            }
+        };
+        answers = newProfileFieldService(newProfileFieldCore(notifier, new DomainEventBus(Set.of(memberHears))));
     }
 
     @AfterEach
@@ -216,14 +228,16 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
         verify(notifier).notify(any(), eq(NotificationType.PROFILE_FIELD_CHANGED), namingFields(field.name()), any());
     }
 
+    /** Changed with the shared pipeline: an association's question used to get a record per save. */
     @Test
-    void eachChangeToAnAssociationQuestionIsARecordOfItsOwn() {
+    void oneAuthorsChangesToAnAssociationQuestionWithinTheWindowAreOneRecord() {
         var field = associationAsks("Mitgliedsnummer", "{}", false);
 
         write(member.id(), ProfileWriter.station(false), association(field.id(), "\"1\""));
         write(member.id(), ProfileWriter.station(false), association(field.id(), "\"2\""));
 
-        assertEquals(2, changes().size());
+        assertEquals(1, changes().size());
+        assertEquals("\"2\"", changes().getFirst().newValue());
     }
 
     @Test
@@ -242,8 +256,9 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
                         station(number.id(), "\"zwei\"")));
 
         assertTrue(
-                profileFieldRepo.findValue(member.id(), text.id()).isPresent(),
-                "the answer before the refused one is already written");
+                profileFieldRepo.findValue(member.id(), text.id()).isEmpty(),
+                "one save is one write: the answer before the refused one is not kept either");
+        assertTrue(changes().isEmpty());
         verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
@@ -282,5 +297,63 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
         write(member.id(), ProfileWriter.association(), association(field.id(), "\"TM1\""));
 
         verify(notifier).notify(any(), eq(NotificationType.PROFILE_FIELD_CHANGED), namingFields("Lehrgang"), any());
+    }
+
+    /** The member hears what the association changed about them, station questions included. */
+    @Test
+    void theMemberHearsWhatTheAssociationChanged() {
+        var asked = associationAsks("Funktion", "{}", false);
+        var own = stationAsks("Spindnummer", "{}", false);
+
+        write(
+                member.id(),
+                ProfileWriter.association(),
+                association(asked.id(), "\"Kassenwart\""),
+                station(own.id(), "\"7\""));
+
+        assertEquals(1, told.size());
+        assertEquals(member.id(), told.getFirst().memberId());
+        assertEquals("Funktion, Spindnummer", told.getFirst().fieldNames());
+    }
+
+    @Test
+    void theMemberHearsNothingOfWhatTheStationChanged() {
+        var asked = associationAsks("Funktion", "{}", false);
+
+        write(member.id(), ProfileWriter.station(true), association(asked.id(), "\"Kassenwart\""));
+
+        assertTrue(told.isEmpty());
+    }
+
+    /** An association manager with no membership anywhere is recorded, and named, by their account. */
+    @Test
+    void anAssociationManagerWithoutAMembershipIsRecordedByAccount() {
+        var field = associationAsks("Lehrgang", "{}", false);
+        int manager = scene.newAccount("Vorstand");
+
+        answers.setValues(
+                member.id(),
+                List.of(association(field.id(), "\"TM2\"")),
+                ProfileAuthor.account(manager),
+                ProfileWriter.association());
+
+        var change = changes().getFirst();
+        assertNull(change.changedBy());
+        assertEquals("Vorstand Szene", change.changedByName());
+    }
+
+    /** One who is also a member at the member's station is recorded by that membership. */
+    @Test
+    void anAssociationManagerAtTheMembersStationIsRecordedByThatMembership() {
+        var field = associationAsks("Lehrgang", "{}", false);
+        var manager = scene.newMember("Vorstand");
+
+        answers.setValues(
+                member.id(),
+                List.of(association(field.id(), "\"TM2\"")),
+                ProfileAuthor.account(Objects.requireNonNull(manager.accountId())),
+                ProfileWriter.association());
+
+        assertEquals(manager.id(), changes().getFirst().changedBy());
     }
 }

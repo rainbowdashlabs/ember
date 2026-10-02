@@ -172,6 +172,12 @@
 - **Links in association mail led to the wrong page.** The button in the association's notification mail opened a page that does not exist, and most notices in it opened a station's start page instead of the association's page they were about. They now open the association's own pages, in the association the mail is about.
 - **Some notices led nowhere.** Opening a notice about a lending request, a storage warning or imported mail waiting to be filed did nothing in the app, and in a mail or a feed opened the start page instead. They now open the lending request, the storage page and the member documents.
 - **Notification settings could stop saving.** Once the switch for exchange requests on the notification settings page had been touched, every later change on that page failed to save. The switch is gone, since those notices became movement notices long ago, and the page saves again.
+- **Association managers without a station could not save a profile.** If you manage the association's members but belong to none of its stations, saving a member's profile failed. It saves now, and the change history names you.
+- **Field managers could not open the association's questions.** If you may edit the association's profile questions but not read its members, the list of questions stayed closed to you. It opens for you now.
+- **Spacers could not be added to the association's questions.** Adding a spacer asked for a name the form never showed. Spacers are now numbered on their own, just like at the station.
+- **Archiving kept a member's answers to the association.** When you archived a member, their answers to the association's questions stayed, even where a question was not marked to be kept. They are now cleared like the station's own.
+- **"Keep when archived" was lost on new station questions.** Creating a question with this box ticked saved it without the setting. It now sticks from the start.
+- **Members were not told when the association changed their profile.** The association could fill in your profile from its member screen without you hearing about it. You now get a notification when it does.
 
 ## v26.19.5
 

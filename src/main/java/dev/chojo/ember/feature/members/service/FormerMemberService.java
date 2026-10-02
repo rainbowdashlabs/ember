@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import jakarta.inject.Inject;
@@ -41,7 +40,7 @@ public class FormerMemberService {
     private final MemberGroupRepository groupRepository;
     private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
-    private final ProfileFieldRepository profileFieldRepository;
+    private final ProfileFieldCore profileFields;
     private final DocumentService documentService;
     private final SelfCheckService selfCheckService;
 
@@ -54,7 +53,7 @@ public class FormerMemberService {
             MemberGroupRepository groupRepository,
             UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
-            ProfileFieldRepository profileFieldRepository,
+            ProfileFieldCore profileFields,
             DocumentService documentService,
             SelfCheckService selfCheckService) {
         this.selfCheckService = selfCheckService;
@@ -65,7 +64,7 @@ public class FormerMemberService {
         this.groupRepository = groupRepository;
         this.tagRepository = tagRepository;
         this.attendanceRepository = attendanceRepository;
-        this.profileFieldRepository = profileFieldRepository;
+        this.profileFields = profileFields;
         this.documentService = documentService;
     }
 
@@ -142,7 +141,7 @@ public class FormerMemberService {
 
         attendanceRepository.deleteAbsencesByMember(memberId);
 
-        profileFieldRepository.deleteNonArchivedValues(memberId);
+        profileFields.clearOnArchive(memberId);
 
         documentService.releaseMember(memberId);
 

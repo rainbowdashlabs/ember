@@ -160,12 +160,12 @@ test.describe('Cluster members and fields', () => {
         expect(target, 'somebody who is not their station\'s owner').toBeTruthy()
 
         const answer = `Florian ${Date.now()}`
-        const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
-            {headers, data: {values: {[fieldId]: JSON.stringify(answer)}}})
+        const saved = await page.request.put(`/api/v1/cluster/members/manage/${target.id}/profile`,
+            {headers, data: {values: [{fieldId, value: JSON.stringify(answer), origin: 'CLUSTER'}]}})
         expect(saved.ok()).toBeTruthy()
 
-        const read = await page.request.get(`/api/v1/cluster/fields/member/${target.id}`, {headers})
-        expect(JSON.stringify(await read.json())).toContain(answer)
+        const read = await page.request.get(`/api/v1/cluster/members/manage/${target.id}/profile`, {headers})
+        expect(JSON.stringify((await read.json()).values)).toContain(answer)
 
         await page.goto(`/cluster/members/${target.id}`)
         await expect(page.getByTestId('app-shell')).toBeVisible()
@@ -241,8 +241,8 @@ test.describe('Cluster members and fields', () => {
             })
             expect(wrote.ok()).toBeTruthy()
 
-            const back = await page.request.get(`/api/v1/cluster/fields/member/${member.id}`, {headers})
-            const answers = JSON.stringify(await back.json())
+            const back = await page.request.get(`/api/v1/cluster/members/manage/${member.id}/profile`, {headers})
+            const answers = JSON.stringify((await back.json()).values)
             expect(answers).toContain(answer)
             expect(answers, 'the one the cluster kept was not written from the station')
                 .not.toContain('nicht erlaubt')
@@ -289,8 +289,8 @@ test.describe('Cluster members and fields', () => {
         expect(target, 'the reading station has somebody to answer for').toBeTruthy()
 
         const answer = `G26.3 ${stamp}`
-        const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
-            {headers, data: {values: {[fieldId]: JSON.stringify(answer)}}})
+        const saved = await page.request.put(`/api/v1/cluster/members/manage/${target.id}/profile`,
+            {headers, data: {values: [{fieldId, value: JSON.stringify(answer), origin: 'CLUSTER'}]}})
         expect(saved.ok()).toBeTruthy()
 
         const station = await pageAsThrowaway(browser, request, [], manager)
@@ -348,8 +348,8 @@ test.describe('Cluster members and fields', () => {
                 !m.stationOwner && m.userType === 'MEMBER')
             expect(target, 'the association has a member to answer for').toBeTruthy()
 
-            const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
-                {headers, data: {values: {[fieldId]: JSON.stringify('2020-01-31')}}})
+            const saved = await page.request.put(`/api/v1/cluster/members/manage/${target.id}/profile`,
+                {headers, data: {values: [{fieldId, value: JSON.stringify('2020-01-31'), origin: 'CLUSTER'}]}})
             expect(saved.ok(), await saved.text()).toBeTruthy()
 
             await page.goto(`/cluster/members/${target.id}`)

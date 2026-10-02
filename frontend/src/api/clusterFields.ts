@@ -4,12 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {AssignmentTarget, EditableFieldRequest} from './profileFields'
+import type {AssignmentTarget, EditableFieldRequest, ProfileFieldScopeName} from './profileFields'
 import type {
     AssignmentRequest,
     ClusterFieldResponse,
     ClusterProfileFieldAssignment,
-    FieldValuesRequest,
     ProfileFieldAssignment,
 } from './generated/schema'
 
@@ -43,19 +42,9 @@ export async function deleteField(fieldId: number): Promise<void> {
     await client.delete(`/cluster/fields/${fieldId}`)
 }
 
-/** Field id to answer, in the same JSON shape a station field's answer has. */
-export async function getMemberValues(memberId: number): Promise<FieldValuesRequest> {
-    const res = await client.get<FieldValuesRequest>(`/cluster/fields/member/${memberId}`)
-    return res.data
-}
-
-export async function setMemberValues(memberId: number, values: Record<number, string>): Promise<void> {
-    await client.put(`/cluster/fields/member/${memberId}`, {values})
-}
-
-/** Puts one audience's questions in a given order in one request. */
-export async function reorderFields(role: string, fieldIds: number[]): Promise<void> {
-    await client.put('/cluster/fields/order', {scope: role, fieldIds})
+/** Puts one audience's questions in a given order in one request, named by role as a station's order is. */
+export async function reorderFields(role: ProfileFieldScopeName, fieldIds: number[]): Promise<void> {
+    await client.put('/cluster/fields/order', {role, fieldIds})
 }
 
 /**

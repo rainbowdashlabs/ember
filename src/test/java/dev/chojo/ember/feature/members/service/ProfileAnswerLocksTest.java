@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -77,7 +78,11 @@ class ProfileAnswerLocksTest extends RepositoryTestBase {
     private @Nullable String written(ClusterProfileField field, ProfileWriter writer) {
         profileFieldService.setValues(
                 memberId, List.of(new FieldValueEntry(field.id(), "\"Ja\"", FieldOrigin.CLUSTER)), memberId, writer);
-        return clusterProfileFieldService.findValues(clusterId, memberId).get(field.id());
+        return clusterProfileFieldRepo.findValues(memberId).stream()
+                .filter(value -> value.fieldId() == field.id())
+                .map(ProfileFieldValue::value)
+                .findFirst()
+                .orElse(null);
     }
 
     @Test

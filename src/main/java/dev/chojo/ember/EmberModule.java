@@ -85,6 +85,7 @@ import dev.chojo.ember.feature.cluster.handler.ClusterMemberRoleChangedHandler;
 import dev.chojo.ember.feature.cluster.handler.ClusterNewsShareHandler;
 import dev.chojo.ember.feature.cluster.handler.ClusterQuotaChangedHandler;
 import dev.chojo.ember.feature.cluster.handler.ClusterStationReleasedHandler;
+import dev.chojo.ember.feature.cluster.service.AssociationProfileFields;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.handler.BulkMentionedInCommentHandler;
 import dev.chojo.ember.feature.comment.handler.CommentCreatedHandler;
@@ -209,6 +210,7 @@ import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
 import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
 import dev.chojo.ember.feature.media.route.MediaRoutes;
 import dev.chojo.ember.feature.media.route.PublicMediaRoutes;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.handler.MembersAddedToGroupHandler;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
@@ -228,7 +230,9 @@ import dev.chojo.ember.feature.members.route.UserTagRoutes;
 import dev.chojo.ember.feature.members.service.ExpiryReminderService;
 import dev.chojo.ember.feature.members.service.ManagedLoginNoticeSweeper;
 import dev.chojo.ember.feature.members.service.MemberFeedDetails;
+import dev.chojo.ember.feature.members.service.ProfileFieldOwner;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
+import dev.chojo.ember.feature.members.service.StationProfileFields;
 import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
 import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
@@ -608,6 +612,11 @@ public class EmberModule extends AbstractModule {
         commentTargets.addBinding(CommentEntityType.KB).to(KbCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.NEWS).to(NewsCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.BOARD_TICKET).to(TicketCommentTarget.class);
+
+        MapBinder<FieldOrigin, ProfileFieldOwner> profileFieldOwners =
+                MapBinder.newMapBinder(binder(), FieldOrigin.class, ProfileFieldOwner.class);
+        profileFieldOwners.addBinding(FieldOrigin.STATION).to(StationProfileFields.class);
+        profileFieldOwners.addBinding(FieldOrigin.CLUSTER).to(AssociationProfileFields.class);
 
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);

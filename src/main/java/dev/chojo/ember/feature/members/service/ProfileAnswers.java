@@ -32,6 +32,8 @@ import java.util.Optional;
  * field the member never touched; {@link #unchanged} is what the services ask first.
  */
 public final class ProfileAnswers {
+    /** How the change history records an answer that is not there. */
+    public static final String NOTHING = "null";
 
     private ProfileAnswers() {}
 
@@ -100,6 +102,22 @@ public final class ProfileAnswers {
      * @param kept the document kept, or null where nothing is
      */
     public static String recorded(@Nullable JsonNode kept) {
-        return kept == null ? "null" : kept.toString();
+        return kept == null ? NOTHING : kept.toString();
+    }
+
+    /**
+     * Whether a recorded answer amounts to nothing having been given.
+     *
+     * <p>A question nobody has answered is recorded as the absent value, and one answered with an empty
+     * box as an empty string. They are different strings and the same thing: nothing was said either
+     * time. Told apart, they made a change out of somebody opening a form and saving it, and somebody
+     * else was asked to confirm it.
+     *
+     * @param recorded the answer as the change history records it
+     */
+    public static boolean saysNothing(@Nullable String recorded) {
+        if (recorded == null) return true;
+        String trimmed = recorded.strip();
+        return trimmed.isEmpty() || trimmed.equals(NOTHING) || trimmed.equals("\"\"");
     }
 }

@@ -36,9 +36,14 @@ import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.entity.Audience;
 import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
@@ -108,6 +113,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     private final ClusterMemberService memberService;
     private final ClusterInventoryService clusterInventoryService;
     private final ClusterProfileFieldService fieldService;
+    private final ProfileFieldCore profileFields;
     private final ClusterStationGroupService stationGroupService;
     private final ClusterContentService contentService;
     private final ClusterApplicationService applicationService;
@@ -131,6 +137,7 @@ public class DemoClusterSeeder implements DemoSeeder {
             ClusterMemberService memberService,
             ClusterInventoryService clusterInventoryService,
             ClusterProfileFieldService fieldService,
+            ProfileFieldCore profileFields,
             ClusterStationGroupService stationGroupService,
             ClusterContentService contentService,
             ClusterApplicationService applicationService,
@@ -151,6 +158,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         this.memberService = memberService;
         this.clusterInventoryService = clusterInventoryService;
         this.fieldService = fieldService;
+        this.profileFields = profileFields;
         this.stationGroupService = stationGroupService;
         this.contentService = contentService;
         this.applicationService = applicationService;
@@ -622,8 +630,13 @@ public class DemoClusterSeeder implements DemoSeeder {
 
         var head = member.members().head();
         if (head != null) {
-            fieldService.setValues(
-                    cluster.id(), head.id(), Map.of(licence.id(), "\"C1\"", breathing.id(), "true"), head.id());
+            profileFields.write(
+                    head.id(),
+                    List.of(
+                            new FieldValueEntry(licence.id(), "\"C1\"", FieldOrigin.CLUSTER),
+                            new FieldValueEntry(breathing.id(), "true", FieldOrigin.CLUSTER)),
+                    ProfileAuthor.member(head),
+                    ProfileWriter.association());
         }
     }
 

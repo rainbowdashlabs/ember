@@ -79,8 +79,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
         ledger = new ExpiryReminderRepository();
         service = new ExpiryReminderService(
-                profileFieldRepo,
-                clusterProfileFieldRepo,
+                profileFieldCore,
                 ledger,
                 profileFieldService,
                 stationMemberRepo,

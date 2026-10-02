@@ -324,7 +324,7 @@ public class ProfileFieldRepository {
     }
 
     /**
-     * Creates a new profile field definition for a station.
+     * Creates a new profile field definition for a station, whose answers go when a member leaves.
      */
     public ProfileField create(
             int stationId,
@@ -334,10 +334,27 @@ public class ProfileFieldRepository {
             boolean required,
             boolean readonly,
             @Nullable String width) {
+        return create(stationId, name, fieldType, config, required, readonly, width, false);
+    }
+
+    /**
+     * Creates a new profile field definition for a station.
+     */
+    public ProfileField create(
+            int stationId,
+            String name,
+            FieldType fieldType,
+            ProfileFieldConfig config,
+            boolean required,
+            boolean readonly,
+            @Nullable String width,
+            boolean keepOnArchive) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO profile_field(station_id, name, field_type, config, required, readonly, width)
-                VALUES (:station_id, :name, :field_type, :config::JSONB, :required, :readonly, :width)
+                INSERT INTO profile_field(station_id, name, field_type, config, required, readonly, width,
+                                          keep_on_archive)
+                VALUES (:station_id, :name, :field_type, :config::JSONB, :required, :readonly, :width,
+                        :keep_on_archive)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
@@ -345,7 +362,8 @@ public class ProfileFieldRepository {
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)
-                        .bind("width", width),
+                        .bind("width", width)
+                        .bind("keep_on_archive", keepOnArchive),
                 ProfileField.map(),
                 PROFILE_FIELD_COLUMNS);
     }

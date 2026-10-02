@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -34,7 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 /**
  * What a member profile takes as an answer today, how it keeps it and how the member table prints it.
@@ -52,15 +50,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new ProfileFieldService(
-                profileFieldRepo,
-                profileFieldChangeRepo,
-                mock(Notifier.class),
-                stationMemberRepo,
-                accountRepo,
-                clusterProfileFieldRepo,
-                memberGroupRepo,
-                memberPermissionResolver);
+        service = profileFieldService;
         table = new MemberTableService(profileFieldRepo, stationMemberRepo);
         station = stationRepo.create("ProfileAnswersStation");
         account = accountRepo.create("profile-answers@test.com", "Paula", "Profil");

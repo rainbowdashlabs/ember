@@ -319,9 +319,9 @@ public class ClusterProfileFieldRepository {
      * @param memberId the station member
      * @return one entry per answered field that reaches the member's station
      */
-    public List<Value> findValues(int memberId) {
+    public List<ProfileFieldValue> findValues(int memberId) {
         return query("""
-                SELECT cpfv.field_id, cpfv.value
+                SELECT cpfv.member_id, cpfv.field_id, cpfv.value
                 FROM cluster_profile_field_value cpfv
                 JOIN cluster_profile_field cpf ON cpf.id = cpfv.field_id
                 JOIN station_member sm ON sm.id = cpfv.member_id
@@ -329,8 +329,22 @@ public class ClusterProfileFieldRepository {
                 WHERE cpfv.member_id = :member_id
                   AND %s;""", REACHES_STATION)
                 .single(call().bind("member_id", memberId))
-                .map(row -> new Value(row.getInt("field_id"), row.getString("value")))
+                .map(ProfileFieldValue.map())
                 .all();
+    }
+
+    /**
+     * Removes a leaving member's answers to every question not marked to be kept, whether or not it still
+     * reaches their station.
+     *
+     * @param memberId the member who leaves
+     * @return how many answers were removed
+     */
+    public int deleteNonKeptValues(int memberId) {
+        return query("""
+                DELETE FROM cluster_profile_field_value
+                WHERE member_id = :member_id
+                  AND field_id NOT IN (SELECT id FROM cluster_profile_field WHERE keep_on_archive);""").single(call().bind("member_id", memberId)).delete().rows();
     }
 
     /**
@@ -375,9 +389,4 @@ public class ClusterProfileFieldRepository {
                 USING station_member sm
                 WHERE sm.id = cpfv.member_id AND sm.station_id = :station_id;""").single(call().bind("station_id", stationId)).delete().rows();
     }
-
-    /**
-     * @param value the answer as stored, which is JSON like a station field's
-     */
-    public record Value(int fieldId, String value) {}
 }

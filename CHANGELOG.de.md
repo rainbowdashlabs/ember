@@ -172,6 +172,12 @@
 - **Links in Mails des Verbands führten auf die falsche Seite.** Der Knopf in der Benachrichtigungsmail des Verbands öffnete eine Seite, die es nicht gibt, und die meisten Hinweise darin öffneten die Startseite einer Wache statt der Seite des Verbands, um die es ging. Sie öffnen jetzt die Seiten des Verbands, und zwar in dem Verband, um den es in der Mail geht.
 - **Manche Hinweise führten ins Leere.** Ein Hinweis auf eine Leihanfrage, eine Speicherwarnung oder importierte Post, die noch abgelegt werden muss, tat in der App beim Öffnen nichts und öffnete aus einer Mail oder einem Feed die Startseite. Er öffnet jetzt die Leihanfrage, die Speicherseite und die Mitgliederdokumente.
 - **Benachrichtigungseinstellungen ließen sich nicht mehr speichern.** Sobald der Schalter für Tausch-Anfragen auf der Seite der Benachrichtigungseinstellungen einmal betätigt war, scheiterte jede weitere Änderung auf dieser Seite beim Speichern. Der Schalter ist entfernt, da diese Hinweise längst zu Hinweisen über Bewegungen geworden sind, und die Seite speichert wieder.
+- **Verbandsverwalter ohne Wache konnten kein Profil speichern.** Verwaltest du die Mitglieder des Verbands, gehörst aber zu keiner seiner Wachen, scheiterte das Speichern eines Profils. Jetzt klappt es, und der Änderungsverlauf nennt dich.
+- **Feldverwalter kamen nicht an die Fragen des Verbands.** Durftest du die Profilfragen des Verbands bearbeiten, aber nicht seine Mitglieder sehen, blieb die Liste der Fragen für dich zu. Jetzt öffnet sie sich.
+- **Dem Verband ließen sich keine Abstände hinzufügen.** Ein Abstand verlangte einen Namen, den das Formular gar nicht zeigte. Abstände werden jetzt von selbst durchnummeriert, wie an der Wache.
+- **Beim Archivieren blieben die Antworten an den Verband stehen.** Hast du ein Mitglied archiviert, blieben seine Antworten auf die Fragen des Verbands erhalten, auch wenn eine Frage nicht zum Behalten markiert war. Jetzt werden sie gelöscht wie die der Wache.
+- **„Bei Archivierung behalten“ ging bei neuen Fragen der Wache verloren.** Wer eine Frage mit diesem Haken anlegte, bekam sie ohne die Einstellung gespeichert. Jetzt bleibt der Haken von Anfang an.
+- **Mitglieder erfuhren nicht, wenn der Verband ihr Profil änderte.** Der Verband konnte dein Profil über seine Mitgliederseite ausfüllen, ohne dass du davon hörtest. Jetzt bekommst du dann eine Benachrichtigung.
 
 ## v26.19.5
 

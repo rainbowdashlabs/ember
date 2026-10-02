@@ -240,4 +240,5 @@ export default {
     'M-193': 'Diese Frage des Verbands wird an der Wache dieses Mitglieds nicht gestellt, es wurde nichts gespeichert',
     'M-194': 'Inhalte sind noch auf diese Gruppe beschränkt, sie wurde nicht entfernt. Ändere zuerst, wer sie sehen darf',
     'M-195': 'Inhalte sind noch auf diese Gruppe beschränkt, sie wurde nicht in einen Tag umgewandelt. Ändere zuerst, wer sie sehen darf',
+    'M-196': 'Diese Gruppe gehört nicht zu dieser Wache, es wurde nichts gespeichert',
 }

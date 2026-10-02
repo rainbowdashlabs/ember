@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
@@ -17,7 +18,6 @@ import dev.chojo.ember.repository.OwnerScene;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -69,13 +69,12 @@ class ProfileFieldOwnersTest extends RepositoryTestBase {
                 memberGroupRepo,
                 userTagRepo,
                 attendanceRepo,
-                profileFieldRepo,
+                profileFieldCore,
                 mock(DocumentService.class),
                 selfCheckService);
     }
 
-    /** TODO enable with the fix: an author without a station membership was written as member 0. */
-    @Disabled("red until the association's author is recorded by account")
+    /** An association manager without a membership used to be recorded as member 0, which no row is. */
     @Test
     void anAssociationManagerWithoutAMembershipCanSaveAnAnswer() {
         int field = associationAsks("Ohne Wache", false);
@@ -94,8 +93,7 @@ class ProfileFieldOwnersTest extends RepositoryTestBase {
                         .value());
     }
 
-    /** TODO enable with the fix: archiving cleared the station's answers only. */
-    @Disabled("red until archiving clears association answers by their keep flag")
+    /** Archiving used to clear the station's answers only. */
     @Test
     void archivingClearsTheAssociationsAnswersThatAreNotKept() {
         int dropped = associationAsks("Geht", false);
@@ -115,8 +113,7 @@ class ProfileFieldOwnersTest extends RepositoryTestBase {
         assertEquals(kept, left.getFirst().fieldId());
     }
 
-    /** TODO enable with the fix: the association refused a spacer for having no name. */
-    @Disabled("red until an association spacer is numbered like a station's")
+    /** The association used to refuse a spacer for having no name. */
     @Test
     void anAssociationSpacerNeedsNoName() {
         var spacer = clusterProfileFieldService.create(
@@ -134,8 +131,7 @@ class ProfileFieldOwnersTest extends RepositoryTestBase {
         assertEquals("Abstand 1", spacer.name());
     }
 
-    /** TODO enable with the fix: trial members were accepted though an association does not ask them. */
-    @Disabled("red until an association refuses to ask trial members")
+    /** Trial members used to be accepted though the screen never offered them. */
     @Test
     void anAssociationDoesNotAskTrialMembers() {
         int field = associationAsks("Probezeit", false);
@@ -146,8 +142,7 @@ class ProfileFieldOwnersTest extends RepositoryTestBase {
                         scene.association().clusterId(), field, ProfileFieldScope.TRIAL, 0, null, null, null));
     }
 
-    /** TODO enable with the fix: a station could put its question to another station's group. */
-    @Disabled("red until a station's question is put to its own groups only")
+    /** A station could put its question to another station's group. */
     @Test
     void aStationPutsItsQuestionToItsOwnGroupsOnly() {
         var field = profileFieldService.create(
@@ -163,5 +158,85 @@ class ProfileFieldOwnersTest extends RepositoryTestBase {
         } finally {
             stationRepo.delete(elsewhere.id());
         }
+    }
+
+    /** A station's question created to be kept on archive used to lose that on the way in. */
+    @Test
+    void aStationsQuestionIsKeptOnArchiveFromTheStart() {
+        var field = profileFieldService.create(
+                scene.station().stationId(),
+                "Ehrennadel",
+                FieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true);
+
+        assertTrue(field.keepOnArchive());
+    }
+
+    /** Two spacers of one association are numbered apart, and renaming a spacer to nothing keeps its name. */
+    @Test
+    void associationSpacersAreNumberedApartAndKeepTheirName() {
+        int clusterId = scene.association().clusterId();
+        var first = clusterProfileFieldService.create(
+                clusterId, null, FieldType.SPACER, ProfileFieldConfig.empty(), false, false, null, false, false, null);
+        var second = clusterProfileFieldService.create(
+                clusterId, " ", FieldType.SPACER, ProfileFieldConfig.empty(), false, false, null, false, false, null);
+
+        clusterProfileFieldService.update(
+                clusterId,
+                second.id(),
+                "",
+                FieldType.SPACER,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                false,
+                false,
+                null);
+
+        assertEquals("Abstand 1", first.name());
+        assertEquals("Abstand 2", second.name());
+        assertEquals(
+                "Abstand 2",
+                clusterProfileFieldRepo.findById(second.id()).orElseThrow().name());
+    }
+
+    /** Any other question still needs its name. */
+    @Test
+    void anAssociationQuestionOtherThanASpacerNeedsAName() {
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> clusterProfileFieldService.create(
+                        scene.association().clusterId(),
+                        " ",
+                        FieldType.TEXT,
+                        ProfileFieldConfig.empty(),
+                        false,
+                        false,
+                        null,
+                        false,
+                        false,
+                        null));
+
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_NEEDS_A_NAME, refusal.refusal());
+    }
+
+    /** A station's question name is trimmed like the association's. */
+    @Test
+    void aStationsQuestionNameIsTrimmed() {
+        var field = profileFieldService.create(
+                scene.station().stationId(),
+                "  Spind  ",
+                FieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null);
+
+        assertEquals("Spind", field.name());
     }
 }

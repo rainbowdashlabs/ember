@@ -20,7 +20,7 @@ class MembersTasksTest {
 
     @Test
     void theExpiryReminderSweepRunsEveryThirtyMinutes() {
-        var service = spy(new ExpiryReminderService(null, null, null, null, null, null, null, null, null, null));
+        var service = spy(new ExpiryReminderService(null, null, null, null, null, null, null, null, null));
         doNothing().when(service).sweep(any());
         var task = service.scheduledTasks().getFirst();
 

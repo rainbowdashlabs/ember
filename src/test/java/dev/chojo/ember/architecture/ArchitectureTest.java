@@ -18,6 +18,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
+import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
@@ -183,6 +184,20 @@ public class ArchitectureTest {
             .should()
             .dependOnClassesThat()
             .belongToAnyOf(ClusterStorageConfigRepository.class, ClusterStationStorageRepository.class);
+
+    /**
+     * An association's profile questions and answers are reached through its owner adapter, which the
+     * shared answer pipeline asks; nothing outside the association feature reads or writes those tables
+     * itself, so every answer passes the one set of checks whoever writes it.
+     */
+    @ArchTest
+    static final ArchRule onlyTheAssociationReachesAssociationFields = noClasses()
+            .that()
+            .resideOutsideOfPackage("dev.chojo.ember.feature.cluster..")
+            .and(DescribedPredicate.not(tests()))
+            .should()
+            .dependOnClassesThat()
+            .belongToAnyOf(ClusterProfileFieldRepository.class);
 
     @ArchTest
     static final ArchRule routesDoNotSaveConfiguration =

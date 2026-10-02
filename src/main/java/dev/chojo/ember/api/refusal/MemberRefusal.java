@@ -711,7 +711,11 @@ public enum MemberRefusal implements Refusal {
             195,
             HttpStatus.CONFLICT,
             "Content is still limited to this group, so it was not turned into a tag. "
-                    + "Change who may see it first. Items limited to the group");
+                    + "Change who may see it first. Items limited to the group"),
+
+    /** A profile question put to a group that is not one of the station's own. */
+    PROFILE_FIELD_GROUP_NOT_HERE(
+            196, HttpStatus.NOT_FOUND, "That group is not one of this station's, so nothing was saved");
 
     private final Definition definition;
 

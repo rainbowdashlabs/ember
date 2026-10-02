@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldTarget;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -35,7 +34,6 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ProfileFieldServiceTest extends RepositoryTestBase {
@@ -47,15 +45,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new ProfileFieldService(
-                profileFieldRepo,
-                profileFieldChangeRepo,
-                mock(Notifier.class),
-                stationMemberRepo,
-                accountRepo,
-                clusterProfileFieldRepo,
-                memberGroupRepo,
-                memberPermissionResolver);
+        service = profileFieldService;
         station = stationRepo.create("ProfileField Station");
         account = accountRepo.create("pfield-svc@test.com", "Profile", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

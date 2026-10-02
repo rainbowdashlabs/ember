@@ -21,7 +21,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param memberId                the member whose field was changed
  * @param oldValue                the previous JSON value
  * @param newValue                the new JSON value
- * @param changedBy               the member who made the change
+ * @param changedBy               the member who made the change, or {@code null} where they had no
+ *                                membership at the member's station (an association manager), whose
+ *                                account then names them
  * @param changedAt               the timestamp of the change
  * @param requiresAcknowledgement whether this change needs to be acknowledged by a manager
  * @param changedByName           the display name of the person who made the change
@@ -37,7 +39,7 @@ public record ProfileFieldChange(
         int memberId,
         @Nullable String oldValue,
         @Nullable String newValue,
-        int changedBy,
+        @Nullable Integer changedBy,
         Instant changedAt,
         boolean requiresAcknowledgement,
         String changedByName,
@@ -67,7 +69,7 @@ public record ProfileFieldChange(
                 row.getInt("member_id"),
                 row.getString("old_value"),
                 row.getString("new_value"),
-                row.getInt("changed_by"),
+                row.getObject("changed_by", Integer.class),
                 row.get("changed_at", INSTANT_TIMESTAMP),
                 row.getBoolean("requires_acknowledgement"),
                 row.getString("changed_by_name"),

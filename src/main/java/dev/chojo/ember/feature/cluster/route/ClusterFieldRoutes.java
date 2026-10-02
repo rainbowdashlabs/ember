@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.FieldTypes;
 import io.javalin.http.Context;
@@ -34,7 +33,6 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -57,11 +55,18 @@ public class ClusterFieldRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/cluster/fields", this::list, ClusterPermission.CLUSTER_MEMBER_READ);
+        routes.get(
+                prefix + "/cluster/fields",
+                this::list,
+                ClusterPermission.CLUSTER_MEMBER_READ,
+                ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.post(prefix + "/cluster/fields", this::create, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.put(prefix + "/cluster/fields/order", this::reorder, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.get(
-                prefix + "/cluster/fields/assignments", this::listAssignments, ClusterPermission.CLUSTER_MEMBER_READ);
+                prefix + "/cluster/fields/assignments",
+                this::listAssignments,
+                ClusterPermission.CLUSTER_MEMBER_READ,
+                ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.put(prefix + "/cluster/fields/{fieldId}", this::update, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.delete(prefix + "/cluster/fields/{fieldId}", this::delete, ClusterPermission.CLUSTER_FIELD_EDIT);
 
@@ -69,14 +74,6 @@ public class ClusterFieldRoutes implements Routes {
                 prefix + "/cluster/fields/{fieldId}/assignments", this::assign, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.delete(
                 prefix + "/cluster/fields/{fieldId}/assignments", this::unassign, ClusterPermission.CLUSTER_FIELD_EDIT);
-        routes.get(
-                prefix + "/cluster/fields/member/{memberId}",
-                this::getValues,
-                ClusterPermission.CLUSTER_MEMBER_MANAGER);
-        routes.put(
-                prefix + "/cluster/fields/member/{memberId}",
-                this::setValues,
-                ClusterPermission.CLUSTER_MEMBER_MANAGER);
     }
 
     @OpenApi(
@@ -170,16 +167,17 @@ public class ClusterFieldRoutes implements Routes {
     private void reorder(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var req = ctx.bodyAsClass(ClusterFieldOrderRequest.class);
-        if (req.scope() == null) {
-            throw ClusterRefusal.CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE.raise();
-        }
-        fieldService.reorder(
-                cluster.id(), parseScope(req.scope()), req.fieldIds() != null ? req.fieldIds() : List.of());
+        var role = req.role();
+        if (role == null) throw ClusterRefusal.CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE.raise();
+        fieldService.reorder(cluster.id(), role, req.fieldIds() != null ? req.fieldIds() : List.of());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /** The questions of one audience in the order they should stand. */
-    public record ClusterFieldOrderRequest(String scope, List<Integer> fieldIds) {}
+    /**
+     * The questions of one audience in the order they should stand, named the way a station's order names
+     * its audience.
+     */
+    public record ClusterFieldOrderRequest(@Nullable ProfileFieldScope role, List<Integer> fieldIds) {}
 
     @OpenApi(
             path = "/api/v1/cluster/fields/assignments",
@@ -250,49 +248,11 @@ public class ClusterFieldRoutes implements Routes {
             @Nullable Boolean readonlyOverride,
             @Nullable Boolean requiredOverride) {}
 
-    @OpenApi(
-            path = "/api/v1/cluster/fields/member/{memberId}",
-            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            methods = HttpMethod.GET,
-            summary = "What one member answered",
-            tags = {"Cluster"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FieldValuesRequest.class)))
-    private void getValues(Context ctx) {
-        Cluster cluster = requireActive(ctx);
-        ctx.json(new FieldValuesRequest(fieldService.findValues(cluster.id(), pathInt(ctx, "memberId"))));
-    }
-
-    /**
-     * Fills in answers for one cluster member. A cluster member is no station member, so the change
-     * is recorded against whoever the session is at its station, or against the member themselves
-     * when the cluster manager has no station membership.
-     */
-    @OpenApi(
-            path = "/api/v1/cluster/fields/member/{memberId}",
-            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            methods = HttpMethod.PUT,
-            summary = "Fill in answers for one member",
-            tags = {"Cluster"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldValuesRequest.class)),
-            responses = @OpenApiResponse(status = "204"))
-    private void setValues(Context ctx) {
-        Cluster cluster = requireActive(ctx);
-        UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(FieldValuesRequest.class);
-        int changedBy = session.memberOpt().map(StationMember::id).orElseGet(() -> pathInt(ctx, "memberId"));
-        fieldService.setValues(
-                cluster.id(),
-                pathInt(ctx, "memberId"),
-                request.values() != null ? request.values() : Map.of(),
-                changedBy);
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
     private Cluster requireActive(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        Integer clusterId = session.clusterId();
-        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_FIELDS.raise();
-        return clusterService.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_FIELDS::raise);
+        var association = UserSession.from(ctx).association(ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_FIELDS);
+        return clusterService
+                .findById(association.clusterId())
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_FIELDS::raise);
     }
 
     /**
@@ -307,8 +267,12 @@ public class ClusterFieldRoutes implements Routes {
                 .orElseThrow(() -> ClusterRefusal.CLUSTER_FIELD_TYPE_UNKNOWN.raise(raw));
     }
 
-    private static ProfileFieldScope parseScope(String raw) {
-        if (raw == null || raw.isBlank()) return ProfileFieldScope.MEMBER;
+    /**
+     * The audience a request names. Naming none is refused rather than read as the members: an assignment
+     * that silently went to somebody else is worse than one that did not happen.
+     */
+    private static ProfileFieldScope parseScope(@Nullable String raw) {
+        if (raw == null || raw.isBlank()) throw ClusterRefusal.CLUSTER_FIELD_AUDIENCE_MISSING.raise();
         try {
             return ProfileFieldScope.valueOf(raw);
         } catch (IllegalArgumentException e) {
@@ -361,9 +325,4 @@ public class ClusterFieldRoutes implements Routes {
             boolean stationReadonly,
             boolean keepOnArchive,
             @Nullable Integer stationGroupId) {}
-
-    /**
-     * @param values field id to answer, in the same JSON shape a station field's answer has
-     */
-    public record FieldValuesRequest(Map<Integer, String> values) {}
 }

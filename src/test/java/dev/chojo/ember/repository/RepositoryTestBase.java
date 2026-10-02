@@ -41,6 +41,7 @@ import dev.chojo.ember.feature.cluster.repository.ClusterInventoryTagRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
+import dev.chojo.ember.feature.cluster.service.AssociationProfileFields;
 import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
@@ -147,6 +148,7 @@ import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
@@ -163,9 +165,11 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
+import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.StationProfileFields;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.news.service.NewsBlockReferences;
@@ -272,6 +276,7 @@ public abstract class RepositoryTestBase {
     protected static InventoryService inventoryService;
 
     protected static ProfileFieldService profileFieldService;
+    protected static ProfileFieldCore profileFieldCore;
     protected static MemberPermissionResolver memberPermissionResolver;
 
     /** Shared, because its dependency list grows with every step and no test cares about it. */
@@ -533,15 +538,8 @@ public abstract class RepositoryTestBase {
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
         memberPermissionResolver = new MemberPermissionResolver(stationMemberRepo, memberGroupRepo);
-        profileFieldService = new ProfileFieldService(
-                profileFieldRepo,
-                profileFieldChangeRepo,
-                mock(Notifier.class),
-                stationMemberRepo,
-                accountRepo,
-                clusterProfileFieldRepo,
-                memberGroupRepo,
-                memberPermissionResolver);
+        profileFieldCore = newProfileFieldCore(mock(Notifier.class), new DomainEventBus(Set.of()));
+        profileFieldService = newProfileFieldService(profileFieldCore);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
         inventoryService = new InventoryService(
                 inventoryRepo,
@@ -552,13 +550,7 @@ public abstract class RepositoryTestBase {
                 clusterStationGroupRepo);
         clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
-                clusterProfileFieldRepo,
-                clusterRepo,
-                clusterStationGroupRepo,
-                stationRepo,
-                stationMemberRepo,
-                profileFieldChangeRepo,
-                new DomainEventBus(Set.of()));
+                clusterProfileFieldRepo, clusterRepo, clusterStationGroupRepo, profileFieldCore);
         clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
         clusterGovernanceService = new ClusterGovernanceService(
                 clusterRepo, clusterStationGroupRepo, stationRepo, new DomainEventBus(Set.of()));
@@ -763,6 +755,36 @@ public abstract class RepositoryTestBase {
     protected static ContentBlockService contentBlocks() {
         return new ContentBlockService(
                 contentContainerRepo, Set.of(new NewsBlockReferences(newsRepo), new EventBlockReferences(eventRepo)));
+    }
+
+    /**
+     * The profile answer core over the shared repositories, with both owners bound.
+     *
+     * @param notifier where the station's owner tells its member management of a change
+     * @param eventBus where the association's owner tells the member it wrote to
+     * @return the core
+     */
+    protected static ProfileFieldCore newProfileFieldCore(Notifier notifier, DomainEventBus eventBus) {
+        return new ProfileFieldCore(
+                Map.of(
+                        FieldOrigin.STATION,
+                        new StationProfileFields(profileFieldRepo, memberGroupRepo, accountRepo, notifier),
+                        FieldOrigin.CLUSTER,
+                        new AssociationProfileFields(clusterProfileFieldRepo, stationRepo, clusterRepo, eventBus)),
+                profileFieldChangeRepo,
+                stationMemberRepo,
+                memberPermissionResolver);
+    }
+
+    /**
+     * The station's profile field service over the shared repositories and the given core.
+     *
+     * @param core the answer core it hands answers to
+     * @return the service
+     */
+    protected static ProfileFieldService newProfileFieldService(ProfileFieldCore core) {
+        return new ProfileFieldService(
+                profileFieldRepo, profileFieldChangeRepo, stationMemberRepo, accountRepo, memberGroupRepo, core);
     }
 
     /**

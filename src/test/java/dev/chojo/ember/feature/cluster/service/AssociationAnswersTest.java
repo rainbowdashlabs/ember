@@ -12,15 +12,17 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,7 +60,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
     }
 
     private ClusterProfileField ask(FieldType type, String config) {
-        return clusterProfileFieldService.create(
+        var field = clusterProfileFieldService.create(
                 clusterId,
                 type.name() + " " + NAMES.incrementAndGet(),
                 type,
@@ -69,20 +71,35 @@ class AssociationAnswersTest extends RepositoryTestBase {
                 false,
                 false,
                 null);
+        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        return field;
     }
 
-    private String stored(FieldType type, String config, String answer) {
+    private void answer(ClusterProfileField field, String answer) {
+        profileFieldService.setValues(
+                memberId,
+                List.of(new FieldValueEntry(field.id(), answer, FieldOrigin.CLUSTER)),
+                memberId,
+                ProfileWriter.association());
+    }
+
+    private @Nullable String storedFor(ClusterProfileField field) {
+        return clusterProfileFieldRepo.findValues(memberId).stream()
+                .filter(value -> value.fieldId() == field.id())
+                .map(ProfileFieldValue::value)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private @Nullable String stored(FieldType type, String config, String answer) {
         var field = ask(type, config);
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), answer), memberId);
-        return clusterProfileFieldService.findValues(clusterId, memberId).get(field.id());
+        answer(field, answer);
+        return storedFor(field);
     }
 
     private void refused(FieldType type, String config, String answer) {
         var field = ask(type, config);
-        assertThrows(
-                RefusalResponse.class,
-                () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), answer), memberId),
-                answer + " under " + type);
+        assertThrows(RefusalResponse.class, () -> answer(field, answer), answer + " under " + type);
     }
 
     @Test
@@ -114,9 +131,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
     void anAgeTakesNoAnswer() {
         var field = ask(FieldType.AGE, "{}");
 
-        var refusal = assertThrows(
-                RefusalResponse.class,
-                () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "15"), memberId));
+        var refusal = assertThrows(RefusalResponse.class, () -> answer(field, "15"));
 
         assertEquals(MemberRefusal.PROFILE_AGE_TAKES_NO_ANSWER, refusal.refusal());
     }
@@ -136,7 +151,6 @@ class AssociationAnswersTest extends RepositoryTestBase {
     @Test
     void theStationWritingAnAnswerIsMeasuredToo() {
         var field = ask(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}");
-        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         assertThrows(
                 RefusalResponse.class,
@@ -145,8 +159,6 @@ class AssociationAnswersTest extends RepositoryTestBase {
 
         profileFieldService.setValues(
                 memberId, List.of(new FieldValueEntry(field.id(), "\"M\"", FieldOrigin.CLUSTER)), memberId);
-        assertEquals(
-                "\"M\"",
-                clusterProfileFieldService.findValues(clusterId, memberId).get(field.id()));
+        assertEquals("\"M\"", storedFor(field));
     }
 }

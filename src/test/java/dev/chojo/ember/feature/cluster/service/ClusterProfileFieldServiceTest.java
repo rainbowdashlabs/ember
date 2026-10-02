@@ -8,8 +8,11 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -18,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -386,14 +390,27 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 false,
                 null);
 
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
+        answer(clusterId, memberId, field.id(), "true");
 
-        assertEquals(
-                "true",
-                clusterProfileFieldService.findValues(clusterId, memberId).get(field.id()));
+        assertEquals("true", answersOf(memberId).get(field.id()));
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
+    }
+
+    /** Writes one answer the way the association's member screen does. */
+    private static void answer(int clusterId, int memberId, int fieldId, String value) {
+        clusterProfileFieldService.assignToRole(clusterId, fieldId, ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldService.setValues(
+                memberId,
+                List.of(new FieldValueEntry(fieldId, value, FieldOrigin.CLUSTER)),
+                memberId,
+                ProfileWriter.association());
+    }
+
+    private static Map<Integer, String> answersOf(int memberId) {
+        return clusterProfileFieldRepo.findValues(memberId).stream()
+                .collect(Collectors.toMap(ProfileFieldValue::fieldId, ProfileFieldValue::value));
     }
 
     /**
@@ -418,23 +435,18 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 group.id());
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
+        answer(clusterId, memberId, field.id(), "true");
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of());
 
-        assertTrue(
-                clusterProfileFieldService.findValues(clusterId, memberId).isEmpty(),
-                "an answer nobody is asked for any more is shown nowhere");
+        assertTrue(answersOf(memberId).isEmpty(), "an answer nobody is asked for any more is shown nowhere");
         assertThrows(
                 RefusalResponse.class,
-                () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "false"), memberId),
+                () -> answer(clusterId, memberId, field.id(), "false"),
                 "and nobody may write one either");
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of(station.uid()));
-        assertEquals(
-                "true",
-                clusterProfileFieldService.findValues(clusterId, memberId).get(field.id()),
-                "and it is there again when the station is");
+        assertEquals("true", answersOf(memberId).get(field.id()), "and it is there again when the station is");
 
         clusterProfileFieldService.delete(clusterId, field.id());
         clusterService.releaseStation(clusterId, station.id());
@@ -458,7 +470,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 null);
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
+        answer(clusterId, memberId, field.id(), "true");
 
         clusterService.releaseStation(clusterId, station.id());
 
@@ -468,21 +480,6 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "the record of who changed what outlives the membership");
 
         stationRepo.delete(station.id());
-    }
-
-    @Test
-    void oneClusterCannotAskAboutAnothersPeople() {
-        int clusterId = freshCluster();
-        int otherClusterId = freshCluster();
-        var elsewhere = stationOf(otherClusterId);
-        int memberId = memberAt(elsewhere);
-
-        var refused =
-                assertThrows(RefusalResponse.class, () -> clusterProfileFieldService.findValues(clusterId, memberId));
-        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER, refused.refusal());
-
-        clusterService.releaseStation(otherClusterId, elsewhere.id());
-        stationRepo.delete(elsewhere.id());
     }
 
     @Test
@@ -565,7 +562,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 null);
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"da\""), memberId);
+        answer(clusterId, memberId, field.id(), "\"da\"");
 
         assertTrue(clusterProfileFieldRepo.deleteValue(memberId, field.id()));
         assertFalse(clusterProfileFieldRepo.deleteValue(memberId, field.id()), "clearing twice changes nothing");
@@ -612,10 +609,10 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 null);
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"gleich\""), memberId);
+        answer(clusterId, memberId, field.id(), "\"gleich\"");
         int after = profileFieldChangeRepo.findByMember(memberId).size();
 
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"gleich\""), memberId);
+        answer(clusterId, memberId, field.id(), "\"gleich\"");
 
         assertEquals(after, profileFieldChangeRepo.findByMember(memberId).size());
 

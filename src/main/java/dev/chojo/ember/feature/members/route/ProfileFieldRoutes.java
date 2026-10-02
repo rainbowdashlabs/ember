@@ -163,7 +163,8 @@ public class ProfileFieldRoutes implements Routes {
                         configOf(request),
                         request.required() != null && request.required(),
                         request.readonly() != null && request.readonly(),
-                        request.width()));
+                        request.width(),
+                        Boolean.TRUE.equals(request.keepOnArchive())));
     }
 
     @OpenApi(

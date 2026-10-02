@@ -642,10 +642,6 @@ public enum ClusterRefusal implements Refusal {
     /** A station whose files the cluster moves that does not belong to the cluster. */
     CLUSTER_STORAGE_STATION_NOT_IN_CLUSTER(160, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_IN_CLUSTER),
 
-    /** An answer written to a cluster question that is not asked of the member's station. */
-    CLUSTER_PROFILE_FIELD_NOT_ASKED_AT_STATION(
-            161, HttpStatus.BAD_REQUEST, "That question is not asked of this member's station, so nothing was saved"),
-
     /** A cluster question pointed at a group of stations of another cluster. */
     CLUSTER_PROFILE_FIELD_GROUP_NOT_OWN(
             162, HttpStatus.BAD_REQUEST, "That group of stations belongs to another cluster, so nothing was saved"),
@@ -676,19 +672,16 @@ public enum ClusterRefusal implements Refusal {
      */
     CLUSTER_PROFILE_FIELD_NOT_HERE(167, HttpStatus.NOT_FOUND, Sentences.PROFILE_FIELD_NOT_HERE),
 
-    /**
-     * A member whose cluster answers are asked for whose station is gone, or belongs to another cluster.
-     *
-     * <p>One code for both on purpose: telling them apart would say that the member exists at a
-     * cluster the reader does not act for.
-     */
-    CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER(168, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
-
-    /** A member whose cluster answers are asked for who is not here any more. */
-    CLUSTER_PROFILE_FIELD_MEMBER_GONE(169, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
-
     /** A member archived from the association who their station could not archive either. */
-    CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED(170, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_YET_FORMER);
+    CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED(170, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_YET_FORMER),
+
+    /** An association question put to, or taken from, an audience the request does not name. */
+    CLUSTER_FIELD_AUDIENCE_MISSING(
+            171, HttpStatus.BAD_REQUEST, "A question is put to one kind of member, so nothing was saved"),
+
+    /** An association question put to trial members, whom an association does not ask. */
+    CLUSTER_FIELD_AUDIENCE_NOT_ASKED(
+            172, HttpStatus.BAD_REQUEST, "An association does not ask trial members, so nothing was saved");
 
     private final Definition definition;
 

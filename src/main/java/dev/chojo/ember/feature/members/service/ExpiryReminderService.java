@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.ExpiryState;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
@@ -16,7 +15,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.SentExpiryReminder;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ExpiryReminderRepository;
-import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
@@ -80,8 +78,7 @@ public class ExpiryReminderService implements TaskSource {
     /** How many members management's reminder names before it only counts them. */
     private static final int NAMED_MEMBERS = 3;
 
-    private final ProfileFieldRepository profileFieldRepository;
-    private final ClusterProfileFieldRepository clusterFieldRepository;
+    private final ProfileFieldCore profileFields;
     private final ExpiryReminderRepository reminderRepository;
     private final ProfileFieldService profileFieldService;
     private final StationMemberRepository stationMemberRepository;
@@ -93,8 +90,7 @@ public class ExpiryReminderService implements TaskSource {
 
     @Inject
     public ExpiryReminderService(
-            ProfileFieldRepository profileFieldRepository,
-            ClusterProfileFieldRepository clusterFieldRepository,
+            ProfileFieldCore profileFields,
             ExpiryReminderRepository reminderRepository,
             ProfileFieldService profileFieldService,
             StationMemberRepository stationMemberRepository,
@@ -103,8 +99,7 @@ public class ExpiryReminderService implements TaskSource {
             MemberPermissionResolver permissionResolver,
             MemberNameResolver memberNameResolver,
             Notifier notifier) {
-        this.profileFieldRepository = profileFieldRepository;
-        this.clusterFieldRepository = clusterFieldRepository;
+        this.profileFields = profileFields;
         this.reminderRepository = reminderRepository;
         this.profileFieldService = profileFieldService;
         this.stationMemberRepository = stationMemberRepository;
@@ -161,13 +156,11 @@ public class ExpiryReminderService implements TaskSource {
     }
 
     private List<ExpiryField> expiryFields() {
-        var ofStations = profileFieldRepository.findAllByType(FieldType.EXPIRY_DATE).stream()
-                .map(field -> new ExpiryField(
-                        FieldOrigin.STATION, field.id(), field.name(), field.config(), field.stationId()));
-        var ofClusters = clusterFieldRepository.findAllByType(FieldType.EXPIRY_DATE).stream()
-                .map(field -> new ExpiryField(
-                        FieldOrigin.CLUSTER, field.id(), field.name(), field.config(), field.clusterId()));
-        return Stream.concat(ofStations, ofClusters).toList();
+        return Stream.of(FieldOrigin.values())
+                .flatMap(origin -> profileFields.owner(origin).ofType(FieldType.EXPIRY_DATE).stream())
+                .map(field ->
+                        new ExpiryField(field.origin(), field.id(), field.name(), field.config(), field.ownerId()))
+                .toList();
     }
 
     /**
@@ -242,9 +235,7 @@ public class ExpiryReminderService implements TaskSource {
     }
 
     private List<ProfileFieldValue> valuesOf(ExpiryField field) {
-        return field.origin() == FieldOrigin.CLUSTER
-                ? clusterFieldRepository.findValuesOfField(field.id())
-                : profileFieldRepository.findValuesOfField(field.id());
+        return profileFields.owner(field.origin()).answersTo(field.id());
     }
 
     /** The clock of one station, or UTC where it has named none. */

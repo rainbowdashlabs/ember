@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
@@ -20,6 +22,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -69,17 +73,61 @@ class ProfileFieldChangeRepositoryTest extends RepositoryTestBase {
     @Order(3)
     void findRecentChange() {
         Instant cutoff = Instant.now().minusSeconds(60);
-        var recent = profileFieldChangeRepo.findRecentChange(fieldId, member.id(), member.id(), cutoff);
-        assertTrue(recent.isPresent());
-        assertEquals(changeId, recent.get().id());
+        var recent = profileFieldChangeRepo.findRecentChange(
+                FieldOrigin.STATION, fieldId, member.id(), ProfileAuthor.member(member), cutoff);
+        assertEquals(changeId, recent.orElseThrow());
     }
 
     @Test
     @Order(4)
     void findRecentChangeNoneFound() {
         Instant futureCutoff = Instant.now().plusSeconds(3600);
-        var recent = profileFieldChangeRepo.findRecentChange(fieldId, member.id(), member.id(), futureCutoff);
+        var recent = profileFieldChangeRepo.findRecentChange(
+                FieldOrigin.STATION, fieldId, member.id(), ProfileAuthor.member(member), futureCutoff);
         assertTrue(recent.isEmpty());
+    }
+
+    /**
+     * An author without a membership at the member's station is recorded by account, named by it, and
+     * their changes merge by it.
+     */
+    @Test
+    @Order(4)
+    void anAuthorKnownOnlyByAccountIsNamedAndMergedByIt() {
+        var outsider = accountRepo.create("pfc-outsider@test.com", "Olga", "Aussen");
+        var author = ProfileAuthor.account(outsider.id());
+
+        var change = profileFieldChangeRepo.create(
+                FieldOrigin.STATION, fieldId, member.id(), "\"a\"", "\"b\"", author, false);
+
+        assertNull(change.changedBy());
+        assertEquals(
+                change.id(),
+                profileFieldChangeRepo
+                        .findRecentChange(
+                                FieldOrigin.STATION,
+                                fieldId,
+                                member.id(),
+                                author,
+                                Instant.now().minusSeconds(60))
+                        .orElseThrow());
+        var named = profileFieldChangeRepo.findByMember(member.id()).stream()
+                .filter(recorded -> recorded.id() == change.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Olga Aussen", named.changedByName());
+        accountRepo.delete(outsider.id());
+        assertEquals(
+                "",
+                profileFieldChangeRepo.findByMember(member.id()).stream()
+                        .filter(recorded -> recorded.id() == change.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .changedByName(),
+                "a deleted account leaves the change without a name rather than without a row");
+        query("DELETE FROM profile_field_change WHERE id = :id;")
+                .single(call().bind("id", change.id()))
+                .delete();
     }
 
     @Test

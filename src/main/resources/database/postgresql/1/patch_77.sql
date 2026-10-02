@@ -942,3 +942,14 @@ SET data      = renamed.data,
     dedup_key = CASE WHEN n.dedup_key IS NOT NULL THEN md5(n.type || renamed.data::TEXT) END
 FROM renamed
 WHERE renamed.id = n.id;
+
+ALTER TABLE ember_schema.profile_field_change
+    ALTER COLUMN changed_by DROP NOT NULL;
+
+ALTER TABLE ember_schema.profile_field_change
+    ADD COLUMN changed_by_account_id INTEGER REFERENCES ember_schema.account (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.profile_field_change.changed_by
+    IS 'The member who made the change, or null when they have no membership at the station of the member whose answer changed, as an association manager often has not.';
+COMMENT ON COLUMN ember_schema.profile_field_change.changed_by_account_id
+    IS 'The account that made the change when it has no membership at that station, so the history can still name them; null whenever the member column names the author.';
