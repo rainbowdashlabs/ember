@@ -35,11 +35,14 @@ test.describe('Two-factor', () => {
         await expect(page.getByText('Optional').first()).toBeVisible()
     })
 
-    /** The operator's own entry: a single account's two-factor is reset from there. */
+    /**
+     * The operator's own entry: a single account's two-factor is reset from the account list, where
+     * the account is opened with everything else that can be done to it.
+     */
     test('the operator can reset the two-factor of an account', async ({adminPage: page}) => {
-        await page.goto('/admin/2fa')
+        await page.goto('/admin/accounts')
+        await page.getByTestId('account-row').first().click()
 
-        await expect(page.getByText('Konto-2FA zurücksetzen')).toBeVisible()
-        await expect(page.getByRole('button', {name: '2FA zurücksetzen'})).toBeVisible()
+        await expect(page.getByTestId('account-detail').getByRole('button', {name: '2FA zurücksetzen'})).toBeVisible()
     })
 })

@@ -253,6 +253,7 @@ export default {
             testConfigure: 'Nur für Test-Konfiguratoren',
             pageEdit: 'Nur für Seiten-Bearbeiter',
             pageManager: 'Nur für Seiten-Verwalter',
+            stationAdministrator: 'Nur für die Administration der Wache',
         },
         welcome: {
             title: 'Willkommen im Hilfe-Center',
@@ -1582,6 +1583,10 @@ volumes:
                 + 'Mail erneut zu senden. Eine Sanduhr steht dort, wenn es niemanden gibt, dem die '
                 + 'Mail zugestellt werden könnte, und dann hilft nur eine nachgetragene Adresse.',
             step2NoLogin: 'Für Mitglieder ohne eigenen Zugang (z.B. kleine Kinder) kannst du „Kann sich anmelden" deaktivieren. Diese Mitglieder werden dann über ihren Erziehungsberechtigter verwaltet.',
+            oneTimePasswordTitle: 'Ohne Mailserver: das Einmalpasswort',
+            oneTimePasswordText: 'Hat deine Instanz keinen Mailserver, kommt keine Mail mit Link an. Dann zeigt dir der Assistent den Schalter „Einmalpasswort erstellen". Ist er an, zeigt Ember nach dem Anlegen die Zugangsdaten.',
+            oneTimePasswordHandOver: 'Kopiere oder drucke die Zugangsdaten und gib sie der Person selbst. Sie sind nur einmal zu sehen. Beim ersten Anmelden wählt die Person ein eigenes Passwort.',
+            oneTimePasswordShared: 'Gehört die Adresse schon zu einem Konto einer anderen Wache, wird kein Einmalpasswort erstellt. Ember sagt dir dann, warum. Hier hilft die Administration der Instanz.',
             step3: 'Schritt 3: Profilfelder',
             step3Text: 'Fülle die Profilfelder aus. Pflichtfelder sind mit einem * markiert.',
             step4: 'Schritt 4: Gruppen',
@@ -4512,6 +4517,10 @@ volumes:
             fieldsText: 'Bearbeite die Profilfelder des Mitglieds. Pflichtfelder sind mit einem Stern markiert.',
             notesTitle: 'Notizen',
             notesText: 'Im Notizen-Tab kannst du interne Notizen zum Mitglied hinterlassen. Notizen sind nur für Verwalter sichtbar und haben einen Versionsverlauf.',
+            oneTimePasswordTitle: 'Einmalpasswort erstellen',
+            oneTimePasswordText: 'Unter den Tabs findest du „Einmalpasswort erstellen". Damit bekommt das Mitglied ein neues Passwort, das Ember auswürfelt. Das hilft, wenn keine Mail mit Link ankommen kann.',
+            oneTimePasswordEffects: 'Das alte Passwort funktioniert danach nicht mehr, und alle Sitzungen enden. Ember zeigt dir die Zugangsdaten einmal, zum Kopieren oder Drucken. Beim ersten Anmelden wählt das Mitglied ein eigenes Passwort, das Einmalpasswort gilt sieben Tage.',
+            oneTimePasswordAlone: 'Das geht nur für Konten, die allein zu deiner Wache gehören. Ist das Konto auch an einer anderen Wache, hat es eine Rolle in einem Verband oder verwaltet es die Instanz, sagt Ember dir das. Dann hilft die Administration der Instanz.',
             tip: 'Berechtigungen bestimmen, was ein Mitglied sehen und tun darf. Sei vorsichtig beim Zuweisen von Verwaltungsrechten.',
         },
         membersImport: {
