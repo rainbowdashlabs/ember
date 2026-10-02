@@ -24674,6 +24674,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federation/outgoing-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the requests this station sent to stations of other instances */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutgoingPairRequestResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federation/partners": {
         parameters: {
             query?: never;
@@ -24898,6 +24934,118 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/remote-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the requests from stations of other instances waiting for this station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemotePairRequestResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/remote-requests/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a request from a station of another instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/remote-requests/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a request from a station of another instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
             };
@@ -60529,6 +60677,15 @@ export interface components {
         OrderRequest: {
             needIds?: number[];
         };
+        OutgoingPairRequestResponse: {
+            answeredAt: components["schemas"]["Instant"] | null;
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            instanceHost: string;
+            stationName: string;
+            status: components["schemas"]["PairRequestStatus"];
+        };
         /** @enum {string} */
         OutputShape: "ROWS" | "SINGLE" | "FLAT";
         OverviewResponse: {
@@ -60608,6 +60765,8 @@ export interface components {
             id: number;
             stationName: string;
         };
+        /** @enum {string} */
+        PairRequestStatus: "PENDING" | "ACCEPTED" | "DECLINED";
         ParseResult: {
             headers: string[];
             rows: string[][];
@@ -62083,6 +62242,13 @@ export interface components {
             partnerId: number;
             remoteMemberId: string;
             status: components["schemas"]["RegistrationStatus"];
+        };
+        RemotePairRequestResponse: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            instanceHost: string;
+            stationName: string;
         };
         RemotePlaces: {
             decidesItself: boolean;
@@ -65635,6 +65801,7 @@ export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
 export type OrderRequest = components['schemas']['OrderRequest'];
+export type OutgoingPairRequestResponse = components['schemas']['OutgoingPairRequestResponse'];
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
@@ -65650,6 +65817,7 @@ export type PageVisibility = components['schemas']['PageVisibility'];
 export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest'];
 export type Pair = components['schemas']['Pair'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
+export type PairRequestStatus = components['schemas']['PairRequestStatus'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
@@ -65838,6 +66006,7 @@ export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
+export type RemotePairRequestResponse = components['schemas']['RemotePairRequestResponse'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
 export type RemoteProtocolDetail = components['schemas']['RemoteProtocolDetail'];
 export type RemovalResponse = components['schemas']['RemovalResponse'];
@@ -66944,6 +67113,12 @@ export const PageVisibility = {
     DRAFT: "DRAFT",
     PUBLIC: "PUBLIC",
     UNLISTED: "UNLISTED",
+} as const;
+
+export const PairRequestStatus = {
+    ACCEPTED: "ACCEPTED",
+    DECLINED: "DECLINED",
+    PENDING: "PENDING",
 } as const;
 
 export const PeerSource = {

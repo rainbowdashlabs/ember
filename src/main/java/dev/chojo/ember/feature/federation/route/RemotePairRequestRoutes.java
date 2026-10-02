@@ -11,7 +11,9 @@ import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
+import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.StatusResponse;
 import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -38,25 +40,52 @@ public class RemotePairRequestRoutes implements Routes {
     public static final FederationEndpoint PAIR_REQUEST = FederationEndpoint.post(
                     FederationSurface.CORE, "/remote/pair-request", PairRequestMessage.class, PairRequestReceipt.class)
             .exempt();
+    public static final FederationEndpoint PAIR_REQUEST_STATUS = FederationEndpoint.post(
+                    FederationSurface.CORE,
+                    "/remote/pair-request/status",
+                    PairRequestStatusQuery.class,
+                    PairRequestAnswer.class)
+            .exempt();
+    public static final FederationEndpoint PAIR_REQUEST_ANSWER = FederationEndpoint.post(
+                    FederationSurface.CORE,
+                    "/remote/pair-request/answer",
+                    PairRequestAnswer.class,
+                    StatusResponse.class)
+            .exempt();
 
-    public static final List<FederationEndpoint> CONTRACT = List.of(PAIR_REQUEST);
+    public static final List<FederationEndpoint> CONTRACT =
+            List.of(PAIR_REQUEST, PAIR_REQUEST_STATUS, PAIR_REQUEST_ANSWER);
 
     private final IncomingPairRequestService incoming;
+    private final OutgoingPairRequestService outgoing;
 
     @Inject
-    public RemotePairRequestRoutes(IncomingPairRequestService incoming) {
+    public RemotePairRequestRoutes(IncomingPairRequestService incoming, OutgoingPairRequestService outgoing) {
         this.incoming = incoming;
+        this.outgoing = outgoing;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        FederationContractBinder.register(
-                routes, prefix, CONTRACT, binder -> binder.handle(PAIR_REQUEST, this::receive));
+        FederationContractBinder.register(routes, prefix, CONTRACT, binder -> binder.handle(PAIR_REQUEST, this::receive)
+                .handle(PAIR_REQUEST_STATUS, this::status)
+                .handle(PAIR_REQUEST_ANSWER, this::answer));
     }
 
     /** A station of another instance asks a station here to federate. */
     private void receive(Context ctx) {
         ctx.status(HttpStatus.CREATED).json(incoming.receive(ctx.bodyAsClass(PairRequestMessage.class)));
+    }
+
+    /** The instance that sent a request asks where it stands. */
+    private void status(Context ctx) {
+        ctx.json(incoming.status(ctx.bodyAsClass(PairRequestStatusQuery.class)));
+    }
+
+    /** The instance that was asked tells this one what its station answered. */
+    private void answer(Context ctx) {
+        outgoing.receiveAnswer(ctx.bodyAsClass(PairRequestAnswer.class));
+        ctx.json(new StatusResponse("ok"));
     }
 
     /**

@@ -72,7 +72,13 @@ class FederationVersionTest {
                 .map(FederationEndpoint::path)
                 .toList();
         assertEquals(
-                List.of("/remote/handshake", "/remote/announce", "/remote/federation/ping", "/remote/pair-request"),
+                List.of(
+                        "/remote/handshake",
+                        "/remote/announce",
+                        "/remote/federation/ping",
+                        "/remote/pair-request",
+                        "/remote/pair-request/status",
+                        "/remote/pair-request/answer"),
                 exempt);
     }
 

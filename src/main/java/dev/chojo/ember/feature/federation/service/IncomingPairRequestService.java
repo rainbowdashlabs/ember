@@ -9,19 +9,25 @@ import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.auth.signing.SignedRequests;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.PairRequestDirection;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.PairRequestRepository;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestAnswer;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestMessage;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestReceipt;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestStatusQuery;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -30,6 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -64,6 +72,11 @@ public class IncomingPairRequestService {
     private final PairRequestRateLimiter rateLimiter;
     private final RemoteUrlValidator urlValidator;
     private final DatabaseReplayStore replayStore;
+    private final FederationService federationService;
+    private final StationSigner signer;
+    private final PairRequestHttpClient httpClient;
+    private final TaskScheduler scheduler;
+    private final String localBaseUrl;
 
     @Inject
     public IncomingPairRequestService(
@@ -74,7 +87,12 @@ public class IncomingPairRequestService {
             PairRequestSignatures signatures,
             PairRequestRateLimiter rateLimiter,
             RemoteUrlValidator urlValidator,
-            DatabaseReplayStore replayStore) {
+            DatabaseReplayStore replayStore,
+            FederationService federationService,
+            StationSigner signer,
+            PairRequestHttpClient httpClient,
+            TaskScheduler scheduler,
+            Api apiConfig) {
         this.requests = requests;
         this.partners = partners;
         this.stations = stations;
@@ -83,6 +101,139 @@ public class IncomingPairRequestService {
         this.rateLimiter = rateLimiter;
         this.urlValidator = urlValidator;
         this.replayStore = replayStore;
+        this.federationService = federationService;
+        this.signer = signer;
+        this.httpClient = httpClient;
+        this.scheduler = scheduler;
+        this.localBaseUrl = OutgoingPairRequestService.stripTrailingSlash(apiConfig.baseUrl());
+    }
+
+    /**
+     * The requests from stations of other instances that wait for a station here to answer.
+     *
+     * @param stationId the asked station
+     * @return the pending requests, oldest first
+     */
+    public List<PairRequest> pending(int stationId) {
+        return requests.findPendingIncoming(stationId);
+    }
+
+    /**
+     * Accepts a request from a station of another instance. This side of the partnership is written
+     * at once from what the request carried; the asking instance is told in the background and
+     * writes its side when the answer reaches it, or when it next asks.
+     *
+     * @param stationId the asked station, which must be the one the request is for
+     * @param requestId the request
+     * @return this side of the partnership, active
+     */
+    public FederationPartner accept(int stationId, int requestId) {
+        var request = requirePending(stationId, requestId, FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT);
+        var station = stations.findById(stationId).orElseThrow(FederationRefusal.FEDERATION_STATION_NOT_HERE::raise);
+        if (!requests.answer(request.id(), PairRequestStatus.ACCEPTED)) {
+            throw FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT.raise();
+        }
+        var partner = partners.createRemotePartner(
+                stationId,
+                request.remoteStationUid(),
+                signer.ensurePublicKey(stationId),
+                request.requireRemotePublicKey(),
+                request.remoteBaseUrl(),
+                request.remoteStationName(),
+                Objects.requireNonNull(request.remoteContract(), "an incoming request carries its contract"));
+        federationService.enableEveryCapability(partner);
+        tellRequester(station, request, PairRequestStatus.ACCEPTED);
+        log.info("Station {} accepted request {} from station {}", stationId, requestId, request.remoteStationUid());
+        return partner;
+    }
+
+    /**
+     * Declines a request from a station of another instance. The same station may not ask again for
+     * 30 days; the asking instance is told in the background, or when it next asks.
+     *
+     * @param stationId the asked station, which must be the one the request is for
+     * @param requestId the request
+     */
+    public void decline(int stationId, int requestId) {
+        var request = requirePending(stationId, requestId, FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE);
+        var station = stations.findById(stationId).orElseThrow(FederationRefusal.FEDERATION_STATION_NOT_HERE::raise);
+        if (!requests.answer(request.id(), PairRequestStatus.DECLINED)) {
+            throw FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE.raise();
+        }
+        tellRequester(station, request, PairRequestStatus.DECLINED);
+        log.info("Station {} declined request {} from station {}", stationId, requestId, request.remoteStationUid());
+    }
+
+    /**
+     * Answers the asking instance's question about where its request stands. The question must be
+     * signed with the keys the request came with, so nobody else learns whether a station said yes.
+     *
+     * @param query the signed question
+     * @return the signed answer
+     */
+    public PairRequestAnswer status(PairRequestStatusQuery query) {
+        requireComplete(query);
+        requireInTime(query.issuedAt());
+        var station =
+                stations.findByUid(query.targetStationUid()).orElseThrow(FederationRefusal.PAIR_STATUS_NOT_HERE::raise);
+        var request = requests.find(station.id(), PairRequestDirection.INCOMING, query.requesterStationUid())
+                .orElseThrow(FederationRefusal.PAIR_STATUS_NOT_HERE::raise);
+        if (!signatures.holds(query, request.requireRemotePublicKey(), request.remoteInstanceKey())) {
+            throw FederationRefusal.PAIR_REQUEST_STATION_SIGNATURE_NOT_GOOD.raise();
+        }
+        requireFirstSighting(query.nonce(), query.issuedAt());
+        return answerOf(station, request, request.status());
+    }
+
+    private PairRequest requirePending(int stationId, int requestId, FederationRefusal missing) {
+        return requests.findById(requestId)
+                .filter(request -> request.stationId() == stationId)
+                .filter(request -> request.direction() == PairRequestDirection.INCOMING)
+                .filter(request -> request.status() == PairRequestStatus.PENDING)
+                .orElseThrow(missing::raise);
+    }
+
+    private PairRequestAnswer answerOf(Station station, PairRequest request, PairRequestStatus status) {
+        return signatures.answer(
+                station.id(),
+                request.remoteStationUid(),
+                station.uid(),
+                status,
+                station.name(),
+                localBaseUrl,
+                FederationContractVersions.current());
+    }
+
+    /**
+     * Pushes the answer to the asking instance without holding up the person who gave it. An answer
+     * that does not arrive is not lost: the asking instance asks for it on its own schedule.
+     */
+    private void tellRequester(Station station, PairRequest request, PairRequestStatus status) {
+        var answer = answerOf(station, request, status);
+        scheduler.background("federation-pair-request-answer", () -> {
+            if (!httpClient.deliverAnswer(request.remoteBaseUrl(), answer)) {
+                log.info(
+                        "The answer to request {} did not reach {}; it is handed over when that instance asks",
+                        request.id(),
+                        request.remoteBaseUrl());
+            }
+        });
+    }
+
+    private static void requireComplete(PairRequestStatusQuery query) {
+        if (query.requesterStationUid() == null
+                || query.targetStationUid() == null
+                || query.issuedAt() == null
+                || isBlank(query.nonce())
+                || isBlank(query.stationSignature())
+                || isBlank(query.instanceSignature())) {
+            throw FederationRefusal.PAIR_REQUEST_INCOMPLETE.raise();
+        }
+        if (query.nonce().length() > MAX_TOKEN_LENGTH
+                || query.stationSignature().length() > MAX_KEY_LENGTH
+                || query.instanceSignature().length() > MAX_KEY_LENGTH) {
+            throw FederationRefusal.PAIR_REQUEST_TOO_LARGE.raise();
+        }
     }
 
     /**

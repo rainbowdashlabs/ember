@@ -21,16 +21,21 @@ import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
 import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.PairRequestDirection;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.PairRequestRepository;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestAnswer;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestMessage;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestStatusQuery;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService.RemoteTarget;
 import dev.chojo.ember.feature.federation.service.PairRequestHttpClient.Delivery;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterEach;
@@ -86,6 +91,8 @@ class PairRequestExchangeTest extends RepositoryTestBase {
     private final StationKeyStore stationKeys = TestStationKeys.store();
     private final FederationSigningService federationSigning = new FederationSigningService();
     private final PairRequestHttpClient httpClient = mock(PairRequestHttpClient.class);
+    private final TaskScheduler scheduler = inline();
+    private boolean pushReaches = true;
 
     private Side here;
     private Side there;
@@ -123,6 +130,8 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         var signatures = new PairRequestSignatures(signer, federationSigning, discovery);
         var urls = new RemoteUrlValidator(new Federation(), new Demo());
         var peers = new PairRequestPeers(peerRepo, new DiscoveryBlocklistRepository());
+        var federation = new FederationService(partners, stationRepo, stationKeys, api(baseUrl));
+        var replayStore = new DatabaseReplayStore(new SignedRequestNonceRepository());
         var incoming = new IncomingPairRequestService(
                 requests,
                 partners,
@@ -131,10 +140,35 @@ class PairRequestExchangeTest extends RepositoryTestBase {
                 signatures,
                 rateLimiter,
                 urls,
-                new DatabaseReplayStore(new SignedRequestNonceRepository()));
+                replayStore,
+                federation,
+                signer,
+                httpClient,
+                scheduler,
+                api(baseUrl));
         var outgoing = new OutgoingPairRequestService(
-                requests, partners, stationRepo, peers, signatures, httpClient, signer, urls, api(baseUrl));
+                requests,
+                partners,
+                stationRepo,
+                peers,
+                signatures,
+                httpClient,
+                signer,
+                urls,
+                federation,
+                replayStore,
+                api(baseUrl));
         return new Side(baseUrl, discovery, signatures, incoming, outgoing);
+    }
+
+    /** Runs the work handed to the background at once, so a test sees what it did. */
+    private static TaskScheduler inline() {
+        var scheduler = mock(TaskScheduler.class);
+        when(scheduler.background(anyString(), any())).thenAnswer(invocation -> {
+            invocation.getArgument(1, Runnable.class).run();
+            return true;
+        });
+        return scheduler;
     }
 
     @BeforeEach
@@ -163,12 +197,31 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         peerRepo.delete(there.instanceKey());
     }
 
-    /** Hands every request for the other instance to the other instance, refusals and all. */
+    /**
+     * Hands every message for the other instance to the other instance, refusals and all: the
+     * request and the question about it to the asked side, the pushed answer to the asking side.
+     */
     private void letThemAnswer() {
         when(httpClient.send(eq(URL_THERE), any()))
                 .thenAnswer(invocation -> overTheWire(() -> new Delivery.Taken(there.incoming()
                         .receive(invocation.getArgument(1, PairRequestMessage.class))
                         .stationName())));
+        when(httpClient.askStatus(eq(URL_THERE), any())).thenAnswer(invocation -> {
+            try {
+                return Optional.of(there.incoming().status(invocation.getArgument(1, PairRequestStatusQuery.class)));
+            } catch (RefusalResponse refused) {
+                return Optional.empty();
+            }
+        });
+        when(httpClient.deliverAnswer(eq(URL_HERE), any())).thenAnswer(invocation -> {
+            if (!pushReaches) return false;
+            try {
+                here.outgoing().receiveAnswer(invocation.getArgument(1, PairRequestAnswer.class));
+                return true;
+            } catch (RefusalResponse refused) {
+                return false;
+            }
+        });
     }
 
     static Delivery overTheWire(Supplier<Delivery> call) {
@@ -507,5 +560,161 @@ class PairRequestExchangeTest extends RepositoryTestBase {
     void aPairingCodeOfAnUnknownInstanceIsRefused() {
         assertEquals(FederationRefusal.PAIR_REQUEST_INSTANCE_NOT_KNOWN_HERE, refusalOf(() -> here.outgoing()
                 .sendToCode(asking.id(), asked.uid(), "104.16.9.9")));
+    }
+
+    private PairRequest receivedThere() {
+        return requests.find(asked.id(), PairRequestDirection.INCOMING, asking.uid())
+                .orElseThrow();
+    }
+
+    private Optional<PairRequest> sentHere() {
+        return requests.find(asking.id(), PairRequestDirection.OUTGOING, asked.uid());
+    }
+
+    private FederationPartner partnerOf(Station station, UUID partnerUid) {
+        return partners.findPartnerByStationAndRemoteUid(station.id(), partnerUid)
+                .orElseThrow();
+    }
+
+    private void assertBothSidesActive() {
+        var ours = partnerOf(asking, asked.uid());
+        var theirs = partnerOf(asked, asking.uid());
+        assertEquals(FederationPartner.FederationStatus.ACTIVE, ours.status());
+        assertEquals(FederationPartner.FederationStatus.ACTIVE, theirs.status());
+        assertEquals(URL_THERE, ours.remoteHost());
+        assertEquals(URL_HERE, theirs.remoteHost());
+        assertEquals(stationKeys.ensurePublicKey(asked.id()), ours.partnerPublicKey());
+        assertEquals(stationKeys.ensurePublicKey(asking.id()), theirs.partnerPublicKey());
+        assertEquals(asked.name(), ours.partnerStationName());
+        assertEquals(asking.name(), theirs.partnerStationName());
+    }
+
+    @Test
+    void anAcceptedRequestMakesBothStationsPartners() {
+        send();
+
+        var partner = there.incoming().accept(asked.id(), receivedThere().id());
+
+        assertEquals(asking.uid(), partner.partnerStationId());
+        assertBothSidesActive();
+        assertTrue(sentHere().isEmpty(), "the request turned into the partnership");
+        assertEquals(PairRequestStatus.ACCEPTED, receivedThere().status());
+    }
+
+    @Test
+    void aDeclineReachesTheAskingStationAndKeepsItFromAskingAgain() {
+        send();
+
+        there.incoming().decline(asked.id(), receivedThere().id());
+
+        assertEquals(PairRequestStatus.DECLINED, sentHere().orElseThrow().status());
+        assertEquals(PairRequestStatus.DECLINED, receivedThere().status());
+        assertTrue(partners.findPartnerByStationAndRemoteUid(asking.id(), asked.uid())
+                .isEmpty());
+        assertEquals(FederationRefusal.PAIR_REQUEST_DECLINED_RECENTLY, refusalOf(this::send));
+        assertEquals(
+                PairRequestStatus.DECLINED,
+                here.outgoing().outgoing(asking.id()).getFirst().status());
+    }
+
+    @Test
+    void anAcceptanceThatNeverArrivedIsFetchedWhenThePageOpens() {
+        pushReaches = false;
+        send();
+        there.incoming().accept(asked.id(), receivedThere().id());
+        assertEquals(PairRequestStatus.PENDING, sentHere().orElseThrow().status());
+
+        assertTrue(here.outgoing().outgoing(asking.id()).isEmpty());
+        assertBothSidesActive();
+    }
+
+    @Test
+    void aDeclineThatNeverArrivedIsFetchedOnTheScheduledRound() {
+        pushReaches = false;
+        send();
+        there.incoming().decline(asked.id(), receivedThere().id());
+
+        var task = here.outgoing().scheduledTasks().getFirst();
+        assertEquals("federation-pair-request-status", task.name());
+        assertEquals(Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(15)), task.schedule());
+        task.work().run();
+
+        assertEquals(PairRequestStatus.DECLINED, sentHere().orElseThrow().status());
+    }
+
+    @Test
+    void aPendingRequestStaysPendingWhenAskedAbout() {
+        send();
+
+        var listed = here.outgoing().outgoing(asking.id());
+
+        assertEquals(1, listed.size());
+        assertEquals(PairRequestStatus.PENDING, listed.getFirst().status());
+        assertTrue(sentHere().orElseThrow().checkedAt() != null);
+    }
+
+    @Test
+    void onlyTheAskedStationAnswersARequest() {
+        send();
+        int requestId = receivedThere().id();
+
+        assertEquals(FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT, refusalOf(() -> there.incoming()
+                .accept(asking.id(), requestId)));
+        assertEquals(FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE, refusalOf(() -> there.incoming()
+                .decline(asking.id(), requestId)));
+    }
+
+    @Test
+    void anAnswerFromAnotherInstanceIsRefused() {
+        send();
+        var stranger = new PairRequestSignatures(
+                new StationSigner(stationKeys, federationSigning),
+                federationSigning,
+                new DiscoverySigningService(new DiscoveryKeyService(keysStranger)));
+        var forged = stranger.answer(
+                asked.id(),
+                asking.uid(),
+                asked.uid(),
+                PairRequestStatus.ACCEPTED,
+                asked.name(),
+                URL_THERE,
+                FederationContractVersions.current());
+
+        assertEquals(FederationRefusal.PAIR_ANSWER_SIGNATURE_NOT_GOOD, refusalOf(() -> here.outgoing()
+                .receiveAnswer(forged)));
+        assertEquals(PairRequestStatus.PENDING, sentHere().orElseThrow().status());
+    }
+
+    @Test
+    void anAnswerNobodyWaitsForIsRefused() {
+        var answer = there.signatures()
+                .answer(
+                        asked.id(),
+                        asking.uid(),
+                        asked.uid(),
+                        PairRequestStatus.DECLINED,
+                        asked.name(),
+                        URL_THERE,
+                        FederationContractVersions.current());
+
+        assertEquals(FederationRefusal.PAIR_ANSWER_NOT_EXPECTED, refusalOf(() -> here.outgoing()
+                .receiveAnswer(answer)));
+    }
+
+    @Test
+    void aQuestionSignedByAnotherStationLearnsNothing() {
+        send();
+        var query = here.signatures().query(asked.id(), asking.uid(), asked.uid());
+
+        assertEquals(FederationRefusal.PAIR_REQUEST_STATION_SIGNATURE_NOT_GOOD, refusalOf(() -> there.incoming()
+                .status(query)));
+    }
+
+    @Test
+    void aQuestionAboutARequestNeverReceivedIsRefused() {
+        var query = here.signatures().query(asking.id(), asking.uid(), asked.uid());
+
+        assertEquals(FederationRefusal.PAIR_STATUS_NOT_HERE, refusalOf(() -> there.incoming()
+                .status(query)));
     }
 }

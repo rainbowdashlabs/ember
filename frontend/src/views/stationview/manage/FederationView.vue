@@ -4,13 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -24,14 +22,21 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import FederationCompatibilityBadge from './federationview/FederationCompatibilityBadge.vue'
+import IncomingPairRequests, { type IncomingPairRequest } from './federationview/IncomingPairRequests.vue'
+import OutgoingPairRequests from './federationview/OutgoingPairRequests.vue'
 import { federation } from '@/api'
-import type { FederationContract, PairRequestResponse, PartnerResponse } from '@/api/generated/schema'
+import type {
+  FederationContract,
+  OutgoingPairRequestResponse,
+  PairRequestResponse,
+  PartnerResponse,
+  RemotePairRequestResponse,
+} from '@/api/generated/schema'
 import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { apiErrorBody } from '@/util/apiError'
 import { describeFailure, type Failure } from '@/util/failure'
-import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -40,6 +45,8 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequestResponse[]>([])
+const remotePairRequests = ref<RemotePairRequestResponse[]>([])
+const outgoingRequests = ref<OutgoingPairRequestResponse[]>([])
 const localContract = ref<FederationContract | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 
@@ -49,28 +56,42 @@ const acceptCode = ref('')
 const acceptFailure = ref<Failure | null>(null)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  const [p, r, info] = await Promise.all([
+  const [p, r, remote, outgoing, info] = await Promise.all([
     federation.listPartners(),
     federation.listPairRequests(),
+    federation.listRemotePairRequests(),
+    federation.listOutgoingPairRequests(),
     federation.getFederationInfo(),
   ])
   partners.value = p
   pairRequests.value = r
+  remotePairRequests.value = remote
+  outgoingRequests.value = outgoing
   localContract.value = info.contract
 }, {autoLoad: false})
 
-async function handleAcceptRequest(id: number) {
+const nothingToShow = computed(() => partners.value.length === 0
+  && pairRequests.value.length === 0
+  && remotePairRequests.value.length === 0
+  && outgoingRequests.value.length === 0)
+
+/** A request of another instance is answered over its own route, since its id counts apart from the local ones. */
+async function handleAcceptRequest(request: IncomingPairRequest) {
   try {
-    await federation.acceptPairRequest(id)
+    await (request.instanceHost
+      ? federation.acceptRemotePairRequest(request.id)
+      : federation.acceptPairRequest(request.id))
     flash(t('federation.connected'))
     await reload()
     refreshSidebarCounts()
   } catch (e) { failure.value = federationFailure(e) }
 }
 
-async function handleDeclineRequest(id: number) {
+async function handleDeclineRequest(request: IncomingPairRequest) {
   try {
-    await federation.declinePairRequest(id)
+    await (request.instanceHost
+      ? federation.declineRemotePairRequest(request.id)
+      : federation.declinePairRequest(request.id))
     await reload()
     refreshSidebarCounts()
   } catch (e) { failure.value = federationFailure(e) }
@@ -97,8 +118,9 @@ async function generateInvite() {
  * reached the far side rather than one it turned down. The described failure says that better.
  */
 function refusalReason(e: unknown): string | undefined {
-  const reason = apiErrorBody(e)?.error
-  if (!reason) return undefined
+  const body = apiErrorBody(e)
+  const reason = body?.error
+  if (!reason || body?.code) return undefined
   switch (reason) {
     case 'MALFORMED': return t('federation.refused.malformed')
     case 'OTHER_INSTANCE': return t('federation.refused.otherInstance')
@@ -159,26 +181,18 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <AsyncSection
-      :empty="partners.length === 0 && pairRequests.length === 0"
+      :empty="nothingToShow"
       :empty-message="t('federation.noPartners')"
       :failure="failure"
       :loading="loading"
     >
-      <div v-if="pairRequests.length > 0" class="mb-6">
-        <SubHeader class="mb-2">{{ t('federation.pairRequests') }}</SubHeader>
-        <div class="space-y-2">
-          <NeutralContainer v-for="req in pairRequests" :key="req.id" class="flex items-center gap-2">
-            <div class="flex-1 min-w-0">
-              <div class="font-medium">{{ req.stationName }}</div>
-              <div class="text-xs text-[var(--text-muted)]">{{ formatDate(req.createdAt) }}</div>
-            </div>
-            <SecondaryButton compact @click="handleAcceptRequest(req.id)">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/> {{ t('federation.acceptRequest') }}
-            </SecondaryButton>
-            <DeleteButton @click="handleDeclineRequest(req.id)"/>
-          </NeutralContainer>
-        </div>
-      </div>
+      <IncomingPairRequests
+          :local="pairRequests"
+          :remote="remotePairRequests"
+          @accept="handleAcceptRequest"
+          @decline="handleDeclineRequest"
+      />
+      <OutgoingPairRequests :requests="outgoingRequests"/>
 
       <div class="space-y-2">
         <NeutralContainer v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2">

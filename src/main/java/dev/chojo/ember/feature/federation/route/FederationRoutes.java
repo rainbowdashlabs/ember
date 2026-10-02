@@ -22,9 +22,13 @@ import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.InviteCodeResponse;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
+import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -39,6 +43,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
 
 @Singleton
@@ -47,15 +52,21 @@ public class FederationRoutes implements Routes {
     private final FederationService service;
     private final FederationEnrollmentService enrollmentService;
     private final KnowledgeBaseFederationService kbFederationService;
+    private final IncomingPairRequestService incomingRequests;
+    private final OutgoingPairRequestService outgoingRequests;
 
     @Inject
     public FederationRoutes(
             FederationService service,
             FederationEnrollmentService enrollmentService,
-            KnowledgeBaseFederationService kbFederationService) {
+            KnowledgeBaseFederationService kbFederationService,
+            IncomingPairRequestService incomingRequests,
+            OutgoingPairRequestService outgoingRequests) {
         this.service = service;
         this.enrollmentService = enrollmentService;
         this.kbFederationService = kbFederationService;
+        this.incomingRequests = incomingRequests;
+        this.outgoingRequests = outgoingRequests;
     }
 
     @Override
@@ -90,6 +101,24 @@ public class FederationRoutes implements Routes {
                 this::declinePairRequest,
                 StationPermission.STATION_FEDERATION,
                 StepUpCategory.FEDERATION);
+        routes.get(
+                prefix + "/federation/remote-requests",
+                this::listRemotePairRequests,
+                StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/remote-requests/{id}/accept",
+                this::acceptRemotePairRequest,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
+        routes.post(
+                prefix + "/federation/remote-requests/{id}/decline",
+                this::declineRemotePairRequest,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
+        routes.get(
+                prefix + "/federation/outgoing-requests",
+                this::listOutgoingPairRequests,
+                StationPermission.STATION_FEDERATION);
         routes.post(
                 prefix + "/federation/partners/{id}/suspend",
                 this::suspendPartner,
@@ -282,6 +311,65 @@ public class FederationRoutes implements Routes {
                 .orElseThrow(FederationRefusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE::raise);
         service.declinePairRequest(requestId);
         ctx.json(new MessageResponse("Request declined"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/federation/remote-requests",
+            methods = HttpMethod.GET,
+            summary = "List the requests from stations of other instances waiting for this station",
+            tags = {"Federation"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = RemotePairRequestResponse[].class)))
+    private void listRemotePairRequests(Context ctx) {
+        var session = StationSession.from(ctx);
+        ctx.json(incomingRequests.pending(session.stationId()).stream()
+                .map(RemotePairRequestResponse::of)
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/federation/remote-requests/{id}/accept",
+            methods = HttpMethod.POST,
+            summary = "Accept a request from a station of another instance",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationPartner.class)))
+    private void acceptRemotePairRequest(Context ctx) {
+        var session = StationSession.from(ctx);
+        int requestId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(incomingRequests.accept(session.stationId(), requestId));
+    }
+
+    @OpenApi(
+            path = "/api/v1/federation/remote-requests/{id}/decline",
+            methods = HttpMethod.POST,
+            summary = "Decline a request from a station of another instance",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
+    private void declineRemotePairRequest(Context ctx) {
+        var session = StationSession.from(ctx);
+        int requestId = ctx.pathParamAsClass("id", Integer.class).get();
+        incomingRequests.decline(session.stationId(), requestId);
+        ctx.json(new MessageResponse("Request declined"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/federation/outgoing-requests",
+            methods = HttpMethod.GET,
+            summary = "List the requests this station sent to stations of other instances",
+            tags = {"Federation"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = OutgoingPairRequestResponse[].class)))
+    private void listOutgoingPairRequests(Context ctx) {
+        var session = StationSession.from(ctx);
+        ctx.json(outgoingRequests.outgoing(session.stationId()).stream()
+                .map(OutgoingPairRequestResponse::of)
+                .toList());
     }
 
     /**
@@ -557,6 +645,52 @@ public class FederationRoutes implements Routes {
     public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
 
     public record PairRequestResponse(int id, String stationName, String createdAt) {}
+
+    /**
+     * A request from a station of another instance, waiting for this station's answer.
+     *
+     * @param id           the request
+     * @param stationName  the asking station's name as its instance sent it
+     * @param instanceHost the address of the instance it lives on
+     * @param createdAt    when it arrived
+     */
+    public record RemotePairRequestResponse(int id, String stationName, String instanceHost, Instant createdAt) {
+        static RemotePairRequestResponse of(PairRequest request) {
+            return new RemotePairRequestResponse(
+                    request.id(),
+                    request.remoteStationName(),
+                    FederationService.addressOf(request.remoteBaseUrl()),
+                    request.createdAt());
+        }
+    }
+
+    /**
+     * A request this station sent to a station of another instance.
+     *
+     * @param id           the request
+     * @param stationName  the asked station's name
+     * @param instanceHost the address of the instance it lives on
+     * @param status       whether it is still waiting or was declined
+     * @param createdAt    when it was sent
+     * @param answeredAt   when it was answered, or {@code null} while waiting
+     */
+    public record OutgoingPairRequestResponse(
+            int id,
+            String stationName,
+            String instanceHost,
+            PairRequestStatus status,
+            Instant createdAt,
+            @Nullable Instant answeredAt) {
+        static OutgoingPairRequestResponse of(PairRequest request) {
+            return new OutgoingPairRequestResponse(
+                    request.id(),
+                    request.remoteStationName(),
+                    FederationService.addressOf(request.remoteBaseUrl()),
+                    request.status(),
+                    request.createdAt(),
+                    request.answeredAt());
+        }
+    }
 
     public record FederationInfoResponse(FederationContract contract) {}
 }

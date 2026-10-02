@@ -10,8 +10,13 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
+import dev.chojo.ember.feature.federation.entity.PairRequestDirection;
+import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import io.javalin.testtools.Request;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,14 +58,93 @@ class FederationRoutesTest {
             null,
             "Nachbarwache");
 
+    private static final PairRequest REMOTE_REQUEST = new PairRequest(
+            11,
+            STATION,
+            PairRequestDirection.INCOMING,
+            UUID.fromString("00000000-0000-0000-0000-000000000088"),
+            "Wache Fern",
+            "https://fern.example:8443",
+            "instance-key",
+            "station-key",
+            null,
+            PairRequestStatus.PENDING,
+            Instant.EPOCH,
+            null,
+            null);
+
     private FederationService federation;
+    private IncomingPairRequestService incoming;
+    private OutgoingPairRequestService outgoing;
     private RouteHarness harness;
 
     @BeforeEach
     void setup() {
         federation = mock(FederationService.class);
+        incoming = mock(IncomingPairRequestService.class);
+        outgoing = mock(OutgoingPairRequestService.class);
         harness = RouteHarness.serving(new FederationRoutes(
-                federation, mock(FederationEnrollmentService.class), mock(KnowledgeBaseFederationService.class)));
+                federation,
+                mock(FederationEnrollmentService.class),
+                mock(KnowledgeBaseFederationService.class),
+                incoming,
+                outgoing));
+    }
+
+    @Test
+    void requestsFromOtherInstancesNameTheInstanceTheyComeFrom() {
+        when(incoming.pending(STATION)).thenReturn(List.of(REMOTE_REQUEST));
+
+        var listed = json(harness.request(client -> client.get(PREFIX + "/federation/remote-requests", manager())))
+                .path(0);
+
+        assertEquals("Wache Fern", listed.path("stationName").asString());
+        assertEquals("fern.example:8443", listed.path("instanceHost").asString());
+    }
+
+    @Test
+    void aRequestFromAnotherInstanceIsAcceptedOrDeclinedByTheStationAsked() {
+        when(incoming.accept(STATION, 11)).thenReturn(PARTNER);
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    200,
+                    client.post(PREFIX + "/federation/remote-requests/11/accept", null, manager())
+                            .code());
+            assertEquals(
+                    200,
+                    client.post(PREFIX + "/federation/remote-requests/11/decline", null, manager())
+                            .code());
+        });
+
+        verify(incoming).accept(STATION, 11);
+        verify(incoming).decline(STATION, 11);
+    }
+
+    @Test
+    void outgoingRequestsCarryWhereTheyStand() {
+        var declined = new PairRequest(
+                12,
+                STATION,
+                PairRequestDirection.OUTGOING,
+                UUID.fromString("00000000-0000-0000-0000-000000000077"),
+                "Wache Weit",
+                "https://weit.example",
+                "instance-key",
+                null,
+                null,
+                PairRequestStatus.DECLINED,
+                Instant.EPOCH,
+                Instant.EPOCH,
+                Instant.EPOCH);
+        when(outgoing.outgoing(STATION)).thenReturn(List.of(declined));
+
+        var listed = json(harness.request(client -> client.get(PREFIX + "/federation/outgoing-requests", manager())))
+                .path(0);
+
+        assertEquals("Wache Weit", listed.path("stationName").asString());
+        assertEquals("weit.example", listed.path("instanceHost").asString());
+        assertEquals("DECLINED", listed.path("status").asString());
     }
 
     private Consumer<Request.Builder> manager() {

@@ -149,6 +149,7 @@ import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes;
 import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
 import dev.chojo.ember.feature.federation.service.LendingFeedDetails;
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.federation.transport.RoutingFederationTransport;
@@ -705,6 +706,7 @@ public class EmberModule extends AbstractModule {
 
         Multibinder<TaskSource> taskSources = Multibinder.newSetBinder(binder(), TaskSource.class);
         taskSources.addBinding().to(PageHitRecorder.class);
+        taskSources.addBinding().to(OutgoingPairRequestService.class);
         taskSources.addBinding().to(StationTrafficRecorder.class);
         taskSources.addBinding().to(ApiRequestLogger.class);
         taskSources.addBinding().to(ApplicationLogWriter.class);

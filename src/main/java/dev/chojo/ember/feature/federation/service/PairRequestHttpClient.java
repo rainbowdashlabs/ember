@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestAnswer;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestMessage;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestReceipt;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestStatusQuery;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +25,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Carries the messages about a request to federate to the other instance.
@@ -61,6 +64,38 @@ public class PairRequestHttpClient {
             log.warn("The answer of {} to a request to federate could not be read", baseUrl);
             return new Delivery.Answered(answered.status(), null, answered.body());
         }
+    }
+
+    /**
+     * Asks the instance a request was sent to where it stands.
+     *
+     * @param baseUrl where that instance is reached
+     * @param query   the signed question
+     * @return the answer, or empty where none could be had
+     */
+    public Optional<PairRequestAnswer> askStatus(String baseUrl, PairRequestStatusQuery query) {
+        if (!(post(baseUrl, RemotePairRequestRoutes.PAIR_REQUEST_STATUS, query) instanceof Delivery.Answered answered)
+                || !answered.successful()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(mapper.readValue(answered.body(), PairRequestAnswer.class));
+        } catch (RuntimeException e) {
+            log.warn("The status of a request to federate from {} could not be read", baseUrl);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Tells the instance that sent a request what its station answered.
+     *
+     * @param baseUrl where that instance is reached
+     * @param answer  the signed answer
+     * @return true when that instance took it
+     */
+    public boolean deliverAnswer(String baseUrl, PairRequestAnswer answer) {
+        return post(baseUrl, RemotePairRequestRoutes.PAIR_REQUEST_ANSWER, answer) instanceof Delivery.Answered answered
+                && answered.successful();
     }
 
     private Delivery post(String baseUrl, FederationEndpoint endpoint, Object body) {

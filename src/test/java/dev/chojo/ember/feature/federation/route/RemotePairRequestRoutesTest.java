@@ -7,11 +7,18 @@ package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestAnswer;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestMessage;
 import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestReceipt;
+import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestStatusQuery;
 import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
@@ -19,7 +26,9 @@ import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -40,13 +49,73 @@ class RemotePairRequestRoutesTest {
              "stationSignature": "station",
              "instanceSignature": "instance"}""";
 
+    private static final String QUESTION = """
+            {"requesterStationUid": "00000000-0000-0000-0000-000000000001",
+             "targetStationUid": "00000000-0000-0000-0000-000000000002",
+             "issuedAt": "2026-10-03T10:00:00Z",
+             "nonce": "nonce",
+             "stationSignature": "station",
+             "instanceSignature": "instance"}""";
+
+    private static final String ANSWER = """
+            {"requesterStationUid": "00000000-0000-0000-0000-000000000001",
+             "targetStationUid": "00000000-0000-0000-0000-000000000002",
+             "status": "DECLINED",
+             "stationName": "Wache Süd",
+             "baseUrl": "https://sued.example",
+             "issuedAt": "2026-10-03T10:00:00Z",
+             "nonce": "nonce",
+             "instanceSignature": "instance"}""";
+
     private IncomingPairRequestService incoming;
+    private OutgoingPairRequestService outgoing;
     private RouteHarness harness;
 
     @BeforeEach
     void setup() {
         incoming = mock(IncomingPairRequestService.class);
-        harness = RouteHarness.serving(new RemotePairRequestRoutes(incoming));
+        outgoing = mock(OutgoingPairRequestService.class);
+        harness = RouteHarness.serving(new RemotePairRequestRoutes(incoming, outgoing));
+    }
+
+    @Test
+    void aQuestionIsAnsweredWithWhereTheRequestStands() {
+        when(incoming.status(any(PairRequestStatusQuery.class)))
+                .thenReturn(new PairRequestAnswer(
+                        UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                        UUID.fromString("00000000-0000-0000-0000-000000000002"),
+                        PairRequestStatus.PENDING,
+                        "Wache Süd",
+                        "https://sued.example",
+                        null,
+                        null,
+                        Instant.EPOCH,
+                        "nonce",
+                        null,
+                        "instance"));
+
+        var answer = harness.request(client -> client.post(PREFIX + "/remote/pair-request/status", body(QUESTION)));
+
+        assertEquals("PENDING", json(answer).path("status").asString());
+    }
+
+    @Test
+    void aPushedAnswerIsHandedToTheAskingSide() {
+        var answer = harness.request(client -> client.post(PREFIX + "/remote/pair-request/answer", body(ANSWER)));
+
+        assertEquals(200, answer.code());
+        verify(outgoing).receiveAnswer(any(PairRequestAnswer.class));
+    }
+
+    @Test
+    void anAnswerNobodyWaitsForCarriesItsRefusal() {
+        doThrow(FederationRefusal.PAIR_ANSWER_NOT_EXPECTED.raise())
+                .when(outgoing)
+                .receiveAnswer(any(PairRequestAnswer.class));
+
+        var answer = harness.request(client -> client.post(PREFIX + "/remote/pair-request/answer", body(ANSWER)));
+
+        assertEquals(FederationRefusal.PAIR_ANSWER_NOT_EXPECTED, refusalOf(answer));
     }
 
     @Test

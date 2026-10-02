@@ -19442,6 +19442,27 @@
         }
       }
     },
+    "/api/v1/federation/outgoing-requests" : {
+      "get" : {
+        "summary" : "List the requests this station sent to stations of other instances",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OutgoingPairRequestResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/federation/partners" : {
       "get" : {
         "summary" : "List the station's federation partners",
@@ -19616,6 +19637,81 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/remote-requests" : {
+      "get" : {
+        "summary" : "List the requests from stations of other instances waiting for this station",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RemotePairRequestResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/remote-requests/{id}/accept" : {
+      "post" : {
+        "summary" : "Accept a request from a station of another instance",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/remote-requests/{id}/decline" : {
+      "post" : {
+        "summary" : "Decline a request from a station of another instance",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -58769,6 +58865,35 @@
         },
         "required" : [ "items" ]
       },
+      "OutgoingPairRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "instanceHost" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/PairRequestStatus"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "answeredAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "stationName", "instanceHost", "status", "createdAt", "answeredAt" ]
+      },
       "OutputShape" : {
         "type" : "string",
         "enum" : [ "ROWS", "SINGLE", "FLAT" ]
@@ -59001,6 +59126,10 @@
           }
         },
         "required" : [ "id", "stationName", "createdAt" ]
+      },
+      "PairRequestStatus" : {
+        "type" : "string",
+        "enum" : [ "PENDING", "ACCEPTED", "DECLINED" ]
       },
       "ParseResult" : {
         "type" : "object",
@@ -63284,6 +63413,25 @@
           }
         },
         "required" : [ "eventId", "remoteMemberId", "eventDate", "status", "partnerId" ]
+      },
+      "RemotePairRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "instanceHost" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "stationName", "instanceHost", "createdAt" ]
       },
       "RemotePlaces" : {
         "type" : "object",

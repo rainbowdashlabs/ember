@@ -17,11 +17,13 @@ import type {
     KbFile,
     KbShareRequest,
     KbShareResponse,
+    OutgoingPairRequestResponse,
     PairRequestResponse,
     PartnerResponse,
     ProtocolShareRequest,
     QuizCatalog,
     QuizShareRequest,
+    RemotePairRequestResponse,
     StationPickerResult,
     TestProtocol,
 } from './generated/schema'
@@ -138,6 +140,24 @@ export async function acceptPairRequest(id: number): Promise<void> {
 
 export async function declinePairRequest(id: number): Promise<void> {
     await client.post(`/federation/requests/${id}/decline`)
+}
+
+export async function listRemotePairRequests(): Promise<RemotePairRequestResponse[]> {
+    const res = await client.get<RemotePairRequestResponse[]>('/federation/remote-requests')
+    return res.data
+}
+
+export async function acceptRemotePairRequest(id: number): Promise<void> {
+    await client.post(`/federation/remote-requests/${id}/accept`)
+}
+
+export async function declineRemotePairRequest(id: number): Promise<void> {
+    await client.post(`/federation/remote-requests/${id}/decline`)
+}
+
+export async function listOutgoingPairRequests(): Promise<OutgoingPairRequestResponse[]> {
+    const res = await client.get<OutgoingPairRequestResponse[]>('/federation/outgoing-requests')
+    return res.data
 }
 
 export async function getFederationInfo(): Promise<FederationInfoResponse> {
