@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
+import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
@@ -34,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -271,7 +271,7 @@ public class NotificationDigest implements TaskSource {
         String count = String.valueOf(notifications.size());
         var items = new StringBuilder();
         for (var notification : notifications) {
-            items.append(itemHtml(notification, locale, baseUrl, group.stationUid()));
+            items.append(itemHtml(notification, locale, baseUrl, group.linkHome()));
         }
 
         var vars = new HashMap<String, String>();
@@ -280,7 +280,7 @@ public class NotificationDigest implements TaskSource {
         vars.put("stationName", group.name());
         vars.put("count", count);
         vars.put("items", items.toString());
-        vars.put("actionUrl", baseUrl + dashboardPath(group));
+        vars.put("actionUrl", NotificationText.landingUrl(baseUrl, group.linkHome()));
         vars.put("logoHtml", logoHtml(group, baseUrl));
 
         String subject = text.resolveLocalized(
@@ -302,13 +302,6 @@ public class NotificationDigest implements TaskSource {
         return name == null || name.isEmpty() ? account.loginName() : name;
     }
 
-    private static String dashboardPath(DigestGroup group) {
-        return switch (group.key().kind()) {
-            case STATION -> "/station/dashboard/overview";
-            case CLUSTER -> "/cluster/dashboard";
-        };
-    }
-
     private String logoHtml(DigestGroup group, String baseUrl) {
         if (group.key().kind() != DigestGroup.Kind.STATION
                 || !logoService.exists(group.key().id())) return "";
@@ -317,11 +310,11 @@ public class NotificationDigest implements TaskSource {
     }
 
     /**
-     * One notification as it reads in a digest mail. A cluster's links name no station, so they
-     * fall back to the address without one.
+     * One notification as it reads in a digest mail, its link carrying the station or the cluster
+     * the mail is about.
      */
-    private String itemHtml(Notification notification, String locale, String baseUrl, UUID stationUid) {
-        String itemUrl = text.resolveNotificationUrl(baseUrl, stationUid, notification.data());
+    private String itemHtml(Notification notification, String locale, String baseUrl, LinkHome home) {
+        String itemUrl = text.resolveNotificationUrl(baseUrl, home, notification.data());
         var item = new StringBuilder("<li class=\"notification-item\">");
         if (itemUrl != null) {
             item.append("<a href=\"").append(itemUrl).append("\" style=\"text-decoration:none;color:inherit\">");

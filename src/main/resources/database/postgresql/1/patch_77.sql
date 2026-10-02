@@ -917,3 +917,28 @@ COMMENT ON COLUMN ember_schema.movement_flow.skip_member_receipt
 
 COMMENT ON COLUMN ember_schema.item_movement_log.ack_kind
     IS 'CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not, CORRECTED when somebody put the movement where it should have been, AUTO_CONFIRMED when the chain confirmed a member''s receipt for them as soon as it was reached.';
+
+WITH renamed AS (SELECT id,
+                        jsonb_set(
+                                jsonb_set(data, '{link,route}', to_jsonb(CASE data -> 'link' ->> 'route'
+                                    WHEN 'inventory-lending-detail' THEN 'inventory-lending-request'
+                                    WHEN 'lending-request' THEN 'inventory-lending-request'
+                                    WHEN 'station-members-documents' THEN 'member-documents'
+                                    WHEN 'station-settings' THEN 'station-storage'
+                                    WHEN 'form-detail' THEN 'forms-fill'
+                                    WHEN 'forms' THEN 'forms-list'
+                                    END)),
+                                '{link,routeParams}',
+                                CASE
+                                    WHEN data -> 'link' ->> 'route' = 'station-settings' THEN '{}'::JSONB
+                                    ELSE coalesce(data -> 'link' -> 'routeParams', '{}'::JSONB)
+                                    END) AS data
+                 FROM ember_schema.notification
+                 WHERE data -> 'link' ->> 'route' IN
+                       ('inventory-lending-detail', 'lending-request', 'station-members-documents',
+                        'station-settings', 'form-detail', 'forms'))
+UPDATE ember_schema.notification n
+SET data      = renamed.data,
+    dedup_key = CASE WHEN n.dedup_key IS NOT NULL THEN md5(n.type || renamed.data::TEXT) END
+FROM renamed
+WHERE renamed.id = n.id;

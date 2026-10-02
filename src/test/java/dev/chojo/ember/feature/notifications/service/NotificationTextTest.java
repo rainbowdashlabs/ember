@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
+import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
@@ -111,11 +112,13 @@ class NotificationTextTest {
 
         assertEquals(
                 BASE + "/station/members/list?field=17&state=expiring%2Cexpired",
-                text.resolveNotificationUrl(BASE, null, data));
+                text.resolveNotificationUrl(BASE, LinkHome.station(null), data));
         assertEquals(
                 BASE + "/station/profile/managed?member=4",
                 text.resolveNotificationUrl(
-                        BASE, null, NotificationData.of(data.params(), NotificationLinks.managedProfile(4))));
+                        BASE,
+                        LinkHome.station(null),
+                        NotificationData.of(data.params(), NotificationLinks.managedProfile(4))));
     }
 
     @Test
@@ -138,27 +141,86 @@ class NotificationTextTest {
     @Test
     void resolveNotificationUrlHandlesMissingLinkUnknownRouteAndKnownRoute() {
         var noLink = new NotificationData(new NotificationParams.MemberAddedToGroup("Alpha", null), null);
-        assertNull(text.resolveNotificationUrl(BASE, null, noLink));
+        assertNull(text.resolveNotificationUrl(BASE, LinkHome.station(null), noLink));
 
         var unknown = NotificationData.of(
                 new NotificationParams.MemberAddedToGroup("Alpha", null),
                 new NotificationData.NotificationLink("bogus-route"));
-        assertEquals(BASE + "/station/dashboard/overview", text.resolveNotificationUrl(BASE, null, unknown));
+        assertEquals(
+                BASE + "/station/dashboard/overview",
+                text.resolveNotificationUrl(BASE, LinkHome.station(null), unknown));
 
         var known = NotificationData.of(
                 new NotificationParams.NewEvent("Probe", ""),
                 new NotificationData.NotificationLink("event-detail", Map.of("id", 42)));
-        assertEquals(BASE + "/station/events/42", text.resolveNotificationUrl(BASE, null, known));
+        assertEquals(BASE + "/station/events/42", text.resolveNotificationUrl(BASE, LinkHome.station(null), known));
 
         var stationUid = UUID.fromString("00000000-0000-0000-0000-000000000042");
         assertEquals(
                 BASE + "/station/events/42?station=" + stationUid,
-                text.resolveNotificationUrl(BASE, stationUid, known));
+                text.resolveNotificationUrl(BASE, LinkHome.station(stationUid), known));
 
         var cluster = NotificationData.of(
                 new NotificationParams.MemberAddedToGroup("Alpha", null),
                 new NotificationData.NotificationLink("cluster-members"));
-        assertEquals(BASE + "/cluster/members", text.resolveNotificationUrl(BASE, stationUid, cluster));
+        assertEquals(
+                BASE + "/cluster/members", text.resolveNotificationUrl(BASE, LinkHome.station(stationUid), cluster));
+    }
+
+    /**
+     * An association's mail opens the association's own pages, carries the association a reader of
+     * several lands in, and leads a link nobody knows to the association's overview rather than to a
+     * station's dashboard.
+     */
+    @Test
+    void anAssociationsLinksStayInTheAssociation() {
+        var clusterUid = UUID.fromString("00000000-0000-0000-0000-0000000000c1");
+        var home = LinkHome.cluster(clusterUid);
+        var params = new NotificationParams.ClusterApplicationSubmitted("Wache Süd");
+
+        assertEquals(
+                BASE + "/cluster/applications?cluster=" + clusterUid,
+                text.resolveNotificationUrl(
+                        BASE,
+                        home,
+                        NotificationData.of(params, new NotificationData.NotificationLink("cluster-applications"))));
+        assertEquals(
+                BASE + "/cluster/inventory?cluster=" + clusterUid,
+                text.resolveNotificationUrl(
+                        BASE,
+                        home,
+                        NotificationData.of(params, new NotificationData.NotificationLink("cluster-inventory"))));
+        assertEquals(
+                BASE + "/cluster/inventory/movements?cluster=" + clusterUid,
+                text.resolveNotificationUrl(
+                        BASE,
+                        home,
+                        NotificationData.of(params, new NotificationData.NotificationLink("cluster-movements"))));
+        assertEquals(
+                BASE + "/cluster?cluster=" + clusterUid,
+                text.resolveNotificationUrl(
+                        BASE,
+                        home,
+                        NotificationData.of(params, new NotificationData.NotificationLink("cluster-overview"))));
+        assertEquals(
+                BASE + "/cluster?cluster=" + clusterUid,
+                text.resolveNotificationUrl(
+                        BASE, home, NotificationData.of(params, new NotificationData.NotificationLink("bogus-route"))));
+        assertEquals(
+                BASE + "/station/news/7",
+                text.resolveNotificationUrl(BASE, home, NotificationData.of(params, NotificationLinks.news(7))),
+                "a station page is not given the association's identity");
+    }
+
+    /** The main button of a mail opens the start page of the station or association it is about. */
+    @Test
+    void theStartPageIsTheAreasOwn() {
+        var uid = UUID.fromString("00000000-0000-0000-0000-000000000042");
+        assertEquals(
+                BASE + "/station/dashboard/overview?station=" + uid,
+                NotificationText.landingUrl(BASE, LinkHome.station(uid)));
+        assertEquals(BASE + "/cluster?cluster=" + uid, NotificationText.landingUrl(BASE, LinkHome.cluster(uid)));
+        assertEquals(BASE + "/cluster", NotificationText.landingUrl(BASE, LinkHome.cluster(null)));
     }
 
     /**
@@ -174,7 +236,7 @@ class NotificationTextTest {
 
         assertEquals(
                 BASE + "/station/news/7?comment=42&station=" + stationUid,
-                text.resolveNotificationUrl(BASE, stationUid, data));
+                text.resolveNotificationUrl(BASE, LinkHome.station(stationUid), data));
     }
 
     /** The address of a ticket is its board and its number, and a comment on one has to fill both. */
@@ -184,7 +246,7 @@ class NotificationTextTest {
                 new NotificationParams.CommentMention("DEV-42", "Bea", "@With"),
                 NotificationLinks.comment(NotificationLinks.ticket(new BoardTicketAddress("DEV", 42), 7), 601));
 
-        String url = text.resolveNotificationUrl(BASE, null, data);
+        String url = text.resolveNotificationUrl(BASE, LinkHome.station(null), data);
 
         assertEquals(BASE + "/station/boards/DEV/tickets/42?comment=601", url);
         assertFalse(url.contains("{"), "no part of the route was left unfilled");

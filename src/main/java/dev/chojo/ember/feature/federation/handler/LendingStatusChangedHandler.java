@@ -10,13 +10,12 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.LendingStatusChanged;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class LendingStatusChangedHandler implements DomainEventHandler<LendingStatusChanged> {
@@ -36,7 +35,7 @@ public class LendingStatusChangedHandler implements DomainEventHandler<LendingSt
     public void handle(LendingStatusChanged event) {
         var data = NotificationData.of(
                 new NotificationParams.LendingStatusChange(event.stationName(), event.status()),
-                new NotificationData.NotificationLink("inventory-lending-detail", Map.of("id", event.requestId())));
+                NotificationLinks.lendingRequest(event.requestId()));
         notifier.notify(
                 StationAudience.holders(event.targetStationId(), StationPermission.INVENTORY_MANAGER),
                 event.type(),

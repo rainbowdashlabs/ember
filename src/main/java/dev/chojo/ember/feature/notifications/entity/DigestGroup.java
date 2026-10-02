@@ -22,20 +22,14 @@ import java.util.UUID;
  *
  * @param key        which station or cluster
  * @param name       what the mail calls it
- * @param stationUid the station the links in the mail open, {@code null} for a cluster
+ * @param uid        the identity of the station or cluster, which the links in the mail carry
  * @param zone       the clock its send times are read on
  * @param locale     the locale its mail is written in, as the station stored it
  * @param sendTimes  the times of day it asked for, empty where the operator's number decides
  * @param lastSent   when it was last written to, {@code null} where it never has been
  */
 public record DigestGroup(
-        Key key,
-        String name,
-        UUID stationUid,
-        ZoneId zone,
-        String locale,
-        List<LocalTime> sendTimes,
-        Instant lastSent) {
+        Key key, String name, UUID uid, ZoneId zone, String locale, List<LocalTime> sendTimes, Instant lastSent) {
 
     /** Whether the people of a station or of a cluster are meant. */
     public enum Kind {
@@ -61,5 +55,14 @@ public record DigestGroup(
      */
     public boolean isDue(Instant oldestWaiting, Duration floor, Instant now) {
         return NotificationSchedule.isDue(sendTimes, lastSent, oldestWaiting, zone, floor, now);
+    }
+
+    /**
+     * Where the links of its mail are read from.
+     *
+     * @return this station or cluster as the home of its links
+     */
+    public LinkHome linkHome() {
+        return new LinkHome(key.kind(), uid);
     }
 }

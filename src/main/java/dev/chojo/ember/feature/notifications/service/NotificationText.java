@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.notifications.service;
 
+import dev.chojo.ember.feature.notifications.entity.DigestGroup;
+import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -29,10 +31,8 @@ import java.util.UUID;
  * shown, in the app, in a mail or in a feed, so every one of those asks here and all of them read
  * the same words.
  *
- * <p>The route table maps a link's named route onto the page it opens. A recurring event has a
- * date-aware route so the reader lands on the right occurrence, and a board ticket is addressed by
- * the board's short key and the ticket's number on it rather than by primary keys, so the handlers
- * pass {@code boardKey} and {@code ticketNumber}.
+ * <p>The address a link opens comes from {@link NotificationPages}, the one table of pages for
+ * stations and associations alike.
  */
 @Singleton
 public class NotificationText {
@@ -43,29 +43,6 @@ public class NotificationText {
     public static final int BODY_SNIPPET_MAX = 500;
 
     private static final Localizer LOCALIZER = new Localizer();
-    private static final Map<String, String> ROUTE_PATHS = Map.ofEntries(
-            Map.entry("news-list", "/station/news"),
-            Map.entry("news-detail", "/station/news/{id}"),
-            Map.entry("kb-file", "/station/knowledge/file/{id}"),
-            Map.entry("events-registrations", "/station/events/registrations"),
-            Map.entry("events-upcoming", "/station/events/upcoming"),
-            Map.entry("event-detail", "/station/events/{id}"),
-            Map.entry("event-detail-date", "/station/events/{id}/{date}"),
-            Map.entry("inventory-movements", "/station/inventory/movements"),
-            Map.entry("inventory-procurement", "/station/inventory/procurement"),
-            Map.entry("members-detail", "/station/members/detail/{id}"),
-            Map.entry("members-list", "/station/members/list"),
-            Map.entry("profile", "/station/profile"),
-            Map.entry("profile-managed", "/station/profile/managed"),
-            Map.entry("cluster-members", "/cluster/members"),
-            Map.entry("dashboard-overview", "/station/dashboard/overview"),
-            Map.entry("lost-and-found", "/station/lost-and-found"),
-            Map.entry("lending-request", "/station/inventory/lending/{id}"),
-            Map.entry("inventory-self-check", "/station/inventory/self-check/{id}"),
-            Map.entry("inventory-self-check-review", "/station/inventory/checks/self/{id}"),
-            Map.entry("procedure-list", "/station/procedures"),
-            Map.entry("procedure-detail", "/station/procedures/{id}"),
-            Map.entry("ticket-detail", "/station/boards/{boardKey}/tickets/{ticketNumber}"));
 
     /** Param keys that drive pluralisation in {@link #resolveMessage}. */
     private static final List<String> COUNT_PARAMS = List.of("count", "days", "daysBefore", "pendingCount");
@@ -217,32 +194,47 @@ public class NotificationText {
 
     /**
      * Resolves the deep link URL for a notification's target entity, or {@code null} when the
-     * notification has no associated link. Unknown routes fall back to the dashboard.
+     * notification has no associated link. A route the page table does not know falls back to the
+     * start page of the area the link is read in: a station's dashboard, or the association's overview.
      *
-     * <p>The owning station's UUID is appended as a {@code ?station=<uid>} query parameter for any
-     * station-scoped link. This survives the login redirect and the cross-station picker so the
-     * recipient lands directly on the right station context even when their account is a member of
-     * several stations.
+     * <p>A link into the area it is read in carries that station's or association's identity as
+     * {@code ?station=<uid>} or {@code ?cluster=<uid>}. This survives the login redirect and the
+     * pickers, so a reader of several stations or associations lands in the right one.
      *
-     * @param baseUrl    public base URL of the deployment
-     * @param stationUid UUID of the station that owns the notification, or {@code null} for none
-     * @param data       the notification's link metadata
+     * @param baseUrl public base URL of the deployment
+     * @param home    the station or association the notification belongs to
+     * @param data    the notification's link metadata
      * @return the resolved URL or {@code null} when the notification has no link
      */
-    public @Nullable String resolveNotificationUrl(String baseUrl, @Nullable UUID stationUid, NotificationData data) {
+    public @Nullable String resolveNotificationUrl(String baseUrl, LinkHome home, NotificationData data) {
         var link = data.link();
         if (link == null) return null;
-        String pathTemplate = ROUTE_PATHS.get(link.route());
-        if (pathTemplate == null) return appendStation(baseUrl + "/station/dashboard/overview", stationUid);
+        return NotificationPages.pathOf(link.route())
+                .map(template ->
+                        withHome(baseUrl + filled(template, link.routeParams()) + queryString(link.query()), home))
+                .orElseGet(() -> landingUrl(baseUrl, home));
+    }
 
-        String path = pathTemplate;
-        var routeParams = link.routeParams();
+    /**
+     * The start page of a station or an association, where a mail's main button and a link nobody
+     * knows lead.
+     *
+     * @param baseUrl public base URL of the deployment
+     * @param home    the station or association
+     * @return the address, carrying its identity where it is known
+     */
+    public static String landingUrl(String baseUrl, LinkHome home) {
+        return withHome(baseUrl + NotificationPages.landingOf(home.kind()), home);
+    }
+
+    private static String filled(String template, @Nullable Map<String, Object> routeParams) {
+        String path = template;
         if (routeParams != null) {
             for (var entry : routeParams.entrySet()) {
                 path = path.replace("{" + entry.getKey() + "}", String.valueOf(entry.getValue()));
             }
         }
-        return appendStation(baseUrl + path + queryString(link.query()), stationUid);
+        return path;
     }
 
     /**
@@ -356,16 +348,21 @@ public class NotificationText {
     }
 
     /**
-     * Appends {@code ?station=<uid>} (or {@code &station=<uid>}) to {@code url} when {@code uid}
-     * is non-null and the URL points at a station-scoped path. Leaves non-station paths untouched
-     * so help-center or admin URLs don't accidentally carry station context.
+     * Appends {@code station=<uid>} or {@code cluster=<uid>} to {@code url} when the home's identity
+     * is known and the URL points into the home's own area. A link into another area is left
+     * untouched, so a station's mail never names a station on an association's page.
      */
-    private static String appendStation(String url, @Nullable UUID stationUid) {
-        if (stationUid == null) return url;
+    private static String withHome(String url, LinkHome home) {
+        UUID uid = home.uid();
+        if (uid == null) return url;
         int pathStart = url.indexOf("/", url.indexOf("://") + 3);
-        if (pathStart < 0 || !url.substring(pathStart).startsWith("/station/")) return url;
+        String path = pathStart < 0 ? "" : url.substring(pathStart);
+        String area = home.kind() == DigestGroup.Kind.STATION ? "station" : "cluster";
+        if (!path.equals("/" + area) && !path.startsWith("/" + area + "/") && !path.startsWith("/" + area + "?")) {
+            return url;
+        }
         char separator = url.contains("?") ? '&' : '?';
-        return url + separator + "station=" + stationUid;
+        return url + separator + area + "=" + uid;
     }
 
     /**

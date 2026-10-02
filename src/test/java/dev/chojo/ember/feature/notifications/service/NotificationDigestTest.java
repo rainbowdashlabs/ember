@@ -163,7 +163,10 @@ class NotificationDigestTest extends RepositoryTestBase {
         verify(email, never()).queueInstanceEmail(eq("still@test.com"), anyString(), anyString());
         verify(email, never()).queueStationEmail(anyInt(), anyString(), anyString(), anyString());
         assertTrue(mails.getFirst().contains("locale=de"));
-        assertTrue(mails.getFirst().contains("actionUrl=" + BASE + "/cluster/dashboard"));
+        assertTrue(mails.getFirst().contains("actionUrl=" + BASE + "/cluster?cluster=" + cluster.uid()));
+        assertTrue(
+                mails.getFirst().contains("href=\"" + BASE + "/cluster/applications?cluster=" + cluster.uid() + "\""),
+                "the item opens the association's applications, not a station's dashboard");
         assertTrue(mails.getFirst().contains("subject=Kreisverband Nord: 1 neue Benachrichtigung"));
         assertTrue(notificationRepo.findWaitingForDigest().isEmpty(), "both are marked, mailed or not");
         clusterRepo.delete(cluster.id());

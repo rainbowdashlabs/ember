@@ -10,6 +10,7 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.StorageWarningEvent;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
@@ -17,8 +18,6 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.util.SizeParser;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class StorageWarningHandler implements DomainEventHandler<StorageWarningEvent> {
@@ -44,8 +43,7 @@ public class StorageWarningHandler implements DomainEventHandler<StorageWarningE
                                 event.usedPercent(),
                                 SizeParser.formatBytes(event.usedBytes()),
                                 SizeParser.formatBytes(event.quotaBytes())),
-                        new NotificationData.NotificationLink(
-                                "station-settings", Map.of("stationId", event.stationId()))),
+                        NotificationLinks.stationStorage()),
                 Delivery.EVERY_TIME);
     }
 }

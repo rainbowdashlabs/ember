@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
@@ -190,8 +191,7 @@ public class MailImportService {
                     StationAudience.holders(mailbox.stationId(), StationPermission.DOCUMENT_READ),
                     NotificationType.MAIL_IMPORT_UNBOUND,
                     NotificationData.of(
-                            new NotificationParams.MailImportUnbound(unbound),
-                            new NotificationData.NotificationLink("station-members-documents", Map.of())),
+                            new NotificationParams.MailImportUnbound(unbound), NotificationLinks.memberDocuments()),
                     Delivery.EVERY_TIME);
         } catch (Exception e) {
             log.warn("Could not say what arrived unbound for station {}", mailbox.stationId(), e);

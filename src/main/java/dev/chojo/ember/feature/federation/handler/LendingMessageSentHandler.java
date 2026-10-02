@@ -10,14 +10,13 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.LendingMessageSent;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class LendingMessageSentHandler implements DomainEventHandler<LendingMessageSent> {
@@ -40,8 +39,7 @@ public class LendingMessageSentHandler implements DomainEventHandler<LendingMess
                 NotificationType.LENDING_NEW_MESSAGE,
                 NotificationData.of(
                         new NotificationParams.LendingNewMessage(event.senderStationName(), event.senderName()),
-                        new NotificationData.NotificationLink(
-                                "inventory-lending-detail", Map.of("id", event.requestId()))),
+                        NotificationLinks.lendingRequest(event.requestId())),
                 Delivery.EVERY_TIME);
     }
 }

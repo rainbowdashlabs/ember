@@ -148,7 +148,6 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 procedureId,
                 inventoryId,
                 null,
-                stationId,
                 today);
         seedShowcase(station.adminMember(), station.members().anfaenger(), showcase);
         log.info("Demo: Created showcase notification for every NotificationType");
@@ -353,9 +352,9 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 null),
                         NotificationLinks.ownProfile()));
 
-        var formLink = ctx.formId() != null
-                ? new NotificationData.NotificationLink("form-detail", Map.of("id", ctx.formId()))
-                : new NotificationData.NotificationLink("forms");
+        Integer formId = ctx.formId();
+        var formLink =
+                formId != null ? NotificationLinks.form(formId) : new NotificationData.NotificationLink("forms-list");
         tell(
                 memberId,
                 NotificationType.NEW_FORM,
@@ -395,7 +394,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     private void seedLendingCategory(int memberId, ShowcaseContext ctx) {
         Integer lendingRequestId = ctx.lendingRequestId();
         var lendingLink = lendingRequestId != null
-                ? new NotificationData.NotificationLink("lending-request", Map.of("id", lendingRequestId))
+                ? NotificationLinks.lendingRequest(lendingRequestId)
                 : new NotificationData.NotificationLink("dashboard-overview");
 
         tell(
@@ -467,14 +466,12 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedMiscCategory(int memberId, int otherMemberId, ShowcaseContext ctx) {
-        Integer storageStationId = ctx.stationIdForStorage();
-        var storageLink = storageStationId != null
-                ? new NotificationData.NotificationLink("station-settings", Map.of("stationId", storageStationId))
-                : new NotificationData.NotificationLink("station-settings");
         tell(
                 memberId,
                 NotificationType.STORAGE_WARNING,
-                NotificationData.of(new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"), storageLink));
+                NotificationData.of(
+                        new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"),
+                        NotificationLinks.stationStorage()));
     }
 
     /**
@@ -495,6 +492,5 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
             @Nullable Integer procedureId,
             @Nullable Integer inventoryId,
             @Nullable Integer waitlistChildId,
-            @Nullable Integer stationIdForStorage,
             LocalDate today) {}
 }

@@ -15,6 +15,7 @@ import com.rometools.rome.feed.synd.SyndContent;
 import com.rometools.rome.feed.synd.SyndContentImpl;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndEntryImpl;
+import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -134,10 +135,9 @@ public class NotificationFeedRenderer {
         entry.setPublishedDate(Date.from(notification.createdAt()));
         entry.setUpdatedDate(Date.from(notification.createdAt()));
 
-        String link = notificationText.resolveNotificationUrl(ctx.baseUrl(), ctx.stationUid(), notification.data());
-        String fallback = ctx.baseUrl() + "/station/dashboard/overview";
-        if (ctx.stationUid() != null) fallback = fallback + "?station=" + ctx.stationUid();
-        String target = link != null ? link : fallback;
+        var home = LinkHome.station(ctx.stationUid());
+        String link = notificationText.resolveNotificationUrl(ctx.baseUrl(), home, notification.data());
+        String target = link != null ? link : NotificationText.landingUrl(ctx.baseUrl(), home);
         entry.setLink(target);
 
         String author = author(notification);

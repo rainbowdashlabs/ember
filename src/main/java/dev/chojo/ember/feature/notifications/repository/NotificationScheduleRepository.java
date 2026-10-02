@@ -48,12 +48,12 @@ public class NotificationScheduleRepository {
      */
     public List<DigestGroup> findDigestGroups(Collection<Integer> stationIds, Collection<Integer> clusterIds) {
         return query("""
-                SELECT 'STATION' AS kind, s.id, s.name, s.uid AS station_uid, s.id AS clock_station_id,
+                SELECT 'STATION' AS kind, s.id, s.name, s.uid, s.id AS clock_station_id,
                        s.timezone, s.locale, s.notification_send_times, s.notification_last_sent
                 FROM station s
                 WHERE s.id = ANY(:station_ids::INT[])
                 UNION ALL
-                SELECT 'CLUSTER', c.id, c.name, NULL::UUID, home.id,
+                SELECT 'CLUSTER', c.id, c.name, c.uid, home.id,
                        home.timezone, home.locale, c.notification_send_times, c.notification_last_sent
                 FROM cluster c
                 JOIN station home ON home.id = c.home_station_id
@@ -63,7 +63,7 @@ public class NotificationScheduleRepository {
                 .map(row -> new DigestGroup(
                         new DigestGroup.Key(row.getEnum("kind", DigestGroup.Kind.class), row.getInt("id")),
                         row.getString("name"),
-                        row.get("station_uid", UUID_STRING),
+                        row.get("uid", UUID_STRING),
                         StationFormat.timezoneOf(row.getInt("clock_station_id"), row.getString("timezone")),
                         row.getString("locale"),
                         timesOf(row.getObject("notification_send_times", Array.class)),
@@ -89,12 +89,6 @@ public class NotificationScheduleRepository {
     public void setStationSendTimes(int stationId, List<LocalTime> sendTimes) {
         query("UPDATE station SET notification_send_times = :times::time[] WHERE id = :id;")
                 .single(call().bind("times", literalOf(sendTimes)).bind("id", stationId))
-                .update();
-    }
-
-    public void setClusterSendTimes(int clusterId, List<LocalTime> sendTimes) {
-        query("UPDATE cluster SET notification_send_times = :times::time[] WHERE id = :id;")
-                .single(call().bind("times", literalOf(sendTimes)).bind("id", clusterId))
                 .update();
     }
 

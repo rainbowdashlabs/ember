@@ -17,6 +17,8 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -50,7 +52,7 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         assertNull(schedule.lastSent());
         assertEquals("Europe/Berlin", schedule.zone().getId());
         assertEquals(station.name(), schedule.name());
-        assertEquals(station.uid(), schedule.stationUid());
+        assertEquals(station.uid(), schedule.uid());
     }
 
     @Test
@@ -79,10 +81,13 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         assertEquals(when, stationGroup().lastSent());
     }
 
-    /** A cluster keeps the same two things the same way, and is read by the same sweep. */
+    /**
+     * A cluster keeps the same two things the same way, and is read by the same sweep. No screen sets
+     * a cluster's times yet, so the test writes them the way the column holds them.
+     */
     @Test
     void aClusterKeepsItsOwnTimesAndItsOwnMoment() {
-        repository.setClusterSendTimes(cluster.id(), List.of(LocalTime.of(6, 30)));
+        storeClusterSendTimes(cluster.id(), "{06:30}");
         var when = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         repository.markClusterSent(cluster.id(), when);
 
@@ -92,7 +97,7 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         assertEquals(List.of(LocalTime.of(6, 30)), schedule.sendTimes());
         assertEquals(when, schedule.lastSent());
         assertEquals(new DigestGroup.Key(DigestGroup.Kind.CLUSTER, cluster.id()), schedule.key());
-        assertNull(schedule.stationUid(), "a cluster's links name no station");
+        assertEquals(cluster.uid(), schedule.uid(), "a cluster's links carry the cluster");
     }
 
     /**
@@ -105,7 +110,7 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         stationRepo.updateTimezone(home.id(), "Europe/Berlin");
         stationRepo.updateLocale(home.id(), "de-DE");
         var berlin = clusterRepo.create("Kreisverband Berlin", "keeps its home's clock", home.id());
-        repository.setClusterSendTimes(berlin.id(), List.of(LocalTime.of(7, 0)));
+        storeClusterSendTimes(berlin.id(), "{07:00}");
         try {
             var group =
                     repository.findDigestGroups(List.of(), List.of(berlin.id())).getFirst();
@@ -151,5 +156,11 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
 
     private static DigestGroup stationGroup() {
         return repository.findDigestGroups(List.of(station.id()), List.of()).getFirst();
+    }
+
+    private static void storeClusterSendTimes(int clusterId, String times) {
+        query("UPDATE cluster SET notification_send_times = :times::time[] WHERE id = :id;")
+                .single(call().bind("times", times).bind("id", clusterId))
+                .update();
     }
 }

@@ -96,6 +96,34 @@ public final class NotificationLinks {
     }
 
     /**
+     * The page of one lending request between two stations, for whichever side is told.
+     *
+     * @param requestId the lending request
+     * @return the link its notifications carry
+     */
+    public static NotificationLink lendingRequest(int requestId) {
+        return new NotificationLink("inventory-lending-request", Map.of("id", requestId));
+    }
+
+    /**
+     * The station's member documents, where mail that arrived without a member waits to be filed.
+     *
+     * @return the link the mail import's notices carry
+     */
+    public static NotificationLink memberDocuments() {
+        return new NotificationLink("member-documents", Map.of());
+    }
+
+    /**
+     * The station's storage page, which shows how much of its space is used.
+     *
+     * @return the link a storage warning carries
+     */
+    public static NotificationLink stationStorage() {
+        return new NotificationLink("station-storage", Map.of());
+    }
+
+    /**
      * The reader's own profile, which is where a member renews a date of their own.
      *
      * @return the link a member's own reminders carry
