@@ -6,12 +6,11 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
-import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -28,6 +27,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import tools.jackson.databind.node.StringNode;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -43,11 +43,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var avatars = new AvatarService(new ImageVariants(storage));
         service = new GdprDeletionService(
-                accountRepo,
-                stationMemberRepo,
-                memberLookupService,
-                avatars,
-                new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo));
+                accountRepo, stationMemberRepo, memberLookupService, avatars, newDocumentService(storage));
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");
@@ -147,7 +143,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
                 1,
                 false,
                 keptForTheRecord,
-                null,
+                Uploader.nobody(),
                 List.of(filed.id()));
         return filed;
     }
@@ -167,22 +163,26 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         assertTrue(memberDocumentRepo.findById(document).isEmpty());
     }
 
-    /** What is kept for the record outlasts the membership, so it can neither go nor lose its name. */
+    /**
+     * What is kept for the record outlasts the membership and the account. The erasure goes ahead, and
+     * the document keeps the name of the person it is about instead of the link to them, so it neither
+     * goes nor becomes the station's own paperwork.
+     */
     @Test
     @Order(41)
-    void aMemberWithDocumentsKeptForTheRecordIsNotDeleted() {
+    void anErasedAccountLeavesItsNameOnWhatIsKeptForTheRecord() {
         var filed = memberWithDocuments("gdpr-kept@test.com", true);
         int document = memberDocumentRepo
                 .findByMember(station.id(), filed.id(), true)
                 .getFirst()
                 .id();
 
-        var refused = assertThrows(RefusalResponse.class, () -> service.anonymizeMember(filed.id()));
-        var refusedAccount = assertThrows(RefusalResponse.class, () -> service.deleteAccount(filed.accountId()));
+        service.deleteAccount(Objects.requireNonNull(filed.accountId()));
 
-        assertEquals(DocumentRefusal.KEPT_DOCUMENTS_HOLD_THE_MEMBER, refused.refusal());
-        assertEquals(DocumentRefusal.KEPT_DOCUMENTS_HOLD_THE_ACCOUNT, refusedAccount.refusal());
-        assertTrue(stationMemberRepo.findById(filed.id()).isPresent());
-        assertEquals(List.of(filed.id()), memberDocumentRepo.membersOf(document));
+        assertTrue(stationMemberRepo.findById(filed.id()).isEmpty(), "the member is gone");
+        assertTrue(memberDocumentRepo.findById(document).isPresent(), "the document is kept");
+        assertTrue(memberDocumentRepo.membersOf(document).isEmpty());
+        assertEquals(List.of("Akte Mitglied"), memberDocumentRepo.departedOf(document));
+        assertFalse(memberDocumentRepo.hasNoMembers(document), "and it is still somebody's paperwork");
     }
 }

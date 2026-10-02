@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.mailimport.service;
+package dev.chojo.ember.feature.documents.service;
 
 import org.junit.jupiter.api.Test;
 

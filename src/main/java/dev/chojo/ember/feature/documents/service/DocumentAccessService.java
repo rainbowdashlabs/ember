@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
+
 /**
  * Who may list, read, add and change the documents a station keeps.
  *
@@ -64,7 +66,7 @@ public class DocumentAccessService {
      * Refuses a document the reader may not see.
      *
      * <p>The permissions of the store come first, and which one counts follows the document: see
-     * {@link DocumentService#mayRead(int, boolean, boolean)}. Without them, a document is readable
+     * {@link DocumentService#mayRead(Document, boolean, boolean)}. Without them, a document is readable
      * where it names the reader or somebody in their care and is not hidden.
      *
      * @param session  the reader
@@ -72,7 +74,7 @@ public class DocumentAccessService {
      */
     public void requireReadable(StationSession session, Document document) {
         boolean byPermission = documentService.mayRead(
-                document.id(), readsEveryMember(session), session.hasPermission(StationPermission.DOCUMENT_READ));
+                document, readsEveryMember(session), session.hasPermission(StationPermission.DOCUMENT_READ));
         if (byPermission) return;
         if (document.hidden()) throw DocumentRefusal.DOCUMENT_HIDDEN_FROM_YOU.raise();
         boolean aboutTheHousehold = guardianPolicy.household(session.user()).stream()
@@ -103,8 +105,8 @@ public class DocumentAccessService {
      * @param document the document being removed
      */
     public void requireMayDelete(StationSession session, Document document) {
-        boolean ownUpload = document.uploadedBy() != null
-                && document.uploadedBy() == session.member().id();
+        Integer uploadedBy = document.uploadedBy();
+        boolean ownUpload = uploadedBy != null && uploadedBy == session.member().id();
         if (!ownUpload) requireMayEdit(session, document.id());
     }
 
@@ -133,5 +135,21 @@ public class DocumentAccessService {
         if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
             throw DocumentRefusal.DOCUMENT_HIDING_NOT_ALLOWED.raise();
         }
+    }
+
+    /**
+     * Refuses tags, or keeping a document past the membership, to a reader who may only put a document
+     * on themselves. A tag is written into the station's own list for everybody, and what outlasts a
+     * membership is the station's decision, not the member's.
+     *
+     * @param session       the reader
+     * @param keepOnArchive whether the document is to outlast the membership
+     * @param tags          the words it is to be sorted by
+     */
+    public void requireMayLabel(StationSession session, boolean keepOnArchive, List<String> tags) {
+        if (!keepOnArchive && tags.isEmpty()) return;
+        boolean edits = session.hasPermission(StationPermission.DOCUMENT_EDIT)
+                || session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER);
+        if (!edits) throw DocumentRefusal.DOCUMENT_LABELS_NOT_YOURS_TO_SET.raise();
     }
 }

@@ -11,7 +11,7 @@ import type {
     ClusterMemberDetailResponse,
     ClusterMemberResponse,
     ManagedStationResponse,
-    MemberDocumentSummary,
+    MemberDocumentResponse,
     MemberPageResponse,
     MemberProfileResponse,
     MemberProfileValueRequest,
@@ -20,7 +20,7 @@ import type {
 } from './generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
 import {uploadFile} from './upload'
-import {downloadAuthed} from '@/util/downloadAuthed'
+import type {DocumentUpload, MemberDocumentSource} from './documents'
 
 /**
  * How a cluster member is drawn in the lists that draw a person: by their account, because somebody
@@ -174,30 +174,22 @@ export async function createManagedMember(
     return res.data
 }
 
-export async function listManagedMemberDocuments(memberId: number): Promise<MemberDocumentSummary[]> {
-    const res = await client.get<MemberDocumentSummary[]>(`/cluster/members/manage/${memberId}/documents`)
-    return res.data
-}
-
 /**
- * Files a document about somebody at a station of the association.
+ * The documents of somebody at a station of the association, as the association reaches them.
  *
- * <p>It belongs to the station that holds them, which is where the person is and where it stays when
- * the station leaves.
+ * <p>The association reads and adds, and does no more: a label, a binding or a removal is the
+ * station's business. A document it files belongs to the station that holds the person, which is
+ * where it stays when the station leaves. It is offered no picture of a document, only the document.
  */
-export async function uploadManagedMemberDocument(
-    memberId: number,
-    file: File,
-    title: string,
-): Promise<MemberDocumentSummary> {
-    return uploadFile<MemberDocumentSummary>(
-        `/cluster/members/manage/${memberId}/documents`, {file, title})
-}
-
-/** Fetches the bytes of one with the session and hands them to the reader under their own name. */
-export async function downloadManagedMemberDocument(
-    documentId: number,
-    fileName: string,
-): Promise<void> {
-    await downloadAuthed(`/cluster/members/manage/documents/${documentId}/content`, fileName)
+export const associationDocumentSource: MemberDocumentSource = {
+    async listOf(memberId: number): Promise<MemberDocumentResponse[]> {
+        const res = await client.get<MemberDocumentResponse[]>(`/cluster/members/manage/${memberId}/documents`)
+        return res.data
+    },
+    upload(memberId: number, upload: DocumentUpload): Promise<MemberDocumentResponse> {
+        return uploadFile<MemberDocumentResponse>(
+            `/cluster/members/manage/${memberId}/documents`, {file: upload.file, title: upload.title})
+    },
+    contentUrl: documentId => `/cluster/members/manage/documents/${documentId}/content`,
+    thumbnailUrl: null,
 }

@@ -14988,7 +14988,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MemberDocumentSummary"][];
+                        "application/json": components["schemas"]["MemberDocumentResponse"][];
                     };
                 };
             };
@@ -15012,7 +15012,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MemberDocumentSummary"];
+                        "application/json": components["schemas"]["MemberDocumentResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -17313,6 +17313,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    departed?: boolean;
                     memberIds?: string;
                     page?: number;
                     search?: string;
@@ -17454,7 +17455,11 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BindRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -17492,7 +17497,11 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TagsRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -17542,6 +17551,94 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/ids": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every document the filters match, by id, to act on all of them at once */
+        get: {
+            parameters: {
+                query?: {
+                    departed?: boolean;
+                    memberIds?: string;
+                    search?: string;
+                    unbound?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/prune": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove several documents in one go */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PruneRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -54639,6 +54736,9 @@ export interface components {
             party: components["schemas"]["MovementParty"];
             purpose: components["schemas"]["MovementPurpose"];
         };
+        BindRequest: {
+            memberIds?: number[] | null;
+        };
         /** @enum {string} */
         BlockAudience: "PUBLIC" | "MEMBERS";
         BlockCellRequest: {
@@ -59274,6 +59374,7 @@ export interface components {
         };
         MemberDocumentResponse: {
             createdAt: components["schemas"]["Instant"];
+            departedNames: string[];
             fileName: string;
             hasThumbnail: boolean;
             hidden: boolean;
@@ -59288,16 +59389,7 @@ export interface components {
             title: string;
             /** Format: int32 */
             uploadedBy: number | null;
-        };
-        MemberDocumentSummary: {
-            createdAt: components["schemas"]["Instant"];
-            fileName: string;
-            /** Format: int32 */
-            id: number;
-            mimeType: string;
-            /** Format: int64 */
-            sizeBytes: number;
-            title: string;
+            uploaderName: string | null;
         };
         MemberExportRequest: {
             extraFieldIds?: number[];
@@ -60817,6 +60909,9 @@ export interface components {
             memberId: number;
             membershipCreated: boolean;
             userType: components["schemas"]["StationUserType"];
+        };
+        PruneRequest: {
+            documentIds?: number[] | null;
         };
         PublicBlogEntry: {
             attachments: components["schemas"]["NewsAttachment"][];
@@ -63374,6 +63469,9 @@ export interface components {
         TagSetMembersRequest: {
             memberIds?: number[];
         };
+        TagsRequest: {
+            tags?: string[] | null;
+        };
         /** @enum {string} */
         TargetKind: "NEXT" | "PAGE" | "SUBMIT";
         /** @enum {string} */
@@ -64469,6 +64567,7 @@ export type BeaconSettingsRequest = components['schemas']['BeaconSettingsRequest
 export type BeaconStatus = components['schemas']['BeaconStatus'];
 export type BindingRequest = components['schemas']['BindingRequest'];
 export type BindingResponse = components['schemas']['BindingResponse'];
+export type BindRequest = components['schemas']['BindRequest'];
 export type BlockAudience = components['schemas']['BlockAudience'];
 export type BlockCellRequest = components['schemas']['BlockCellRequest'];
 export type BlocklistKind = components['schemas']['BlocklistKind'];
@@ -65115,7 +65214,6 @@ export type MemberAbsence = components['schemas']['MemberAbsence'];
 export type MemberCheckState = components['schemas']['MemberCheckState'];
 export type MemberCompletion = components['schemas']['MemberCompletion'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];
-export type MemberDocumentSummary = components['schemas']['MemberDocumentSummary'];
 export type MemberExportRequest = components['schemas']['MemberExportRequest'];
 export type MemberGroup = components['schemas']['MemberGroup'];
 export type MemberGroupSet = components['schemas']['MemberGroupSet'];
@@ -65328,6 +65426,7 @@ export type ProviderBlock = components['schemas']['ProviderBlock'];
 export type ProviderStanding = components['schemas']['ProviderStanding'];
 export type ProviderTestRequest = components['schemas']['ProviderTestRequest'];
 export type ProvisionedMemberResponse = components['schemas']['ProvisionedMemberResponse'];
+export type PruneRequest = components['schemas']['PruneRequest'];
 export type PublicBlogEntry = components['schemas']['PublicBlogEntry'];
 export type PublicBrowseResponse = components['schemas']['PublicBrowseResponse'];
 export type PublicConfigResponse = components['schemas']['PublicConfigResponse'];
@@ -65668,6 +65767,7 @@ export type TagRequest = components['schemas']['TagRequest'];
 export type TagResponse = components['schemas']['TagResponse'];
 export type TagScopeResponse = components['schemas']['TagScopeResponse'];
 export type TagSetMembersRequest = components['schemas']['TagSetMembersRequest'];
+export type TagsRequest = components['schemas']['TagsRequest'];
 export type TargetKind = components['schemas']['TargetKind'];
 export type TaskOutcome = components['schemas']['TaskOutcome'];
 export type TaskStatus = components['schemas']['TaskStatus'];

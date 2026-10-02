@@ -12,6 +12,7 @@ import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
@@ -22,7 +23,6 @@ import dev.chojo.ember.feature.mailimport.repository.MailImportLogRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
-import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
@@ -109,7 +109,7 @@ class MailImportCycleTest extends RepositoryTestBase {
         storageRoot = Files.createTempDirectory("mail-import-cycle");
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        var documentService = new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
+        var documentService = newDocumentService(storage);
         var quotaService = new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of()));
 
         mailboxRepository = new MailMailboxRepository();
@@ -136,7 +136,7 @@ class MailImportCycleTest extends RepositoryTestBase {
                 filingParts.documentService(),
                 logRepository,
                 filingParts.originRepository(),
-                filingParts.quotaService(),
+                new DocumentIntake(filingParts.quotaService()),
                 naming);
         return new MailImportService(
                 mailboxRepository,

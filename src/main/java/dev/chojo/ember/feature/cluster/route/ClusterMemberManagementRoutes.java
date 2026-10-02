@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FileResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -18,14 +19,12 @@ import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.MemberPageResponse;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.Search;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.MemberDocumentResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.util.SafeContentDisposition;
-import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -41,8 +40,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -66,7 +63,6 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class ClusterMemberManagementRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(ClusterMemberManagementRoutes.class);
-    private static final long MAX_UPLOAD_SIZE = 50L * 1024 * 1024;
 
     private final ClusterService clusterService;
     private final ClusterMemberManagementService managementService;
@@ -132,18 +128,10 @@ public class ClusterMemberManagementRoutes implements Routes {
             summary = "What is filed about one of the cluster's people",
             tags = {"Cluster"},
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentSummary[].class)))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse[].class)))
     private void listDocuments(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        ctx.json(managementService.documentsOf(cluster.id(), pathInt(ctx, "memberId")).stream()
-                .map(document -> new MemberDocumentSummary(
-                        document.id(),
-                        document.title(),
-                        document.fileName(),
-                        document.mimeType(),
-                        document.sizeBytes(),
-                        document.createdAt()))
-                .toList());
+        ctx.json(managementService.documentsOf(cluster.id(), pathInt(ctx, "memberId")));
     }
 
     @OpenApi(
@@ -153,41 +141,19 @@ public class ClusterMemberManagementRoutes implements Routes {
             summary = "File a document about one of the cluster's people",
             tags = {"Cluster"},
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentSummary.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void uploadDocument(Context ctx) {
         Cluster cluster = requireActive(ctx);
         UserSession session = UserSession.from(ctx);
-        var file = ctx.uploadedFile("file");
-        if (file == null) throw ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_MISSING_FILE.raise();
-        if (file.size() > MAX_UPLOAD_SIZE) throw ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_TOO_LARGE.raise();
-
-        String title = ctx.formParam("title");
-        if (title == null || title.isBlank()) title = file.filename();
-
-        byte[] data;
-        try (var in = file.content()) {
-            data = in.readAllBytes();
-        } catch (IOException e) {
-            throw ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_UNREADABLE.raise();
-        }
         var filed = managementService.fileDocument(
                 cluster.id(),
                 pathInt(ctx, "memberId"),
-                title.strip(),
-                file.filename(),
-                file.contentType(),
-                data,
-                session.memberOpt().map(StationMember::id).orElse(null));
-        ctx.status(HttpStatus.CREATED)
-                .json(new MemberDocumentSummary(
-                        filed.id(),
-                        filed.title(),
-                        filed.fileName(),
-                        filed.mimeType(),
-                        filed.sizeBytes(),
-                        filed.createdAt()));
+                ctx.formParam("title"),
+                ctx.uploadedFile("file"),
+                session.accountId());
+        ctx.status(HttpStatus.CREATED).json(managementService.view(filed));
     }
 
     @OpenApi(
@@ -200,13 +166,7 @@ public class ClusterMemberManagementRoutes implements Routes {
     private void documentContent(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var document = managementService.requireDocumentOfCluster(cluster.id(), pathInt(ctx, "documentId"));
-        byte[] data = managementService.readDocument(document);
-        var disposition = SafeInlineMime.isInlineSafe(document.mimeType())
-                ? SafeContentDisposition.Disposition.INLINE
-                : SafeContentDisposition.Disposition.ATTACHMENT;
-        ctx.contentType(SafeInlineMime.safeContentType(document.mimeType()));
-        ctx.header("Content-Disposition", SafeContentDisposition.build(disposition, document.fileName()));
-        ctx.result(data);
+        FileResponse.send(ctx, document.mimeType(), document.fileName(), managementService.readDocument(document));
     }
 
     @OpenApi(
@@ -521,8 +481,4 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     public record NewMemberResponse(
             int memberId, int accountId, @Nullable String email) {}
-
-    /** One document filed about somebody, as the association's screen lists it. */
-    public record MemberDocumentSummary(
-            int id, String title, String fileName, String mimeType, long sizeBytes, Instant createdAt) {}
 }

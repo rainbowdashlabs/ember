@@ -962,3 +962,31 @@ COMMENT ON COLUMN ember_schema.storage_backend_audit.cluster_id
 
 CREATE INDEX idx_storage_backend_audit_cluster_ts
     ON ember_schema.storage_backend_audit (cluster_id, ts DESC);
+
+ALTER TABLE ember_schema.member_document
+    ADD COLUMN uploader_account_id INTEGER REFERENCES ember_schema.account (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.member_document.uploader_account_id
+    IS 'The account that filed the document from the association, which holds no membership at the document''s station. Empty for a document filed at the station, which names its uploader as a member instead.';
+
+ALTER TABLE ember_schema.member_document_member
+    DROP CONSTRAINT member_document_member_pkey;
+
+ALTER TABLE ember_schema.member_document_member
+    ALTER COLUMN member_id DROP NOT NULL;
+
+ALTER TABLE ember_schema.member_document_member
+    ADD COLUMN departed_name TEXT;
+
+ALTER TABLE ember_schema.member_document_member
+    ADD CONSTRAINT member_document_member_once UNIQUE (document_id, member_id);
+
+ALTER TABLE ember_schema.member_document_member
+    ADD CONSTRAINT member_document_member_names_somebody CHECK (member_id IS NOT NULL OR departed_name IS NOT NULL);
+
+COMMENT ON TABLE ember_schema.member_document_member
+    IS 'Which members a document is bound to, or the name of one who was deleted while the document was kept for the record. A document with nobody left on it is deleted with the last one.';
+COMMENT ON COLUMN ember_schema.member_document_member.member_id
+    IS 'The member the document is about. Empty once that member was deleted and only their name is left.';
+COMMENT ON COLUMN ember_schema.member_document_member.departed_name
+    IS 'The name of a member who was deleted while the document was kept for the record, written when the link to them went. It keeps the document a member''s paperwork rather than the station''s own.';

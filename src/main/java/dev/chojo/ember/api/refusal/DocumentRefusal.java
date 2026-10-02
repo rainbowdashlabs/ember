@@ -53,19 +53,25 @@ public enum DocumentRefusal implements Refusal {
     /** A document heavier than the store takes. */
     DOCUMENT_UPLOAD_TOO_LARGE(14, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_TOO_LARGE),
 
-    /** A member deleted while documents kept for the record name them and nobody else, naming how many. */
-    KEPT_DOCUMENTS_HOLD_THE_MEMBER(
-            15,
-            HttpStatus.CONFLICT,
-            "Documents about this member are kept for the record and name nobody else, so the member was not "
-                    + "deleted. Archive the member instead, or remove the documents first. Documents kept"),
+    /** An upload whose bytes could not be taken in. */
+    DOCUMENT_UPLOAD_UNREADABLE(17, HttpStatus.BAD_REQUEST, "That file could not be read, so nothing was filed"),
 
-    /** An account deleted while documents kept for the record name one of its memberships and nobody else. */
-    KEPT_DOCUMENTS_HOLD_THE_ACCOUNT(
-            16,
-            HttpStatus.CONFLICT,
-            "A station keeps documents about this account for the record, so the account was not deleted. "
-                    + "The station has to archive the membership or remove the documents first. Documents kept");
+    /** An upload the station has no room left for. */
+    DOCUMENT_UPLOAD_NO_ROOM(
+            18, HttpStatus.BAD_REQUEST, "The station has no room left for that file, so nothing was filed"),
+
+    /** An upload called one kind of file and made of another. */
+    DOCUMENT_UPLOAD_NOT_WHAT_IT_IS_CALLED(
+            19,
+            HttpStatus.BAD_REQUEST,
+            "That file is called one kind of file and made of another, so nothing was filed"),
+
+    /** Tags or keeping past the membership, set by somebody who may only put a document on themselves. */
+    DOCUMENT_LABELS_NOT_YOURS_TO_SET(
+            20, HttpStatus.FORBIDDEN, "You may not tag a document or keep it past the membership"),
+
+    /** A list of members that is not a list of numbers. */
+    DOCUMENT_MEMBERS_NOT_NUMBERS(21, HttpStatus.BAD_REQUEST, "The members were not given as numbers");
 
     private final Definition definition;
 

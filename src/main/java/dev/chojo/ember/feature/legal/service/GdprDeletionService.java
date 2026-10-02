@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
@@ -93,9 +92,6 @@ public class GdprDeletionService {
         log.info("GDPR: starting account deletion for account {}", accountId);
         var members = stationMemberRepository.findAllByAccountId(accountId);
         for (var member : members) {
-            documentService.requireNothingKeptForOnly(member.id(), DocumentRefusal.KEPT_DOCUMENTS_HOLD_THE_ACCOUNT);
-        }
-        for (var member : members) {
             anonymizeMember(member.id());
         }
         deleteAccountData(accountId);
@@ -107,15 +103,14 @@ public class GdprDeletionService {
      * ({@code MEMBER_ID}) and the UUID identity ({@code MEMBER_UID}). The avatar file is removed
      * from disk as a non-DB side effect, and the account goes too when this was its only membership.
      *
-     * <p>The member's documents are released first, by the rule {@link DocumentService#releaseForDeletion}
-     * holds: without it every document naming only this member was left naming nobody, which makes it the
-     * station's own paperwork.
-     *
-     * @throws dev.chojo.ember.api.refusal.RefusalResponse {@link DocumentRefusal#KEPT_DOCUMENTS_HOLD_THE_MEMBER}
-     *         while documents kept for the record name this member and nobody else
+     * <p>The member's documents are released first, by the rule {@link DocumentService#memberLeaves} holds
+     * for a deleted member: what was not kept goes, and what was kept for the record keeps their name.
+     * Without it every document naming only this member was left naming nobody, which makes it the
+     * station's own paperwork. The name outlasts the erasure on purpose, since the record it is kept for
+     * has to say whom it is about.
      */
     public void anonymizeMember(int memberId) {
-        documentService.releaseForDeletion(memberId, DocumentRefusal.KEPT_DOCUMENTS_HOLD_THE_MEMBER);
+        documentService.memberLeaves(memberId, DocumentService.Leaving.DELETED);
         var member = stationMemberRepository.findById(memberId).orElse(null);
         Integer accountId = member != null ? member.accountId() : null;
         UUID memberUid = memberLookupService.resolveUid(memberId);

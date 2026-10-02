@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FileResponse;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
@@ -43,7 +44,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -341,11 +341,7 @@ public class MovementRoutes implements Routes {
         byte[] data = lossReportService
                 .read(movement.stationId(), document)
                 .orElseThrow(InventoryRefusal.MOVEMENT_DOCUMENT_NOT_READ::raise);
-        ctx.contentType(document.mimeType());
-        ctx.header(
-                "Content-Disposition",
-                SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, document.fileName()));
-        ctx.result(data);
+        FileResponse.send(ctx, document.mimeType(), document.fileName(), data);
     }
 
     @OpenApi(

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.mailimport.service;
 
+import dev.chojo.ember.feature.documents.entity.Uploader;
+import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
@@ -15,7 +17,6 @@ import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Attachment;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Envelope;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
-import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -40,7 +41,7 @@ public class MailFilingService {
     private final DocumentService documentService;
     private final MailImportLogRepository logRepository;
     private final MailOriginRepository originRepository;
-    private final StorageQuotaService quotaService;
+    private final DocumentIntake intake;
     private final MemberNaming memberNaming;
 
     /**
@@ -64,12 +65,12 @@ public class MailFilingService {
             DocumentService documentService,
             MailImportLogRepository logRepository,
             MailOriginRepository originRepository,
-            StorageQuotaService quotaService,
+            DocumentIntake intake,
             MemberNaming memberNaming) {
         this.documentService = documentService;
         this.logRepository = logRepository;
         this.originRepository = originRepository;
-        this.quotaService = quotaService;
+        this.intake = intake;
         this.memberNaming = memberNaming;
     }
 
@@ -97,44 +98,34 @@ public class MailFilingService {
                     null);
         }
 
-        long size = data.length;
-        long ceiling = quotaService.perFileLimitBytes(mailbox.stationId());
-        if (size > ceiling) {
-            return record(
-                    recorded,
-                    attachment,
-                    null,
-                    MailImportOutcome.TOO_LARGE,
-                    "%d bytes, over the station's limit of %d".formatted(size, ceiling),
-                    null);
+        String hash = MessageIdentity.hashOf(data);
+        var upload = new DocumentIntake.Upload(Objects.requireNonNullElse(attachment.fileName(), ""), null, data);
+        String sniffed;
+        switch (intake.judge(mailbox.stationId(), StorageCategory.MEMBER_DOCUMENTS, upload)) {
+            case DocumentIntake.Verdict.Refused refused -> {
+                String kept = refused.reason() == DocumentIntake.Reason.NO_ROOM ? hash : null;
+                return record(recorded, attachment, kept, outcomeOf(refused.reason()), refused.detail(), null);
+            }
+            case DocumentIntake.Verdict.Taken taken
+            when !taken.recognised() -> {
+                return record(
+                        recorded,
+                        attachment,
+                        null,
+                        MailImportOutcome.TYPE_NOT_ALLOWED,
+                        "The bytes are not a kind of file this can recognise",
+                        null);
+            }
+            case DocumentIntake.Verdict.Taken taken -> sniffed = taken.mimeType();
         }
-        if (size < rule.minSizeBytes()) {
+
+        if (data.length < rule.minSizeBytes()) {
             return record(
                     recorded,
                     attachment,
                     null,
                     MailImportOutcome.TOO_SMALL,
-                    "%d bytes, under the %d this rule counts as a document".formatted(size, rule.minSizeBytes()),
-                    null);
-        }
-
-        String sniffed = ContentSniffer.sniff(data);
-        if (sniffed == null) {
-            return record(
-                    recorded,
-                    attachment,
-                    null,
-                    MailImportOutcome.TYPE_NOT_ALLOWED,
-                    "The bytes are not a kind of file this can recognise",
-                    null);
-        }
-        if (!ContentSniffer.nameAgrees(attachment.fileName(), sniffed)) {
-            return record(
-                    recorded,
-                    attachment,
-                    null,
-                    MailImportOutcome.TYPE_NOT_ALLOWED,
-                    "Named as one kind of file and made of another (%s)".formatted(sniffed),
+                    "%d bytes, under the %d this rule counts as a document".formatted(data.length, rule.minSizeBytes()),
                     null);
         }
         if (!rule.acceptedTypes().contains(sniffed)) {
@@ -146,8 +137,6 @@ public class MailFilingService {
                     "%s, which this rule does not accept".formatted(sniffed),
                     null);
         }
-
-        String hash = MessageIdentity.hashOf(data);
         if (logRepository.hasImportedContent(mailbox.stationId(), hash)) {
             return record(
                     recorded,
@@ -155,18 +144,6 @@ public class MailFilingService {
                     hash,
                     MailImportOutcome.DUPLICATE,
                     "These same bytes are already in this station's store",
-                    null);
-        }
-
-        try {
-            quotaService.checkQuota(mailbox.stationId(), StorageCategory.MEMBER_DOCUMENTS, size);
-        } catch (StorageQuotaService.StorageQuotaExceededException e) {
-            return record(
-                    recorded,
-                    attachment,
-                    hash,
-                    MailImportOutcome.QUOTA_EXCEEDED,
-                    "The station has no room left for it",
                     null);
         }
 
@@ -179,7 +156,7 @@ public class MailFilingService {
                 data,
                 rule.hidden(),
                 rule.keepOnArchive(),
-                null,
+                Uploader.nobody(),
                 rule.tags());
         String sender = Objects.requireNonNull(envelope.sender(), "a rule only takes mail whose sender it trusts");
         originRepository.create(document.id(), mailbox.id(), sender, envelope.subject(), envelope.receivedAt());
@@ -216,6 +193,15 @@ public class MailFilingService {
                 outcome,
                 reason,
                 null);
+    }
+
+    /** What the import log calls a file the intake would not take. */
+    private static MailImportOutcome outcomeOf(DocumentIntake.Reason reason) {
+        return switch (reason) {
+            case TOO_LARGE -> MailImportOutcome.TOO_LARGE;
+            case NOT_WHAT_IT_IS_CALLED -> MailImportOutcome.TYPE_NOT_ALLOWED;
+            case NO_ROOM -> MailImportOutcome.QUOTA_EXCEEDED;
+        };
     }
 
     /**

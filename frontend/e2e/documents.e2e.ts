@@ -116,6 +116,28 @@ test.describe('Documents', () => {
     })
 
     /**
+     * Clearing out is choosing several documents and removing them in one go, after one question. The
+     * filter for the paperwork of people who have left is what it is usually done from.
+     */
+    test('chosen documents are removed in one go after a confirmation', async ({managerPage: page}) => {
+        const title = unique('Altlast')
+
+        await page.goto('/station/members/documents')
+        await expect(page.getByTestId('documents-departed')).toBeVisible()
+        await uploadDocument(page, title, 'altlast.txt', 'Kann weg.')
+
+        await page.getByPlaceholder('Titel oder Inhalt').fill(title)
+        const tile = page.getByTestId('document-tile').filter({hasText: title})
+        await expect(tile).toHaveCount(1)
+        await page.getByTestId('document-select').first().check()
+
+        await page.getByTestId('documents-prune').click()
+        await page.getByTestId('documents-prune-confirm').click()
+
+        await expect(tile).toHaveCount(0)
+    })
+
+    /**
      * Reading one's own documents needs no permission, and a member who was never granted the
      * upload right is offered no way in.
      */

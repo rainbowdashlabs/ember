@@ -311,7 +311,8 @@ test.describe('Cluster member screens', () => {
      *
      * The member screen showed the questions and nothing else, so a document filed at the station was
      * invisible from the association. Reading and adding is the whole of it: the document belongs to
-     * the station that holds the person, so labelling and removing stay there.
+     * the station that holds the person, so labelling and removing stay there. The panel is the
+     * station's own, so the document opens the same way and names who filed it.
      */
     test('the association files a document about somebody at one of its stations', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_MEMBER_MANAGER')
@@ -326,22 +327,28 @@ test.describe('Cluster member screens', () => {
         const panel = page.getByTestId('cluster-member-documents')
         await expect(panel).toBeVisible({timeout: 15000})
 
-        await page.getByTestId('cluster-member-document-upload').click()
-        await page.getByTestId('cluster-member-document-file').locator('input[type=file]').setInputFiles({
+        await panel.getByRole('button', {name: 'Hochladen'}).click()
+        const upload = page.getByRole('dialog')
+        await upload.locator('input[type="file"]').setInputFiles({
             name: 'nachweis.txt',
             mimeType: 'text/plain',
             buffer: Buffer.from('Ein Nachweis, vom Verband abgelegt.'),
         })
 
         const title = `Nachweis ${Date.now()}`
-        await page.getByTestId('cluster-member-document-name').fill(title)
-        await page.getByTestId('cluster-member-document-save').click()
+        await upload.getByPlaceholder('Wie das Dokument heißen soll').fill(title)
+        await upload.getByRole('button', {name: 'Hochladen'}).click()
 
-        const filed = panel.getByTestId('cluster-member-document').filter({hasText: title})
+        const filed = panel.getByTestId('document-tile').filter({hasText: title})
         await expect(filed, 'the document comes back from the server').toBeVisible({timeout: 15000})
 
+        await filed.click()
+        const opened = page.getByRole('dialog')
+        await expect(opened.getByText('Ein Nachweis, vom Verband abgelegt.')).toBeVisible()
+        await expect(opened.getByTestId('document-uploader'), 'the manager is named as who filed it').toBeVisible()
+
         const download = page.waitForEvent('download')
-        await filed.getByTestId('cluster-member-document-download').click()
+        await opened.getByRole('button', {name: 'Herunterladen'}).click()
         expect((await download).suggestedFilename()).toBe('nachweis.txt')
 
         await page.context().close()

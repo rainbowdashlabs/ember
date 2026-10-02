@@ -16,8 +16,9 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import MemberDocumentsPanel from './clustermemberdetailview/MemberDocumentsPanel.vue'
+import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import {clusterMembers} from '@/api'
+import {associationDocumentSource} from '@/api/clusterMembers'
 import {ClusterPermission} from '@/api/clusters'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -102,7 +103,15 @@ const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async 
         </PrimaryButton>
       </NeutralContainer>
 
-      <MemberDocumentsPanel v-if="!loading && name" :can-upload="editable" :member-id="memberId"/>
+      <MemberDocumentsPanel
+          v-if="!loading && name"
+          :member-id="memberId"
+          :source="associationDocumentSource"
+          :hint="t('clusterMemberDetail.documentsHint')"
+          :can-upload="editable"
+          :can-edit="false"
+          data-testid="cluster-member-documents"
+      />
     </div>
   </ViewContent>
 </template>

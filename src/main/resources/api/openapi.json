@@ -11592,7 +11592,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/MemberDocumentSummary"
+                  "$ref" : "#/components/schemas/MemberDocumentResponse"
                 }
               }
             }
@@ -11629,7 +11629,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/MemberDocumentSummary"
+                    "$ref" : "#/components/schemas/MemberDocumentResponse"
                   }
                 }
               }
@@ -13242,6 +13242,12 @@
             "type" : "boolean"
           }
         }, {
+          "name" : "departed",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
           "name" : "page",
           "in" : "query",
           "schema" : {
@@ -13256,6 +13262,83 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/documents/ids" : {
+      "get" : {
+        "summary" : "Every document the filters match, by id, to act on all of them at once",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberIds",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "search",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "unbound",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "departed",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
+    "/api/v1/documents/prune" : {
+      "post" : {
+        "summary" : "Remove several documents in one go",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PruneRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/documents/tags" : {
@@ -13343,7 +13426,16 @@
             "type" : "integer",
             "format" : "int32"
           }
-        } ]
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BindRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/documents/{id}/tags" : {
@@ -13370,7 +13462,16 @@
             "type" : "integer",
             "format" : "int32"
           }
-        } ]
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TagsRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/documents/{id}/thumbnail" : {
@@ -42517,6 +42618,18 @@
         },
         "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
       },
+      "BindRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
       "BindingRequest" : {
         "type" : "object",
         "properties" : {
@@ -55717,6 +55830,9 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
+          "uploaderName" : {
+            "type" : [ "string", "null" ]
+          },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
@@ -55727,6 +55843,12 @@
               "format" : "int32"
             }
           },
+          "departedNames" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
           "tags" : {
             "type" : "array",
             "items" : {
@@ -55734,33 +55856,7 @@
             }
           }
         },
-        "required" : [ "id", "title", "fileName", "mimeType", "sizeBytes", "hidden", "keepOnArchive", "hasThumbnail", "uploadedBy", "createdAt", "memberIds", "tags" ]
-      },
-      "MemberDocumentSummary" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "title" : {
-            "type" : "string"
-          },
-          "fileName" : {
-            "type" : "string"
-          },
-          "mimeType" : {
-            "type" : "string"
-          },
-          "sizeBytes" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "createdAt" : {
-            "$ref" : "#/components/schemas/Instant"
-          }
-        },
-        "required" : [ "id", "title", "fileName", "mimeType", "sizeBytes", "createdAt" ]
+        "required" : [ "id", "title", "fileName", "mimeType", "sizeBytes", "hidden", "keepOnArchive", "hasThumbnail", "uploadedBy", "uploaderName", "createdAt", "memberIds", "departedNames", "tags" ]
       },
       "MemberExportRequest" : {
         "type" : "object",
@@ -60228,6 +60324,18 @@
           }
         },
         "required" : [ "memberId", "accountId", "email", "firstName", "lastName", "userType", "accountCreated", "membershipCreated" ]
+      },
+      "PruneRequest" : {
+        "type" : "object",
+        "properties" : {
+          "documentIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "PublicBlogEntry" : {
         "type" : "object",
@@ -67672,6 +67780,17 @@
           }
         },
         "required" : [ "itemId", "internalId", "name", "inventoryId", "inventoryName", "artId", "stationUid", "stationName", "tagName", "available" ]
+      },
+      "TagsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "tags" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
       },
       "TargetKind" : {
         "type" : "string",

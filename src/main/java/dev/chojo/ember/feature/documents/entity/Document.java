@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.documents.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -25,8 +26,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *                      may read other members
  * @param keepOnArchive whether it survives its members being marked former
  * @param hasThumbnail  whether a picture of it was produced for the tile to show
- * @param uploadedBy    the member who put it there, or null once they are gone
- * @param createdAt     when it was put there
+ * @param uploadedBy        the member who put it there, or null once they are gone or where it was
+ *                          filed from the association
+ * @param uploaderAccountId the account that filed it from the association, which has no membership at
+ *                          this station, or null for anything filed at the station
+ * @param createdAt         when it was put there
  */
 public record Document(
         int id,
@@ -38,7 +42,8 @@ public record Document(
         boolean hidden,
         boolean keepOnArchive,
         boolean hasThumbnail,
-        Integer uploadedBy,
+        @Nullable Integer uploadedBy,
+        @Nullable Integer uploaderAccountId,
         Instant createdAt) {
 
     public static RowMapping<Document> map() {
@@ -53,6 +58,7 @@ public record Document(
                 row.getBoolean("keep_on_archive"),
                 row.getBoolean("has_thumbnail"),
                 row.getObject("uploaded_by", Integer.class),
+                row.getObject("uploader_account_id", Integer.class),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }

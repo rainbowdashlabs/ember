@@ -19,9 +19,12 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import FileView from '@/components/documents/FileView.vue'
 import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {contentUrl} from '@/api/documents'
+import {contentUrl as stationContentUrl} from '@/api/documents'
 import type {MemberDocumentResponse} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
+
+/** A member a document can be bound to, carrying when they left where they have. */
+type BoundMember = MemberLike & {formerAt?: string | null}
 
 /**
  * A document, open: what it says, whom it belongs to, and the words it is filed under.
@@ -32,14 +35,24 @@ import type {MemberLike} from '@/components/input/select/memberOption'
  */
 const modelValue = defineModel<boolean>({required: true})
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   document: MemberDocumentResponse | null
-  /** Every member of the station, to name and to choose the ones a document is bound to. */
-  allMembers?: MemberLike[]
+  /**
+   * Every member of the station, to name and to choose the ones a document is bound to. Members who
+   * have left are named as such where they are among them.
+   */
+  allMembers?: BoundMember[]
   /** Every label written so far, offered while typing. */
   allTags?: string[]
   canEdit?: boolean
-}>()
+  /** Where the document itself is served from, which depends on the door the reader comes through. */
+  contentUrl?: (documentId: number) => string
+}>(), {
+  allMembers: undefined,
+  allTags: undefined,
+  canEdit: false,
+  contentUrl: stationContentUrl,
+})
 
 const emit = defineEmits<{
   members: [documentId: number, memberIds: number[]]
@@ -59,10 +72,17 @@ watch(() => props.document, (document) => {
 
 const memberOptions = computed(() => (props.allMembers ?? []).map(fromMember))
 
-const boundNames = computed(() => (props.allMembers ?? [])
-    .filter(member => props.document?.memberIds.includes(member.id))
-    .map(member => member.name)
-    .filter((name): name is string => !!name))
+/**
+ * Whom the document names: the members bound to it, marked where they have left, and the names of
+ * members who were deleted while it was kept for them.
+ */
+const boundNames = computed(() => {
+  const bound = (props.allMembers ?? [])
+      .filter(member => props.document?.memberIds.includes(member.id) && member.name)
+      .map(member => member.formerAt ? t('documents.formerMember', {name: member.name}) : member.name as string)
+  const deleted = (props.document?.departedNames ?? []).map(name => t('documents.deletedMember', {name}))
+  return [...bound, ...deleted]
+})
 
 function saveMembers() {
   if (!props.document) return
@@ -76,7 +96,7 @@ function saveTags() {
 
 async function download() {
   if (!props.document) return
-  await downloadAuthed(contentUrl(props.document.id), props.document.fileName)
+  await downloadAuthed(props.contentUrl(props.document.id), props.document.fileName)
 }
 </script>
 
@@ -85,9 +105,12 @@ async function download() {
     <div v-if="props.document" class="space-y-4">
       <div class="space-y-1 pr-10">
         <SubHeader>{{ props.document.title }}</SubHeader>
-        <MutedText size="sm">
+        <MutedText size="sm" tag="p">
           {{ props.document.fileName }} · {{ formatSize(props.document.sizeBytes) }}
           · {{ formatDate(props.document.createdAt) }}
+        </MutedText>
+        <MutedText v-if="props.document.uploaderName" size="sm" tag="p" data-testid="document-uploader">
+          {{ t('documents.uploadedBy', {name: props.document.uploaderName}) }}
         </MutedText>
       </div>
 
@@ -97,7 +120,7 @@ async function download() {
       </div>
 
       <FileView
-          :source="contentUrl(props.document.id)"
+          :source="props.contentUrl(props.document.id)"
           :title="props.document.title"
           :mime-type="props.document.mimeType"
       />
@@ -112,6 +135,9 @@ async function download() {
                 :members="memberOptions"
                 :placeholder="t('documents.bindPlaceholder')"
             />
+            <div v-for="name in props.document.departedNames" :key="name" class="text-sm">
+              {{ t('documents.deletedMember', {name}) }}
+            </div>
             <SecondaryButton @click="saveMembers">{{ t('common.save') }}</SecondaryButton>
           </template>
           <template v-else>

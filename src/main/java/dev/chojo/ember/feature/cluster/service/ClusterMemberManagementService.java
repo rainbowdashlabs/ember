@@ -11,7 +11,11 @@ import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.MemberDocumentResponse;
+import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileAuthor;
@@ -23,8 +27,8 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.UploadedFile;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -66,6 +70,7 @@ public class ClusterMemberManagementService {
     private final UserTypeChangeService userTypeChanges;
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
+    private final DocumentCatalogService documentCatalog;
     private final FormerMemberService formerMembers;
 
     @Inject
@@ -77,6 +82,7 @@ public class ClusterMemberManagementService {
             UserTypeChangeService userTypeChanges,
             DocumentRepository documentRepository,
             DocumentService documentService,
+            DocumentCatalogService documentCatalog,
             FormerMemberService formerMembers) {
         this.formerMembers = formerMembers;
         this.memberRepository = memberRepository;
@@ -86,6 +92,7 @@ public class ClusterMemberManagementService {
         this.userTypeChanges = userTypeChanges;
         this.documentRepository = documentRepository;
         this.documentService = documentService;
+        this.documentCatalog = documentCatalog;
     }
 
     /**
@@ -128,66 +135,46 @@ public class ClusterMemberManagementService {
      *
      * <p>Everything about them, hidden ones included: somebody trusted with the people at every station is
      * trusted with what is filed about them, which is the same test the station applies to its own managers.
+     * A station that switched documents off has switched them off for the association too.
      *
      * @param clusterId the cluster acting
      * @param memberId  the member
      * @return what is filed about them
      */
-    public List<Document> documentsOf(int clusterId, int memberId) {
+    public List<MemberDocumentResponse> documentsOf(int clusterId, int memberId) {
         var member = requireMemberOfCluster(clusterId, memberId);
-        requireDocuments(member.stationId());
-        return documentRepository.findByMember(member.stationId(), memberId, true);
-    }
-
-    /**
-     * Refuses where the station keeps no documents.
-     *
-     * <p>The store belongs to the station, not to the cluster, so a station that has switched it off
-     * has switched it off for the cluster too. A cluster manager reaching past that would be filing
-     * into a store the station said it did not want.
-     */
-    private void requireDocuments(int stationId) {
-        if (stationRepository.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw ClusterRefusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS.raise();
-        }
+        return documentCatalog.forMember(member.stationId(), memberId, true, DocumentDoor.ASSOCIATION);
     }
 
     /**
      * Files a document about one of the cluster's people.
      *
      * <p>It belongs to the station that holds them rather than to the cluster, because that is where the
-     * person is and where it has to stay when the station leaves. Nothing about it says it came from here.
+     * person is and where it has to stay when the station leaves. It passes the station's intake like any
+     * other upload. The manager has no membership at that station, so their account is named as the
+     * uploader rather than a membership of theirs elsewhere, which would name a stranger on this station's
+     * paperwork.
      *
-     * @param clusterId  the cluster acting
-     * @param memberId   the member it is about
-     * @param title      what it is called
-     * @param fileName   the name it was uploaded under
-     * @param mimeType   what it is
-     * @param data       its bytes
-     * @param uploadedBy the cluster member filing it, or {@code null}
+     * @param clusterId      the cluster acting
+     * @param memberId       the member it is about
+     * @param title          what it is called, or {@code null} to call it after its file
+     * @param file           the uploaded file, or {@code null} where the request carried none
+     * @param actorAccountId the account of the manager filing it
      * @return the document as filed
      */
     public Document fileDocument(
-            int clusterId,
-            int memberId,
-            String title,
-            String fileName,
-            @Nullable String mimeType,
-            byte[] data,
-            @Nullable Integer uploadedBy) {
+            int clusterId, int memberId, @Nullable String title, @Nullable UploadedFile file, int actorAccountId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
-        requireDocuments(member.stationId());
-        return documentService.store(
-                member.stationId(),
-                List.of(memberId),
-                title,
-                fileName,
-                mimeType,
-                data,
-                false,
-                false,
-                uploadedBy,
-                List.of());
+        var filing = new DocumentService.Filing(
+                List.of(memberId), title, false, false, Uploader.account(actorAccountId), List.of());
+        return documentService.file(member.stationId(), filing, file, DocumentDoor.ASSOCIATION);
+    }
+
+    /**
+     * A document as the association's screen shows it, the same way the station's does.
+     */
+    public MemberDocumentResponse view(Document document) {
+        return documentCatalog.view(document);
     }
 
     /**
@@ -211,7 +198,9 @@ public class ClusterMemberManagementService {
      * The bytes of a document the cluster may read.
      */
     public byte[] readDocument(Document document) {
-        return documentService.read(document).orElseThrow(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_FILE_NOT_HERE::raise);
+        return documentService
+                .open(document, DocumentDoor.ASSOCIATION)
+                .orElseThrow(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_FILE_NOT_HERE::raise);
     }
 
     /**

@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.documents;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentFilter;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -151,11 +153,23 @@ class DocumentPermissionTest extends RepositoryTestBase {
     private static List<Document> storeAsSeenBy(StationPermission granted, String search) {
         boolean readsMemberDocuments = held(granted).contains(StationPermission.DOCUMENT_READ_MEMBER);
         return memberDocumentRepo.findByStation(
-                station.id(), List.of(), search, readsMemberDocuments, !readsMemberDocuments, "simple", 50, 0);
+                station.id(),
+                new DocumentFilter(List.of(), search, readsMemberDocuments, !readsMemberDocuments, false),
+                "simple",
+                50,
+                0);
     }
 
     private static Document write(String title, List<Integer> members) {
         return memberDocumentRepo.create(
-                station.id(), title, title + ".pdf", "application/pdf", 12, false, false, memberId, members);
+                station.id(),
+                title,
+                title + ".pdf",
+                "application/pdf",
+                12,
+                false,
+                false,
+                Uploader.member(memberId),
+                members);
     }
 }

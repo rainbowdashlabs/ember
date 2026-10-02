@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentFilter;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService.StoreQuery;
@@ -52,17 +53,31 @@ class DocumentCatalogServiceTest {
     void aMembersDocumentsAndThePageOfTheStoreAreRead() {
         when(documents.findByMember(3, 11, true)).thenReturn(List.of(document));
         when(documentService.searchConfigOf(3)).thenReturn("german");
-        when(documents.findByStation(3, List.of(11), "pass", true, false, "german", 24, 48))
-                .thenReturn(List.of(document));
-        when(documents.countByStation(3, List.of(11), "pass", true, false, "german"))
-                .thenReturn(49);
+        var filter = new DocumentFilter(List.of(11), "pass", true, false, false);
+        when(documents.findByStation(3, filter, "german", 24, 48)).thenReturn(List.of(document));
+        when(documents.countByStation(3, filter, "german")).thenReturn(49);
+        when(documents.idsByStation(3, filter, "german")).thenReturn(List.of(5));
         when(documents.findById(5)).thenReturn(Optional.of(document));
 
-        assertEquals(1, catalog.forMember(3, 11, true).size());
-        var page = catalog.page(3, new StoreQuery(List.of(11), "pass", true, false, 24, 2));
+        assertEquals(1, catalog.forMember(3, 11, true, DocumentDoor.ASSOCIATION).size());
+        var page = catalog.page(3, new StoreQuery(filter, 24, 2));
         assertEquals(49, page.total());
         assertEquals(1, page.documents().size());
+        assertEquals(List.of(5), catalog.ids(3, filter));
         assertEquals(document, catalog.find(5).orElseThrow());
+        verify(documentService).requireKept(3, DocumentDoor.ASSOCIATION);
+    }
+
+    /** The view names the deleted members kept on a document and whoever put it in. */
+    @Test
+    void aDocumentIsShownWithTheNamesOfTheGoneAndOfItsUploader() {
+        when(documents.departedOf(5)).thenReturn(List.of("Lena Weg"));
+        when(documents.uploaderNameOf(5)).thenReturn(Optional.of("Vera Verband"));
+
+        var view = catalog.view(document);
+
+        assertEquals(List.of("Lena Weg"), view.departedNames());
+        assertEquals("Vera Verband", view.uploaderName());
     }
 
     @Test

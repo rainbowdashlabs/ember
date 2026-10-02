@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.mailimport.service;
+package dev.chojo.ember.feature.documents.service;
 
 import org.jspecify.annotations.Nullable;
 
@@ -76,6 +76,20 @@ public final class ContentSniffer {
             case "jpg", "jpeg" -> JPEG.equals(sniffed);
             default -> true;
         };
+    }
+
+    /**
+     * Whether a file claims, by its name or by the type it was declared as, to be one of the kinds the
+     * bytes could tell. Bytes that tell nothing then contradict the claim: a picture that is not one is
+     * not to be shown as one.
+     *
+     * @param fileName     the name the file arrived under
+     * @param declaredType the type it was declared as, or null
+     * @return whether it claims a kind this recognises
+     */
+    public static boolean claimsAKnownKind(@Nullable String fileName, @Nullable String declaredType) {
+        if (declaredType != null && SUPPORTED_TYPES.contains(declaredType.toLowerCase(Locale.ROOT))) return true;
+        return SUPPORTED_TYPES.stream().anyMatch(type -> !nameAgrees(fileName, type));
     }
 
     private static boolean startsWith(byte[] data, byte[] magic) {

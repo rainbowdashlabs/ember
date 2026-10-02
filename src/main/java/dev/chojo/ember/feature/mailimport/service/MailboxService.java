@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.mailimport.service;
 import dev.chojo.ember.api.refusal.MailImportRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.conf.file.elements.MailImport;
+import dev.chojo.ember.feature.documents.service.ContentSniffer;
 import dev.chojo.ember.feature.mailimport.entity.MailImportEntry;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
 import dev.chojo.ember.feature.mailimport.entity.MailRule;

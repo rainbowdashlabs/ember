@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
@@ -13,8 +14,8 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
-import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -66,6 +68,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
                 memberDocumentRepo,
                 documentService(),
+                new DocumentCatalogService(memberDocumentRepo, documentService()),
                 new FormerMemberService(
                         stationMemberRepo,
                         accountRepo,
@@ -83,7 +86,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
     private static DocumentService documentService() {
         var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        return new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
+        return newDocumentService(storage);
     }
 
     private int freshCluster() {
@@ -492,20 +495,102 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var peopled = stationWithMember(clusterId);
 
+        var manager = freshAccount();
+
         var filed = service.fileDocument(
                 clusterId,
                 peopled.member().id(),
                 "Einverständnis",
-                "einverstaendnis.txt",
-                "text/plain",
-                "Unterschrieben".getBytes(),
-                null);
+                TestUploads.of("einverstaendnis.txt", "text/plain", "Unterschrieben".getBytes()),
+                manager.id());
 
         assertEquals(
                 peopled.station().id(), filed.stationId(), "it stays with the station, which is where the person is");
         assertEquals("Unterschrieben", new String(service.readDocument(filed)), "and it can be read back from here");
         assertTrue(service.documentsOf(clusterId, peopled.member().id()).stream()
                 .anyMatch(document -> document.id() == filed.id()));
+    }
+
+    /**
+     * The manager filing from the association has no membership at the person's station, so their
+     * account is recorded and shown by name, and no membership of theirs elsewhere is written down.
+     */
+    @Test
+    void aDocumentFiledFromTheAssociationNamesTheManagerByAccount() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        var manager = freshAccount();
+
+        var filed = service.fileDocument(
+                clusterId,
+                peopled.member().id(),
+                " ",
+                TestUploads.of("bescheid.txt", "text/plain", "Ja".getBytes()),
+                manager.id());
+
+        assertNull(filed.uploadedBy(), "no membership is named");
+        assertEquals(manager.id(), filed.uploaderAccountId());
+        assertEquals("bescheid.txt", filed.title(), "a blank title is the name of the file");
+        assertEquals(
+                "Ver " + manager.lastName(), service.view(filed).uploaderName(), "and the manager is shown by name");
+    }
+
+    /** A file passes the station's own intake from the association too: its per-file limit among them. */
+    @Test
+    void aDocumentFromTheAssociationPassesTheStationsIntake() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+
+        var missing = assertThrows(
+                RefusalResponse.class,
+                () -> service.fileDocument(
+                        clusterId,
+                        peopled.member().id(),
+                        "Leer",
+                        null,
+                        freshAccount().id()));
+        var tooLarge = assertThrows(
+                RefusalResponse.class,
+                () -> service.fileDocument(
+                        clusterId,
+                        peopled.member().id(),
+                        "Riesig",
+                        TestUploads.unreadable("riesig.pdf", Long.MAX_VALUE),
+                        freshAccount().id()));
+        var unreadable = assertThrows(
+                RefusalResponse.class,
+                () -> service.fileDocument(
+                        clusterId,
+                        peopled.member().id(),
+                        "Kaputt",
+                        TestUploads.unreadable("kaputt.pdf", 10),
+                        freshAccount().id()));
+
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_MISSING_FILE, missing.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_TOO_LARGE, tooLarge.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_UNREADABLE, unreadable.refusal());
+    }
+
+    /** A station that switched documents off has switched them off for the association, file included. */
+    @Test
+    void aStationKeepingNoDocumentsKeepsNoneForTheAssociationEither() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        var filed = service.fileDocument(
+                clusterId,
+                peopled.member().id(),
+                "Vorher",
+                TestUploads.of("vorher.txt", "text/plain", "da".getBytes()),
+                freshAccount().id());
+        stationRepo.setDisabledModules(peopled.station().id(), Set.of(StationModule.DOCUMENTS));
+
+        var listed = assertThrows(
+                RefusalResponse.class,
+                () -> service.documentsOf(clusterId, peopled.member().id()));
+        var read = assertThrows(RefusalResponse.class, () -> service.readDocument(filed));
+
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS, listed.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS, read.refusal());
     }
 
     @Test
@@ -515,7 +600,11 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         var theirs = stationWithMember(otherClusterId);
 
         var filed = service.fileDocument(
-                otherClusterId, theirs.member().id(), "Fremd", "fremd.txt", "text/plain", "Geheim".getBytes(), null);
+                otherClusterId,
+                theirs.member().id(),
+                "Fremd",
+                TestUploads.of("fremd.txt", "text/plain", "Geheim".getBytes()),
+                freshAccount().id());
 
         assertThrows(
                 RefusalResponse.class,

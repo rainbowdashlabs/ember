@@ -13,6 +13,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DocumentFilterBar from './documentsview/DocumentFilterBar.vue'
+import DocumentPruneBar from './documentsview/DocumentPruneBar.vue'
+import {useDocumentPruning} from './documentsview/useDocumentPruning'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {showToast} from '@/util/toast'
 import {fromMember} from '@/components/input/select/memberOption'
 import DocumentGrid from '@/components/documents/DocumentGrid.vue'
 import DocumentModal from '@/components/documents/DocumentModal.vue'
@@ -20,7 +24,7 @@ import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
 import {usePermissions} from '@/composables/usePermissions'
 import {StationPermission} from '@/api/types'
 import {documents as documentsApi, stationMembers} from '@/api'
-import type {DocumentUpload} from '@/api/documents'
+import type {DocumentFilter, DocumentUpload} from '@/api/documents'
 import type {MemberDocumentResponse, MemberWithName} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -33,6 +37,7 @@ const {t} = useI18n()
 const {hasPermission} = usePermissions()
 
 const canEdit = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
+const readsMembers = computed(() => hasPermission(StationPermission.DOCUMENT_READ_MEMBER))
 
 const documents = ref<MemberDocumentResponse[]>([])
 const total = ref(0)
@@ -40,6 +45,7 @@ const page = ref(0)
 const search = ref('')
 const memberFilter = ref<string[]>([])
 const unboundOnly = ref(false)
+const departedOnly = ref(false)
 const allTags = ref<string[]>([])
 const members = ref<MemberWithName[]>([])
 
@@ -51,16 +57,26 @@ const opened = ref<MemberDocumentResponse | null>(null)
 const pageSize = 24
 const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
 
-const memberOptions = computed(() => members.value.map(fromMember))
+/** The members a document can be bound to, which are the current ones; those who left are only named. */
+const currentMembers = computed(() => members.value.filter(member => !member.formerAt))
+const memberOptions = computed(() => currentMembers.value.map(fromMember))
 
-/** Fetches the page that is asked for now. */
-const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) => {
-  const result = await documentsApi.listStation({
-    page: page.value,
+/** What the store is narrowed to now. */
+function currentFilter(): DocumentFilter {
+  return {
     memberIds: memberFilter.value.map(Number),
     search: search.value.trim() || undefined,
     unbound: unboundOnly.value || undefined,
-  })
+    departed: departedOnly.value || undefined,
+  }
+}
+
+const pruning = useDocumentPruning(currentFilter)
+const {selected, confirming, busy: pruneBusy} = pruning
+
+/** Fetches the page that is asked for now. */
+const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) => {
+  const result = await documentsApi.listStation({...currentFilter(), page: page.value})
   if (!isCurrent()) return
   documents.value = result.documents
   total.value = result.total
@@ -78,10 +94,7 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 function onSearch() {
   if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    page.value = 0
-    reload()
-  }, 300)
+  searchTimeout = setTimeout(refilter, 300)
 }
 
 async function loadTags() {
@@ -92,24 +105,25 @@ async function loadTags() {
   }
 }
 
+/** Every member, those who left included, so a document still bound to one can name them. */
 async function loadMembers() {
   try {
-    members.value = await stationMembers.listMembers()
+    members.value = await stationMembers.listMembers(true)
   } catch {
     members.value = []
   }
 }
 
-watch(page, reload)
-watch(memberFilter, () => {
+/** A different filter is a different set of documents, so the choice made in the old one goes. */
+function refilter() {
   page.value = 0
+  pruning.clear()
   reload()
-}, {deep: true})
+}
 
-watch(unboundOnly, () => {
-  page.value = 0
-  reload()
-})
+watch(page, reload)
+watch(memberFilter, refilter, {deep: true})
+watch([unboundOnly, departedOnly], refilter)
 
 loadMembers()
 loadTags()
@@ -165,6 +179,29 @@ async function act(action: Promise<unknown>) {
   opened.value = documents.value.find(document => document.id === opened.value?.id) ?? null
   if (!opened.value) showDocument.value = false
 }
+
+/** Deletes the chosen documents once the reader confirmed it, and shows the store without them. */
+async function prune() {
+  failure.value = null
+  try {
+    const count = await pruning.prune()
+    showToast(t('documents.pruned', {count}), 'success')
+  } catch (e) {
+    confirming.value = false
+    failure.value = describeFailure(e, t)
+    return
+  }
+  await reload()
+}
+
+/** Chooses every document the filter matches, not only the page in front of the reader. */
+async function selectAll() {
+  try {
+    await pruning.selectAll()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+}
 </script>
 
 <template>
@@ -177,38 +214,65 @@ async function act(action: Promise<unknown>) {
           v-model:search="search"
           v-model:members="memberFilter"
           v-model:unbound="unboundOnly"
+          v-model:departed="departedOnly"
           :member-options="memberOptions"
           :can-upload="canEdit"
+          :reads-members="readsMembers"
           @search-input="onSearch"
           @upload="showUpload = true"
       />
 
+      <DocumentPruneBar
+          v-if="canEdit && total > 0"
+          :selected="selected.length"
+          :total="total"
+          :busy="pruneBusy"
+          @select-all="selectAll"
+          @clear="pruning.clear()"
+          @prune="confirming = true"
+      />
+
       <Spinner v-if="loading" size="md"/>
-      <DocumentGrid v-else :documents="documents" @open="open"/>
+      <DocumentGrid
+          v-else
+          v-model:selected="selected"
+          :documents="documents"
+          :selectable="canEdit"
+          @open="open"
+      />
 
       <ButtonRow v-if="pages > 1" align="center">
         <SecondaryButton :disabled="page === 0" @click="page -= 1">{{ t('common.previous') }}</SecondaryButton>
         <MutedText size="sm" class="text-center">{{ t('documents.pageOf', {page: page + 1, pages}) }}</MutedText>
         <SecondaryButton :disabled="page + 1 >= pages" @click="page += 1">{{ t('common.next') }}</SecondaryButton>
       </ButtonRow>
-
-      <DocumentUploadModal
-          v-model="showUpload"
-          can-hide
-          :members="members"
-          :all-tags="allTags"
-          @upload="upload"
-      />
-      <DocumentModal
-          v-model="showDocument"
-          :document="opened"
-          :all-members="members"
-          :all-tags="allTags"
-          :can-edit="canEdit"
-          @members="(id, ids) => act(documentsApi.setMembers(id, ids))"
-          @tags="(id, tags) => act(documentsApi.setTags(id, tags))"
-          @remove="document => act(documentsApi.remove(document.id))"
-      />
     </div>
+
+    <ConfirmDeleteModal
+        v-model="confirming"
+        :title="t('documents.pruneTitle')"
+        :message="t('documents.pruneMessage', {count: selected.length})"
+        :busy="pruneBusy"
+        confirm-test-id="documents-prune-confirm"
+        @confirm="prune"
+    />
+    <DocumentUploadModal
+        v-model="showUpload"
+        can-hide
+        can-label
+        :members="currentMembers"
+        :all-tags="allTags"
+        @upload="upload"
+    />
+    <DocumentModal
+        v-model="showDocument"
+        :document="opened"
+        :all-members="members"
+        :all-tags="allTags"
+        :can-edit="canEdit"
+        @members="(id, ids) => act(documentsApi.setMembers(id, ids))"
+        @tags="(id, tags) => act(documentsApi.setTags(id, tags))"
+        @remove="document => act(documentsApi.remove(document.id))"
+    />
   </ViewContent>
 </template>

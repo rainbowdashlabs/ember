@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -250,7 +251,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 12,
                 false,
                 true,
-                member.id(),
+                Uploader.member(member.id()),
                 List.of(member.id()));
         memberDocumentRepo.create(
                 stationId,
@@ -260,7 +261,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 12,
                 true,
                 false,
-                member.id(),
+                Uploader.member(member.id()),
                 List.of(member.id()));
 
         var data = gdprService.exportMemberData(member.id());

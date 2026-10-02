@@ -53,6 +53,9 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
           <font-awesome-icon :icon="['fas', 'eye-slash']" class="mr-1"/>{{ t('documents.hidden') }}
         </span>
         <span v-if="props.document.keepOnArchive">{{ t('documents.kept') }}</span>
+        <span v-for="name in props.document.departedNames" :key="name" data-testid="document-departed">
+          {{ t('documents.deletedMember', {name}) }}
+        </span>
       </div>
     </div>
   </BareButton>

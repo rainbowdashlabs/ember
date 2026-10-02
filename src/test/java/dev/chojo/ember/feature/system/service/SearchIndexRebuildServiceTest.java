@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
-import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -60,7 +60,7 @@ class SearchIndexRebuildServiceTest extends RepositoryTestBase {
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        documents = new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
+        documents = newDocumentService(storage);
         var server = new DatabaseServerRepository();
         currentMajor = String.valueOf(server.majorVersion());
         service = new SearchIndexRebuildService(
@@ -90,7 +90,7 @@ class SearchIndexRebuildServiceTest extends RepositoryTestBase {
                 text.getBytes(StandardCharsets.UTF_8),
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
     }
 

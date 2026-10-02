@@ -1712,6 +1712,17 @@ volumes:
                 + 'rechtlich bindende Dokumente gedacht, die den Austritt überdauern müssen.',
             exportText: 'Fordert jemand seine Daten an, sind die Dokumente enthalten, die über ihn '
                 + 'gehalten werden, samt Dateien und einschließlich der verborgenen.',
+            deletedText: 'Wird ein Mitglied ganz gelöscht, auch mit seinem Konto, bleibt ein '
+                + 'behaltenes Dokument mit seinem Namen stehen, gekennzeichnet als „gelöscht". Es '
+                + 'bleibt damit ein Mitgliederdokument und wird nicht zur Ablage der Wache.',
+            pruneTitle: 'Aufräumen',
+            pruneText: 'Der Schalter „Nur von Ausgeschiedenen" zeigt die Dokumente, deren Personen '
+                + 'alle ausgeschieden sind, archiviert oder gelöscht. Ein Dokument, das noch zu '
+                + 'jemandem von heute gehört, ist nicht dabei.',
+            pruneText2: 'Mit den Kästchen auf den Kacheln wählst du Dokumente aus, mit „Alle '
+                + 'auswählen" jedes, das der Filter findet, über alle Seiten. „Ausgewählte '
+                + 'löschen" entfernt sie nach einer Rückfrage in einem Zug, auch die zum Behalten '
+                + 'markierten. Dafür brauchst du „Mitgliederdokumente verwalten".',
             tip: 'Ein Dokument, das mehrere betrifft, lädst du einmal hoch und ordnest es beim '
                 + 'Öffnen den weiteren Mitgliedern zu. So bleibt es eine Datei statt drei.',
         },
@@ -4173,10 +4184,12 @@ volumes:
                 + ' Eine Frage der Wache bleibt bei der Wache, eine Frage des Verbands beim Verband.'
                 + ' Für die Person ändert sich dadurch nichts, sie sieht weiterhin ein Formular.',
             documentsTitle: 'Dokumente',
-            documentsText: 'Unter den Angaben steht, was zu der Person abgelegt ist. Der Verband liest'
-                + ' diese Dokumente und legt neue dazu; ein abgelegtes Dokument gehört der Wache, an der'
-                + ' die Person ist, und bleibt dort, wenn die Wache den Verband verlässt. Taggen,'
-                + ' auf weitere Personen legen und entfernen bleibt deshalb Sache der Wache.',
+            documentsText: 'Unter den Angaben steht, was zu der Person abgelegt ist, als Kacheln wie an'
+                + ' der Wache. Ein Klick öffnet das Dokument mit Vorschau. Der Verband liest diese'
+                + ' Dokumente und legt neue dazu; ein abgelegtes Dokument gehört der Wache, an der die'
+                + ' Person ist, und bleibt dort, wenn die Wache den Verband verlässt. Es nennt dich mit'
+                + ' Namen als die Person, die es abgelegt hat. Taggen, auf weitere Personen legen und'
+                + ' entfernen bleibt Sache der Wache.',
             limitsTitle: 'Was nicht geht',
             limitsText: 'Die eigene Mitgliedschaft und die Wachleitung lassen sich vom Verband aus nicht'
                 + ' bearbeiten. In der Liste tragen diese Zeilen deshalb keine Schaltfläche, sondern'

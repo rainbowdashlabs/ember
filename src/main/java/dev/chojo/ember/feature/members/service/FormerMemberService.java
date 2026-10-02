@@ -143,7 +143,7 @@ public class FormerMemberService {
 
         profileFields.clearOnArchive(memberId);
 
-        documentService.releaseMember(memberId);
+        documentService.memberLeaves(memberId, DocumentService.Leaving.ARCHIVED);
 
         var member = memberRepository.findById(memberId).orElseThrow();
         Integer accountId = member.accountId();

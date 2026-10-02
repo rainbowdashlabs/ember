@@ -27,6 +27,9 @@ export default {
     'D-012': DOCUMENT_NOT_YOURS_TO_ADD,
     'D-013': UPLOAD_WITHOUT_FILE,
     'D-014': 'Diese Datei ist größer, als diese Instanz annimmt',
-    'D-015': 'Dokumente über dieses Mitglied werden aufbewahrt und nennen niemanden sonst, das Mitglied wurde nicht gelöscht. Archiviere es stattdessen oder entferne zuerst die Dokumente',
-    'D-016': 'Eine Wache bewahrt Dokumente über dieses Konto auf, das Konto wurde nicht gelöscht. Die Wache muss die Mitgliedschaft zuerst archivieren oder die Dokumente entfernen',
+    'D-017': 'Diese Datei konnte nicht gelesen werden, es wurde nichts abgelegt',
+    'D-018': 'Die Wache hat keinen Platz mehr für diese Datei, es wurde nichts abgelegt',
+    'D-019': 'Diese Datei gibt sich als eine Art Datei aus und ist eine andere, es wurde nichts abgelegt',
+    'D-020': 'Du darfst ein Dokument nicht mit Tags versehen oder über die Mitgliedschaft hinaus behalten',
+    'D-021': 'Die Mitglieder wurden nicht als Nummern angegeben',
 }

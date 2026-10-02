@@ -63,7 +63,7 @@ class DocumentAccessServiceTest {
             return session.member() != null && household(session).contains(memberId);
         });
         when(guardianPolicy.household(any())).thenAnswer(invocation -> household(invocation.getArgument(0)));
-        when(documentService.mayRead(anyInt(), anyBoolean(), anyBoolean())).thenReturn(false);
+        when(documentService.mayRead(any(), anyBoolean(), anyBoolean())).thenReturn(false);
         access = new DocumentAccessService(documentRepository, documentService, guardianPolicy);
     }
 
@@ -99,6 +99,7 @@ class DocumentAccessServiceTest {
                 false,
                 false,
                 uploadedBy,
+                null,
                 Instant.now());
     }
 
@@ -148,10 +149,31 @@ class DocumentAccessServiceTest {
 
     @Test
     void thePermissionsOfTheStoreReadWhatTheyCover() {
-        when(documentService.mayRead(DOCUMENT, true, false)).thenReturn(true);
+        var hidden = document(true, null);
+        when(documentService.mayRead(hidden, true, false)).thenReturn(true);
 
-        assertDoesNotThrow(() -> access.requireReadable(
-                sessionOf(STRANGER, StationPermission.DOCUMENT_READ_MEMBER), document(true, null)));
+        assertDoesNotThrow(
+                () -> access.requireReadable(sessionOf(STRANGER, StationPermission.DOCUMENT_READ_MEMBER), hidden));
+    }
+
+    /**
+     * A member who may only put documents on themselves may not tag them, since a tag is written into the
+     * station's own list, nor keep them past the membership, which is the station's decision.
+     */
+    @Test
+    void labellingAnUploadNeedsTheRightToEditTheStore() {
+        var self = sessionOf(WARD, StationPermission.MEMBER_SELF_UPLOAD);
+
+        assertDoesNotThrow(() -> access.requireMayLabel(self, false, List.of()));
+        assertRefused(
+                DocumentRefusal.DOCUMENT_LABELS_NOT_YOURS_TO_SET, () -> access.requireMayLabel(self, true, List.of()));
+        assertRefused(
+                DocumentRefusal.DOCUMENT_LABELS_NOT_YOURS_TO_SET,
+                () -> access.requireMayLabel(self, false, List.of("Neu")));
+        assertDoesNotThrow(() -> access.requireMayLabel(
+                sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), true, List.of("Neu")));
+        assertDoesNotThrow(() ->
+                access.requireMayLabel(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT), true, List.of("Neu")));
     }
 
     @Test

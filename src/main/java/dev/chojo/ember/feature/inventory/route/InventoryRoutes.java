@@ -59,7 +59,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -982,18 +981,7 @@ public class InventoryRoutes implements Routes {
         verifyItemOwnership(id, session);
 
         String note = ctx.formParam("note");
-        var file = ctx.uploadedFile("document");
-        LossReportService.Attachment attachment = null;
-        if (file != null) {
-            try (var content = file.content()) {
-                attachment = new LossReportService.Attachment(
-                        file.filename(),
-                        Objects.requireNonNullElse(file.contentType(), "application/octet-stream"),
-                        content.readAllBytes());
-            } catch (IOException ignored) {
-                throw InventoryRefusal.LOSS_REPORT_FILE_UNREADABLE.raise();
-            }
-        }
+        var attachment = lossReportService.evidence(session.stationId(), ctx.uploadedFile("document"));
         var movement = lossReportService.report(
                 session.stationId(), id, note, attachment, session.member().id());
         ctx.status(HttpStatus.CREATED).json(movement);

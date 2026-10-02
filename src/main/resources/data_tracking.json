@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:ad0c92428958d9e3b279f984449da74a6ee80b0980aa016a30b42edb108cc811",
-  "generatedAt": "2026-10-02T10:35:49Z",
+  "schemaHash": "sha256:621294193019e7c1d0ca01b877d8b7b441d04d66d0705daff7665cae11a6737d",
+  "generatedAt": "2026-10-02T10:49:19Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -16025,7 +16025,7 @@
     "member_document": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:21fdcae3fc8f19085eab1294c274052b2f13ced859f063dd85237da9b673233d",
+      "tableHash": "sha256:b0cbdfed64bbb10e64bf6bff3869b96dd676eb3db5a3587636af12877aa9d03a",
       "columns": [
         {
           "name": "id",
@@ -16097,6 +16097,13 @@
           "type": "timestamp",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "uploader_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that filed the document from the association, which holds no membership at the document's station. Empty for a document filed at the station, which names its uploader as a member instead."
         }
       ],
       "foreignKeys": [
@@ -16111,10 +16118,19 @@
           "refTable": "station_member",
           "refColumn": "id",
           "onDelete": "SET NULL"
+        },
+        {
+          "column": "uploader_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "uploader_account_id"
+        ]
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -16122,6 +16138,10 @@
           {
             "type": "MEMBER_ID",
             "column": "uploaded_by"
+          },
+          {
+            "type": "ACCOUNT_ID",
+            "column": "uploader_account_id"
           }
         ]
       },
@@ -16132,6 +16152,11 @@
             "column": "uploaded_by",
             "strategy": "NULL",
             "reason": "FK ON DELETE SET NULL keeps the document for its remaining members"
+          },
+          {
+            "column": "uploader_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the document and drops which association manager filed it"
           }
         ]
       },
@@ -16209,7 +16234,7 @@
     "member_document_member": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:24625b5ca0710028da2eeb605554e69865d56a6e7cafaa3bdb0e15caca0d2b2f",
+      "tableHash": "sha256:329c81b819ff14788853fa507da0400551798a20d596677043f0fe12e838085f",
       "columns": [
         {
           "name": "document_id",
@@ -16220,8 +16245,16 @@
         {
           "name": "member_id",
           "type": "int4",
-          "nullable": false,
-          "verified": true
+          "nullable": true,
+          "verified": true,
+          "description": "The member the document is about. Empty once that member was deleted and only their name is left."
+        },
+        {
+          "name": "departed_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name of a member who was deleted while the document was kept for the record, written when the link to them went. It keeps the document a member's paperwork rather than the station's own."
         }
       ],
       "foreignKeys": [
@@ -16260,7 +16293,7 @@
           }
         ]
       },
-      "description": "Which members a document is bound to. A document with no member left is deleted with the last one."
+      "description": "Which members a document is bound to, or the name of one who was deleted while the document was kept for the record. A document with nobody left on it is deleted with the last one."
     },
     "member_document_search": {
       "feature": "members",

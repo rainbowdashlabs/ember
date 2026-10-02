@@ -66,6 +66,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
@@ -147,6 +148,7 @@ import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -417,6 +419,27 @@ public abstract class RepositoryTestBase {
     }
 
     /**
+     * The intake every uploaded file passes, held to the instance's default limits.
+     *
+     * @return the intake
+     */
+    protected static DocumentIntake newDocumentIntake() {
+        return new DocumentIntake(
+                new StorageQuotaService(new StorageUsageRepository(), new Storage(), new DomainEventBus(Set.of())));
+    }
+
+    /**
+     * A member document store over the given storage, with the shared repositories and the intake.
+     *
+     * @param storage where the files go
+     * @return the store
+     */
+    protected static DocumentService newDocumentService(StorageService storage) {
+        return new DocumentService(
+                memberDocumentRepo, storage, new ImageVariants(storage), stationRepo, newDocumentIntake());
+    }
+
+    /**
      * Builds every repository and service the tests share. Order matters in two places: the cluster storage
      * quota service comes after the storage usage repository it reads, and the cluster inventory service
      * after the member name resolver it reads holders' names through.
@@ -506,7 +529,8 @@ public abstract class RepositoryTestBase {
                 clusterRepo,
                 stationRepo,
                 new StorageService(new StorageBackendResolver(movementBackend), movementBackend),
-                new DomainEventBus(Set.of()));
+                new DomainEventBus(Set.of()),
+                newDocumentIntake());
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
         memberDocumentRepo = new DocumentRepository();
