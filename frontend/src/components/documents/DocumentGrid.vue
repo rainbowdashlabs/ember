@@ -19,9 +19,12 @@ const props = withDefaults(defineProps<{
   thumbnailUrl?: ((documentId: number) => string) | null
   /** Whether each tile can be chosen, for acting on several documents at once. */
   selectable?: boolean
+  /** Whether the choice is held as it is, because the documents shown are about to be replaced. */
+  choiceHeld?: boolean
 }>(), {
   thumbnailUrl: (documentId: number) => stationThumbnailUrl(documentId),
   selectable: false,
+  choiceHeld: false,
 })
 
 /** The documents chosen, by id. */
@@ -61,6 +64,7 @@ function choose(documentId: number, chosen: boolean) {
         <CheckboxInput
             :model-value="selected.includes(document.id)"
             :aria-label="t('documents.select')"
+            :disabled="props.choiceHeld"
             data-testid="document-select"
             @update:model-value="chosen => choose(document.id, chosen)"
         />

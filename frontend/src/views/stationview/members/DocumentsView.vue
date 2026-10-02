@@ -74,12 +74,26 @@ function currentFilter(): DocumentFilter {
 const pruning = useDocumentPruning(currentFilter)
 const {selected, confirming, busy: pruneBusy} = pruning
 
+/**
+ * Whether the list on screen is about to be replaced by another filter's. A document ticked on it then
+ * would be dropped with the old list or, worse, stay chosen while the new list no longer shows it, so
+ * nothing can be chosen until the narrowed list has arrived.
+ */
+const narrowing = ref(false)
+
+/** Waits for the typing to stop, so a word is one request rather than one per letter. */
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
 /** Fetches the page that is asked for now. */
 const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) => {
-  const result = await documentsApi.listStation({...currentFilter(), page: page.value})
-  if (!isCurrent()) return
-  documents.value = result.documents
-  total.value = result.total
+  try {
+    const result = await documentsApi.listStation({...currentFilter(), page: page.value})
+    if (!isCurrent()) return
+    documents.value = result.documents
+    total.value = result.total
+  } finally {
+    if (isCurrent() && !searchTimeout) narrowing.value = false
+  }
 }, {autoLoad: false})
 
 /**
@@ -89,12 +103,13 @@ const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) =>
  */
 const loading = computed(() => fetching.value && documents.value.length === 0)
 
-/** Waits for the typing to stop, so a word is one request rather than one per letter. */
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
-
 function onSearch() {
+  narrowing.value = true
   if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(refilter, 300)
+  searchTimeout = setTimeout(() => {
+    searchTimeout = null
+    refilter()
+  }, 300)
 }
 
 async function loadTags() {
@@ -116,6 +131,7 @@ async function loadMembers() {
 
 /** A different filter is a different set of documents, so the choice made in the old one goes. */
 function refilter() {
+  narrowing.value = true
   page.value = 0
   pruning.clear()
   reload()
@@ -226,7 +242,7 @@ async function selectAll() {
           v-if="canEdit && total > 0"
           :selected="selected.length"
           :total="total"
-          :busy="pruneBusy"
+          :busy="pruneBusy || narrowing"
           @select-all="selectAll"
           @clear="pruning.clear()"
           @prune="confirming = true"
@@ -238,6 +254,7 @@ async function selectAll() {
           v-model:selected="selected"
           :documents="documents"
           :selectable="canEdit"
+          :choice-held="narrowing"
           @open="open"
       />
 
